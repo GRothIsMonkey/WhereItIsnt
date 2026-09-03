@@ -1,0 +1,16 @@
+{
+  "name": "where-it-isnt-tests",
+  "private": true,
+  "description": "Offline validation suite for WHERE IT ISN'T. Loads game.html's script into a Node VM and exercises the real VoxelWorld. See README.md.",
+  "scripts": {
+    "determinism": "node determinism.js",
+    "core-disk": "node core-disk.js",
+    "journey": "node journey.js",
+    "red-light": "node red-light.js",
+    "runtime": "node runtime.js",
+    "regression": "node regression.js",
+    "performance": "node performance.js",
+    "render": "node render-journey.js"
+  },
+  "dependencies": { "three": "0.128.0" }
+}

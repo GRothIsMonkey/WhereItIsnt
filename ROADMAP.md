@@ -883,7 +883,11 @@ The Farmlands should feel rural before they feel horrific.
 # 21. PHASE 20 — FARMLANDS JOURNEY + DISCONNECTED HOME 2.0
 
 STATUS:
-CURRENT / NEXT MAJOR PHASE
+COMPLETE
+
+See PROGRESS.md for what was built, what was measured, and the known
+limitations. The requirements below are unchanged and remain the
+specification the phase was built and tested against.
 
 This phase is intentionally broader than the original concept.
 
