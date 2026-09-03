@@ -916,6 +916,35 @@ the corridor generation is unchanged.
 
 See PROGRESS.md section 0 for the full account and the measurements.
 
+PHASE 20.2 — JOURNEY GUIDANCE, LORE INSTRUCTION + COMPASS:
+COMPLETE
+
+20.1 built a journey the player had no reason to choose. 20.2 gives them a
+reason and the means to act on it, and changes no world generation at all.
+
+  THE INSTRUCTION.  The opening ends, on black and in near-silence, with
+  "At the crossroads, go east." — a pause — "Go east." It names no landmark,
+  no destination and no mechanic. There is no opening lore film yet (Phase 30
+  builds it), so this is authored as the beat that film will END on, behind one
+  entry point Phase 30 can call as its last cue.
+
+  THE COMPASS.  A tape, not a dial — a strip of heading sliding behind a fixed
+  mark, in the same panel material as the existing clock. It shows direction and
+  nothing else: no landmark marks, no distance, no arrow. Earned from the first
+  Ancient Chest cracked in the Overworld, which is already mission directive [4],
+  so no structure, quest or directive was added. It is progression state rather
+  than an inventory item, and it survives every dimension crossing.
+
+  DIRECTIONS WERE DERIVED, NOT ASSUMED.  EAST = +X and NORTH = -Z, from the
+  movement basis, the Farmlands spawn yaw and the landmark coordinates, all three
+  of which already agreed.
+
+  NOTHING MOVED.  The four-way crossroads is intact and was verified rather than
+  rebuilt; all five landmarks are within 40 blocks of their 20.1 distances; the
+  player can still go north, south, west or off-road.
+
+See PROGRESS.md section 0.5.
+
 This phase is intentionally broader than the original concept.
 
 The original idea was simply:
@@ -2766,7 +2795,8 @@ Claude Code should inspect the repository before making assumptions.
 
 Current completed milestone:
 
-Phase 20 (including the journey revision — see PROGRESS.md)
+Phase 20 (including the 20.1 journey revision and the 20.2 guidance pass —
+see PROGRESS.md)
 
 Current next major phase:
 

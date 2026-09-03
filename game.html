@@ -238,6 +238,55 @@
   }
   #phaseLabel { font-size: 12px; letter-spacing: 1px; }
 
+  /* PHASE 20.2 — THE COMPASS. Deliberately the same material as #clockWrap: the same
+     panel fill, the same 2px border in the same brass, the same 4px radius, the same
+     parchment text colour. It is a second instrument on the same dashboard rather than
+     a new piece of UI language, which is most of why it does not read as a bolted-on
+     Minecraft item. It is a TAPE, not a dial — a strip of heading that slides behind a
+     fixed centre mark — because a tape answers "which way am I facing" in one glance
+     and, unlike a rotating needle, cannot be mistaken for something that POINTS AT a
+     destination. Requirement 8 turns on exactly that distinction. */
+  #compassWrap {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 20;
+    display: none; padding: 5px 8px 4px; color: #d8cba8;
+    background: rgba(20,16,12,0.6); border: 2px solid #6b5a3c; border-radius: 4px;
+  }
+  #compassWrap.show { display: block; }
+  #compassTape { display: block; }
+
+  /* PHASE 20.2 — THE OPENING INSTRUCTION.
+
+     THIS IS NOT THE PHASE 30 LORE FILM AND DOES NOT PRETEND TO BE. That film does not
+     exist yet; the roadmap builds it in Phase 30. What this is, is the film's FINAL
+     BEAT, authored now and deliberately self-contained, so Phase 30 can absorb it by
+     calling the same controller at the end of its own sequence rather than having to
+     unpick a tutorial card.
+
+     Restraint is the whole treatment: black, near-silence, one line, a pause, one
+     shorter line, then gameplay. No panel, no border, no button, no icon, no "OBJECTIVE"
+     label — none of the tutorial screen's vocabulary. It should read as something
+     remembered rather than something displayed. */
+  #openingInstruction {
+    position: fixed; inset: 0; z-index: 60; display: none;
+    align-items: center; justify-content: center;
+    background: #000; pointer-events: none;
+  }
+  #openingInstruction.on { display: flex; }
+  /* The recall variant: no backdrop, sitting low on the screen, over live gameplay. */
+  #openingInstruction.recall { background: transparent; align-items: flex-end; }
+  #openingLine {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 26px; letter-spacing: 2.5px; color: #cbbc97;
+    text-shadow: 0 0 18px rgba(0,0,0,0.95), 0 0 42px rgba(0,0,0,0.8);
+    opacity: 0; transition: opacity 900ms ease-in-out; text-align: center;
+    padding: 0 8vw;
+  }
+  #openingInstruction.recall #openingLine {
+    font-size: 19px; color: #b6a785; margin-bottom: 16vh;
+    transition: opacity 1500ms ease-in-out;
+  }
+  #openingLine.vis { opacity: 1; }
+
   #vignetteFX { position: fixed; inset: 0; pointer-events: none; z-index: 12; mix-blend-mode: normal; }
 
   #jumpscareFlash {
@@ -435,6 +484,7 @@
       <div id="journeyStep"></div>
     </div>
   </div>
+  <div id="compassWrap"><canvas id="compassTape" width="252" height="26"></canvas></div>
   <div id="clockWrap">
     <span id="clockIcon">&#9788;</span>
     <span id="phaseLabel">DAY</span>
@@ -509,6 +559,8 @@
     <button id="reenterBtn" class="action-btn">RE-ENTER OVERWORLD</button>
   </div>
 </div>
+
+<div id="openingInstruction"><div id="openingLine"></div></div>
 
 <div id="startScreen">
   <canvas id="startEmbers"></canvas>
@@ -22450,6 +22502,63 @@ function aabbIntersect(a, b) {
 const LEVEL_XP_BASE = 30, LEVEL_XP_GROWTH = 1.35;
 function xpForLevel(level) { return Math.round(LEVEL_XP_BASE * Math.pow(LEVEL_XP_GROWTH, level - 1)); }
 
+/* =====================================================================================
+   PHASE 20.2 — WORLD DIRECTIONS, AND WHY THEY ARE WHAT THEY ARE
+
+   The compass has to name the same EAST the authored Farmland journey runs along, so
+   this mapping was DERIVED from the existing implementation rather than assumed. Three
+   independent facts in the shipped build agree on it:
+
+     1. PlayerController builds its movement basis as
+          forward = (-sin(yaw), 0, -cos(yaw))
+        so yaw = -PI/2 gives forward = (+1, 0, 0).
+     2. VoxelWorld.farmlandsSpawnYaw is exactly -PI/2, and journey.js has asserted since
+        Phase 20 that this is "the player arrives facing east". Therefore EAST = +X.
+     3. FARM_J_DIR is +1 and every landmark in the Phase 20.1 chain resolves at an
+        INCREASING x — the fallen tower, the tower, the barn, the tree and the Home all
+        sit at larger x than the arrival crossroads. The journey runs +X, i.e. east.
+
+   NORTH is then forced, not chosen: with EAST = +X and UP = +Y, a right-handed frame
+   needs NORTH = -Z (east cross north = up). The Farmlands generator already reads the
+   world that way in prose — _farmJourneySite describes the lane on a parcel row's
+   LOW-z edge as that row's "northern edge" — so the compass agrees with the vocabulary
+   the world was authored in.
+
+     NORTH = -Z      EAST = +X      SOUTH = +Z      WEST = -X
+
+   THE BEARING IS A ONE-LINER AND THAT IS THE POINT. Requirement 21 asks that the
+   compass be extremely cheap and read orientation from state that already exists, so
+   there is no scan, no raycast and no world query anywhere in this feature:
+
+     eastComponent  = forward . (1,0,0) = -sin(yaw)
+     northComponent = forward . (0,0,-1) = +cos(yaw)
+     bearing = atan2(east, north) = atan2(-sin yaw, cos yaw) = -yaw
+
+   Normalised into [0, 2PI), that is the whole of the compass's mathematics. */
+const WORLD_DIR_EAST = Object.freeze({ x: 1, z: 0 });
+const WORLD_DIR_NORTH = Object.freeze({ x: 0, z: -1 });
+/* Cardinal points in bearing order, starting at north. Used by the HUD tape and by the
+   validation suite, so a change here can never desynchronise the two. */
+const COMPASS_POINTS = Object.freeze([
+  { label: 'N', deg: 0 }, { label: 'E', deg: 90 },
+  { label: 'S', deg: 180 }, { label: 'W', deg: 270 },
+]);
+function compassBearingFromYaw(yaw) {
+  let b = -yaw % (Math.PI * 2);
+  if (b < 0) b += Math.PI * 2;
+  return b;
+}
+// Nearest cardinal letter for a bearing, for tests and for the tape's centre readout.
+function compassCardinal(bearingRad) {
+  const deg = bearingRad * 180 / Math.PI;
+  let best = COMPASS_POINTS[0], bestD = 1e9;
+  for (const p of COMPASS_POINTS) {
+    let d = Math.abs(((deg - p.deg + 540) % 360) - 180);
+    if (d < bestD) { bestD = d; best = p; }
+  }
+  return best.label;
+}
+
 class PlayerController {
   constructor(camera, world, domElement, soundEngine, uiManager) {
     this.camera = camera;
@@ -22951,6 +23060,14 @@ class PlayerController {
       if (loot) {
         this.addXP(CHEST_XP_REWARD);
         this.chestsOpened = (this.chestsOpened || 0) + 1;
+        /* PHASE 20.2 — the first Ancient Chest cracked in the OVERWORLD carries a brass
+           compass. Gated on the dimension rather than on the chest, because the two
+           Disconnected Homes have chests of their own and the compass belongs to the
+           first dimension's progression. grantCompass() is itself a one-shot latch, so
+           a second chest changes nothing. */
+        if (this.progression && !this.inFarmlands && !this.inSuburbia && !this.inFakeHaven) {
+          this.progression.grantCompass();
+        }
       }
       return;
     }
@@ -27831,6 +27948,13 @@ class UIManager {
       if (e.target === this.storageOverlay) this.closeStorage();
     });
 
+    // PHASE 20.2 — the compass tape. Hidden until the player has actually earned it.
+    this.compassWrap = document.getElementById('compassWrap');
+    this.compassTape = document.getElementById('compassTape');
+    this.compassCtx = this.compassTape ? this.compassTape.getContext('2d') : null;
+    this.compassShown = false;
+    this._compassBearing = null;
+
     this.miningReadout = document.getElementById('miningReadout');
     this.miningLabel = document.getElementById('miningLabel');
     this._miningLabelKey = null;
@@ -28389,6 +28513,122 @@ class UIManager {
     this.journeyStep.className = done ? 'show done' : 'show';
   }
 
+  /* ===================================================================================
+     PHASE 20.2 — THE COMPASS TAPE
+
+     A strip of heading sliding behind a fixed centre mark. It is drawn to a 252x26
+     canvas rather than built from DOM nodes because the tape needs sub-pixel sliding to
+     look like an instrument instead of a row of jumping letters, and moving one canvas
+     is cheaper than reflowing a dozen absolutely-positioned spans every frame.
+
+     IT COSTS ALMOST NOTHING, WHICH REQUIREMENT 21 ASKS FOR EXPLICITLY. The only input is
+     the player's yaw, which already exists; there is no world query, no scan and no
+     raycast. The redraw is also GATED: a repaint only happens when the heading has moved
+     far enough to change a pixel (the tape shows 180 degrees across 252 pixels, so
+     0.35 degrees is roughly half a pixel), which means standing still costs one float
+     comparison per frame and nothing else.
+
+     NOTHING ON IT IS A DESTINATION. Cardinal letters, intercardinal ticks and minor
+     ticks — no landmark marks, no distances, no arrows. See requirement 8: this answers
+     "which way is east", never "where is the Home". */
+  setCompassVisible(on) {
+    if (!this.compassWrap || this.compassShown === !!on) return;
+    this.compassShown = !!on;
+    this.compassWrap.classList.toggle('show', this.compassShown);
+    this._compassBearing = null;      // force a repaint the next time it is shown
+  }
+
+  updateCompass(yaw) {
+    if (!this.compassShown || !this.compassCtx) return;
+    const bearing = compassBearingFromYaw(yaw);
+    /* THE GATE. Half a pixel of travel at this scale: the tape shows 180 degrees across
+       252 pixels, so 0.35 degrees (0.0061 rad) is the smallest turn that can change a
+       pixel. Below it there is nothing to redraw.
+
+       The first version of this line also required the difference to be strictly greater
+       than zero, which inverted the whole point — a player standing perfectly still hit
+       diff === 0, failed the gate, and repainted the tape on every single frame. Caught
+       by counting real draw calls over 600 still frames in compass.js.
+
+       AND THE DIFFERENCE HAS TO BE AN ANGULAR ONE. A plain subtraction is ~2*PI for the
+       two headings either side of due north, so a player standing on the 0/360 seam —
+       a cardinal they will deliberately sit on, given what this instrument is for —
+       failed the gate on every frame and repainted forever. Wrapped into [-PI, PI], the
+       seam is just another heading. */
+    if (this._compassBearing !== null) {
+      let d = bearing - this._compassBearing;
+      if (d > Math.PI) d -= Math.PI * 2;
+      else if (d < -Math.PI) d += Math.PI * 2;
+      if (Math.abs(d) < 0.0061) return;
+    }
+    this._compassBearing = bearing;
+
+    const ctx = this.compassCtx, W = this.compassTape.width, H = this.compassTape.height;
+    const SPAN = 180;                      // degrees of heading visible across the tape
+    const pxPerDeg = W / SPAN;
+    const centreDeg = bearing * 180 / Math.PI;
+    ctx.clearRect(0, 0, W, H);
+
+    /* The marks. Everything is placed by its SIGNED offset from the current heading,
+       wrapped into [-90, +90], so the tape is seamless across the 360/0 boundary — the
+       one place a naive implementation shows a gap or a stutter. */
+    const at = (deg) => {
+      let d = ((deg - centreDeg + 540) % 360) - 180;
+      return (d >= -SPAN / 2 - 12 && d <= SPAN / 2 + 12) ? W / 2 + d * pxPerDeg : null;
+    };
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+
+    // Minor ticks every 15 degrees, intercardinals a little taller.
+    ctx.strokeStyle = '#6b5a3c';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let d = 0; d < 360; d += 15) {
+      if (d % 90 === 0) continue;                       // cardinals get a letter instead
+      const x = at(d);
+      if (x === null) continue;
+      const tall = (d % 45 === 0);
+      const px = Math.round(x) + 0.5;
+      ctx.moveTo(px, H - 7);
+      ctx.lineTo(px, H - (tall ? 13 : 10));
+    }
+    ctx.stroke();
+
+    // Intercardinal labels, quiet.
+    ctx.font = '9px monospace';
+    ctx.fillStyle = '#8a7a58';
+    for (const [deg, lab] of [[45, 'NE'], [135, 'SE'], [225, 'SW'], [315, 'NW']]) {
+      const x = at(deg);
+      if (x !== null) ctx.fillText(lab, x, 10);
+    }
+
+    // The four cardinals, brighter, from the shared table so the HUD and the tests can
+    // never disagree about which letter belongs to which bearing.
+    ctx.font = 'bold 13px monospace';
+    for (const p of COMPASS_POINTS) {
+      const x = at(p.deg);
+      if (x === null) continue;
+      const dist = Math.abs(((p.deg - centreDeg + 540) % 360) - 180);
+      ctx.fillStyle = dist < 8 ? '#f0e2b8' : '#d8cba8';   // the one you are facing lifts
+      ctx.fillText(p.label, x, 12);
+    }
+
+    // The fixed centre mark: a small brass caret and a hairline, so the eye has one
+    // unambiguous "this is where you are pointing".
+    ctx.fillStyle = '#c8a24a';
+    ctx.beginPath();
+    ctx.moveTo(W / 2, H - 3);
+    ctx.lineTo(W / 2 - 4, H + 2);
+    ctx.lineTo(W / 2 + 4, H + 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(200,162,74,0.55)';
+    ctx.beginPath();
+    ctx.moveTo(W / 2 + 0.5, 1);
+    ctx.lineTo(W / 2 + 0.5, H - 4);
+    ctx.stroke();
+  }
+
   triggerWinScreen(stage) {
     document.exitPointerLock();
     if (this.winTitle) this.winTitle.textContent = 'PURGE COMPLETE';
@@ -28537,6 +28777,114 @@ const TUTORIAL_PAGES = [
   },
 ];
 
+/* =====================================================================================
+   PHASE 20.2 — THE OPENING INSTRUCTION
+
+   THE ONLY EXPLICIT DIRECTION THE GAME EVER GIVES, and it gives it once.
+
+   THE WORDS ARE THE FEATURE. "At the crossroads, go east." — then a pause — "Go east."
+   Nothing names the water tower, the tree, the barn, the farmhouse or the Home. Nothing
+   explains why east matters or what is at the end of it. The player is told exactly one
+   thing and it is a bearing, which is precisely why the compass has to exist: without an
+   instrument the instruction is a riddle, and with one it is a decision.
+
+   IT IS THE CLOSING BEAT OF A FILM THAT DOES NOT EXIST YET. Phase 30 builds the opening
+   lore film. Rather than write that film early — which the brief forbids — this is
+   authored as the beat that film will END on, kept behind one entry point so Phase 30
+   can call `play()` as its last cue and delete nothing.
+
+   WHY IT SITS IN _start() RATHER THAN IN THE TUTORIAL. The tutorial is skippable and
+   Phase 28 removes it outright; an instruction living inside it would be lost by both.
+   _start() is the single funnel every path to gameplay passes through — finishing the
+   tutorial and skipping it both land here — so the phrase is the last thing before the
+   world appears, on every route, which is what requirement 12 asks for.
+
+   SKIPPABLE, DELIBERATELY. A player on their fifth run should not be held for nine
+   seconds. Any key or click ends it early; the words have already been said once and the
+   game never repeats them as an objective. */
+const OPENING_INSTRUCTION_LINES = Object.freeze([
+  'At the crossroads, go east.',
+  'Go east.',
+]);
+
+class OpeningInstruction {
+  constructor(soundEngine) {
+    this.sound = soundEngine;
+    this.root = document.getElementById('openingInstruction');
+    this.lineEl = document.getElementById('openingLine');
+    this.timers = [];
+    this.active = false;
+    this._onSkip = null;
+    this._skipHandler = () => { if (this.active) this._finish(); };
+  }
+
+  /* The full beat: silence, the first line, a pause, the second, then out. `onDone` is
+     invoked exactly once whether the sequence completed or was skipped. */
+  play(onDone) {
+    if (!this.root || !this.lineEl) { if (onDone) onDone(); return; }
+    this.active = true;
+    this._onSkip = onDone;
+    this.root.className = 'on';
+    this.lineEl.className = '';
+    this.lineEl.textContent = '';
+
+    const at = (ms, fn) => this.timers.push(setTimeout(fn, ms));
+    const whisper = () => { try { if (this.sound) this.sound.playWhisper(); } catch (e) { /* audio is optional */ } };
+
+    //  0.0s  black and silent — the pause before it speaks is half of why it lands
+    //  0.8s  first line in, with a whisper under it
+    at(800, () => { this.lineEl.textContent = OPENING_INSTRUCTION_LINES[0]; whisper(); });
+    at(860, () => { this.lineEl.className = 'vis'; });
+    //  3.9s  out
+    at(3900, () => { this.lineEl.className = ''; });
+    //  5.5s  the brief pause the brief asks for, then the shorter repetition
+    at(5500, () => { this.lineEl.textContent = OPENING_INSTRUCTION_LINES[1]; whisper(); });
+    at(5560, () => { this.lineEl.className = 'vis'; });
+    //  7.9s  out, and into the world
+    at(7900, () => { this.lineEl.className = ''; });
+    at(8900, () => this._finish());
+
+    window.addEventListener('keydown', this._skipHandler);
+    window.addEventListener('mousedown', this._skipHandler);
+  }
+
+  /* THE RECALL. The same two lines, once, the first time the player actually stands at
+     the Farmland crossroads — drawn over live gameplay with no backdrop so it reads as
+     the memory surfacing rather than as an objective being issued.
+
+     IT IS A ONE-SHOT AND THE CALLER OWNS THE LATCH. Requirement 8 forbids HUD text that
+     repeats the instruction CONTINUOUSLY; this fires at most once per session, at the
+     one moment the words become actionable, and never again. */
+  recall() {
+    if (!this.root || !this.lineEl || this.active) return;
+    this.active = true;
+    this._onSkip = null;
+    this.root.className = 'on recall';
+    this.lineEl.textContent = OPENING_INSTRUCTION_LINES[0];
+    const at = (ms, fn) => this.timers.push(setTimeout(fn, ms));
+    at(30, () => { this.lineEl.className = 'vis'; });
+    at(3600, () => { this.lineEl.className = ''; });
+    at(5200, () => { this.lineEl.textContent = OPENING_INSTRUCTION_LINES[1]; });
+    at(5260, () => { this.lineEl.className = 'vis'; });
+    at(8200, () => { this.lineEl.className = ''; });
+    at(9800, () => { this.root.className = ''; this.active = false; this._clear(); });
+  }
+
+  _clear() { for (const t of this.timers) clearTimeout(t); this.timers.length = 0; }
+
+  _finish() {
+    if (!this.active) return;
+    this.active = false;
+    this._clear();
+    window.removeEventListener('keydown', this._skipHandler);
+    window.removeEventListener('mousedown', this._skipHandler);
+    if (this.root) this.root.className = '';
+    if (this.lineEl) { this.lineEl.className = ''; this.lineEl.textContent = ''; }
+    const cb = this._onSkip; this._onSkip = null;
+    if (cb) cb();
+  }
+}
+
 class TutorialController {
   constructor(onComplete) {
     this.onComplete = onComplete;
@@ -28651,6 +28999,16 @@ class Game {
     this.awaitingAdvance = false;
     this.behemothDefeated = false; // bonus-directive tracking (step 6)
     this.behemothSpawned = false; // Night 3 spawn-once gate for the Hollowed Behemoth
+    /* PHASE 20.2 — THE COMPASS, and it lives HERE on purpose.
+
+       Requirement 10 asks that it go into the canonical progression rather than an
+       isolated flag, so it sits in this block beside the other one-shot progression
+       latches — the same object a future Phase 23 save file will serialise and restore.
+       It is deliberately NOT an inventory item: an item can be dropped, burned in a
+       chest, or lost on death, and a navigation aid the player can permanently lose is a
+       trap rather than a tool. It is also not per-dimension state; once true it stays
+       true, which is what "remains available permanently across dimensions" means. */
+    this.compassAcquired = false;
     // LEVEL 2 — THE SHATTERED FARMLANDS: true while the win screen currently showing
     // is the Rift Core's dimension-transition prompt, so the shared button knows to
     // route to _transitionToLevel2() instead of the normal _advanceStage() flow.
@@ -28672,6 +29030,11 @@ class Game {
     // The bed's rest interaction needs to reset Sanity, so give the player a handle
     // on the SanitySystem (it's otherwise owned solely by the Game loop).
     this.player.sanitySystem = this.sanity;
+    /* PHASE 20.2 — and a handle on the Game itself, for the same reason and by the same
+       pattern: the chest-opening branch lives in PlayerController but the progression it
+       advances is owned here. One explicit reference beats polling a flag every frame,
+       and beats duplicating the latch on both objects. */
+    this.player.progression = this;
 
     window.addEventListener('resize', () => this._onResize());
     document.getElementById('clickPlay').addEventListener('click', () => this._openTutorial());
@@ -28682,6 +29045,10 @@ class Game {
     });
 
     this.tutorial = new TutorialController(() => this._start());
+    // PHASE 20.2 — the closing beat of the (Phase 30) opening film, authored early
+    // because the whole Farmland journey depends on the player having heard it.
+    this.openingInstruction = new OpeningInstruction(this.sound);
+    this.farmCrossroadsRecalled = false;   // one-shot latch for the Farmlands recall
     this.stopEmbers = startEmbers(document.getElementById('startEmbers'));
 
     this._animate = this._animate.bind(this);
@@ -28699,11 +29066,20 @@ class Game {
     this.postfx.resize(window.innerWidth, window.innerHeight);
   }
 
+  /* PHASE 20.2 — _start() now ends on the opening instruction rather than on the world.
+     Both routes into gameplay (finishing the tutorial, and skipping it) funnel through
+     here, so the phrase is the last thing the player sees before the world appears no
+     matter how they got in. The world does not begin simulating until it is done: the
+     clock is only started, and the frame loop only entered, from _beginPlay(). */
   _start() {
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('tutorialScreen').classList.remove('active');
     if (this.stopEmbers) { this.stopEmbers(); this.stopEmbers = null; }
     this.sound.start();
+    this.openingInstruction.play(() => this._beginPlay());
+  }
+
+  _beginPlay() {
     this.canvas.requestPointerLock();
     this.clock.start();
     requestAnimationFrame(this._animate);
@@ -28740,6 +29116,39 @@ class Game {
   // the overworld away (wipeOverworldChunks leaves the pinned Farmlands pocket
   // untouched), drops the player at the Farmlands' pre-cleared landing pad, and
   // flips the dimension flag the rest of the loop (fog, mobs, HUD banner) reads.
+  /* ===================================================================================
+     PHASE 20.2 — EARNING THE COMPASS
+
+     WHY THE FIRST ANCIENT CHEST. Requirement 3 asks for an existing, natural, early
+     acquisition point rather than a new quest, and the game already has one: "Crack an
+     Ancient Chest for rare supplies" is mission directive [4], it is authored Overworld
+     progression, chests are scattered across the surface from the first day, and a
+     brass instrument in a buried chest needs no explanation at all. Nothing new is
+     generated, no structure moves, and no directive changes — the chest the player was
+     already going to open simply has one more thing in it, once, forever.
+
+     IT IS GRANTED BEFORE THE LOOT ROLL AND OUTSIDE IT, so it can never displace a roll,
+     never be duplicated by a second chest, and never depend on a random pool. The
+     Overworld gate matters: the Farmlands and Suburbia Disconnected Homes both contain
+     chests, and a player who somehow reached one first should not be handed the
+     compass there — it belongs to the first dimension.
+
+     There is no fanfare. One quiet toast in the game's own voice, and the tape appears. */
+  grantCompass() {
+    if (this.compassAcquired) return false;
+    this.compassAcquired = true;
+    this.ui.setCompassVisible(true);
+    this.ui.showToast('A brass compass, still true. North holds.', 3200);
+    return true;
+  }
+
+  /* Re-applies progression state to the HUD. Called on every dimension transition so the
+     compass survives the crossing, and the single place a future save-load should call
+     after restoring this object. */
+  _syncProgressionHUD() {
+    this.ui.setCompassVisible(this.compassAcquired);
+  }
+
   _transitionToLevel2() {
     this.pendingLevel2Transition = false;
     this.awaitingAdvance = false;
@@ -28771,6 +29180,19 @@ class Game {
     this.farmHouseSeen = false;
 
     this.ui.showToast('The Rift tears open \u2014 The Shattered Farmlands await.', 3000);
+    // PHASE 20.2 — progression HUD survives the crossing; the compass does not reset.
+    this._syncProgressionHUD();
+    /* THE MEMORY SURFACES, ONCE. The player is standing on the arrival crossroads with
+       four roads in front of them, which is the single moment the opening instruction
+       becomes actionable — and, on a full playthrough, a long way from when they heard
+       it. It waits for the rift toast to clear so the two never fight over the screen,
+       and the latch means it can never become a recurring prompt. */
+    if (!this.farmCrossroadsRecalled) {
+      this.farmCrossroadsRecalled = true;
+      setTimeout(() => {
+        if (this.player.inFarmlands && !this.climaxTriggered) this.openingInstruction.recall();
+      }, 3400);
+    }
     this.ui.updateVitals(this.player);
     this.canvas.requestPointerLock();
   }
@@ -28802,6 +29224,7 @@ class Game {
     this.sanity.value = 100;
 
     this.ui.showToast('The Rift tears open \u2014 Static Suburbia awaits.', 3000);
+    this._syncProgressionHUD();
     this.ui.updateVitals(this.player);
     this.canvas.requestPointerLock();
   }
@@ -28861,6 +29284,9 @@ class Game {
     this.behemothSpawned = true;
 
     // --- PLAYER: dimension flags + placement ---------------------------------------
+    // PHASE 20.2 — the compass crosses into the Haven with everything else. It is not
+    // dimension state; once earned it is simply part of what the player has.
+    this._syncProgressionHUD();
     this.player.inFarmlands = false;
     this.player.inSuburbia = false;
     this.player.inFakeHaven = true;
@@ -29346,6 +29772,9 @@ class Game {
     this.ui.updateHotbarSelection();
     this.ui.updateVitals(this.player);
     this.ui.setPhase(this.env.isNight, this.env.dayFraction);
+    /* PHASE 20.2 — the compass. One float and an early return when the heading has not
+       moved; see UIManager.updateCompass for why this is as cheap as it looks. */
+    if (this.compassAcquired) this.ui.updateCompass(this.player.yaw);
     this.ui.setDay(this.dayCount);
 
     // PHASE 5B — applied last, after every system has finished positioning the
@@ -29487,6 +29916,9 @@ class Game {
     g.env.setNightmareOverride(false);
     g.env.setFollowTarget(g.player.position);
     g.env.update(0);   // repaint sky/fog on this very frame
+    // PHASE 20.2 — every dev teleport is a dimension crossing too, so the compass has to
+    // survive one exactly as the real transitions make it survive theirs.
+    if (g._syncProgressionHUD) g._syncProgressionHUD();
   }
 
   // Resets the body for testing: alive, full HP, no residual motion or lock.
@@ -30063,6 +30495,23 @@ class Game {
 
   /* PHASE 20 — the whole journey printed as coordinates, so a session that has to check
      one beat does not have to walk to it. Reads only resolved state; writes nothing. */
+  /* PHASE 20.2 — hand the player the compass without hunting a chest, and replay the
+     opening instruction on demand. Both exist so the navigation experience can be
+     playtested from any point in a session rather than only from a cold start. */
+  global.debugGrantCompass = function () {
+    const g = game(); if (!g) return console.warn('DEV: game not ready');
+    const fresh = g.grantCompass();
+    console.log('DEV: compass ' + (fresh ? 'granted' : 'was already earned') +
+                ' — HUD ' + (g.ui.compassShown ? 'showing' : 'hidden') +
+                '; bearing now ' + (compassBearingFromYaw(g.player.yaw) * 180 / Math.PI).toFixed(1) +
+                ' deg (' + compassCardinal(compassBearingFromYaw(g.player.yaw)) + ')');
+  };
+  global.debugOpeningInstruction = function () {
+    const g = game(); if (!g) return console.warn('DEV: game not ready');
+    g.openingInstruction.recall();
+    console.log('DEV: replaying — ' + OPENING_INSTRUCTION_LINES.join(' / '));
+  };
+
   global.debugFarmJourney = function () {
     const g = game(); if (!g) return console.warn('DEV: game not ready');
     const w = g.world, H = w.farmHome, T = w.farmTower;
@@ -30278,6 +30727,8 @@ class Game {
       '  debugTeleportToFarmHome()           Farmlands, on the approach, looking at the Disconnected Home',
       '  debugTeleportToWaterTower(dist)     Farmlands, on the journey lane `dist` blocks west of the tower',
       '  debugFarmJourney()                  The Phase 20 journey, beat by beat, as coordinates',
+      '  debugGrantCompass()                 PHASE 20.2 — earn the compass now, and report the heading',
+      '  debugOpeningInstruction()           PHASE 20.2 — replay "At the crossroads, go east."',
       '  debugTeleportToSuburbia()           Level 3 — Static Suburbia (Phase 9 streaming)',
       '  debugTeleportToFakeHaven()          Level 4 — The Fake Haven (peaceful, 30s countdown)',
       '  debugTeleportToDisconnectedHome()   Suburbia, standing in front of the upside-down house',

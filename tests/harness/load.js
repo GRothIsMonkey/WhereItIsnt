@@ -63,6 +63,17 @@ function stubElement(tag) {
   return el;
 }
 
+/* Ids that are <canvas> in game.html, with the width/height the document gives them.
+   The SIZE matters as much as the type: a test that measures where the compass draws
+   its letters is only measuring the real instrument if the canvas is the real canvas's
+   dimensions. Kept next to the loader so adding a HUD canvas and forgetting this list
+   shows up as a null context in a test, not in a browser. */
+const CANVAS_ELEMENT_IDS = new Map([
+  ['gameCanvas', [1280, 720]],
+  ['startEmbers', [1280, 720]],
+  ['compassTape', [252, 26]],      // matches <canvas id="compassTape" width height>
+]);
+
 function load(htmlPath) {
   const html = fs.readFileSync(htmlPath, 'utf8');
   const lines = html.split('\n');
@@ -81,8 +92,17 @@ function load(htmlPath) {
     documentElement: stubElement('html'),
     createElement: stubElement,
     createElementNS: (ns, t) => stubElement(t),
+    /* Elements that are CANVASES in the real document have to come back as canvases
+       here, or code that legitimately asks them for a 2d context gets null and either
+       silently does nothing or throws. Listed explicitly rather than guessed from the
+       id, so the harness never quietly hands a canvas to something expecting a div. */
     getElementById(id) {
-      if (!elements.has(id)) { const e = stubElement('div'); e.id = id; elements.set(id, e); }
+      if (!elements.has(id)) {
+        const dims = CANVAS_ELEMENT_IDS.get(id);
+        const e = dims ? stubCanvas(dims[0], dims[1]) : stubElement('div');
+        e.id = id;
+        elements.set(id, e);
+      }
       return elements.get(id);
     },
     querySelector(){ return stubElement('div'); },

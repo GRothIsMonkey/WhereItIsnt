@@ -4,7 +4,8 @@
 Current phase              20 — FARMLANDS JOURNEY + DISCONNECTED HOME 2.0
 Phase 19                   COMPLETE
 Phase 20                   COMPLETE
-Phase 20 journey revision  COMPLETE           (see section 0)
+Phase 20 journey revision  COMPLETE           (20.1 — see section 0)
+Phase 20.2 guidance        COMPLETE           (see section 0.5)
 Authoritative build        game.html          (there is no other game file)
 Offline validation suite   tests/             (see tests/README.md)
 ```
@@ -13,14 +14,110 @@ Phases 1–19 are as their sections in `ROADMAP.md` describe them. This file rec
 state of Phase 20 specifically: what was built, what was measured, what was found and
 fixed along the way, and what is honestly not verified.
 
-**Sections 1–5 describe Phase 20 as it was first delivered. Section 0 describes the
+**Sections 1–5 describe Phase 20 as it was first delivered. Section 0 describes the 20.1
 journey revision that followed a human playtest and supersedes them wherever they
 disagree** — principally the beat table, the landmark set, the distances, and the
-performance figures.
+performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
+instruction and the compass and changed no world generation at all.
 
 ---
 
-## 0. THE JOURNEY REVISION
+## 0.5. PHASE 20.2 — JOURNEY GUIDANCE, LORE INSTRUCTION + COMPASS
+
+### Why
+
+Phase 20.1 built a journey the player had no reason to choose. The Farmlands arrival is a
+genuine four-way crossroads and the authored chain runs east from it, but nothing told
+anybody that — so the intended experience depended on the player guessing. 20.2 does not
+move a single landmark or a single road. It gives the player two things: **a sentence**,
+and **an instrument to act on it**.
+
+### The instruction
+
+At the end of the pre-gameplay flow, on black, in near-silence:
+
+> *At the crossroads, go east.*
+>
+> *Go east.*
+
+That is the entire text of the feature. It names no landmark, no destination and no
+mechanic — `compass.js` asserts that, matching against the words themselves. It is
+skippable, it is never repeated as an objective, and the journey objective line was
+checked to make sure it never says "east" and so can never compete with it.
+
+**There is no opening lore film yet** — the roadmap builds it in Phase 30 — so this is
+authored as the beat that film will END on, behind one entry point (`OpeningInstruction`)
+that Phase 30 can call as its last cue without unpicking anything. It deliberately does
+not use the tutorial screen's vocabulary: no panel, no border, no button, no icon.
+
+It sits in `Game._start()`, which is the single funnel both routes into gameplay pass
+through — finishing the tutorial *and* skipping it — so it is the last thing before the
+world on every route. `_start()` no longer starts the frame loop; that moved to
+`_beginPlay()`, which the instruction calls when it finishes or is skipped.
+
+**One recall, once.** The player hears this in the Overworld and reaches the Farmland
+crossroads a long time later, so the same two lines surface a single time on first
+arrival — over live gameplay, no backdrop, latched so it can never become a prompt.
+
+### The compass
+
+A **tape**, not a dial: a strip of heading sliding behind a fixed brass caret, in the same
+panel fill, border, radius and parchment text as the existing `#clockWrap`, so it reads as
+a second instrument on the same dashboard rather than a new piece of UI. A tape was chosen
+over a needle precisely because a needle can be mistaken for something that *points at* a
+destination, and requirement 8 turns on that distinction.
+
+It shows N/E/S/W, the four intercardinals and 15° ticks. It reads **nothing but the
+player's yaw** — no landmark, no position, no distance — and `compass.js` asserts that by
+scanning the renderer's source for any such reference.
+
+**Directions were derived, not assumed.** Three independent facts in the shipped build
+agree: the movement basis is `forward = (-sin yaw, 0, -cos yaw)`; `farmlandsSpawnYaw` is
+exactly `-π/2` and has been asserted since Phase 20 to be "facing east"; and every
+landmark in the chain resolves at increasing x. So **EAST = +X**, and with UP = +Y a
+right-handed frame forces **NORTH = -Z** — which is also the vocabulary the Farmlands
+generator already describes itself in. The bearing is then `-yaw`, normalised.
+
+### How it is earned
+
+The **first Ancient Chest cracked in the Overworld**. That is already mission directive
+[4] — "Crack an Ancient Chest for rare supplies" — so no structure was added, nothing
+moved, no directive changed and no quest exists. It is granted before and outside the loot
+roll, so it can never displace a roll or depend on the random pool, and it is gated to the
+first dimension because both Disconnected Homes have chests of their own.
+
+It is **not an inventory item**, deliberately: an item can be dropped, burned in a chest,
+or lost on death, and a navigation aid the player can permanently lose is a trap. The flag
+lives in the `Game` progression block beside `behemothSpawned` and `fakeHavenTriggered` —
+the canonical container a Phase 23 save will serialise — and every dimension crossing
+(Levels 2, 3, 4 and the dev teleports) re-applies it through `_syncProgressionHUD()`.
+
+### What was NOT changed
+
+No landmark moved: fallen tower 410, tower 793, barn 1179, tree 1625, Home 1944 — all
+within 40 blocks of their 20.1 distances, asserted. No road changed. The four-way
+crossroads was **verified intact** rather than rebuilt: both arrival lanes are still
+forced, the 20.1 corridor suppression keeps the arrival crossing, and all four arms are
+unbroken road for 400 blocks when followed along their own meandering centrelines.
+
+### Defects found and fixed
+
+| what | found by | why it mattered |
+|---|---|---|
+| the repaint gate required the heading difference to be strictly `> 0`, which inverted it | counting real canvas draw calls over 600 still frames | a player standing still repainted the tape on **every frame** — the exact opposite of the gate's purpose |
+| the gate subtracted bearings without wrapping | the same test, taken across the 0/360 seam | facing **due north** — a cardinal a player using a compass will deliberately sit on — the difference reads as ~2π, so it repainted forever there |
+| the offline harness returned a plain `<div>` for `getElementById`, so HUD canvases had no 2D context | writing the first test that touches one | any canvas-based HUD element was untestable, and would have failed silently rather than loudly |
+
+### Cost
+
+Measured, not asserted. A **forced** repaint costs **3.3 µs** — 0.020% of a 60 fps frame —
+and a stationary player pays a single float comparison and nothing else. With the compass
+unearned, 600 frames of arbitrary heading cost zero draw calls. This phase adds **no world
+generation work at all**, and `performance.js` is unchanged within noise.
+
+---
+
+## 0. THE JOURNEY REVISION (20.1)
 
 ### Why
 
@@ -457,6 +554,37 @@ built on:**
     volume with one open door, and it is unlit on purpose. The offline renderer models
     light crudely; whether it is atmospheric or simply black is a browser question.
 
+**Added by Phase 20.2, and honestly unverified:**
+
+11. **NO AUDIO WAS HEARD.** The opening instruction schedules the existing
+    `SoundEngine.playWhisper()` under each line. The harness has no `AudioContext`, so
+    what was tested is that the sequence runs, schedules the right cues, and does not
+    throw when audio is unavailable. Whether the whisper sits right under the words — or
+    is audible at all at 0.05 gain — is a browser question and nobody has listened.
+12. **The compass has never been seen on a GPU.** `tests/preview-compass.js` re-emits the
+    real `updateCompass` draw calls as SVG at the element's real 252×26 geometry on the
+    real panel colours, and the layout is asserted numerically (E right of centre facing
+    north; turning right slides the tape left). But whether a 252-pixel strip at the top
+    of the screen is genuinely "clean and unobtrusive" over a live 3D scene, and whether
+    it reads at a glance while moving, is exactly the judgement an offline render cannot
+    make.
+13. **The pacing of the instruction.** The beat is roughly 8.9 seconds: 0.8s of black,
+    the first line, a 1.6s pause, the second line, then the world. Those numbers are a
+    guess at "eerie and intentional" and are the single most likely thing to want tuning.
+    They are all in one place — the `at(...)` cues in `OpeningInstruction.play` — and
+    changing them touches nothing else.
+14. **Whether the instruction is actually remembered.** The player hears it in the
+    Overworld and reaches the Farmland crossroads a long time later. The one-shot recall
+    on arrival is the mitigation; whether the whole arrangement produces "I was told to go
+    east" rather than "what was I supposed to do?" needs a real playthrough.
+15. **Phase 23 does not exist, so save/load could not be tested.** There is no save system
+    in the build at all — `localStorage` appears zero times in `game.html`. What Phase
+    20.2 could do, and did, is put `compassAcquired` in the canonical `Game` progression
+    block beside the other one-shot latches, so it is serialised by construction when
+    Phase 23 persists that object, and expose `_syncProgressionHUD()` as the single call a
+    load should make after restoring it. **The claim is that it is save-ready, not that it
+    was observed surviving a save.**
+
 ---
 
 ## 5. WHERE THINGS ARE IN `game.html`
@@ -487,3 +615,18 @@ built on:**
 | the great tree | `_farmStampGreatTree` |
 | the dead land around it | `_farmDeadLand` |
 | the other three silhouette proxies | `_farmBuildLandmarkProxies` / `updateFarmLandmarkProxies` |
+
+### Added by Phase 20.2
+
+| what | search for |
+|---|---|
+| the direction convention, and how it was derived | `PHASE 20.2 — WORLD DIRECTIONS` |
+| the bearing maths | `compassBearingFromYaw` / `compassCardinal` |
+| the compass tape renderer | `PHASE 20.2 — THE COMPASS TAPE` |
+| its panel styling | `#compassWrap` |
+| earning it | `grantCompass` (and the chest branch that calls it) |
+| keeping it across dimensions | `_syncProgressionHUD` |
+| the opening instruction | `OPENING_INSTRUCTION_LINES` / `class OpeningInstruction` |
+| where it runs | `Game._start` / `Game._beginPlay` |
+| the one-shot Farmlands recall | `farmCrossroadsRecalled` |
+| dev commands | `debugGrantCompass` / `debugOpeningInstruction` |
