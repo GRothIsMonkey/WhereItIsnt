@@ -883,7 +883,67 @@ The Farmlands should feel rural before they feel horrific.
 # 21. PHASE 20 — FARMLANDS JOURNEY + DISCONNECTED HOME 2.0
 
 STATUS:
-CURRENT / NEXT MAJOR PHASE
+COMPLETE  (revised — see below)
+
+See PROGRESS.md for what was built, what was measured, and the known
+limitations. The requirements below are unchanged and remain the
+specification the phase was built and tested against.
+
+JOURNEY REVISION:
+COMPLETE
+
+A human playtest found the systems working and the composition weak: the
+Farmlands still read as a procedural grid of roads and destinations rather
+than as one road that goes somewhere. The revision changed composition,
+navigation and landmark staging only — nothing in Phases 16-19 was rebuilt,
+and the water tower, the red light, the farmhouse and the Rift Core Disk are
+unchanged.
+
+The journey is now a single authored rural route roughly 1,950 blocks long,
+with a landmark chain the eye can rank without any UI:
+
+  ARRIVAL
+  -> GIANT FALLEN WATER TOWER      (46 blocks long, 13 high, lying across the road)
+  -> MASSIVE STANDING WATER TOWER  (38 tall — unchanged)
+  -> GIANT BARN                    (21 to the ridge, 34 across, two silos)
+  -> ENORMOUS LIVING TREE          (41 tall, 53 across, in dead land)
+  -> DISCONNECTED HOME             (unchanged)
+
+Inside the corridor the procedural lattice is suppressed — the main road is
+five blocks wide against three, no road runs parallel to it, crossing lanes
+survive at about a third and the doomed ones stop short of the verge. Outside
+the corridor generation is unchanged.
+
+See PROGRESS.md section 0 for the full account and the measurements.
+
+PHASE 20.2 — JOURNEY GUIDANCE, LORE INSTRUCTION + COMPASS:
+COMPLETE
+
+20.1 built a journey the player had no reason to choose. 20.2 gives them a
+reason and the means to act on it, and changes no world generation at all.
+
+  THE INSTRUCTION.  The opening ends, on black and in near-silence, with
+  "At the crossroads, go east." — a pause — "Go east." It names no landmark,
+  no destination and no mechanic. There is no opening lore film yet (Phase 30
+  builds it), so this is authored as the beat that film will END on, behind one
+  entry point Phase 30 can call as its last cue.
+
+  THE COMPASS.  A tape, not a dial — a strip of heading sliding behind a fixed
+  mark, in the same panel material as the existing clock. It shows direction and
+  nothing else: no landmark marks, no distance, no arrow. Earned from the first
+  Ancient Chest cracked in the Overworld, which is already mission directive [4],
+  so no structure, quest or directive was added. It is progression state rather
+  than an inventory item, and it survives every dimension crossing.
+
+  DIRECTIONS WERE DERIVED, NOT ASSUMED.  EAST = +X and NORTH = -Z, from the
+  movement basis, the Farmlands spawn yaw and the landmark coordinates, all three
+  of which already agreed.
+
+  NOTHING MOVED.  The four-way crossroads is intact and was verified rather than
+  rebuilt; all five landmarks are within 40 blocks of their 20.1 distances; the
+  player can still go north, south, west or off-road.
+
+See PROGRESS.md section 0.5.
 
 This phase is intentionally broader than the original concept.
 
@@ -2735,15 +2795,16 @@ Claude Code should inspect the repository before making assumptions.
 
 Current completed milestone:
 
-Phase 19
+Phase 20 (including the 20.1 journey revision and the 20.2 guidance pass —
+see PROGRESS.md)
 
 Current next major phase:
 
-Phase 20
+Phase 21 — Dropped Item Ground Contact
 
 Current game build baseline:
 
-game__51__.html
+game.html
 
 Repository version:
 
