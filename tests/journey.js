@@ -66,8 +66,21 @@ for (let j = 0; j <= 4; j++) for (const bz of [LINE, LINE - 1, LINE + 1]) {
 chk(adjacent.some(a => a.j <= 2),
     `the lane passes a real farmstead before the tower, unforced: ` +
     adjacent.map(a => `column ${a.j} (row ${a.bz - LINE >= 0 ? '+' : ''}${a.bz - LINE}, decay ${a.decay})`).join(', '));
-chk(!adjacent.some(a => (a.j === 3 || a.j === 4) && (a.bz === LINE || a.bz === LINE - 1)),
-    'columns 3 and 4 have nothing built against the road itself — the open farmland the tower is measured against');
+/* PHASE 20 REVISION — the open ground each landmark is measured against is now its own
+   keep-out, and there are four of them. The columns that have to be clear are the ones
+   the chain occupies, not a fixed pair. */
+const LMCOL = { fallen: ev('FARM_J_FALLEN'), tower: ev('FARM_J_TOWER'),
+                barn: ev('FARM_J_BARN'), tree: ev('FARM_J_TREE') };
+{
+  const busy = [];
+  for (const [name, col] of Object.entries(LMCOL))
+    for (let j = col - 1; j <= col + 1; j++)
+      for (const bz of [LINE, LINE - 1])
+        if (w._farmSteadAt(B0 + j, bz)) busy.push(name + '@' + j);
+  chk(busy.length === 0,
+      'every landmark in the chain stands alone: no procedural farmstead is built against the road ' +
+      'in the column it occupies or either neighbour' + (busy.length ? ' — ' + busy.join(', ') : ''));
+}
 const roth = w._farmSteadAt(ev('FARM_ROTH_BX'), ev('FARM_ROTH_BZ'));
 chk(!!roth && roth.isRoth, 'Roth Farm survives Phase 20 unchanged and is still forced');
 
@@ -141,18 +154,40 @@ function sightline(fromX, fromZ) {
   }
   return true;
 }
+/* PHASE 20 REVISION — THE REVEAL IS STAGED, AND THAT IS THE ASSERTION.
+
+   The Phase 20 build put the tower five parcels out and checked it was visible from the
+   arrival point. The revision's requirement is the opposite: the tower is a mid-journey
+   icon the player walks a long way to reach, so at arrival it must be OUT of range
+   entirely, and it must come in somewhere along the approach — early enough to pull, late
+   enough that the first stretch of the journey belongs to the fallen tower instead. Both
+   halves are measured. */
 let seen = 0, tried = 0;
-for (let j = 0; j <= 4; j++) {
+for (let j = ev('FARM_J_TOWER') - 4; j <= ev('FARM_J_TOWER') - 1; j++) {
   const x = (B0 + j) * P + 32, z = Math.round(laneZ(x));
   tried++;
   const ok = sightline(x, z);
   if (ok) seen++;
   console.log(`      column ${j}: ${Math.hypot(T.cx - x, T.cz - z).toFixed(0)} blocks from the tower, terrain sightline to the lamp ${ok ? 'CLEAR' : 'blocked'}`);
 }
-chk(seen === tried, `the lamp is above the terrain profile from every journey column between arrival and the tower (${seen}/${tried})`);
+chk(seen === tried,
+    `the lamp is above the terrain profile from every one of the four columns approaching it (${seen}/${tried})`);
 const dArrival = Math.hypot(T.cx - SPAWN.x, T.cz - SPAWN.z);
-chk(dArrival < ev('FARM_TOWER_PROXY_FAR'),
-    `the tower is inside proxy range from the arrival point itself: ${dArrival.toFixed(0)} blocks < ${ev('FARM_TOWER_PROXY_FAR')}`);
+const PFAR = ev('FARM_TOWER_PROXY_FAR');
+chk(dArrival > PFAR * 1.5,
+    `the tower is NOT the first thing the player sees: ${dArrival.toFixed(0)} blocks from arrival against a ` +
+    `${PFAR}-block silhouette range — it cannot be on the horizon until the player has walked most of the way to it`);
+{
+  // Where along the lane does it actually come in? That distance is the reveal.
+  let revealCol = -1;
+  for (let j = 0; j <= ev('FARM_J_TOWER'); j++) {
+    const x = (B0 + j) * P + 32, z = Math.round(laneZ(x));
+    if (Math.hypot(T.cx - x, T.cz - z) < PFAR) { revealCol = j; break; }
+  }
+  chk(revealCol > ev('FARM_J_FALLEN') && revealCol < ev('FARM_J_TOWER'),
+      `the tower's silhouette appears at journey column ${revealCol} — after the fallen tower (column ` +
+      `${ev('FARM_J_FALLEN')}) and well before the player reaches it (column ${ev('FARM_J_TOWER')})`);
+}
 
 // ---- 7. ISOLATION RAMP -----------------------------------------------------------
 function builtPerColumn(j) {

@@ -1,6 +1,6 @@
 # WHERE IT ISN'T — OFFLINE VALIDATION SUITE
 
-These are the checks Phase 20 was built against. They run the **real game code** — the
+These are the checks Phase 20 and its journey revision were built against. They run the **real game code** — the
 `<script>` body of `game.html` is loaded into a Node VM with a small DOM stub, and a real
 `VoxelWorld` is constructed and asked to generate real chunks. Nothing here reimplements
 the generator, and nothing here asserts on metadata where a player-facing property could
@@ -14,6 +14,7 @@ npm install three@0.128.0          # the version game.html loads from the CDN
 node determinism.js
 node core-disk.js
 node journey.js
+node chain.js                      # the journey revision; needs a baseline, see below
 node red-light.js
 node runtime.js
 node regression.js                 # needs a baseline, see below
@@ -21,13 +22,26 @@ node performance.js                # needs a baseline, see below
 node render-journey.js             # writes PNGs into tests/renders/
 ```
 
-`regression.js`, `journey.js` and `performance.js` compare against the build **before**
-the change you are testing. Produce one with git and point the suite at it:
+`regression.js`, `journey.js`, `chain.js` and `performance.js` compare against the build
+**before** the change you are testing. Produce one with git and point the suite at it:
 
 ```
-git show <ref>:game.html > tests/baseline.html
+git show 1002f7b:game.html > tests/baseline.html     # the pre-Phase-20 build
 # ...or somewhere else, and: WII_BASELINE=/path/to/old.html node regression.js
 ```
+
+`performance.js` also takes an optional **second** baseline, and the distinction matters.
+`baseline.html` is the build that predates the journey entirely, which answers "what did
+the whole feature cost". `phase20.html` is the Phase 20 build itself, which answers "what
+did REVISING the journey cost" — the only question a revision can fairly be gated on,
+because a figure measured against the older build carries all of Phase 20 with it:
+
+```
+git show b2bc032:game.html > tests/phase20.html      # the Phase 20 build
+# ...or: WII_PHASE20=/path/to/phase20.html node performance.js
+```
+
+Both are gitignored: they are reproducible from git and each is over a megabyte.
 
 ## What each one proves
 
@@ -36,10 +50,11 @@ git show <ref>:game.html > tests/baseline.html
 | `determinism.js` | two independently booted worlds, and one world generating the same chunks in reverse order, produce byte-identical chunk data across the journey; a disposed chunk regenerates identically; the resolved journey sites and the Rift Core chest key agree across boots |
 | `core-disk.js` | the Level 2 Rift Core Disk is **reachable on foot** — a body with the player's real dimensions is walked from the field outside the property, through the house, down the cellar stair, along the corridor and into the room at the end, and back out again |
 | `journey.js` | the beats: spawn on the carriageway facing the journey, crop density in the opening field, livestock and farmsteads met, the spine still bends, the tower's height/structure/biome/sightlines, the isolation ramp against the baseline, the repetition and cross-dimensional marks, the missing-farm evidence, and that leaving the route breaks nothing |
+| `chain.js` | the journey **revision**: the five landmarks resolve in order with room between them, the route is unbroken and winding over all 1,950 blocks from arrival to the property, it is measurably the widest road in the region, the procedural lattice is suppressed inside the corridor and byte-identical outside it, the scale hierarchy is readable in blocks, the reveals are staged at four different distances, the dead land is a graded ramp with a non-circular rim, the woodland retreats from the great tree, and each new landmark is somewhere a player can actually walk to and into |
 | `red-light.js` | the gaze anomaly: no flash while looking at the tower, flashes while it is peripheral, irregular intervals (CV and histogram), dark within one frame when the player looks back, identical schedules across two boots, silent out of range and out of dimension |
 | `runtime.js` | the frame-loop hooks and HUD entry points exist and are safe outside the Farmlands, and the Home's one stronger horror event fires once, only after the player has stood in the room, only when they are away and not looking, and never again |
 | `regression.js` | the lane lattice, the route spine, parcel programmes, farmstead/landmark/minor/animal placement, Suburbia and the Overworld are unchanged; chunks 5,000 blocks from the journey differ **only** by the intact-window fix |
-| `performance.js` | chunk generation timing against the baseline, per region, median of five runs |
+| `performance.js` | chunk generation timing per region, as the median of nine **paired** runs — each repeat times both builds back to back, because this process drifts by about nine per cent over the length of a suite and comparing two separately-taken medians could not resolve a ten per cent effect. Reports against both baselines, and gates the revision on the whole corridor rather than on a fixed rectangle, since the two journeys put their authored beats in different places |
 | `render-journey.js` | offline first-person renders of the whole journey |
 
 ## About the renders
@@ -47,8 +62,10 @@ git show <ref>:game.html > tests/baseline.html
 `harness/render.js` rasterises the **actual `THREE.BufferGeometry`** that
 `VoxelWorld.generateChunkMesh` builds — same vertices, same normals, same baked
 per-vertex skylight — with a z-buffer, a directional term, the dimension's own
-exponential fog, generated torches as point lights, and the water tower's fog-exempt
-silhouette proxy driven by a real camera.
+exponential fog, generated torches as point lights, and every one of the four fog-exempt
+landmark silhouette proxies driven by a real camera at the real eye position — so a shot
+showing two landmarks on the horizon is showing what the game would put there, and a shot
+showing none is evidence that there is nothing to see.
 
 **It is not a browser and it is not WebGL, and it does not claim to be.** It has no block
 atlas, so every surface is drawn in its material's base colour rather than its texture,

@@ -209,10 +209,14 @@ function render(world, opts) {
      world, depth-tested against the same buffer (so terrain in front still occludes it),
      alpha-blended at whatever opacity updateFarmTowerLight computed, and with no fog,
      exactly as the material is configured in the game. */
-  if (opts.proxy && opts.proxy.visible !== false) {
-    opts.proxy.updateMatrixWorld(true);
+  /* PHASE 20 REVISION — four landmarks now carry a silhouette, so `proxy` may be a list
+     of Groups. One Group still works; a list is drawn in order. */
+  const proxies = opts.proxy ? (Array.isArray(opts.proxy) ? opts.proxy : [opts.proxy]) : [];
+  for (const proxy of proxies) {
+  if (proxy && proxy.visible !== false) {
+    proxy.updateMatrixWorld(true);
     const m4 = new THREE.Matrix4();
-    for (const child of opts.proxy.children) {
+    for (const child of proxy.children) {
       const mat = child.material;
       if (!mat || mat.opacity <= 0.01) continue;
       const g = child.geometry;
@@ -261,6 +265,7 @@ function render(world, opts) {
           }
       }
     }
+  }
   }
 
   return { png: encodePNG(W, H, color), tris };
