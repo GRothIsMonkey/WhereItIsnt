@@ -2239,14 +2239,16 @@ class SoundEngine {
     const STONE_LIKE = new Set([3, 7, 10, 12, 13, 15, 16, 17, 19, 20, 26, 27, 238, 239,
                                 1203, 1205, 1208, 1209, 1225, 1237, 1238, 1239, 1243,
                                 1434, 1435, 1436, 1437, 1438, 1439, 1440, 1441,
-                                1442, 1443, 1444, 1445, 1446, 1447]);
+                                1442, 1443, 1444, 1445, 1446, 1447, 1457]);
+    /* PHASE 20 REVISION — the great tree's bark, roots and limbs are wood, and the
+       fallen tower's torn plate is stone-like steel (see STONE_LIKE above). */
     const WOOD_LIKE = new Set([4, 22, 28, 234, 235, 236, 237, 240, 1200, 1201, 1202,
                                1206, 1207, 1210, 1211, 1212, 1213, 1214, 1215, 1216,
                                1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1226,
                                1227, 1228, 1229, 1230, 1233, 1234, 1235, 1236, 1240,
-                               1241]);
+                               1241, 1450, 1452, 1453, 1454, 1455, 1456]);
     const GRASS_LIKE = new Set([1, 5, 2, 21, 23, 220, 221, 222, 223, 224, 225, 226,
-                                227, 228, 229, 230, 231, 232, 233, 241]);
+                                227, 228, 229, 230, 231, 232, 233, 241, 1451, 1459]);
 
     let filterType = 'lowpass', filterFreq = 700, dur = 0.055, gain = MINING_HIT_SOUND_GAIN;
     let toneStart = 150, toneEnd = 90;
@@ -2891,7 +2893,33 @@ const BLOCK = {
      that looks out on six cells of Static Suburbia. Rendered with an ordinary pane that
      window was a black rectangle in a wall — a well-made frame with nothing behind it —
      which is the single beat in this phase that has to be SEEN to mean anything. */
-  WIN_CLEAR_X:1448, WIN_CLEAR_Z:1449
+  WIN_CLEAR_X:1448, WIN_CLEAR_Z:1449,
+
+  /* =================================================================================
+     PHASE 20 REVISION — THE LANDMARK CHAIN (1450-1459).
+
+     The first playtest found the systems working and the COMPOSITION not: the Farmlands
+     still read as a procedural grid of roads with destinations on it rather than as one
+     authored rural chapter. The fix is a chain of landmarks at escalating scale strung
+     along a single main road, and these are the pieces that chain needs which nothing in
+     Phases 16-20 already has.
+
+     THE GREAT TREE IS WHY MOST OF THESE EXIST. It has to be, by a wide margin, the
+     largest object anywhere in the region — wider than the water tower is tall — and it
+     has to read as LUSH against dead ground. Every piece of tree vocabulary this
+     dimension owns is the opposite of that: ASH_WOOD and BLACK_CANOPY make a four-block
+     dead sapling in near-black. A forty-block tree built out of them would be a big dead
+     tree, which is a completely different image and the wrong one.
+
+     GREAT_LEAF IS LIGHT-PASSABLE, like LEAVES and unlike BLACK_CANOPY. A fifty-block
+     canopy that cast a skylight column would put a disc of true darkness a hundred
+     blocks across under the one thing in the dimension that is supposed to look alive,
+     and would drag the torch-decay zone test and the Sanity light term along with it.
+     Dappled shade is both the better image and the cheaper one. */
+  GREAT_BARK:1450, GREAT_LEAF:1451, GREAT_ROOT_X:1452, GREAT_ROOT_Z:1453,
+  GREAT_LIMB_X:1454, GREAT_LIMB_Z:1455, GREAT_LIMB_Y:1456,
+  // The fallen tower's ruptured plate, and the ground the great tree has killed.
+  TANK_TORN:1457, ROTTEN_GROUND:1458, ROTTEN_STUBBLE:1459
 };
 
 /* ---------------------------------------------------------------------------------
@@ -3219,6 +3247,12 @@ function _shpEmitPrism(out, tile, x0, y0, z0, x1, z1, axis, hEdge, hPeak) {
        light:   true                     // thin enough not to cast a skylight column
      }
    ------------------------------------------------------------------------------------- */
+/* Full cubes that must NOT cast a skylight column. buildShapeTables sets LIGHT_PASSABLE
+   from the shape table, and a full cube has no shape entry, so anything here is applied
+   afterwards — the same exception LEAVES already gets, expressed as a list so a later
+   phase adding a translucent cube does not have to find that one line. */
+const LIGHT_PASSABLE_LATE = [];
+
 const SUB_SHAPE_DEF = {};
 const SHAPE_QUADS = new Array(BLOCK_ID_COUNT).fill(null);
 const SHAPE_GLASS_QUADS = new Array(BLOCK_ID_COUNT).fill(null);
@@ -4086,6 +4120,17 @@ const SUB_TILE_DEFS = [
      entirely for the housing at the top of the mast. Nothing else may use it. */
   { n:'tankSteel',   c:0x5C645F, j:0.09, p:'corrug'   },
   { n:'lampRed',     c:0x7E211C, j:0.08, p:'gloss'    },
+  /* ---- PHASE 20 REVISION: THE GREAT TREE AND THE GROUND IT KILLED ------------------
+     `greatLeaf` is the ONLY saturated living green in the Farmlands and it is reserved
+     entirely for the one tree. The whole horror of that landmark is the contradiction
+     between it and what surrounds it, so it has to be brighter than anything else in the
+     dimension — brighter, deliberately, than the fog, which nothing else here is allowed
+     to be. `rotSoil` is the other half of the same image: the deadest ground in the
+     region, darker and greyer than exhausted soil, and it only ever appears in the ring
+     around that tree. */
+  { n:'greatBark',   c:0x4A3A26, j:0.17, p:'barkLine' },
+  { n:'greatLeaf',   c:0x4E7A3A, j:0.14, p:'leafy'    },
+  { n:'rotSoil',     c:0x312E26, j:0.14, p:'silt'     },
 ];
 
 
@@ -4264,6 +4309,8 @@ for (let i = 0; i < BLOCK_ID_COUNT; i++) BLOCK_TILE[i] = i < 256 ? i - 1 : 0;
     // PHASE 20 — the tank plate is the phase's only full cube; every other new piece
     // is shaped and names its own tiles per primitive.
     1437:'tankSteel',
+    // PHASE 20 REVISION — the great tree's trunk and canopy, and the dead ground.
+    1450:'greatBark', 1451:'greatLeaf', 1458:'rotSoil',
   };
   for (const k in M) BLOCK_TILE[k | 0] = TILE[M[k]];
 })();
@@ -5803,22 +5850,43 @@ const FARM_M = 3;
    name board two parcels later, and then open ground. Only the crop and the pasture are
    cast at all — both farmsteads were already there.
 
-   THE BEATS, by parcel column from the arrival crossroads:
+   THE BEATS, by parcel column from the arrival crossroads. THE FIRST PLAYTEST SAID THE
+   COMPOSITION WAS NOT STRONG ENOUGH, and it was right: the whole journey fitted in twelve
+   columns, the water tower arrived fifty seconds in, and between the landmarks the
+   procedural lattice put a four-way junction every parcel — so the road the player was on
+   never read as THE road. The staging below is roughly two and a half times longer, every
+   leg ends in something enormous, and the lattice inside the corridor is demoted so there
+   is one main road and a handful of side tracks rather than a grid.
 
-     0   WHEAT        both flanking parcels forced to a standing crop
-     1   LIVESTOCK    pasture west of the lane; ROTH FARM east (Phase 18, untouched)
-     2-3 OPEN         no forcing at all; the quiet the tower needs to land against
-     4   TOWER        the massive water tower and its facility
-     5-7 ISOLATION    farmstead, minor-structure and animal density ramped down
-     8-11 WRONGNESS   repetition motifs and cross-dimensional echoes begin
-     12  THE PROPERTY the missing-farm evidence and the Disconnected Home
-     13+ RELEASE      density ramps back to the ordinary region
+     0    WHEAT          both flanking parcels cast to a standing crop
+     1    LIVESTOCK      pasture north of the lane; a working farmstead south of it
+     2-4  OPEN           no forcing; ordinary worked country
+     5    FOREST         the lattice's own Ashen edge, met as a stretch of woodland
+     6    FALLEN TOWER   a giant water tower lying across the fields
+     7-11 WORKED COUNTRY farms, fields, the second forest edge
+     12   WATER TOWER    the massive standing tower and its facility
+     13   ISOLATION      density begins ramping down the moment the tower is behind them
+     14-17 THINNING      fewer farms, fewer animals, longer gaps
+     18   GIANT BARN     an agricultural complex three times the size of any other
+     19   -
+     20   ECHOES         repetition motifs and cross-dimensional objects begin
+     21-24 DYING GROUND  the dead-land ramp closes in around the tree
+     25   THE GREAT TREE the largest object in the region, alive, in dead country
+     26-29 QUIET         the emptiest stretch of the journey
+     30   THE PROPERTY   missing-farm evidence and the Disconnected Home
+     31+  RELEASE        density ramps back to the ordinary region
 
-   AT ~5 BLOCKS/SEC AND 64 BLOCKS PER ROW that is about fifty seconds to the tower and
-   two and a half minutes to the farmhouse, walked directly, before a single stop to
-   look at anything. Both numbers were chosen against the brief's pacing requirement
-   rather than against the map: the player must have TIME to experience each beat, and
-   the tower must be well behind them before the world starts going wrong.
+   AT ~5 BLOCKS/SEC AND 64 BLOCKS PER COLUMN that is about eight minutes of pure walking
+   end to end, in five legs of roughly eighty seconds each, and each leg ends at something
+   the player could see from the start of it. The legs are the unit that matters: long
+   enough that arriving feels earned, short enough that the next thing is already on the
+   horizon when the last one is behind you.
+
+   THE SCALE HIERARCHY IS THE POINT. Ordinary farm buildings are 8 blocks tall; the fallen
+   tower is a 37-block structure lying down, so it reads as vast without being tall; the
+   standing tower is 37 blocks up; the giant barn is 22 up and 34 across; and the great
+   tree is 40 up and 52 ACROSS — wider than the water tower is tall, and the only object
+   in the dimension that can be mistaken for nothing else.
    ===================================================================================== */
 const FARM_J_LINE = FARM_ARRIVAL_BZ;   // grid line of the E-W lane the journey runs on
 const FARM_J_B0 = FARM_ARRIVAL_BX;     // parcel column of the arrival crossroads
@@ -5826,11 +5894,14 @@ const FARM_J_DIR = 1;                  // +1: the journey runs east
 
 const FARM_J_WHEAT = 0;
 const FARM_J_STOCK = 1;
-const FARM_J_TOWER = 4;
-const FARM_J_ISO0 = 5;
-const FARM_J_ECHO0 = 8;
-const FARM_J_HOME = 12;
-const FARM_J_LAST = 14;                // past this the journey stops shaping anything
+const FARM_J_FALLEN = 6;               // the giant fallen water tower
+const FARM_J_TOWER = 12;               // the massive standing water tower
+const FARM_J_ISO0 = 13;                // isolation begins the moment the tower is passed
+const FARM_J_BARN = 18;                // the giant barn
+const FARM_J_ECHO0 = 20;               // repetition and cross-dimensional echoes
+const FARM_J_TREE = 25;                // the great tree, and the dead land around it
+const FARM_J_HOME = 30;                // the Disconnected Home
+const FARM_J_LAST = 33;                // past this the journey stops shaping anything
 
 /* HOW WIDE THE JOURNEY IS. Beats that dress the roadside (the wheat, the pasture) apply
    only to the two parcels the lane itself divides, because those are the fields a player
@@ -5840,6 +5911,73 @@ const FARM_J_LAST = 14;                // past this the journey stops shaping an
    itself was being emptied out. */
 const FARM_J_LAT = 1;        // roadside beats: parcels FARM_J_LINE-1 .. FARM_J_LINE
 const FARM_J_ISO_LAT = 2;    // isolation: two parcels either side, ~192 blocks
+
+/* =====================================================================================
+   THE ROAD HIERARCHY — WHY THE JOURNEY DID NOT READ AS ONE
+
+   THE PLAYTEST'S ACTUAL COMPLAINT. Phase 16's lane lattice accepts about 55% of grid
+   lines on each axis, so along any 2,000-block stretch a player meets a crossing lane
+   roughly every 116 blocks, and every one of them is the SAME WIDTH, the same surface
+   and the same worn junction as the road they are on. There is no hierarchy, so there is
+   no main road — only a grid with things on it. "There are twelve roads; I guess I will
+   pick one" is exactly what a lattice of identical lanes produces, and no amount of
+   landmark placement fixes it.
+
+   THE FIX IS A HIERARCHY, NOT A DELETION. Inside the authored corridor and NOWHERE ELSE:
+
+     THE MAIN ROAD is widened from a 3-block carriageway to 5, its verge from 3 to 4, and
+       it keeps its ditch. It is visibly a county road rather than a cart track, which is
+       what makes it readable as the route without a marker.
+     CROSSING LANES are thinned to one in three, chosen by a hash of the line so the
+       choice is fixed forever and the survivors are irregularly spaced. The ones that
+       survive are DEMOTED to a single-cell rut with no ditch — a farm track meeting a
+       road, not a crossroads.
+     THE ONES THAT DO NOT SURVIVE FADE rather than stop. Approaching the main road they
+       narrow, then become a field boundary, then nothing — which is the most ordinary
+       thing in agricultural country and reads as a track that was never made up, not as
+       a road that was deleted.
+     PARALLEL LANES one grid line either side of the journey are suppressed outright, so
+       there is never a second identical road running alongside a hundred blocks away.
+
+   OUTSIDE THE CORRIDOR NOT ONE OF THESE RULES APPLIES and the lattice is exactly what
+   Phase 16 built. The corridor is 4 parcels wide by 35 long out of an effectively
+   infinite region.
+   ===================================================================================== */
+const FARM_J_ROAD_LAT = 2;         // corridor half-width for the road rules, in parcels
+const FARM_J_MAIN_HALF = 2;        // main-road carriageway half-width (5 blocks wide)
+const FARM_J_MAIN_VERGE = 4;       // ...and its verge
+const FARM_J_CROSS_KEEP = 0.34;    // fraction of crossing lanes that survive the corridor
+const FARM_J_CROSS_FADE = 26;      // blocks over which a doomed crossing thins to nothing
+
+/* Is this column inside the authored corridor? Four integer comparisons, and it is the
+   first thing every road rule below asks. */
+/* THE BAND IS ASYMMETRIC BY ONE, AND IT HAS TO BE. A lane on grid line L runs along the
+   NORTHERN edge of parcel row L, so a column standing on that lane belongs to row L-1 as
+   often as to row L. Written symmetrically, the two lane lines at the band's own edges
+   were suppressed for half their length and left standing for the other half — measured,
+   fifteen parcels inside the corridor still carried a road running parallel to the
+   journey, which is precisely what this system exists to prevent. */
+function farmInCorridor(bx, bz) {
+  if (bz > FARM_J_LINE + FARM_J_ROAD_LAT || bz < FARM_J_LINE - FARM_J_ROAD_LAT - 1) return false;
+  const j = (bx - FARM_J_B0) * FARM_J_DIR;
+  return j >= -1 && j <= FARM_J_LAST;
+}
+/* Which crossing lanes survive. Keyed on the LINE alone, so a lane either crosses the
+   corridor for its whole length or never does — a track that crossed in one parcel and
+   not the next would be the same incoherence in a different costume. */
+function farmCrossKept(line) {
+  return farmHashPure(line, FARM_J_LINE, 887) < FARM_J_CROSS_KEEP;
+}
+
+/* THE FARMLANDS HASH, AT MODULE SCOPE. VoxelWorld._farmHash is the same four lines and
+   remains the only thing generation calls; this exists because the road-hierarchy rules
+   are pure functions of a grid line and are asked about from places that have no world
+   instance to hand. The determinism suite asserts the two agree bit for bit. */
+function farmHashPure(a, b, c) {
+  let s = ((a | 0) * 374761393 + (b | 0) * 668265263 + (c | 0) * 1274126177 + FARM_SEED) >>> 0;
+  s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0;
+  return (s % 100000) / 100000;
+}
 
 /* Journey ordinal of a parcel COLUMN, negative behind the arrival crossroads; and the
    two lateral tests, on the parcel ROW. Every call site passes both coordinates even
@@ -5962,6 +6100,67 @@ const FARM_TOWER_PROXY_FAR = 380;      // ...and gone again beyond here
    meets the field. Used as a cheap rejection bound, so it must never be an underestimate. */
 const FARM_PAD_BANK = FARM_MAX_Y - FARM_MIN_Y;
 const FARM_TOWER_KEEPOUT = 74;   // nothing else built stands this close to the tower
+
+/* =====================================================================================
+   THE LANDMARK CHAIN — SIZES, AND WHY EACH ONE IS THE SIZE IT IS
+
+   The chain only works if the player can rank the landmarks by eye without being told,
+   so the numbers below are a hierarchy first and dimensions second:
+
+     ordinary farm building      8 blocks tall          (Phase 17, unchanged)
+     THE FALLEN TOWER           37 blocks LONG, lying   — vast without being tall
+     THE STANDING TOWER         37 blocks tall          (Phase 20, unchanged)
+     THE GIANT BARN             21 tall, 34 across      — plus two silos beside it
+     THE GREAT TREE             40 tall, 52 ACROSS      — wider than the tower is tall
+
+   The tree is the climax and it wins on WIDTH rather than height, because height is
+   capped: chunk data is 64 tall and the heightfield reaches 29, so nothing can stand more
+   than ~34 blocks above high ground. A canopy fifty-two blocks across has no such ceiling
+   and is unmistakable from anywhere on the horizon. */
+/* IT LIES ACROSS THE ROAD, NOT ALONG IT, and the plot is shaped to make that possible.
+   The first pass laid the wreck east-west, on the same axis the journey runs — so from
+   the road it was only ever seen END-ON, eleven blocks wide, and a render from seventy
+   blocks showed a thirty-seven-block landmark as a small pale smudge. Turned across the
+   route it presents its whole length broadside to a player walking east, which is the
+   entire reason it is here. */
+const FARM_FALLEN_PLOT_W = 26, FARM_FALLEN_PLOT_D = 46;
+const FARM_FALLEN_LEN = 37;              // the tower's own height, now its length
+/* THE PLOT HAS TO HOLD THE WHOLE COMPLEX, NOT JUST THE BARN. Forty-two square did not:
+   the silos and the machinery bay were pushed off the east and west edges of the levelled
+   pad, where it has already started banking back to the natural field, so their footings
+   stood in mid-air on one side and were buried on the other. Fifty-four by forty-four
+   fits a thirty-four-block barn, a pair of silos at its east gable and a thirteen-block
+   yard between it and the road — and the clear windows in this parcel column measure
+   57x45 and 60x58, so it places. */
+const FARM_BARN_PLOT_W = 54, FARM_BARN_PLOT_D = 44;      // complex + yard
+/* THE BARN'S NUMBERS ARE THE ROOF'S NUMBERS. SUB_ROOF_PITCH is 0.5 and a gable rises
+   half a block per block of half-span, so a ridge height is not a free choice: it is the
+   depth divided by four. Twenty-four deep gives a six-and-a-half-block roof over a
+   fourteen-block wall — twenty-one to the ridge, against eight for an ordinary barn and
+   thirty-seven for the tower. Forcing a steeper pitch instead would have meant stepping
+   the roof pieces a full block per cell, which leaves visible gaps between the wedges;
+   the depth is the honest way to buy the height. */
+const FARM_BARN_W = 34, FARM_BARN_D = 24, FARM_BARN_H = 14;
+const FARM_BARN_ROOF = 7;                // plate to ridge, from the depth above
+const FARM_SILO_H = 22, FARM_SILO_R = 3; // the pair beside it: mass without a rival height
+const FARM_BARN_YARD = 13;               // open yard between the road and the barn wall
+const FARM_TREE_PLOT = 26;               // the levelled ground the trunk stands on
+const FARM_TREE_TRUNK_R = 4;             // a nine-block trunk
+const FARM_TREE_TRUNK_H = 26;            // clear bole before the first limb
+const FARM_TREE_CANOPY_R = 26;           // 52 blocks across
+const FARM_TREE_TOP = 40;                // above the pad; the tallest thing in the region
+const FARM_TREE_MAX_BASE = 22;           // so the crown never truncates against y=63
+
+/* THE DEAD LAND. A broad radial ramp centred on the tree: ordinary farmland at the outer
+   edge, exhausted soil, then rotten ground with almost nothing growing on it, and the
+   tree standing in the middle of it, lush. The contradiction is the horror and the RAMP
+   is what makes it land — a hard edge would read as a texture change, and a player who
+   walks into it gradually has time to notice the crops thinning before they notice why. */
+const FARM_TREE_DEAD_R = 104;            // outer edge of the dying ground
+const FARM_TREE_ROT_R = 46;              // inside this the ground is rotten outright
+const FARM_TREE_KEEPOUT = 92;            // nothing built stands inside the dead land
+const FARM_FALLEN_KEEPOUT = 62;          // the wreck needs open field to read its length
+const FARM_BARN_KEEPOUT = 70;            // the barn IS the farm here; no rivals beside it
 const FARM_HOME_PLOT_W = 30, FARM_HOME_PLOT_D = 34;   // property, including yard
 const FARM_HOME_HOUSE_W = 12, FARM_HOME_HOUSE_D = 10; // the farmhouse footprint
 const FARM_HOME_WALL_H = 4;                           // storey height, per floor
@@ -8823,6 +9022,10 @@ BLOCK_HARDNESS[BLOCK.MAILBOX] = 0.9;
     RISER_PIPE: 'Riser', PIPE_X: 'Water Main', PIPE_Z: 'Water Main',
     VALVE_WHEEL: 'Stop Valve',
     WIN_CLEAR_X: 'Window', WIN_CLEAR_Z: 'Window',
+    GREAT_BARK: 'Ancient Bark', GREAT_LEAF: 'Living Canopy',
+    GREAT_ROOT_X: 'Buttress Root', GREAT_ROOT_Z: 'Buttress Root',
+    GREAT_LIMB_X: 'Great Limb', GREAT_LIMB_Z: 'Great Limb', GREAT_LIMB_Y: 'Great Limb',
+    TANK_TORN: 'Torn Plate', ROTTEN_GROUND: 'Rotten Ground', ROTTEN_STUBBLE: 'Dead Stems',
   };
   for (const k in N) BLOCK_DISPLAY_NAME[BLOCK[k]] = N[k];
   for (const k of ['TOWER_LEG', 'TOWER_TANK', 'TOWER_TANK_RIB', 'TOWER_DOME']) {
@@ -8835,6 +9038,22 @@ BLOCK_HARDNESS[BLOCK.MAILBOX] = 0.9;
   }
   BLOCK_HARDNESS[BLOCK.WIN_CLEAR_X] = 1.0;
   BLOCK_HARDNESS[BLOCK.WIN_CLEAR_Z] = 1.0;
+  /* THE GREAT TREE IS THE HARDEST WOOD IN THE GAME, and that is a design decision rather
+     than a number: it is the single largest object in the region and the one whose
+     silhouette every later beat is composed against. It must not be possible to casually
+     delete it, and at 6.0 a player with an iron axe still can — it simply takes long
+     enough that nobody does it by accident. */
+  for (const k of ['GREAT_BARK', 'GREAT_ROOT_X', 'GREAT_ROOT_Z',
+                   'GREAT_LIMB_X', 'GREAT_LIMB_Z', 'GREAT_LIMB_Y']) {
+    BLOCK_HARDNESS[BLOCK[k]] = 6.0;
+  }
+  BLOCK_HARDNESS[BLOCK.GREAT_LEAF] = 0.3;
+  BLOCK_HARDNESS[BLOCK.TANK_TORN] = 6.5;
+  BLOCK_HARDNESS[BLOCK.ROTTEN_GROUND] = 0.8;
+  BLOCK_HARDNESS[BLOCK.ROTTEN_STUBBLE] = 0.25;
+  FARM_YARD_GROUND.add(BLOCK.ROTTEN_GROUND);
+  /* Dappled shade, not a hole in the sky — see the vocabulary note on GREAT_LEAF. */
+  LIGHT_PASSABLE_LATE.push(BLOCK.GREAT_LEAF);
 })();
 
 /* Author the interior vocabulary, then flatten every shape — Phase 13's and Phase 14's —
@@ -9155,6 +9374,51 @@ BLOCK_HARDNESS[BLOCK.MAILBOX] = 0.9;
     box(T.rustMetal, 0.375, 0.1875, 0, 0.625, 0.4375, 1),
     box(T.fieldstone, 0.3125, 0, 0.375, 0.6875, 0.1875, 0.625),
   ], collide: [[0.3125, 0, 0, 0.6875, 0.4375, 1]], light: true });
+  /* --- THE GREAT TREE'S STRUCTURE -----------------------------------------------------
+     Three shaped families, and they exist because a forty-block tree built out of cubes
+     is a tower with leaves on it. The BUTTRESS ROOTS flare where the trunk meets the
+     ground, which is most of what makes a very old tree read as very old; the LIMBS are
+     thick enough to carry a canopy and are run-tiled on their axis so a twenty-block
+     branch collapses to a few quads.
+
+     The roots and limbs COLLIDE — you walk around a root, not through it — and they are
+     light-passable so the ground beneath the tree stays lit. */
+  S(BLOCK.GREAT_ROOT_X, { parts: [
+    box(T.greatBark, 0, 0, 0.28125, 1, 0.6875, 0.71875),
+    box(T.greatBark, 0, 0.5, 0.375, 1, 0.9375, 0.625),
+  ], collide: [[0, 0, 0.25, 1, 0.9375, 0.75]], light: true });
+  S(BLOCK.GREAT_ROOT_Z, { parts: [
+    box(T.greatBark, 0.28125, 0, 0, 0.71875, 0.6875, 1),
+    box(T.greatBark, 0.375, 0.5, 0, 0.625, 0.9375, 1),
+  ], collide: [[0.25, 0, 0, 0.75, 0.9375, 1]], light: true });
+  S(BLOCK.GREAT_LIMB_X, { parts: [
+    box(T.greatBark, 0, 0.1875, 0.1875, 1, 0.8125, 0.8125),
+  ], light: true });
+  S(BLOCK.GREAT_LIMB_Z, { parts: [
+    box(T.greatBark, 0.1875, 0.1875, 0, 0.8125, 0.8125, 1),
+  ], light: true });
+  S(BLOCK.GREAT_LIMB_Y, { parts: [
+    box(T.greatBark, 0.1875, 0, 0.1875, 0.8125, 1, 0.8125),
+  ], light: true });
+
+  /* --- THE FALLEN TOWER'S RUPTURED PLATE. A tank that came down from twenty-two blocks
+     did not land intact, and a fallen tower drawn entirely in clean plate reads as a
+     tower lying down rather than as a wreck. This is the same steel with a tear in it. */
+  S(BLOCK.TANK_TORN, { parts: [
+    box(T.tankSteel, 0, 0, 0, 1, 0.4375, 1),
+    box(T.tankSteel, 0, 0.4375, 0, 0.375, 1, 1),
+    box(T.tankSteel, 0.625, 0.4375, 0, 1, 1, 0.4375),
+    box(T.rustMetal, 0.375, 0.4375, 0, 0.625, 0.5625, 0.3125),
+  ] });
+
+  /* --- WHAT IS LEFT GROWING ON DEAD GROUND. Barely anything: a few dry stems, shorter
+     and sparser than ordinary stubble, on soil that has stopped supporting a crop. */
+  S(BLOCK.ROTTEN_STUBBLE, { parts: [
+    box(T.rotSoil, 0.375, 0, 0.4375, 0.46875, 0.25, 0.53125),
+    box(T.rotSoil, 0.5625, 0, 0.5625, 0.65625, 0.1875, 0.65625),
+    box(T.stalk, 0.4375, 0, 0.25, 0.5, 0.3125, 0.3125),
+  ], noclip: true, light: true });
+
   // The stop valve on the mains, and the one piece of the facility a hand ever touched.
   S(BLOCK.VALVE_WHEEL, { parts: [
     box(T.rustMetal, 0.40625, 0, 0.40625, 0.59375, 0.5, 0.59375),
@@ -9168,6 +9432,7 @@ BLOCK_HARDNESS[BLOCK.MAILBOX] = 0.9;
 buildSuburbFurniture();
 buildSuburbInteriorStructure();
 buildShapeTables();
+for (const id of LIGHT_PASSABLE_LATE) LIGHT_PASSABLE[id] = 1;
 
 /* Roof piece lookup. Given the four corner heights of one roof cell, returns the piece
    that renders that surface, or -1 for a cell the roof does not reach. The generator
@@ -10751,6 +11016,17 @@ class VoxelWorld {
     if (H) { const y = this._farmSitePad(wx, wz, H); if (y >= 0) return y; }
     const T = this.farmTower;
     if (T) { const y = this._farmSitePad(wx, wz, T); if (y >= 0) return y; }
+    /* PHASE 20 REVISION — the three landmarks the journey gained level their ground the
+       same way, and for the same reason: a thirty-seven-block mast lying across a field,
+       a thirty-four-block barn and a nine-block trunk each have to agree with themselves
+       across the four or more chunks that build them. Ordered by how far along the
+       journey they are, and every one of them rejects a column with four comparisons. */
+    const F = this.farmFallen;
+    if (F) { const y = this._farmSitePad(wx, wz, F); if (y >= 0) return y; }
+    const B = this.farmBarn;
+    if (B) { const y = this._farmSitePad(wx, wz, B); if (y >= 0) return y; }
+    const R = this.farmTree;
+    if (R) { const y = this._farmSitePad(wx, wz, R); if (y >= 0) return y; }
     return -1;
   }
 
@@ -11134,7 +11410,45 @@ class VoxelWorld {
       const d2 = v - FARM_P - this._farmRouteZ(bz + 1, wx);
       if (!laneN || Math.abs(d2) < Math.abs(dv)) { dv = d2; laneN = true; lineV = bz + 1; }
     }
-    const au = du < 0 ? -du : du, av = dv < 0 ? -dv : dv;
+    let au = du < 0 ? -du : du, av = dv < 0 ? -dv : dv;
+
+    /* =================================================================================
+       THE ROAD HIERARCHY, APPLIED. Everything above resolved WHICH lanes reach this
+       column; this decides what they are worth. Outside the corridor the answer is
+       always "exactly what Phase 16 built", for the cost of four integer comparisons.
+       ================================================================================= */
+    let mainHalf = FARM_LANE_HALF, mainVerge = FARM_VERGE_U, crossHalf = FARM_LANE_HALF;
+    if (farmInCorridor(bx, bz)) {
+      // The journey's own lane is the main road; every other E-W lane in the band is not.
+      if (laneN && lineV === FARM_J_LINE) {
+        mainHalf = FARM_J_MAIN_HALF;
+        mainVerge = FARM_J_MAIN_VERGE;
+      } else if (laneN) {
+        laneN = false; av = 1e9;             // no second road running alongside the first
+      }
+      if (laneW) {
+        if (farmCrossKept(lineU)) {
+          crossHalf = 0;                      // a farm track meeting a road, not a crossroads
+        } else {
+          /* IT FADES, IT DOES NOT STOP. Approaching the main road a doomed crossing
+             narrows to a single rut and then to a field boundary; within a fifth of the
+             fade distance it is gone. A track that peters out short of a road is the most
+             ordinary thing in farmland — a road that ends in a clean edge is not. */
+          const toMain = laneN ? av : (FARM_J_CROSS_FADE + 1);
+          /* IT DIES SHORT OF THE ROAD RATHER THAN AT IT, and the cut-off is the measured
+             half of this. At a fifth of the fade the track still reached the verge, so a
+             census along two thousand blocks of the journey found twenty-one places where
+             something met the road against eighteen on an ordinary lane — the corridor was
+             no quieter than the lattice it was supposed to be replacing, only narrower.
+             Cut at 0.55 the track stops eight blocks clear of the verge and the two never
+             touch, which is what a field track that nobody has driven in thirty years
+             actually looks like. */
+          if (toMain < FARM_J_CROSS_FADE * 0.55) { laneW = false; au = 1e9; }
+          else if (toMain < FARM_J_CROSS_FADE) crossHalf = 0;
+          else crossHalf = FARM_LANE_HALF;
+        }
+      }
+    }
 
     /* --- THE JUNCTION APRON, deliberately lopsided. A crossroads worn open by everything
        that ever had to swing wide is not a symmetrical plus sign, and the brief calls out
@@ -11143,14 +11457,22 @@ class VoxelWorld {
        different worn shape while staying entirely deterministic. */
     if (laneW && laneN && au < FARM_ROUTE_REACH && av < FARM_ROUTE_REACH) {
       const q = (du > 0 ? 1 : 0) + (dv > 0 ? 2 : 0);
-      const pad = 1 + FARM_JUNCTION_PAD * this._farmHash(lineU * 3 + q, lineV * 5 + q, 653);
-      if (au <= FARM_LANE_HALF + pad && av <= FARM_LANE_HALF + pad) return FARM_SURF.TRACK;
+      /* PHASE 20 REVISION — INSIDE THE CORRIDOR THE APRON IS A THIRD OF ITS USUAL REACH.
+         A worn crossroads apron is eight or nine blocks across, and the brief is explicit
+         that the journey must not read as a lattice of four-way intersections; at full
+         reach every surviving farm track opened into a plaza where it met the road. A
+         narrow apron still reads as a worn entrance, which is all a farm track meeting a
+         main road ever was. */
+      const inCorHere = farmInCorridor(bx, bz);
+      const pad = 1 + FARM_JUNCTION_PAD * (inCorHere ? 0.34 : 1) *
+                  this._farmHash(lineU * 3 + q, lineV * 5 + q, 653);
+      if (au <= crossHalf + pad && av <= mainHalf + pad) return FARM_SURF.TRACK;
     }
 
     /* --- THE CARRIAGEWAY, centred on the spine rather than offset from a grid line, so
        both edges and the ruts follow the curve together. */
-    if (laneW && au <= FARM_LANE_HALF + 0.5) return (au > FARM_LANE_HALF - 0.5) ? FARM_SURF.RUT : FARM_SURF.TRACK;
-    if (laneN && av <= FARM_LANE_HALF + 0.5) return (av > FARM_LANE_HALF - 0.5) ? FARM_SURF.RUT : FARM_SURF.TRACK;
+    if (laneW && au <= crossHalf + 0.5) return (au > crossHalf - 0.5) ? FARM_SURF.RUT : FARM_SURF.TRACK;
+    if (laneN && av <= mainHalf + 0.5) return (av > mainHalf - 0.5) ? FARM_SURF.RUT : FARM_SURF.TRACK;
 
     /* --- VERGE, DRAINAGE AND THE FIELD BOUNDARY, now measured from the same signed
        distance and therefore curving with the road. The ditch stays on ONE side only,
@@ -11158,8 +11480,11 @@ class VoxelWorld {
        symmetrical extrusion. */
     if (laneW) {
       const r = Math.round(au);
-      if (r === FARM_VERGE_U - 1) return FARM_SURF.VERGE;
-      if (du > 0 && this._farmDitchX(lineU) && r >= FARM_DITCH_U - 2 && r <= FARM_DITCH_U) {
+      const cv = crossHalf < FARM_LANE_HALF ? FARM_VERGE_U - 1 : FARM_VERGE_U;
+      if (r === cv - 1) return FARM_SURF.VERGE;
+      // A demoted crossing keeps no drainage: a ditch is what a made-up road has.
+      if (crossHalf >= FARM_LANE_HALF && du > 0 && this._farmDitchX(lineU) &&
+          r >= FARM_DITCH_U - 2 && r <= FARM_DITCH_U) {
         return r === FARM_DITCH_U - 1 ? FARM_SURF.DITCH : FARM_SURF.DITCH_LIP;
       }
       if (r === FARM_MARGIN - 1) return FARM_SURF.BOUNDARY;
@@ -11168,13 +11493,18 @@ class VoxelWorld {
       return FARM_SURF.BOUNDARY;
     }
     if (laneN) {
+      /* THE WIDENED ROAD CARRIES ITS WHOLE CORRIDOR OUT WITH IT. Verge, ditch and field
+         boundary are all measured from the same signed distance, so widening the
+         carriageway without moving the bands behind it would put the ditch under the
+         road. `wide` is that shift, and it is zero everywhere outside the corridor. */
       const r = Math.round(av);
-      if (r === FARM_VERGE_U - 1) return FARM_SURF.VERGE;
-      if (dv > 0 && this._farmDitchZ(lineV) && r >= FARM_DITCH_U - 2 && r <= FARM_DITCH_U) {
-        return r === FARM_DITCH_U - 1 ? FARM_SURF.DITCH : FARM_SURF.DITCH_LIP;
+      const wide = mainVerge - FARM_VERGE_U;
+      if (r === mainVerge - 1) return FARM_SURF.VERGE;
+      if (dv > 0 && this._farmDitchZ(lineV) && r >= FARM_DITCH_U - 2 + wide && r <= FARM_DITCH_U + wide) {
+        return r === FARM_DITCH_U - 1 + wide ? FARM_SURF.DITCH : FARM_SURF.DITCH_LIP;
       }
-      if (r === FARM_MARGIN - 1) return FARM_SURF.BOUNDARY;
-      if (r < FARM_MARGIN) return FARM_SURF.VERGE;
+      if (r === FARM_MARGIN - 1 + wide) return FARM_SURF.BOUNDARY;
+      if (r < FARM_MARGIN + wide) return FARM_SURF.VERGE;
     } else if (v === 0 && this._farmHedgeZ(bz)) {
       return FARM_SURF.BOUNDARY;
     }
@@ -11217,8 +11547,16 @@ class VoxelWorld {
       this._farmCacheD = new Uint8Array(W * W);
       this._farmCacheL = new Uint8Array(W * W);
     }
+    /* PHASE 20 REVISION — DL is the dead-land ramp, and it is cached for the same reason
+       every other channel here is: three separate passes need it for the same column (the
+       soil, the crop cover and the trees), and computing it three times cost a measured
+       eleven per cent on the chunks near the great tree — an inverse tangent, a square
+       root and two sines apiece. Cached, the same chunks come back to the baseline. */
+    if (!this._farmCacheDL || this._farmCacheDL.length !== W * W) {
+      this._farmCacheDL = new Float32Array(W * W);
+    }
     const H = this._farmCacheH, S = this._farmCacheS, B = this._farmCacheB, WA = this._farmCacheWater;
-    const D = this._farmCacheD, L = this._farmCacheL;
+    const D = this._farmCacheD, L = this._farmCacheL, DL = this._farmCacheDL;
     const x0 = chunk.cx * CHUNK_SX - FARM_M, z0 = chunk.cz * CHUNK_SZ - FARM_M;
     for (let i = 0; i < W; i++) {
       const wx = x0 + i;
@@ -11226,6 +11564,7 @@ class VoxelWorld {
         const wz = z0 + j, k = i * W + j;
         let h = this._farmHeightAt(wx, wz);
         const surf = this._farmSurfaceAt(wx, wz);
+        DL[k] = this._farmDeadLand(wx, wz);
         // The ditch is cut into the heightfield here rather than in _farmHeightAt, so a
         // ditch never disturbs the pads or the watercourses it crosses.
         if (surf === FARM_SURF.DITCH) h -= 2;
@@ -11312,7 +11651,7 @@ class VoxelWorld {
         D[k] = wt ? wt - h : 0;
       }
     }
-    return { W, x0, z0, H, S, B, WA, D, L };
+    return { W, x0, z0, H, S, B, WA, D, L, DL };
   }
 
   /* ===================================================================================
@@ -11345,7 +11684,7 @@ class VoxelWorld {
 
         for (let y = deepest; y < h - 4; y++) chunk.data[chunk.idx(x, y, z)] = BLOCK.STONE;
         for (let y = Math.max(deepest, h - 4); y < h - 1; y++) chunk.data[chunk.idx(x, y, z)] = BLOCK.ROTTED_SOIL;
-        if (h - 1 >= 0) chunk.data[chunk.idx(x, h - 1, z)] = this._farmTopBlock(wx, wz, surf, ashen, D[k], B[k]);
+        if (h - 1 >= 0) chunk.data[chunk.idx(x, h - 1, z)] = this._farmTopBlock(wx, wz, surf, ashen, D[k], B[k], C.DL[k]);
         /* PHASE 19 — DEPTH AS A BLOCK ID. One block of water is WADEABLE and gets the
            shallow id; two or three is swimmable and gets the deep one. Because the
            heightfield never steps by more than one block, a depth-2 cell is always
@@ -11391,7 +11730,14 @@ class VoxelWorld {
        player meets it, so a later beat always wins over an earlier one where two
        overlap. Every one of these opens with a rectangle test that rejects essentially
        every chunk in an infinite region for the cost of four comparisons. */
+    /* PHASE 20 REVISION — the landmark chain stamps in the order the player meets it,
+       so where two authored beats ever overlap the later one wins. The great tree runs
+       after the barn and before the missing-farm evidence because the dead land it owns
+       reaches a hundred blocks and has to be able to overwrite ordinary field cover. */
+    this._farmStampFallenTower(chunk);
     this._farmStampTower(chunk);
+    this._farmStampJourneyBarn(chunk);
+    this._farmStampGreatTree(chunk);
     this._farmStampJourneyMarks(chunk);
     this._farmStampApproach(chunk);
     // --- The Disconnected Home last of all, so nothing can ever overwrite Level 2
@@ -11437,7 +11783,44 @@ class VoxelWorld {
      GEOGRAPHIC: the state is chosen by what the column IS (a bed under water, a road, a
      ditch lip, an exhausted corner of a dead field, contaminated ground near the forest)
      and never by an unqualified die roll. */
-  _farmTopBlock(wx, wz, surf, ashen, depth, bval) {
+  /* ===================================================================================
+     PHASE 20 REVISION — THE DEAD LAND AROUND THE GREAT TREE
+
+     Returns 0 outside the ring and 1 at the trunk, and everything the ring does to the
+     world is driven from this one number so the four channels — soil, crops, trees and
+     ground cover — can never disagree about where the edge is.
+
+     THE TRANSITION IS THE POINT, NOT THE DEAD GROUND. A circle of rot with a hard rim is
+     a decal; what the brief asks for is normal fields becoming weak, then sparse, then
+     brown, then rotten, over ground the player crosses on foot. So the ramp runs from
+     FARM_TREE_DEAD_R — a hundred and four blocks out, which is more than a minute of
+     walking — and is raised to a power so the outer half is barely perceptible and the
+     change accelerates as the tree gets closer.
+
+     AND THE RIM IS NOT A CIRCLE. Two hashed harmonics push the edge in and out by up to
+     eighteen blocks, which is what stops the boundary reading as a generated radius when
+     the player walks along it. They are derived from the site seed, so the shape is
+     fixed for a given world and identical in every chunk that touches it.
+
+     THE COST IS FOUR COMPARISONS EVERYWHERE ELSE. Only a column already inside the
+     square that bounds the ring pays for the square root and the two sines. */
+  _farmDeadLand(wx, wz) {
+    const R = this.farmTree;
+    if (!R) return 0;
+    const dx = wx - R.cx, dz = wz - R.cz;
+    if (dx > FARM_TREE_DEAD_R || dx < -FARM_TREE_DEAD_R ||
+        dz > FARM_TREE_DEAD_R || dz < -FARM_TREE_DEAD_R) return 0;
+    const d = Math.sqrt(dx * dx + dz * dz);
+    if (d <= FARM_TREE_ROT_R) return 1;
+    const a = Math.atan2(dz, dx);
+    const ph = (R.seed % 1000) / 1000 * Math.PI * 2;
+    const outer = FARM_TREE_DEAD_R + 11 * Math.sin(a * 3 + ph) + 7 * Math.sin(a * 5 - ph * 2);
+    if (d >= outer) return 0;
+    const t = (outer - d) / (outer - FARM_TREE_ROT_R);
+    return Math.pow(t < 0 ? 0 : (t > 1 ? 1 : t), 1.6);
+  }
+
+  _farmTopBlock(wx, wz, surf, ashen, depth, bval, rotIn) {
     /* --- WATER BEDS FIRST. Anything under water is silt or mud, whatever it was going
        to be otherwise. This is also the shoreline's inner ring: mud under the shallows,
        darker silt in the deep, so the transition grass -> dirt -> mud -> water reads
@@ -11456,6 +11839,39 @@ class VoxelWorld {
       case FARM_SURF.DITCH_LIP: return BLOCK.SOIL_WET;
       case FARM_SURF.BOUNDARY:
         return this._farmSoilPatch(wx, wz, 193) < 0.4 ? BLOCK.SOIL_DRY : BLOCK.DEAD_EARTH;
+    }
+
+    /* --- THE DEAD LAND, AND IT OUTRANKS THE BIOME.
+
+       It is tested BEFORE the Ashen floor, and that ordering was a measured fix rather
+       than a preference: the great tree's plot resolved at a biome value of 0.09, inside
+       the forest's contamination edge, so with the rot applied further down the function
+       every column around the trunk returned ash and the tree stood in grey woodland
+       floor instead of in rotten farmland. Whatever the biome field thinks, inside this
+       circle the tree is what decides what the ground is — which is the whole point of it.
+
+       IT OVERRIDES THE PARCEL PROGRAMME RATHER THAN TINTING IT, for the same reason: a
+       crop field that is still visibly a ploughed crop field with grey soil reads as a
+       texture bug. Near the tree the ground is rotten outright; further out it is only
+       spent and dry, and the patch noise interleaves the two across the middle of the
+       ramp instead of meeting them at a line. */
+    const rot = rotIn === undefined ? this._farmDeadLand(wx, wz) : rotIn;
+    if (rot > 0) {
+      const q0 = this._farmSoilPatch(wx, wz, 977);
+      if (q0 < rot) {
+        if (rot > 0.72) return q0 < rot * 0.55 ? BLOCK.ROTTEN_GROUND : BLOCK.ROTTED_SOIL;
+        if (rot > 0.40) return q0 < rot * 0.5 ? BLOCK.DEAD_EARTH : BLOCK.SOIL_EXHAUSTED;
+        return BLOCK.SOIL_DRY;
+      }
+      /* AND ABOVE HALF THE RAMP THERE IS NO FALLING THROUGH. The patch noise spares a
+         fraction of columns so the rot interleaves with the ground it is eating rather
+         than replacing it in one step — but sixty blocks from the trunk a census found a
+         fifth of those spared columns coming back as ASH_GROUND, because the tree's plot
+         sits inside the Ashen Forest's contamination edge and the ash test is further
+         down. Inside the inner half of the ring the spared columns are spent ground
+         instead: still lighter than the rotten cells beside them, still not ash, and
+         still not a working field. */
+      if (rot > 0.5) return q0 < 0.75 ? BLOCK.SOIL_EXHAUSTED : BLOCK.DEAD_EARTH;
     }
 
     /* --- THE ASHEN FLOOR, and the contamination ramp out of it. The forest is ash over
@@ -11632,7 +12048,12 @@ class VoxelWorld {
 
         // --- Verges: dry tussock grass, thicker beside a track than in the open.
         if (surf === FARM_SURF.VERGE) {
-          if (this._farmHash(wx, wz, 61) < 0.34) this._farmSet(chunk, wx, h, wz, BLOCK.DRY_TUSSOCK);
+          if (this._farmHash(wx, wz, 61) < 0.34) {
+            const rv = C.DL[k];
+            this._farmSet(chunk, wx, h, wz,
+              (rv > 0 && this._farmHash(wx, wz, 1009) < rv)
+                ? (rv > 0.6 ? BLOCK.ROTTEN_STUBBLE : BLOCK.STICKS) : BLOCK.DRY_TUSSOCK);
+          }
           continue;
         }
         if (surf === FARM_SURF.TRACK || surf === FARM_SURF.RUT) continue;
@@ -11641,6 +12062,19 @@ class VoxelWorld {
         if (surf === FARM_SURF.BOUNDARY) {
           this._farmStampBoundary(chunk, wx, h, wz);
           continue;
+        }
+        /* --- THE DEAD LAND THINS THE CROP BEFORE IT KILLS IT. The soil ramp alone is a
+           colour change the player can walk over without registering; what actually
+           reads is the standing vegetation getting shorter, then patchier, then gone,
+           and finally being replaced by the rotten stubble that grows in its place. */
+        const rot = C.DL[k];
+        if (rot > 0) {
+          if (this._farmHash(wx, wz, 979) < rot) {
+            if (rot > 0.55 && this._farmHash(wx, wz, 983) < (rot - 0.55) * 0.9) {
+              this._farmSet(chunk, wx, h, wz, BLOCK.ROTTEN_STUBBLE);
+            }
+            continue;
+          }
         }
         if (ashen) continue;   // the Ashen Forest has no agriculture; trees handle it
 
@@ -11885,6 +12319,28 @@ class VoxelWorld {
         if (this._farmInPad(wx, wz)) continue;
         const h = H[k];
         if (WA[k] > h) continue;                    // no trees standing in water
+        /* PHASE 20 REVISION — NOTHING ELSE GROWS IN THE DEAD LAND, and that is what
+           gives the great tree its scale. The keep-out already stops buildings; this
+           stops the Ashen Forest and the orchards, so the only thing standing anywhere
+           inside a two-hundred-block circle is the tree itself. The outer half of the
+           ramp thins the canopy rather than clearing it, so the woodland retreats from
+           the tree instead of stopping at a rim. */
+        const deadT = C.DL[k];
+        if (deadT > 0) {
+          /* THE ODDS ARE THE RAMP, SCALED. Measured against the same seeds with no dead
+             land at all, a 2.4 multiplier left the ring between sixty and ninety blocks
+             carrying two thirds of its ordinary canopy — the woodland stopped at the rot
+             radius instead of retreating from the tree, and from the north-east the crown
+             had a tree line at its own eye level to be ranked against. At 3.2 the inner
+             ring is bare, the middle is a scatter, and the edge is untouched. */
+          if (this._farmHash(wx, wz, 991) < deadT * 3.2) {
+            // A burnt snag survives here and there, which is what a dying wood looks like.
+            if (deadT > 0.2 && deadT < 0.8 && this._farmHash(wx, wz, 993) < 0.004) {
+              this._farmSet(chunk, wx, h, wz, BLOCK.BURNT_STUMP);
+            }
+            continue;
+          }
+        }
 
         const b = B[k];
         const bx = Math.floor(wx / FARM_P), bz = Math.floor(wz / FARM_P);
@@ -12132,16 +12588,30 @@ class VoxelWorld {
         const ashen = B[k] > FARM_BIOME_T;
         let placed = false;
 
+        /* PHASE 20 REVISION — LIVING GROUND COVER DOES NOT GROW IN THE DEAD LAND. The
+           soil, the crops and the woodland all retreat from the great tree; the Phase 19
+           foreground layer did not, so a census of the ring forty blocks out found dry
+           tussock grass and weed clumps standing on rotten ground. `deadCover` swaps a
+           living piece of cover for a dead one at odds that follow the ramp, so the
+           substitution fades in with everything else instead of switching at a radius. */
+        const rotHere = C.DL[k];
+        const deadCover = (live) => {
+          if (rotHere <= 0) return live;
+          if (live !== BLOCK.WEED_CLUMP && live !== BLOCK.DRY_TUSSOCK) return live;
+          if (this._farmHash(wx, wz, 1009) >= rotHere) return live;
+          return rotHere > 0.6 ? BLOCK.ROTTEN_STUBBLE : BLOCK.STICKS;
+        };
+
         /* --- ACCUMULATION. Each branch below is an anchor plus a low rate, and the
            anchors are ordered by how strong a reason they are. Debris against a fence is
            the strongest — that is where wind actually puts it — so it goes first and
            takes the highest rate; open field is last and takes almost nothing. */
         if (nBound && r < 0.20) {
-          this._farmSet(chunk, wx, h, wz, r < 0.07 ? BLOCK.WEED_CLUMP
-                        : r < 0.13 ? BLOCK.LEAF_LITTER : BLOCK.STICKS);
+          this._farmSet(chunk, wx, h, wz, deadCover(r < 0.07 ? BLOCK.WEED_CLUMP
+                        : r < 0.13 ? BLOCK.LEAF_LITTER : BLOCK.STICKS));
           placed = true;
         } else if (nTrack && r < 0.10) {
-          this._farmSet(chunk, wx, h, wz, r < 0.05 ? BLOCK.SMALL_STONES : BLOCK.DRY_TUSSOCK);
+          this._farmSet(chunk, wx, h, wz, deadCover(r < 0.05 ? BLOCK.SMALL_STONES : BLOCK.DRY_TUSSOCK));
           placed = true;
         } else if (this._farmGet(chunk, wx, h + 2, wz) !== BLOCK.AIR && r < 0.26) {
           // Under a canopy: leaf drift and fallen twigs, which is where they come from.
@@ -12155,8 +12625,8 @@ class VoxelWorld {
           const p = this._farmParcel(bx, bz);
           const st = this._farmFieldState(bx, bz);
           if (p.kind === FARM_FIELD.DEAD || p.kind === FARM_FIELD.CROP) {
-            this._farmSet(chunk, wx, h, wz, st >= 5 ? BLOCK.WEED_CLUMP
-                          : (r < 0.006 ? BLOCK.BROKEN_WOOD : BLOCK.CROP_FLAT));
+            this._farmSet(chunk, wx, h, wz, deadCover(st >= 5 ? BLOCK.WEED_CLUMP
+                          : (r < 0.006 ? BLOCK.BROKEN_WOOD : BLOCK.CROP_FLAT)));
             placed = true;
           } else if (r < 0.005) {
             this._farmSet(chunk, wx, h, wz, BLOCK.SMALL_STONES);
@@ -12743,6 +13213,24 @@ class VoxelWorld {
     const T = this.farmTower;
     if (T && x1 >= T.cx - FARM_TOWER_KEEPOUT && x0 <= T.cx + FARM_TOWER_KEEPOUT &&
         z1 >= T.cz - FARM_TOWER_KEEPOUT && z0 <= T.cz + FARM_TOWER_KEEPOUT) return true;
+    /* PHASE 20 REVISION — THE SCALE HIERARCHY IS ENFORCED BY EMPTINESS.
+
+       The brief's requirement is that the eye reads ordinary farm < fallen tower <
+       standing tower < giant barn << great tree with no UI at all, and the only thing
+       that lets it do that is having nothing of an intermediate size standing next to
+       any of them. Each keep-out is sized to the landmark it protects: the tree's is the
+       widest of all, because the dead ground around it is part of the landmark and a
+       farmstead inside it would be a farmstead standing in a dead field, which says
+       something the story is not ready to say yet. */
+    const F = this.farmFallen;
+    if (F && x1 >= F.cx - FARM_FALLEN_KEEPOUT && x0 <= F.cx + FARM_FALLEN_KEEPOUT &&
+        z1 >= F.cz - FARM_FALLEN_KEEPOUT && z0 <= F.cz + FARM_FALLEN_KEEPOUT) return true;
+    const B = this.farmBarn;
+    if (B && x1 >= B.cx - FARM_BARN_KEEPOUT && x0 <= B.cx + FARM_BARN_KEEPOUT &&
+        z1 >= B.cz - FARM_BARN_KEEPOUT && z0 <= B.cz + FARM_BARN_KEEPOUT) return true;
+    const R = this.farmTree;
+    if (R && x1 >= R.cx - FARM_TREE_KEEPOUT && x0 <= R.cx + FARM_TREE_KEEPOUT &&
+        z1 >= R.cz - FARM_TREE_KEEPOUT && z0 <= R.cz + FARM_TREE_KEEPOUT) return true;
     if (x1 >= FARM_SPAWN_X - m && x0 <= FARM_SPAWN_X + m &&
         z1 >= FARM_SPAWN_Z - m && z0 <= FARM_SPAWN_Z + m) return true;
     return false;
@@ -14145,6 +14633,24 @@ class VoxelWorld {
      computes the identical line and stamps its own portion of it. */
   _farmSpurToLane(chunk, x, z, halfWidth) {
     const bxp = Math.floor(x / FARM_P), bzp = Math.floor(z / FARM_P);
+    /* PHASE 20 REVISION — A SPUR MUST NOT AIM AT A ROAD THAT IS NOT THERE. Inside the
+       journey corridor the road hierarchy suppresses most crossing lanes and every
+       parallel one, but _farmLaneX/_farmLaneZ still answer for the raw lattice; a spur
+       resolved from them alone would run a track fifty blocks across a field to a lane
+       the surface pass never wrote. So the corridor's own predicates decide first. */
+    const inCor = farmInCorridor(bxp, bzp);
+    const hasX = this._farmLaneX(bxp) && (!inCor || farmCrossKept(bxp));
+    const hasZ = this._farmLaneZ(bzp) && (!inCor || bzp === FARM_J_LINE);
+    if (inCor) {
+      if (hasZ) {
+        const tz = Math.round(bzp * FARM_P + this._farmRouteZ(bzp, x));
+        this._farmStampSpur(chunk, x, z, x, tz, halfWidth);
+      } else if (hasX) {
+        const tx = Math.round(bxp * FARM_P + this._farmRouteX(bxp, z));
+        this._farmStampSpur(chunk, x, z, tx, z, halfWidth);
+      }
+      return;
+    }
     // PHASE 18.1 — aim at the route's actual centreline, not at the grid line plus one.
     if (this._farmLaneX(bxp)) {
       const tx = Math.round(bxp * FARM_P + this._farmRouteX(bxp, z));
@@ -14444,11 +14950,25 @@ class VoxelWorld {
       }
       return [lo, hi];
     };
+    /* THE WINDOW HAS TO AGREE WITH THE ROAD HIERARCHY, or the authored landmarks are
+       sized against roads that are not there. Inside the corridor a crossing lane that
+       farmCrossKept discarded writes nothing to the ground, and neither does a parallel
+       E-W lane — so neither may take a bite out of the window either. Getting this wrong
+       is not cosmetic: the fallen tower is 46 blocks long and the first attempt could not
+       place it at all, because two lanes that the surface pass had already suppressed
+       were still each claiming ten blocks of the parcel. */
+    const inCor = farmInCorridor(bx, bz);
+    const laneXHere = (line) => this._farmLaneX(line) && (!inCor || farmCrossKept(line));
+    const laneZHere = (line) => this._farmLaneZ(line) && (!inCor || line === FARM_J_LINE);
+    const clearX = (line) => (inCor && !farmCrossKept(line)) ? 0
+                           : (inCor ? clear - 1 : clear);            // a demoted crossing is narrow
+    const clearZ = (line) => (inCor && line === FARM_J_LINE)
+                           ? clear + (FARM_J_MAIN_VERGE - FARM_VERGE_U) : clear;
     let loX = 0, hiX = FARM_P, loZ = 0, hiZ = FARM_P;
-    if (this._farmLaneX(bx)) loX = Math.ceil(spanX(bx)[1] + clear);
-    if (this._farmLaneX(bx + 1)) hiX = Math.floor(FARM_P + spanX(bx + 1)[0] - clear);
-    if (this._farmLaneZ(bz)) loZ = Math.ceil(spanZ(bz)[1] + clear);
-    if (this._farmLaneZ(bz + 1)) hiZ = Math.floor(FARM_P + spanZ(bz + 1)[0] - clear);
+    if (laneXHere(bx)) loX = Math.ceil(spanX(bx)[1] + clearX(bx));
+    if (laneXHere(bx + 1)) hiX = Math.floor(FARM_P + spanX(bx + 1)[0] - clearX(bx + 1));
+    if (laneZHere(bz)) loZ = Math.ceil(spanZ(bz)[1] + clearZ(bz));
+    if (laneZHere(bz + 1)) hiZ = Math.floor(FARM_P + spanZ(bz + 1)[0] - clearZ(bz + 1));
     if (loX < 0) loX = 0;
     if (loZ < 0) loZ = 0;
     if (hiX > FARM_P) hiX = FARM_P;
@@ -14510,6 +15030,16 @@ class VoxelWorld {
   }
 
   _farmResolveJourney() {
+    /* --- THE FALLEN TOWER, the journey's first "what is THAT?". It is placed with the
+       'lane' bias like its standing twin, because the thing that makes it land is walking
+       along the road and having it lying across the fields beside you. */
+    const fbx = FARM_J_B0 + FARM_J_FALLEN * FARM_J_DIR;
+    const F = this._farmJourneySite(fbx, FARM_FALLEN_PLOT_W, FARM_FALLEN_PLOT_D, 'lane');
+    if (!F) throw new Error('PHASE 20: no clear window for the fallen water tower');
+    F.padY = Math.max(this._farmBaseHeightAt(F.cx, F.cz), FARM_WATER_Y + 1);
+    F.seed = Math.floor(this._farmHash(F.bx, F.bz, 953) * 1e6);
+    this.farmFallen = F;
+
     // --- THE WATER TOWER --------------------------------------------------------------
     const tbx = FARM_J_B0 + FARM_J_TOWER * FARM_J_DIR;
     const T = this._farmJourneySite(tbx, FARM_TOWER_PLOT, FARM_TOWER_PLOT, 'lane');
@@ -14565,6 +15095,44 @@ class VoxelWorld {
     H.chest = { x: H.bigX0 + 8, y: H.deepY, z: H.bigZ0 + 1 };
     H.seed = Math.floor(this._farmHash(H.bx, H.bz, 911) * 1e6);
     this.farmHome = H;
+
+    /* --- THE GIANT BARN, five columns past the tower. 'lane' bias again: an agricultural
+       complex this size exists because things were driven in and out of it, so it stands
+       on the road, and its silhouette is the next thing on the horizon once the tower is
+       behind the player. */
+    const bbx = FARM_J_B0 + FARM_J_BARN * FARM_J_DIR;
+    const B = this._farmJourneySite(bbx, FARM_BARN_PLOT_W, FARM_BARN_PLOT_D, 'lane');
+    if (!B) throw new Error('PHASE 20: no clear window for the giant barn');
+    B.padY = Math.max(this._farmBaseHeightAt(B.cx, B.cz), FARM_WATER_Y + 1);
+    B.ridgeY = B.padY + FARM_BARN_H + FARM_BARN_ROOF;
+    /* THE COMPLEX'S LAYOUT IS RESOLVED HERE, NOT IN THE STAMPER, because three other
+       things need it: the silhouette proxy has to stand where the barn stands, and both
+       the validation suite and the render script have to look at it. Derived twice, it
+       drifts — the loft check went looking for a floor eight blocks up in a barn that had
+       moved three blocks west, and found half of it. */
+    B.bx = B.ox + 3;                                    // the barn sits at the west end
+    B.bw = FARM_BARN_W; B.bd = FARM_BARN_D;
+    B.laneEdge = B.south ? B.oz : B.z1 - 1;             // the plot edge the road is on
+    B.inward = B.south ? 1 : -1;                        // ...and which way the yard runs
+    B.bz = B.south ? B.oz + FARM_BARN_YARD : B.z1 - FARM_BARN_YARD - FARM_BARN_D;
+    B.seed = Math.floor(this._farmHash(B.bx, B.bz, 967) * 1e6);
+    this.farmBarn = B;
+
+    /* --- THE GREAT TREE. It takes the 'far' bias — set back from the road rather than
+       standing on it — because a tree that size was never planted by anybody and owes the
+       road nothing. The player sees it across a field of dead ground, which is the whole
+       composition.
+
+       ITS PAD IS CAPPED like the tower's, and for the same arithmetic reason: the crown
+       reaches FARM_TREE_TOP above the pad and chunk data stops at y=63. */
+    const rbx = FARM_J_B0 + FARM_J_TREE * FARM_J_DIR;
+    const R = this._farmJourneySite(rbx, FARM_TREE_PLOT, FARM_TREE_PLOT, 'far');
+    if (!R) throw new Error('PHASE 20: no clear window for the great tree');
+    R.padY = Math.min(Math.max(this._farmBaseHeightAt(R.cx, R.cz), FARM_WATER_Y + 1),
+                      FARM_TREE_MAX_BASE);
+    R.topY = R.padY + FARM_TREE_TOP;
+    R.seed = Math.floor(this._farmHash(R.bx, R.bz, 971) * 1e6);
+    this.farmTree = R;
 
     /* THE APPROACH. The rectangle of open field between the journey lane and the
        property, which is where every piece of "a farm should be here and the ground does
@@ -14634,9 +15202,10 @@ class VoxelWorld {
            field, a course of fieldstone holds it — without it a capped pad reads as a
            one-block cliff of soil, which is the single most common tell that a plot was
            levelled by a generator rather than by people. */
-        const nat = this._farmBaseHeightAt(wx, wz);
-        if (edge <= 1 && nat < b) {
-          for (let y = nat - 1; y < b; y++) S(wx, y, wz, BLOCK.FIELDSTONE);
+        if (edge <= 1) {
+          // The lookup is twenty simplex evaluations; only the rim ever needs it.
+          const nat = this._farmBaseHeightAt(wx, wz);
+          if (nat < b) for (let y = nat - 1; y < b; y++) S(wx, y, wz, BLOCK.FIELDSTONE);
         }
         if (edge >= 2 && r > 0.985) S(wx, b, wz, BLOCK.WEED_CLUMP);
         else if (edge >= 2 && r > 0.972) S(wx, b, wz, BLOCK.SMALL_STONES);
@@ -14766,32 +15335,616 @@ class VoxelWorld {
 
     /* --- THE FENCE AND THE GATE. Wire on posts around the compound, the gate on the side
        the service track arrives from, and one section already down. */
-    const gateSide = T.east ? T.ox : T.x1 - 1;
+    /* PHASE 20 REVISION — THE GATE FACES THE ROAD, and until now it did not. The journey
+       axis is east-west, so the lane runs along the facility's north or south edge
+       depending on which parcel row the site resolved into; the gateway was being cut in
+       an east edge with open field behind it, and the service track then had to leave the
+       compound sideways to find the road. Derived from the site descriptor, it is correct
+       for either row. */
+    const gateZ = T.south ? T.oz : T.z1 - 1;
     for (let wz = T.oz; wz < T.z1; wz++) {
       for (const wx of [T.ox, T.x1 - 1]) {
-        if (wx === gateSide && Math.abs(wz - cz) <= 1) continue;              // the gateway
         if (this._farmHash(wx, wz, 929) < 0.12) continue;                     // fallen sections
         S(wx, b, wz, ((wz & 3) === 0) ? BLOCK.FENCE_POST : BLOCK.FARM_FENCE_Z);
       }
     }
     for (let wx = T.ox; wx < T.x1; wx++) {
       for (const wz of [T.oz, T.z1 - 1]) {
+        if (wz === gateZ && Math.abs(wx - cx) <= 1) continue;                 // the gateway
         if (this._farmHash(wx, wz, 931) < 0.12) continue;
         S(wx, b, wz, ((wx & 3) === 0) ? BLOCK.FENCE_POST : BLOCK.FARM_FENCE_X);
       }
     }
-    S(gateSide, b, cz, BLOCK.FIELD_GATE_Z);
-    S(gateSide, b - 1, cz - 1, BLOCK.CULVERT_Z);
+    S(cx, b, gateZ, BLOCK.FIELD_GATE_X);
+    S(cx - 1, b - 1, gateZ, BLOCK.CULVERT_X);
 
     /* --- THE SERVICE TRACK back to the lane. The road does not merely pass the tower:
        something drove in here, regularly, for years, and the track it wore is what makes
        the facility part of the road network rather than an object beside it. */
-    this._farmSpurToLane(chunk, gateSide + (T.east ? -1 : 1), cz, 1);
+    this._farmSpurToLane(chunk, cx, gateZ + (T.south ? -1 : 1), 1);
     for (let k = 1; k <= 4; k++) {
-      const wx = gateSide + (T.east ? k : -k);
-      S(wx, b - 1, cz - 1, BLOCK.TIRE_TRACK);
-      S(wx, b - 1, cz + 1, BLOCK.TIRE_TRACK);
+      const wz = gateZ + (T.south ? -k : k);
+      S(cx - 1, b - 1, wz, BLOCK.TIRE_TRACK);
+      S(cx + 1, b - 1, wz, BLOCK.TIRE_TRACK);
     }
+  }
+
+  /* ===================================================================================
+     PHASE 20 REVISION — THE GIANT FALLEN WATER TOWER
+
+     THE FIRST LANDMARK OF THE JOURNEY, AND IT IS THE SAME OBJECT AS THE LAST ONE THE
+     PLAYER WILL MEET. That is the entire idea. Six parcels out of the arrival crossroads
+     a water tower is lying on its side across two fields — legs sheared off their
+     footings, the drum split along a seam, thirty-seven blocks of it end to end — and it
+     is unmistakably a water tower, so when a second one is standing intact on the horizon
+     an hour later the player already knows exactly how big that is. It teaches the scale
+     of the landmark chain without one word of UI.
+
+     IT IS NOT A HORROR EVENT AND NOTHING ABOUT IT IS SUPERNATURAL. A structure fell down.
+     It has been lying here long enough for weeds to grow through it and for the main to
+     have been leaking into the same puddle for years. The wrongness in this dimension is
+     rationed, and none of it is spent here.
+
+     THE GEOMETRY IS THE STANDING TOWER, ROTATED. Truss, drum, dome, mast and lamp housing
+     in the same order along the ground that they occupy in the air, which is what makes
+     the two read as the same object rather than as a wreck and a tower.
+     =================================================================================== */
+  _farmStampFallenTower(chunk) {
+    const F = this.farmFallen;
+    if (!F) return;
+    if (!this._subHits(chunk, F.ox - 3, F.oz - 3, F.x1 + 3, F.z1 + 3)) return;
+    const S = (wx, wy, wz, id) => this._subSet(chunk, wx, wy, wz, id);
+    const b = F.padY, cx = F.cx;
+    const hsh = (n) => this._farmHash(F.cx * 13 + n, F.cz * 17 + n, 955);
+    /* THE WRECK IS LAID OUT ROAD-RELATIVE, exactly as the barn's yard is, so it presents
+       its length broadside whichever parcel row the site resolved into. `t` counts blocks
+       inward from the plot edge the journey lane runs along: footings at 5, twenty-two
+       blocks of frame from 7, the drum from 30, the dome, the mast, and the lamp housing
+       at 44 — one block inside a forty-six-block plot. */
+    const laneEdge = F.south ? F.oz : F.z1 - 1;
+    const inward = F.south ? 1 : -1;
+    const fz = (t) => laneEdge + inward * t;
+
+    /* --- THE GROUND. Not a facility yard: this stopped being one decades ago. Beaten
+       ground survives immediately under the wreck, where nothing could ever regrow, and
+       everything around it has gone back to weed — which is the single strongest signal
+       that the fall was long ago rather than last week. */
+    for (let wx = F.ox; wx < F.x1; wx++) {
+      for (let wz = F.oz; wz < F.z1; wz++) {
+        const r = this._farmHash(wx, wz, 957);
+        const underWreck = Math.abs(wx - cx) <= 7;
+        for (let dy = 0; dy < 14; dy++) S(wx, b + dy, wz, BLOCK.AIR);
+        let ground;
+        if (underWreck) ground = r < 0.30 ? BLOCK.FARM_MUD : (r < 0.62 ? BLOCK.SOIL_TRAMPLED : BLOCK.DEAD_EARTH);
+        else ground = r < 0.42 ? BLOCK.SOIL_OVERGROWN : (r < 0.72 ? BLOCK.ROTTED_SOIL : BLOCK.SOIL_DRY);
+        S(wx, b - 1, wz, ground);
+        /* THE HEIGHTFIELD LOOKUP IS INSIDE THE EDGE TEST, and that is a measured
+           difference rather than tidiness. _farmBaseHeightAt is twenty simplex
+           evaluations; called for all 1,196 columns of the plot instead of the 140 on
+           its rim it doubled this landmark's generation cost for a retaining course
+           that only ever exists at the edge. */
+        const edge = Math.min(wx - F.ox, F.x1 - 1 - wx, wz - F.oz, F.z1 - 1 - wz);
+        if (edge <= 1) {
+          const nat = this._farmBaseHeightAt(wx, wz);
+          if (nat < b) for (let y = nat - 1; y < b; y++) S(wx, y, wz, BLOCK.FIELDSTONE);
+        }
+        if (!underWreck && r > 0.955) S(wx, b, wz, BLOCK.WEED_CLUMP);
+        else if (!underWreck && r > 0.90) S(wx, b, wz, BLOCK.DRY_TUSSOCK);
+      }
+    }
+
+    /* --- THE FOOTINGS IT LEFT BEHIND. Four fieldstone pads and four sheared stubs of
+       leg still bolted to them. Without these the wreck is a pipe lying in a field; with
+       them the player can see where it stood and which way it went over. */
+    const footZ = fz(5), LEG = 5;
+    for (const [lx, lz] of [[-LEG, -LEG], [LEG, -LEG], [-LEG, LEG], [LEG, LEG]]) {
+      for (let dx = -1; dx <= 1; dx++)
+        for (let dz = -1; dz <= 1; dz++) {
+          S(cx + lx + dx, b - 1, footZ + lz + dz, BLOCK.FIELDSTONE);
+          S(cx + lx + dx, b - 2, footZ + lz + dz, BLOCK.FIELDSTONE);
+        }
+      const stub = 1 + Math.floor(hsh(lx + lz * 3 + 7) * 3);       // sheared at knee height
+      for (let dy = 0; dy < stub; dy++) S(cx + lx, b + dy, footZ + lz, BLOCK.TOWER_LEG);
+    }
+
+    /* --- THE TRUSS, LYING ON ITS SIDE. The ten-block leg square is now ten wide and ten
+       tall, so the four legs are four rails: two on the ground and two overhead, with the
+       bracing courses standing as vertical ladders between them. The player can walk in
+       under it, which is most of why the thing reads as enormous. */
+    const t0 = 7;                                    // where the frame begins
+    const yLo = b, yHi = b + 10;
+    for (let k = 0; k <= FARM_TOWER_LEG_H; k++) {
+      const wz = fz(t0 + k);
+      // A collapsed frame is not straight: the far end settled lower than the near end.
+      const sag = k > 14 ? 1 : 0;
+      for (const wx of [cx - LEG, cx + LEG]) {
+        S(wx, yLo, wz, BLOCK.TOWER_LEG);
+        S(wx, yHi - sag, wz, BLOCK.TOWER_LEG);
+        S(wx, yLo + 5, wz, BLOCK.TOWER_BRACE_Z);      // the mid rail, along the length
+      }
+      /* THE BRACING IS ON A THREE-BLOCK PITCH, not six, and that was a render decision:
+         four rails and an upright every six blocks read at forty metres as a wire fence
+         rather than as a steel truss, which cost the wreck most of its mass. Three
+         courses of rail and an upright every third block is sixty more voxels and reads
+         as what it is. */
+      if (k % 3 === 1) {                              // the bracing courses, now uprights
+        for (let y = yLo + 1; y < yHi - sag; y++) {
+          S(cx - LEG, y, wz, BLOCK.TOWER_BRACE_X);
+          S(cx + LEG, y, wz, BLOCK.TOWER_BRACE_X);
+        }
+        for (let dx = -LEG + 1; dx <= LEG - 1; dx++) S(cx + dx, yLo, wz, BLOCK.TOWER_BRACE_Z);
+      }
+    }
+    // The catwalk ring, crushed under the drum end and still recognisable.
+    for (let dx = -FARM_TOWER_R; dx <= FARM_TOWER_R; dx++) {
+      if (this._farmHash(dx, 0, 959) < 0.3) continue;
+      S(cx + dx, b, fz(t0 + FARM_TOWER_LEG_H), BLOCK.CATWALK_Z);
+    }
+
+    /* --- THE DRUM. The same octagon the standing tower uses, turned a quarter turn so it
+       is cut in the X-Y plane instead of the X-Z one. It rests on its side, so its axis
+       is FARM_TOWER_R above the ground.
+
+       AND IT IS SPLIT. A seam has opened along the upper flank — TANK_TORN plate on the
+       lip and open air behind it — which is the one detail that stops the drum reading as
+       a clean cylinder somebody laid down carefully. */
+    const t1 = t0 + FARM_TOWER_LEG_H + 1;
+    const axisY = b + FARM_TOWER_R;
+    const inDrum = (dx, dy, rad) => Math.abs(dx) <= rad && Math.abs(dy) <= rad &&
+                                    Math.abs(dx) + Math.abs(dy) <= rad + 2;
+    for (let t = 0; t < FARM_TOWER_TANK_H; t++) {
+      const wz = fz(t1 + t);
+      const rib = (t === 1 || t === FARM_TOWER_TANK_H - 2);
+      for (let dx = -FARM_TOWER_R; dx <= FARM_TOWER_R; dx++)
+        for (let dy = -FARM_TOWER_R; dy <= FARM_TOWER_R; dy++) {
+          if (!inDrum(dx, dy, FARM_TOWER_R)) continue;
+          const shell = !inDrum(dx, dy, FARM_TOWER_R - 1);
+          const y = axisY + dy;
+          if (y < b) continue;                       // the underside is buried in the scar
+          if (!shell) { S(cx + dx, y, wz, BLOCK.AIR); continue; }
+          // The split: an opening along the top flank, three plates wide.
+          const torn = dy >= 1 && dx <= -1 && t >= 1 && t <= FARM_TOWER_TANK_H - 2;
+          if (torn && this._farmHash(wz, dx * 7 + dy, 961) < 0.62) {
+            S(cx + dx, y, wz, BLOCK.AIR);
+            continue;
+          }
+          S(cx + dx, y, wz, torn ? BLOCK.TANK_TORN : (rib ? BLOCK.TOWER_TANK_RIB : BLOCK.TOWER_TANK));
+        }
+    }
+
+    // --- THE DOME AND THE MAST, still bolted on, buried nose-first in the field.
+    const t2 = t1 + FARM_TOWER_TANK_H;
+    for (let ring = 0; ring < 3; ring++) {
+      const rad = FARM_TOWER_R - 1 - ring * 2;
+      for (let dx = -rad; dx <= rad; dx++)
+        for (let dy = -rad; dy <= rad; dy++) {
+          if (!inDrum(dx, dy, rad)) continue;
+          const y = axisY + dy;
+          if (y < b) continue;
+          S(cx + dx, y, fz(t2 + ring), BLOCK.TOWER_DOME);
+        }
+    }
+    S(cx, axisY, fz(t2 + 3), BLOCK.TOWER_MAST);
+    S(cx, axisY, fz(t2 + 4), BLOCK.TOWER_MAST);
+    /* THE LAMP HOUSING, lying in the dirt at the end of the mast where a player can walk
+       up and stand over it. It is dark and it stays dark. Nothing in the anomaly code
+       knows this block exists — see updateFarmTowerLight, which drives exactly one lamp
+       and it is the one on the tower that is still standing. */
+    S(cx, axisY, fz(t2 + 5), BLOCK.TOWER_LAMP);
+
+    /* --- THE SCAR. Something thirty-seven blocks long hit this field, and the ground
+       still shows it: a churned trench under the drum where the weight landed, and a
+       spray of thrown earth beyond the nose. */
+    for (let t = t1 - 2; t <= t2 + 6; t++) {
+      const wz = fz(t);
+      if (wz < F.oz || wz >= F.z1) continue;
+      for (let dx = -8; dx <= 8; dx++) {
+        const r = this._farmHash(cx + dx, wz, 963);
+        if (r > 0.55 - Math.abs(dx) * 0.05) continue;
+        S(cx + dx, b - 1, wz, r < 0.18 ? BLOCK.GRAVE_SOIL : BLOCK.FARM_MUD);
+      }
+    }
+
+    /* --- THE MAIN THAT NEVER GOT CAPPED. The riser snapped off at the base and the
+       buried main is still fed from somewhere, so there has been a puddle at the old
+       footings for as long as anyone can remember. Reeds have grown in it. This is the
+       piece of environmental storytelling that makes the wreck a PLACE. */
+    for (let wx = F.ox + 1; wx < cx - LEG; wx++) S(wx, b, footZ, BLOCK.PIPE_X);
+    S(cx - LEG - 1, b, footZ, BLOCK.WATER_PUMP);
+    for (let dx = -3; dx <= 3; dx++)
+      for (let dz = -3; dz <= 3; dz++) {
+        if (Math.abs(dx) + Math.abs(dz) > 4) continue;
+        if (this._farmHash(cx + dx, footZ + dz, 965) > 0.6) continue;
+        S(cx + dx, b - 1, footZ + dz, BLOCK.SOIL_WET);
+        S(cx + dx, b, footZ + dz, BLOCK.WATER_SHALLOW);
+        if (this._farmHash(cx + dx, footZ + dz, 969) < 0.3) S(cx + dx, b + 1, footZ + dz, BLOCK.REEDS);
+      }
+
+    /* --- WRECKAGE, AND NOT MUCH OF IT. Four or five pieces along the length, because a
+       field strewn with debris reads as a set dressing exercise and a field with one
+       sheared brace lying twenty blocks from the frame reads as physics. */
+    for (let n = 0; n < 6; n++) {
+      const pz = F.oz + 4 + Math.floor(hsh(n * 3 + 11) * (F.d - 8));
+      const px = F.ox + 2 + Math.floor(hsh(n * 3 + 12) * (F.w - 4));
+      if (Math.abs(px - cx) <= 6) continue;                 // not under the wreck itself
+      const pick = hsh(n * 3 + 13);
+      S(px, b, pz, pick < 0.4 ? BLOCK.TOWER_BRACE_Z
+                 : (pick < 0.7 ? BLOCK.BROKEN_WOOD : BLOCK.SMALL_STONES));
+    }
+
+    // --- The compound fence, long since down in most places.
+    for (let wz = F.oz; wz < F.z1; wz++)
+      for (const wx of [F.ox, F.x1 - 1]) {
+        if (this._farmHash(wx, wz, 973) < 0.55) continue;
+        S(wx, b, wz, ((wz & 3) === 0) ? BLOCK.POST_BROKEN : BLOCK.FENCE_BROKEN_Z);
+      }
+    for (let wx = F.ox; wx < F.x1; wx++)
+      for (const wz of [F.oz, F.z1 - 1]) {
+        if (this._farmHash(wx, wz, 975) < 0.55) continue;
+        S(wx, b, wz, ((wx & 3) === 0) ? BLOCK.POST_BROKEN : BLOCK.FENCE_BROKEN_X);
+      }
+  }
+
+  /* ===================================================================================
+     PHASE 20 REVISION — THE GIANT BARN
+
+     THE THIRD LANDMARK, AND THE ONLY ORDINARY ONE. After a wreck and a tower with a light
+     that will not behave, the player walks up to a building that is simply very large and
+     completely normal: a hay barn with a stone plinth, a full timber frame, two silos, a
+     yard, a water trough and a lean-to. Nothing here is wrong. Requirement 6 of the
+     project brief is that normality is part of the horror, and this is where the journey
+     spends it — one long beat of believable agriculture between the tower's anomaly and
+     the dead ground around the tree.
+
+     IT IS BIG BECAUSE THE HIERARCHY NEEDS IT TO BE. Twenty-one blocks to the ridge and
+     thirty-four across, against eight for the barns of Phase 17: from a distance it is
+     obviously a barn and obviously far too big to be one of theirs, which is what keeps
+     the player walking towards it. It is still shorter than the tower and far smaller
+     than what comes after, so the ranking never breaks.
+     =================================================================================== */
+  _farmStampJourneyBarn(chunk) {
+    const B = this.farmBarn;
+    if (!B) return;
+    if (!this._subHits(chunk, B.ox - 3, B.oz - 3, B.x1 + 3, B.z1 + 3)) return;
+    const S = (wx, wy, wz, id) => this._subSet(chunk, wx, wy, wz, id);
+    const b = B.padY;
+    const hsh = (n) => this._farmHash(B.cx * 13 + n, B.cz * 17 + n, 981);
+
+    // --- THE YARD. Compacted, drained, worked-in ground; no crop has been sown here.
+    for (let wx = B.ox; wx < B.x1; wx++) {
+      for (let wz = B.oz; wz < B.z1; wz++) {
+        for (let dy = 0; dy < 26; dy++) S(wx, b + dy, wz, BLOCK.AIR);
+        const r = this._farmHash(wx, wz, 985);
+        S(wx, b - 1, wz, r < 0.20 ? BLOCK.FARM_MUD
+                       : (r < 0.46 ? BLOCK.SOIL_TRAMPLED
+                       : (r < 0.74 ? BLOCK.SOIL_DRY : BLOCK.DEAD_EARTH)));
+        const edge = Math.min(wx - B.ox, B.x1 - 1 - wx, wz - B.oz, B.z1 - 1 - wz);
+        if (edge <= 1) {                                  // see the fallen tower's yard
+          const nat = this._farmBaseHeightAt(wx, wz);
+          if (nat < b) for (let y = nat - 1; y < b; y++) S(wx, y, wz, BLOCK.FIELDSTONE);
+        }
+        if (edge >= 2 && r > 0.985) S(wx, b, wz, BLOCK.DRY_TUSSOCK);
+      }
+    }
+
+    /* --- THE LAYOUT, AND IT IS MIRRORED ONTO WHICHEVER SIDE THE ROAD IS.
+
+       The journey lane runs east-west along one edge of this plot — the north edge if
+       the site resolved into the southern parcel row and the south edge if it did not —
+       and a farmyard faces the road. So everything below is placed in FRONT-RELATIVE
+       terms and mirrored, which also keeps the whole complex inside the levelled pad:
+       the first pass hung the silos and the lean-to off the plot's east and west edges,
+       where the pad has already begun banking back to the natural field, so their
+       footings would have stood in mid-air on one side and been buried on the other. */
+    const w = B.bw, d = B.bd, x = B.bx, z = B.bz;
+    const laneEdge = B.laneEdge, inward = B.inward;
+    const yz = (fz) => laneEdge + inward * fz;          // a yard row, fz blocks in
+    const m = { x, z, w, d, floorY: b, plateY: b + FARM_BARN_H, roof: 'gable', ridge: 'x', main: true };
+    for (let dx = -1; dx <= w; dx++)
+      for (let dz = -1; dz <= d; dz++) S(x + dx, b - 1, z + dz, BLOCK.FIELDSTONE);
+    this._subStampShell(chunk, m, BLOCK.BARN_RED, b);
+    this._subStampRoof(chunk, m, [m], BLOCK.ROOF_TIN, b, BLOCK.BARN_RED, false);
+
+    /* --- THE FRAME. A building this wide cannot be a box of siding: the eye needs to see
+       what is holding the roof up, and a run of full bays down thirty-four blocks of
+       interior is the single thing that makes the inside feel like a structure rather
+       than a room. Posts, tie beams, and a longitudinal ridge beam over them. */
+    for (let dx = 4; dx < w - 3; dx += 5) {
+      for (const dz of [3, d - 4]) {
+        for (let dy = 0; dy < FARM_BARN_H - 2; dy++) S(x + dx, b + dy, z + dz, BLOCK.POST_TIMBER);
+      }
+      for (let dz = 3; dz <= d - 4; dz++) S(x + dx, b + FARM_BARN_H - 2, z + dz, BLOCK.BEAM_Z);
+    }
+    for (let dx = 3; dx < w - 2; dx++) S(x + dx, b + FARM_BARN_H - 1, z + (d >> 1), BLOCK.BEAM_X);
+
+    /* --- THE HAY LOFT. Half the length of the barn, boarded, reached by a ladder. There
+       is nothing on it and nothing hidden in it; it exists because a barn this size that
+       is one empty volume from floor to ridge reads as a shed. */
+    const loftX0 = x + 3, loftX1 = x + 3 + 13, loftY = b + 8;
+    for (let dx = loftX0; dx < loftX1; dx++)
+      for (let dz = z + 3; dz <= z + d - 4; dz++) {
+        S(dx, loftY, dz, BLOCK.WOOD_FLOOR);
+        if (this._farmHash(dx, dz, 987) < 0.28) S(dx, loftY + 1, dz, BLOCK.LOFT_HAY);
+      }
+    for (let dy = 1; dy <= 8; dy++) S(loftX1, b + dy, z + 4, BLOCK.LADDER_S);
+    /* THE GATE ROW is the plot edge the road is on, and everything in the yard has been
+       placed relative to it, so the complex reads the same whichever row the site fell
+       into and every part of it stands on the levelled pad. */
+
+    /* --- THE DOORS. Two great sliding leaves on the yard side, one standing open. This
+       is the only way in and it is genuinely open: the barn is walkable, unlit, and about
+       as dark inside as a windowless building thirty-four blocks deep actually is. */
+    const doorX = x + (w >> 1) - 3;
+    const frontZ = B.south ? z : z + d - 1;             // the wall facing the yard
+    const backZ = B.south ? z + d - 1 : z;
+    for (let dx = 0; dx < 7; dx++)
+      for (let dy = 0; dy < 9; dy++) S(doorX + dx, b + dy, frontZ, BLOCK.AIR);
+    for (let dy = 0; dy < 9; dy++) {
+      S(doorX - 1, b + dy, frontZ, BLOCK.BARN_DOOR_X);
+      S(doorX + 7, b + dy, frontZ, BLOCK.BARN_DOOR_X);
+    }
+    // A smaller door at the far end, so nothing about the building is a dead end.
+    for (let dx = 0; dx < 3; dx++)
+      for (let dy = 0; dy < 5; dy++) S(x + (w >> 1) - 1 + dx, b + dy, backZ, BLOCK.AIR);
+
+    /* --- THE SILOS. Two of them off the east gable, twenty-two blocks to the eaves of
+       their cone caps. They add mass to the silhouette at distance without adding another
+       tall thing to rank against the tower, and they are the reason the complex reads as
+       a working farm from a kilometre away rather than as one big shed. */
+    for (let n = 0; n < 2; n++) {
+      const sx = x + w + 4 + n * 8, sz = z + 8 + n * 3;
+      const hgt = FARM_SILO_H - n * 3;
+      for (let dx = -FARM_SILO_R; dx <= FARM_SILO_R; dx++)
+        for (let dz = -FARM_SILO_R; dz <= FARM_SILO_R; dz++) {
+          const inside = dx * dx + dz * dz <= FARM_SILO_R * FARM_SILO_R;
+          if (!inside) continue;
+          const shell = dx * dx + dz * dz > (FARM_SILO_R - 1) * (FARM_SILO_R - 1);
+          S(sx + dx, b - 1, sz + dz, BLOCK.FIELDSTONE);
+          for (let dy = 0; dy < hgt; dy++) S(sx + dx, b + dy, sz + dz, shell ? BLOCK.SILO_TILE : BLOCK.AIR);
+          S(sx + dx, b + hgt, sz + dz, BLOCK.SILO_CONE);
+        }
+      for (let dy = 1; dy < hgt; dy++) S(sx - FARM_SILO_R, b + dy, sz - FARM_SILO_R + 1, BLOCK.LADDER_W);
+      // A short auger run from the silo back to the barn wall: the reason it is here.
+      for (let wx2 = x + w; wx2 < sx - FARM_SILO_R; wx2++) S(wx2, b + 1, sz, BLOCK.PIPE_X);
+    }
+
+    /* --- THE LEAN-TO, THE TROUGH AND THE YARD KIT. Small, specific, agricultural, and
+       every one of them is here because somebody would have needed it: a machinery bay
+       open on one side, a water trough on the fence line where stock could reach it, a
+       plough left where it was unhitched, and a stack of bales under cover. */
+    const lx = x + 1, lz0 = Math.min(yz(2), yz(10)), lz1 = Math.max(yz(2), yz(10));
+    for (let dx = 0; dx < 6; dx++)
+      for (let wz = lz0; wz <= lz1; wz++) {
+        S(lx + dx, b - 1, wz, BLOCK.FIELDSTONE);
+        // Open on the yard side; walled on the other three.
+        if (dx === 5 || wz === lz0 || wz === lz1) {
+          for (let dy = 0; dy < 5; dy++) S(lx + dx, b + dy, wz, BLOCK.CORRUGATED);
+        }
+        S(lx + dx, b + 5, wz, BLOCK.CORRUGATED);
+      }
+    if (hsh(3) < 0.75) {
+      S(lx + 2, b, yz(4), BLOCK.TRACTOR_BODY);
+      S(lx + 2, b, yz(5), BLOCK.TRACTOR_WHEEL);
+    }
+    S(lx + 1, b, yz(8), BLOCK.PLOUGH);
+    for (let k = 0; k < 4; k++) S(lx + 3, b + (k >> 1), yz(6 + (k & 1)), BLOCK.HAY_BALE);
+    // The stock trough, out in the yard where an animal could reach it.
+    S(x + 16, b, yz(3), BLOCK.WATER_PUMP);
+    for (let k = 0; k < 4; k++) S(x + 17 + k, b, yz(3), BLOCK.WELL_RIM);
+
+    /* --- THE STOCK FENCE, AND THE GATE FACES THE ROAD. Which edge that is follows from
+       which side of the lane the site resolved onto: the journey lane runs east-west, so
+       a plot south of it is gated on its north edge and a plot north of it on its south.
+       Getting this from the site descriptor rather than from a constant is what lets the
+       plot move between the two rows without the gateway ending up in a field. */
+    const gateZ = laneEdge;
+    for (let wz = B.oz; wz < B.z1; wz++)
+      for (const wx of [B.ox, B.x1 - 1]) {
+        if (this._farmHash(wx, wz, 989) < 0.14) continue;
+        S(wx, b, wz, ((wz & 3) === 0) ? BLOCK.FENCE_POST : BLOCK.FARM_FENCE_Z);
+      }
+    for (let wx = B.ox; wx < B.x1; wx++)
+      for (const wz of [B.oz, B.z1 - 1]) {
+        if (wz === gateZ && Math.abs(wx - B.cx) <= 1) continue;              // the gateway
+        if (this._farmHash(wx, wz, 995) < 0.14) continue;
+        S(wx, b, wz, ((wx & 3) === 0) ? BLOCK.FENCE_POST : BLOCK.FARM_FENCE_X);
+      }
+    S(B.cx, b, gateZ, BLOCK.FIELD_GATE_X);
+
+    // --- The track in. Something drove here every day for fifty years.
+    this._farmSpurToLane(chunk, B.cx, gateZ + (B.south ? -1 : 1), 1);
+    for (let k = 1; k <= 5; k++) {
+      const wz = gateZ + (B.south ? -k : k);
+      S(B.cx - 1, b - 1, wz, BLOCK.TIRE_TRACK);
+      S(B.cx + 1, b - 1, wz, BLOCK.TIRE_TRACK);
+    }
+  }
+
+  /* ===================================================================================
+     PHASE 20 REVISION — THE GREAT TREE
+
+     THE CLIMAX OF THE LANDMARK CHAIN, AND THE ONLY ONE THAT IS ALIVE.
+
+     WHY IT IS THE BIGGEST THING IN THE DIMENSION. The brief's requirement is a scale
+     hierarchy the eye can rank with no UI, ending in something that dwarfs everything
+     before it. Height alone could not deliver that: chunk data stops at y=63 and the
+     heightfield reaches 29, so nothing in the Farmlands can stand much more than thirty
+     blocks above high ground and the standing tower has already spent that budget. So the
+     tree wins on WIDTH — a crown fifty-two blocks across, wider than the tower is tall,
+     with no ceiling to run into. From a distance it does not read as a tall thing; it
+     reads as a MASS, which is exactly the impression a tree of this size should give.
+
+     IT IS LUSH, AND EVERYTHING AROUND IT IS DEAD. That contradiction is the horror and it
+     is stated entirely through the environment: see _farmDeadLand, which thins the crops,
+     retreats the woodland and rots the soil across a two-hundred-block circle centred on
+     this trunk. There is no note, no prompt, no objective and no explanation. A player
+     walks a long way through fields that get worse and worse and arrives at the healthiest
+     living thing they have seen since the Overworld.
+
+     THE CANOPY IS A SHELL, NOT A SOLID. A filled crown of this size is roughly forty
+     thousand voxels; the shell is under ten, it is opaque from every angle a player can
+     reach, and the difference is the whole of why this landmark is affordable. Leaf gaps
+     are hashed in on top of it, which a real canopy has anyway.
+     =================================================================================== */
+  _farmStampGreatTree(chunk) {
+    const R = this.farmTree;
+    if (!R) return;
+    const CR = FARM_TREE_CANOPY_R;
+    if (!this._subHits(chunk, R.cx - CR - 2, R.cz - CR - 2, R.cx + CR + 2, R.cz + CR + 2)) return;
+    const S = (wx, wy, wz, id) => this._subSet(chunk, wx, wy, wz, id);
+    const b = R.padY, cx = R.cx, cz = R.cz;
+    const hsh = (n) => this._farmHash(cx * 13 + n, cz * 17 + n, 997);
+
+    /* --- THE GROUND AT THE FOOT. Bare, root-broken earth — the one place in the dead
+       land that is dark and damp rather than dry, because something here is still
+       drinking. Nothing is spelled out; the soil simply changes character. */
+    for (let wx = R.ox; wx < R.x1; wx++)
+      for (let wz = R.oz; wz < R.z1; wz++) {
+        const r = this._farmHash(wx, wz, 999);
+        S(wx, b - 1, wz, r < 0.34 ? BLOCK.SOIL_FERTILE : (r < 0.68 ? BLOCK.SOIL_WET : BLOCK.ROTTED_SOIL));
+        for (let dy = 0; dy < 6; dy++) S(wx, b + dy, wz, BLOCK.AIR);
+        const edge = Math.min(wx - R.ox, R.x1 - 1 - wx, wz - R.oz, R.z1 - 1 - wz);
+        if (edge <= 1) {                                  // see the fallen tower's yard
+          const nat = this._farmBaseHeightAt(wx, wz);
+          if (nat < b) for (let y = nat - 1; y < b; y++) S(wx, y, wz, BLOCK.ROTTED_SOIL);
+        }
+      }
+
+    /* --- THE BUTTRESS ROOTS. Eight of them, tapering out to ten blocks and standing two
+       or three above the ground where they leave the bole. They are the reason the trunk
+       reads as GROWN rather than as a cylinder somebody stood in a field, and they give
+       the player something at their own scale to compare the bole against. */
+    const TR = FARM_TREE_TRUNK_R;
+    for (let a = 0; a < 8; a++) {
+      const ang = a * Math.PI / 4 + hsh(a) * 0.28;
+      const ux = Math.cos(ang), uz = Math.sin(ang);
+      const alongX = Math.abs(ux) >= Math.abs(uz);
+      const reach = 8 + Math.floor(hsh(a + 8) * 4);
+      for (let t = 0; t <= reach; t++) {
+        const wx = cx + Math.round(ux * (TR - 1 + t)), wz = cz + Math.round(uz * (TR - 1 + t));
+        const hgt = Math.max(0, 3 - Math.floor(t / 3));       // tapers into the ground
+        const wide = t < reach * 0.4 ? 1 : 0;
+        for (let s = -wide; s <= wide; s++) {
+          const px = alongX ? wx : wx + s, pz = alongX ? wz + s : wz;
+          for (let dy = 0; dy <= hgt; dy++) {
+            S(px, b + dy, pz, alongX ? BLOCK.GREAT_ROOT_X : BLOCK.GREAT_ROOT_Z);
+          }
+          S(px, b - 1, pz, BLOCK.GREAT_BARK);
+        }
+      }
+    }
+
+    /* --- THE BOLE. Nine blocks across at the base and seven above the buttresses, run up
+       clear for twenty-six blocks before the first limb. The clear bole is the detail
+       that sells the age: a tree that branches at head height is a tree, and a tree whose
+       first limb is higher than a house is something else. */
+    for (let dy = 0; dy < FARM_TREE_TRUNK_H; dy++) {
+      const rad = dy < 6 ? TR : TR - 1;
+      for (let dx = -rad; dx <= rad; dx++)
+        for (let dz = -rad; dz <= rad; dz++) {
+          if (dx * dx + dz * dz > rad * rad + rad) continue;
+          S(cx + dx, b + dy, cz + dz, BLOCK.GREAT_BARK);
+        }
+    }
+
+    /* --- THE LIMBS. Seven, radiating from the top of the bole and rising as they go out,
+       each one a run of the axis-tiled limb blocks so a whole branch is a handful of
+       quads. They are what connects the trunk to the crown; without them the canopy is a
+       cloud hanging over a post. */
+    const limbs = [];
+    for (let a = 0; a < 7; a++) {
+      const ang = a * (Math.PI * 2 / 7) + hsh(a + 20) * 0.5;
+      const ux = Math.cos(ang), uz = Math.sin(ang);
+      const alongX = Math.abs(ux) >= Math.abs(uz);
+      const reach = 13 + Math.floor(hsh(a + 30) * 7);
+      const y0 = b + FARM_TREE_TRUNK_H - 3 - Math.floor(hsh(a + 40) * 4);
+      let lx = cx, lz = cz, ly = y0;
+      /* THEY START AT THE BOLE'S SURFACE, NOT AT ITS AXIS. Run from t=1 a limb whose
+         direction is mostly north-south writes its first cells straight down the trunk's
+         own centre column, which replaces bark with limb geometry inside the bole — a
+         seam the player sees as a stripe up the trunk from twenty blocks away. */
+      for (let t = TR; t <= reach; t++) {
+        lx = cx + Math.round(ux * t); lz = cz + Math.round(uz * t);
+        ly = y0 + Math.round(t * 0.55);
+        S(lx, ly, lz, alongX ? BLOCK.GREAT_LIMB_X : BLOCK.GREAT_LIMB_Z);
+        if (t % 4 === 0) S(lx, ly + 1, lz, BLOCK.GREAT_LIMB_Y);      // a rising fork
+      }
+      limbs.push({ x: lx, y: ly, z: lz });
+    }
+
+    /* --- THE CROWN. A union of eight lobes — one over the trunk and one at the end of
+       each limb — resolved per column so the shell can be found without ever building the
+       solid volume. For a column the code needs two things: how far inside the union's
+       FOOTPRINT it is, and the union's vertical span at that point. Near the rim it fills
+       the span; inside it fills only the top and bottom crust. That is the whole
+       algorithm, and it is what keeps a fifty-two-block crown under ten thousand voxels.
+
+       THE LOOP IS CLIPPED TO THE CHUNK, not to the crown. A landmark this wide covers
+       sixteen chunks, and iterating the full footprint in each of them would do sixteen
+       times the necessary work for no visible benefit. */
+    const lobes = [{ x: cx, y: b + FARM_TREE_TRUNK_H + 6, z: cz, r: 14 }];
+    for (let i = 0; i < limbs.length; i++) {
+      const L = limbs[i];
+      lobes.push({ x: L.x, y: L.y + 4 + Math.floor(hsh(i + 50) * 3), z: L.z,
+                   r: 10 + Math.floor(hsh(i + 60) * 4) });
+    }
+    const topCap = Math.min(CHUNK_SY - 2, R.topY);
+    const cx0 = chunk ? chunk.cx * CHUNK_SX : R.cx - CR;
+    const cz0 = chunk ? chunk.cz * CHUNK_SZ : R.cz - CR;
+    const lx0 = chunk ? Math.max(cx - CR, cx0) : cx - CR;
+    const lx1 = chunk ? Math.min(cx + CR, cx0 + CHUNK_SX - 1) : cx + CR;
+    const lz0 = chunk ? Math.max(cz - CR, cz0) : cz - CR;
+    const lz1 = chunk ? Math.min(cz + CR, cz0 + CHUNK_SZ - 1) : cz + CR;
+    for (let wx = lx0; wx <= lx1; wx++) {
+      for (let wz = lz0; wz <= lz1; wz++) {
+        let inset = -1e9, yLo = 1e9, yHi = -1e9;
+        for (const L of lobes) {
+          const dx = wx - L.x, dz = wz - L.z;
+          const h2 = dx * dx + dz * dz;
+          if (h2 > L.r * L.r) continue;
+          const half = Math.sqrt(L.r * L.r - h2);
+          // Crowns are wider than they are deep: the vertical half-axis is 0.62 of it.
+          const vh = half * 0.62;
+          const ins = L.r - Math.sqrt(h2);
+          if (ins > inset) inset = ins;
+          if (L.y - vh < yLo) yLo = L.y - vh;
+          if (L.y + vh > yHi) yHi = L.y + vh;
+        }
+        if (inset < 0) continue;
+        const y0 = Math.max(b + 8, Math.ceil(yLo)), y1 = Math.min(topCap, Math.floor(yHi));
+        if (y1 < y0) continue;
+        const rim = inset <= 2.5;
+        /* THE BOLE IS NOT PART OF THE CROWN. The main lobe's underside dips below the top
+           of the trunk, so without this the shell writes leaf cells INSIDE the bark — a
+           green block twenty-four courses up a solid trunk, which an inspection of the
+           trunk column caught immediately and which would read in game as a hole in the
+           tree. Everything below the first limb inside the trunk radius belongs to the
+           bole and nothing else may write there. */
+        const tdx = wx - cx, tdz = wz - cz;
+        const inBole = tdx * tdx + tdz * tdz <= (TR + 1) * (TR + 1);
+        for (let y = y0; y <= y1; y++) {
+          if (inBole && y < b + FARM_TREE_TRUNK_H) continue;
+          if (!rim && y > y0 + 1 && y < y1 - 1) continue;        // hollow: crust only
+          if (this._farmHash(wx * 3 + y, wz * 5 - y, 1003) < 0.11) continue;   // leaf gaps
+          S(wx, y, wz, BLOCK.GREAT_LEAF);
+        }
+      }
+    }
+
+    /* --- WHAT HAS FALLEN OUT OF IT. Leaf litter and windfall limbs on the ground under
+       the crown — the only living litter anywhere in the dead land, and the detail that
+       tells the player the tree is not merely alive but actively growing. */
+    for (let wx = lx0; wx <= lx1; wx++)
+      for (let wz = lz0; wz <= lz1; wz++) {
+        const dx = wx - cx, dz = wz - cz;
+        if (dx * dx + dz * dz > CR * CR) continue;
+        if (Math.abs(dx) <= TR + 1 && Math.abs(dz) <= TR + 1) continue;
+        const r = this._farmHash(wx, wz, 1007);
+        if (r > 0.22) continue;
+        const h = this._farmHeightAt(wx, wz);
+        if (r < 0.02) S(wx, h, wz, (wx & 1) ? BLOCK.GREAT_LIMB_X : BLOCK.GREAT_LIMB_Z);
+        else S(wx, h, wz, BLOCK.LEAF_LITTER);
+      }
   }
 
   /* World z of the journey lane's centreline at a given x. The journey's authored marks
@@ -16191,6 +17344,166 @@ class VoxelWorld {
       halo.material.opacity = 0.55 * near;
       const s = 3.2 + dist * 0.012;
       halo.scale.set(s, s, 1);
+    }
+  }
+
+
+  /* ===================================================================================
+     PHASE 20 REVISION — THE REST OF THE CHAIN'S DISTANT SILHOUETTES
+
+     THE PROBLEM THE TOWER ALREADY SOLVED, NOW FOR THREE MORE LANDMARKS. Everything the
+     tower's beacon exists for applies to the fallen tower, the giant barn and the great
+     tree: exponential fog at 0.028 and an eight-chunk stream radius mean that without a
+     proxy the entire chain is invisible until the player is standing sixty blocks from
+     it, and a landmark you cannot see from a distance cannot pull anybody anywhere. The
+     revision brief's requirement that distant landmarks draw the player forward is not
+     achievable with voxels alone in this dimension, and it is not a fog problem to fix.
+
+     THE RANGES ARE STAGED, WHICH IS THE WHOLE COMPOSITION. Each landmark hands over to
+     its own voxels at a different distance and fades in at a different one, so they do
+     not all appear at once and the horizon changes as the player walks:
+
+       THE FALLEN TOWER   fades in at 240. Low and long: it never dominates a skyline,
+                          it resolves into something recognisable as you approach it.
+       THE STANDING TOWER fades in at 380 (unchanged from Phase 20).
+       THE GIANT BARN     fades in at 340, so it is already on the horizon while the
+                          tower is still the nearest thing — the next place to go exists
+                          before the player has finished with this one.
+       THE GREAT TREE     fades in at 560, further than anything else in the dimension.
+                          It is visible as a dark mass long before it can be identified,
+                          which is exactly the effect a tree of that size should have.
+
+     THEY ARE SHAPES, NOT MODELS. Between them: nineteen boxes over four shared
+     materials, one group each, built once, depth-tested so terrain still occludes them,
+     and faded out entirely before the real geometry streams in. Nothing here is
+     animated and nothing here is interactive.
+     =================================================================================== */
+  _farmBuildLandmarkProxies() {
+    if (this._farmLandmarkProxies) return;
+    const list = [];
+    const mkMat = (hex, op) => new THREE.MeshBasicMaterial({
+      color: hex, fog: false, transparent: true, opacity: 0, depthWrite: false });
+    const build = (site, ranges, base, paint) => {
+      if (!site) return;
+      const g = new THREE.Group();
+      const mats = [];
+      const M = (hex) => { const m = mkMat(hex); mats.push({ m, hex }); return m; };
+      const box = (w, h, d, x, y, z, m) => {
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+        mesh.position.set(x, y, z);
+        g.add(mesh);
+      };
+      paint(box, M);
+      g.position.set(site.cx, base, site.cz);
+      g.visible = false;
+      g.renderOrder = -1;
+      this.scene.add(g);
+      list.push({ site, g, mats, ranges, base });
+    };
+
+    /* --- THE FALLEN TOWER. Truss, drum and nose, laid end to end along the ground on
+       the same axis the voxels use, so the proxy resolves into the real wreck rather
+       than swapping for it. */
+    const F = this.farmFallen;
+    /* ITS HAND-OVER IS EARLIER THAN THE OTHERS', because it is the only landmark in the
+       chain that is LOW. At seventy blocks a thirteen-block wreck is down at 14% fog
+       transmission and the render showed it as a faint smudge with the proxy not yet
+       started; the tower's seventy works because thirty-eight blocks of mast still reads
+       through that much air, and a wreck does not. */
+    build(F, { near: 50, full: 95, far: 240 }, F ? F.padY : 0, (box, M) => {
+      const steel = M(0x6B7468), dark = M(0x555C4F);
+      /* Group-relative, and on the SAME road-relative axis the voxels use, so the proxy
+         resolves into the real wreck rather than swapping for it. */
+      const inward = F.south ? 1 : -1;
+      const laneEdge = F.south ? F.oz : F.z1 - 1;
+      const at = (t) => (laneEdge + inward * t) - F.cz;
+      box(11, 2, 11, 0, 1, at(5), dark);                     // the abandoned footings
+      box(11, 10, FARM_TOWER_LEG_H, 0, 5, at(7 + FARM_TOWER_LEG_H / 2), dark);
+      box(FARM_TOWER_R * 2, FARM_TOWER_R * 2, FARM_TOWER_TANK_H,
+          0, FARM_TOWER_R, at(8 + FARM_TOWER_LEG_H + FARM_TOWER_TANK_H / 2), steel);
+      box(5, 5, 8, 0, FARM_TOWER_R, at(12 + FARM_TOWER_LEG_H + FARM_TOWER_TANK_H), dark);
+    });
+
+    /* --- THE GIANT BARN. Wall mass, the gable prism above it as a narrower box, and the
+       two silos with their cone caps: four masses that between them give the complex the
+       lumpy, agricultural profile that stops it reading as a shipping container. */
+    const B = this.farmBarn;
+    build(B, { near: 70, full: 105, far: 340 }, B ? B.padY : 0, (box, M) => {
+      const red = M(0x6A4F44), tin = M(0x6E7469);
+      const w = B.bw, d = B.bd;
+      const bx = B.bx + (w >> 1) - B.cx;
+      const bz = B.bz + (d >> 1) - B.cz;
+      box(w, FARM_BARN_H, d, bx, FARM_BARN_H / 2, bz, red);
+      box(w + 2, FARM_BARN_ROOF, d * 0.55, bx, FARM_BARN_H + FARM_BARN_ROOF / 2, bz, tin);
+      for (let n = 0; n < 2; n++) {
+        const sx = B.bx + w + 4 + n * 8 - B.cx;
+        const sz = B.bz + 8 + n * 3 - B.cz;
+        const hgt = FARM_SILO_H - n * 3;
+        box(FARM_SILO_R * 2 + 1, hgt, FARM_SILO_R * 2 + 1, sx, hgt / 2, sz, tin);
+        box(FARM_SILO_R * 2 - 1, 2, FARM_SILO_R * 2 - 1, sx, hgt + 1, sz, red);
+      }
+    });
+
+    /* --- THE GREAT TREE, and it is the only proxy in the dimension that is not grey.
+       Everything else on this horizon is dead, rusted or abandoned; the one thing that
+       is alive has to announce that from as far away as it can be seen, because the
+       contradiction between a green mass and the dead ground around it is the landmark.
+       Bole, a broad main crown and four shoulder lobes: five boxes that read as a canopy
+       rather than as a ball. */
+    const R = this.farmTree;
+    build(R, { near: 75, full: 115, far: 560 }, R ? R.padY : 0, (box, M) => {
+      const bark = M(0x4B3F30), leaf = M(0x536D3C);
+      const CR = FARM_TREE_CANOPY_R;
+      box(FARM_TREE_TRUNK_R * 2 + 1, FARM_TREE_TRUNK_H, FARM_TREE_TRUNK_R * 2 + 1,
+          0, FARM_TREE_TRUNK_H / 2, 0, bark);
+      box(CR * 1.55, 20, CR * 1.55, 0, FARM_TREE_TRUNK_H + 8, 0, leaf);
+      for (const [ox, oz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+        box(CR * 0.95, 13, CR * 0.95, ox * CR * 0.58, FARM_TREE_TRUNK_H + 3, oz * CR * 0.58, leaf);
+      }
+    });
+
+    this._farmLandmarkProxies = list;
+  }
+
+  /* One pass over three groups. Identical distance/haze arithmetic to the tower's, so
+     the four landmarks age into the fog at the same rate and no one of them looks like
+     it belongs to a different renderer. */
+  updateFarmLandmarkProxies(camera, inFarmlands, fogColor) {
+    if (!this.farmTree && !this.farmBarn && !this.farmFallen) return;
+    if (!this._farmLandmarkProxies) this._farmBuildLandmarkProxies();
+    const L = this._farmLandmarkProxies;
+    if (!L) return;
+    if (!inFarmlands || !camera) {
+      for (const e of L) e.g.visible = false;
+      return;
+    }
+    const px = camera.position.x, py = camera.position.y, pz = camera.position.z;
+    for (const e of L) {
+      const dx = e.site.cx - px, dy = e.base + 12 - py, dz = e.site.cz - pz;
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      const { near, full, far } = e.ranges;
+      /* THE OUT-FADE IS PROPORTIONAL, NOT A FIXED NINETY BLOCKS. The tower's ninety is
+         a fifth of its three-hundred-and-eighty-block range; applied unchanged to the
+         fallen tower's two hundred and forty it left the silhouette at full strength for
+         a forty-block window and fading everywhere else, which a render at two hundred
+         blocks showed as a landmark already half gone before the player had a chance to
+         notice it. Half the gap between full and far, capped at ninety, gives every
+         landmark the same shape of appearance at its own scale. */
+      const outFade = Math.min(90, (far - full) * 0.5);
+      let vis = 0;
+      if (dist > near && dist < far) {
+        if (dist < full) vis = (dist - near) / (full - near);
+        else if (dist > far - outFade) vis = (far - dist) / outFade;
+        else vis = 1;
+      }
+      e.g.visible = vis > 0.01;
+      if (!e.g.visible) continue;
+      const haze = Math.min(0.50, dist / far * 0.60);
+      for (const { m, hex } of e.mats) {
+        m.opacity = vis * 0.95;
+        m.color.setHex(hex);
+        if (fogColor) m.color.lerp(fogColor, haze);
+      }
     }
   }
 
@@ -27772,11 +29085,20 @@ class Game {
     let text, done = false;
     if (gotCore) { text = 'Investigate the farmhouse.'; done = true; }
     else if (this.farmHouseSeen) text = 'Investigate the farmhouse.';
+    /* PHASE 20 REVISION — one line per beat of a much longer journey, and every one of
+       them is an OBSERVATION rather than a destination. Requirement 74 of the project
+       brief is that objective text must not spoil a discovery, so nothing here ever names
+       something the player has not already seen: the tree is "the fields are dying"
+       because that is what they can see, and the property is never called a house until
+       they are standing close enough to recognise one. */
     else if (j >= FARM_J_HOME) text = 'Investigate the property.';
     else if (j >= FARM_J_ECHO0 + 2) text = 'Follow the old route.';
+    else if (j >= FARM_J_TREE - 3) text = 'The fields are dying.';
     else if (j >= FARM_J_ECHO0) text = 'Something here feels familiar.';
+    else if (j >= FARM_J_BARN - 2) text = 'Keep to the road.';
     else if (j > FARM_J_TOWER + 1) text = 'Continue beyond the tower.';
-    else if (j >= FARM_J_TOWER - 2 && T) text = 'Investigate the water tower.';
+    else if (j >= FARM_J_TOWER - 3 && T) text = 'Investigate the water tower.';
+    else if (j >= FARM_J_FALLEN - 1) text = 'Follow the road east.';
     else if (j >= 1) text = 'Follow the old farm road.';
     else text = 'Explore the Shattered Farmlands.';
     this.ui.setJourneyStep(text, done);
@@ -27823,6 +29145,11 @@ class Game {
        frame. Outside the Farmlands it hides everything and returns immediately. */
     this.world.updateFarmTowerLight(dt, this.camera, this.player.inFarmlands,
                                     this.env.fog ? this.env.fog.color : null);
+    /* PHASE 20 REVISION — and the rest of the landmark chain's silhouettes, on the same
+       fog colour and in the same pass, so the four of them always agree about the air
+       they are standing in. */
+    this.world.updateFarmLandmarkProxies(this.camera, this.player.inFarmlands,
+                                         this.env.fog ? this.env.fog.color : null);
     // ...and the Disconnected Home's single stronger beat, which fires at most once.
     this.world.updateFarmHomeAnomaly(dt, this.player.position, this.camera,
                                      this.player.inFarmlands);
