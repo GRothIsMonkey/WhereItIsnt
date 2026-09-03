@@ -218,6 +218,18 @@
   .obj-step.active { color: #ffcf6b; font-weight: bold; }
   .obj-step.completed { color: #6bbf59; text-decoration: line-through; }
   .obj-status { font-size: 10px; color: #a89a78; margin-top: 4px; border-top: 1px dotted #3a2e1c; padding-top: 4px; }
+  /* PHASE 20 — the Farmland journey line. ONE line, shown only in the Farmlands, and
+     deliberately styled apart from the numbered directives above it: paler, unnumbered,
+     lower case-weight. It is meant to read as a note to yourself about where you were
+     going, not as a quest step, because the moment it reads as a quest step the player
+     starts looking for the marker that is never coming. */
+  #journeyStep {
+    display: none; font-size: 11px; line-height: 1.35; color: #b9ad8c;
+    margin-top: 6px; border-top: 1px dashed #4a3d26; padding-top: 6px;
+    font-style: italic; letter-spacing: 0.3px;
+  }
+  #journeyStep.show { display: block; }
+  #journeyStep.done { color: #6bbf59; text-decoration: line-through; font-style: normal; }
 
   #clockWrap {
     position: fixed; top: 16px; right: 16px; z-index: 20;
@@ -420,6 +432,7 @@
       <div id="objStatus" class="obj-status">Anchor Status: Unplaced | Fuel: 0s</div>
       <div id="memStatus" class="obj-status">Memory Fragments: 0 / 3</div>
       <div id="stageStatus" class="obj-status">Stage 1 &bull; Day 1</div>
+      <div id="journeyStep"></div>
     </div>
   </div>
   <div id="clockWrap">
@@ -2219,8 +2232,14 @@ class SoundEngine {
 
     // PHASE 17 — rural stone (fieldstone, silo tile, chapel, headstones, memorial, well
     // rim) reads as stone; every timber, board and equipment piece reads as wood.
+    /* PHASE 20 — the water tower's steel joins the stone family rather than getting a
+       family of its own. A dedicated metallic hit would be a new synth voice for one
+       structure in the dimension; the low, dull stone hit already reads as "heavy and
+       not wood", which is the distinction that matters when a player swings at a leg. */
     const STONE_LIKE = new Set([3, 7, 10, 12, 13, 15, 16, 17, 19, 20, 26, 27, 238, 239,
-                                1203, 1205, 1208, 1209, 1225, 1237, 1238, 1239, 1243]);
+                                1203, 1205, 1208, 1209, 1225, 1237, 1238, 1239, 1243,
+                                1434, 1435, 1436, 1437, 1438, 1439, 1440, 1441,
+                                1442, 1443, 1444, 1445, 1446, 1447]);
     const WOOD_LIKE = new Set([4, 22, 28, 234, 235, 236, 237, 240, 1200, 1201, 1202,
                                1206, 1207, 1210, 1211, 1212, 1213, 1214, 1215, 1216,
                                1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1226,
@@ -2828,7 +2847,51 @@ const BLOCK = {
   FENCE_BROKEN_X:1425, FENCE_BROKEN_Z:1426, POST_BROKEN:1427,
   // --- Rural infrastructure ------------------------------------------------------------
   UTILITY_POLE:1428, POLE_ARM:1429, CULVERT_X:1430, CULVERT_Z:1431, WATER_PUMP:1432,
-  MARKER_STONE:1433
+  MARKER_STONE:1433,
+
+  /* =================================================================================
+     PHASE 20 — THE JOURNEY WATER TOWER (1434-1447).
+
+     FOURTEEN IDS, AND THIRTEEN OF THEM EXIST FOR ONE STRUCTURE. That is deliberate and
+     it is the whole difference between the Phase 18 water tower and this one. Phase 18
+     assembled a ten-block tower out of timber posts and corrugated sheet because it
+     needed a second tall silhouette and a referent for a sign; Phase 20 needs a
+     landmark a player can steer by from a quarter of a kilometre away and still
+     recognise standing underneath, and a thirty-seven-block structure built out of
+     fence posts reads as scaffolding.
+
+     So the legs are their own heavy section, the tank is its own riveted plate with a
+     rib band, the dome is a real cap rather than a stack of shrinking cubes, and the
+     catwalk, riser and valve are the pieces that make it read as WATER infrastructure
+     rather than as a tall thing. Everything else the facility needs — fieldstone
+     footings, corrugated sheet, ladders, a pump house, a service track — is Phase
+     16/17/19 vocabulary, reused.
+
+     THE LAMP IS A BLOCK, AND THE LIGHT IS NOT. TOWER_LAMP is the physical housing at
+     the top of the mast and it is always there, dark, in chunk data. What flashes is a
+     scene sprite (see VoxelWorld._farmTowerBeacon / updateFarmTowerLight), because the
+     anomaly has to react to where the player is LOOKING and a voxel cannot. Keeping the
+     housing in the world and the emission outside it also means the flash costs no
+     remesh, ever. */
+  TOWER_LEG:1434, TOWER_BRACE_X:1435, TOWER_BRACE_Z:1436, TOWER_TANK:1437,
+  TOWER_TANK_RIB:1438, TOWER_DOME:1439, TOWER_MAST:1440, TOWER_LAMP:1441,
+  CATWALK_X:1442, CATWALK_Z:1443, RISER_PIPE:1444, PIPE_X:1445, PIPE_Z:1446,
+  VALVE_WHEEL:1447,
+
+  /* THE ONLY WINDOW IN THE GAME YOU CAN ACTUALLY SEE THROUGH (1448-1449).
+
+     Every window in Suburbia and the Farmlands puts its pane in the OPAQUE pass on a
+     dark reflective tile, which is deliberate and right: it is how a real house reads
+     from outside under overcast, and it is why you cannot look into a farmhouse from the
+     yard. Phase 13's mesher left the routing for a genuinely transparent pane in place
+     anyway (see _buildGlassMesh's own comment: "so a later phase can add a genuinely
+     transparent pane without touching the mesher again") and this is that phase.
+
+     It exists for exactly one window: the one in the basement of the Disconnected Home
+     that looks out on six cells of Static Suburbia. Rendered with an ordinary pane that
+     window was a black rectangle in a wall — a well-made frame with nothing behind it —
+     which is the single beat in this phase that has to be SEEN to mean anything. */
+  WIN_CLEAR_X:1448, WIN_CLEAR_Z:1449
 };
 
 /* ---------------------------------------------------------------------------------
@@ -4014,6 +4077,15 @@ const SUB_TILE_DEFS = [
   { n:'charcoal',    c:0x1D1A17, j:0.16, p:'barkLine' },
   { n:'ashPale',     c:0x6A665F, j:0.12, p:'silt'     },
   { n:'weedGreen',   c:0x585C3A, j:0.18, p:'stalk'    },
+  /* ---- PHASE 20: THE WATER TOWER ----------------------------------------------------
+     Two tiles, and they are the two the dimension genuinely does not have. `tankSteel`
+     is painted plate gone chalky — a cool grey-green that separates the tank from both
+     the warm corrugated barn roofs and the olive fields, which is what lets the
+     silhouette read at distance instead of dissolving into the fog. `lampRed` is the
+     ONLY saturated red in the Farmlands other than barn paint, and it is reserved
+     entirely for the housing at the top of the mast. Nothing else may use it. */
+  { n:'tankSteel',   c:0x5C645F, j:0.09, p:'corrug'   },
+  { n:'lampRed',     c:0x7E211C, j:0.08, p:'gloss'    },
 ];
 
 
@@ -4189,6 +4261,9 @@ for (let i = 0; i < BLOCK_ID_COUNT; i++) BLOCK_TILE[i] = i < 256 ? i - 1 : 0;
     // PHASE 19 — ground states. The shaped Phase 19 pieces name their own tiles.
     1400:'soilDry', 1401:'soilExhaust', 1402:'soilFertile', 1403:'soilTramp',
     1404:'soilWet', 1405:'farmMud', 1406:'soilOvergr', 1407:'ashGround', 1408:'tireTread',
+    // PHASE 20 — the tank plate is the phase's only full cube; every other new piece
+    // is shaped and names its own tiles per primitive.
+    1437:'tankSteel',
   };
   for (const k in M) BLOCK_TILE[k | 0] = TILE[M[k]];
 })();
@@ -5344,11 +5419,13 @@ function farmlandsBiomeValue(wx, wz) {
 const FARM_SPAWN_X = FARMLANDS_SPAWN_CHUNK * CHUNK_SX + 8;
 const FARM_SPAWN_Z = FARMLANDS_SPAWN_CHUNK * CHUNK_SZ + 8;
 const FARM_PAD_R = 6;           // cleared radius at the rift landing point
-const FARM_HOME_X = FARM_SPAWN_X - 44;
-const FARM_HOME_Z = FARM_SPAWN_Z - 44;
-const FARM_HOME_W = 7, FARM_HOME_H = 5;   // footprint and wall height, unchanged
-const FARM_HOME_PAD = 6;        // forced-flat apron around the home, one block proud of
-                                // its 7x7 footprint so the doorway is never buried
+/* PHASE 20 — FARM_HOME_X / FARM_HOME_Z / FARM_HOME_W / FARM_HOME_H / FARM_HOME_PAD ARE
+   GONE, and their removal is the point rather than a side effect. The Disconnected Home
+   is no longer a seven-by-seven box at a constant offset from the arrival pad: it is a
+   resolved PLOT (see VoxelWorld._farmResolveJourney and this.farmHome), placed at the end
+   of the journey in whatever window the Phase 18.1 routes leave, and the whole of its
+   geometry — including the Rift Core chest key — derives from that one descriptor. A
+   fixed coordinate pair could not survive routes that wander fourteen blocks. */
 
 /* HYDROLOGY. One flat water table across the whole dimension, which is correct because
    the entire heightfield only spans ten blocks of relief — a per-basin table would be
@@ -5677,6 +5754,217 @@ const FARM_SIGN_LATERAL = 128;         // how far off the lane a named landmark 
    the output is byte-identical because every cell is still a pure function of its world
    position. Do not lower this below the canopy radius plus one. */
 const FARM_M = 3;
+
+/* =====================================================================================
+   PHASE 20 — THE FARMLAND JOURNEY
+
+   THE PROBLEM PHASE 20 INHERITS. Phases 16-19 built an effectively infinite, believable,
+   deterministic agricultural region and then dropped the player into the middle of it
+   with a Level 2 progression box sixty-two blocks away. Everything a player could want
+   to look at existed; nothing told them where to GO. The brief's word for the failure
+   mode is "an enormous procedural area with no idea where anything is", and it is a
+   navigation problem, not a content problem.
+
+   THE ANSWER IS A THREAD, NOT A LEVEL. The journey is a set of RULES THAT BIAS THE
+   EXISTING GENERATORS along one lane, not a corridor, not a trigger volume, and not a
+   second world. Everything below is a pure function of parcel coordinates, costs a
+   couple of integer comparisons for the ~0.1% of parcels that are on it, and returns
+   the untouched Phase 16-19 behaviour for every other parcel in an infinite region. A
+   player who walks off the lane at any point is simply in the Farmlands as Phase 19
+   left them.
+
+   THE SPINE is the forced EAST-WEST arrival lane (the grid line FARM_ARRIVAL_BZ), walked
+   EAST. It is a real Phase 18.1 route with real bends — the journey does not straighten
+   it, and the beats below are hung on the parcel columns it crosses rather than on
+   distances along it, so a bend that carries the road forty blocks sideways carries the
+   journey with it.
+
+   WHY EAST, AND NOT ONE OF THE OTHER THREE. The arrival crossroads offers four
+   directions and the biome field decides between them, because the single most important
+   thing this phase has to deliver is a landmark you can see across open country. Measured
+   as the Ashen Forest field value at the centre of each of the first fifteen parcels:
+
+     south   6 of 15 parcels in forest, the tower's own parcel at 0.44 — deep woodland
+     west    6 of 15, forest from parcel 9 onward
+     north   2 of 15, the tower's parcel at 0.13 — light forest
+     EAST    1 of 15, the tower's parcel at 0.04, just under the threshold
+
+   East is the only one that puts the water tower in open fields with the forest edge just
+   beyond it — which is not merely acceptable, it is the composition requirement 36
+   actually asks for: a silhouette that rises above the tree line rather than standing
+   inside one. The single marginal parcel is 5, at 0.11 against a 0.055 threshold and a
+   0.075 ramp, so it carries scattered thin trees rather than canopy — the Ashen Forest
+   arriving as a silhouette on the horizon exactly where the brief wants isolation to
+   begin.
+
+   IT ALSO COSTS ALMOST NOTHING TO PLACE. Walking east the player meets, without a single
+   forced acceptance: a standing crop at the crossroads, a pasture on the north side one
+   parcel on, an ordinary working farmstead on the south side beside it, a second with a
+   name board two parcels later, and then open ground. Only the crop and the pasture are
+   cast at all — both farmsteads were already there.
+
+   THE BEATS, by parcel column from the arrival crossroads:
+
+     0   WHEAT        both flanking parcels forced to a standing crop
+     1   LIVESTOCK    pasture west of the lane; ROTH FARM east (Phase 18, untouched)
+     2-3 OPEN         no forcing at all; the quiet the tower needs to land against
+     4   TOWER        the massive water tower and its facility
+     5-7 ISOLATION    farmstead, minor-structure and animal density ramped down
+     8-11 WRONGNESS   repetition motifs and cross-dimensional echoes begin
+     12  THE PROPERTY the missing-farm evidence and the Disconnected Home
+     13+ RELEASE      density ramps back to the ordinary region
+
+   AT ~5 BLOCKS/SEC AND 64 BLOCKS PER ROW that is about fifty seconds to the tower and
+   two and a half minutes to the farmhouse, walked directly, before a single stop to
+   look at anything. Both numbers were chosen against the brief's pacing requirement
+   rather than against the map: the player must have TIME to experience each beat, and
+   the tower must be well behind them before the world starts going wrong.
+   ===================================================================================== */
+const FARM_J_LINE = FARM_ARRIVAL_BZ;   // grid line of the E-W lane the journey runs on
+const FARM_J_B0 = FARM_ARRIVAL_BX;     // parcel column of the arrival crossroads
+const FARM_J_DIR = 1;                  // +1: the journey runs east
+
+const FARM_J_WHEAT = 0;
+const FARM_J_STOCK = 1;
+const FARM_J_TOWER = 4;
+const FARM_J_ISO0 = 5;
+const FARM_J_ECHO0 = 8;
+const FARM_J_HOME = 12;
+const FARM_J_LAST = 14;                // past this the journey stops shaping anything
+
+/* HOW WIDE THE JOURNEY IS. Beats that dress the roadside (the wheat, the pasture) apply
+   only to the two parcels the lane itself divides, because those are the fields a player
+   on the road is actually walking through. The ISOLATION ramp is deliberately wider —
+   emptiness read from a road is emptiness in every direction, and a corridor two parcels
+   wide would put an ordinary busy farmstead in view across the hedge while the lane
+   itself was being emptied out. */
+const FARM_J_LAT = 1;        // roadside beats: parcels FARM_J_LINE-1 .. FARM_J_LINE
+const FARM_J_ISO_LAT = 2;    // isolation: two parcels either side, ~192 blocks
+
+/* Journey ordinal of a parcel COLUMN, negative behind the arrival crossroads; and the
+   two lateral tests, on the parcel ROW. Every call site passes both coordinates even
+   where only one is read, so the day this phase or a later one wants the journey on the
+   other axis it is these three functions that change and nothing else. */
+function farmJourneyOrd(bx, bz) { return (bx - FARM_J_B0) * FARM_J_DIR; }
+// Is this parcel one of the two the journey lane divides?
+function farmOnJourney(bx, bz) { return bz === FARM_J_LINE || bz === FARM_J_LINE - FARM_J_LAT; }
+// ...and the wider band the isolation ramp covers.
+function farmNearJourney(bx, bz) {
+  return bz <= FARM_J_LINE + FARM_J_ISO_LAT - 1 && bz >= FARM_J_LINE - FARM_J_ISO_LAT;
+}
+
+/* THE ISOLATION RAMP. Returns a density multiplier: 1 everywhere the journey does not
+   reach, falling to FARM_J_ISO_FLOOR at the property and recovering by FARM_J_LAST.
+
+   IT IS A MULTIPLIER ON ACCEPTANCE, NOT A BAN. At the floor a farmstead is still
+   possible, just four times rarer — so the stretch past the tower reads as a part of the
+   country people left rather than as a region with a rule against buildings. The brief's
+   requirement is "fewer active-looking farms, longer stretches between structures", and
+   a hard exclusion would have produced something a player reads instantly as a level
+   boundary. */
+const FARM_J_ISO_FLOOR = 0.18;
+function farmJourneyIsolation(bx, bz) {
+  if (!farmNearJourney(bx, bz)) return 1;
+  const j = farmJourneyOrd(bx, bz);
+  if (j < FARM_J_ISO0 || j > FARM_J_LAST) return 1;
+  if (j >= FARM_J_HOME) {
+    // Release: back to ordinary density over the two rows past the property.
+    const t = (j - FARM_J_HOME) / Math.max(1, FARM_J_LAST - FARM_J_HOME);
+    return FARM_J_ISO_FLOOR + (1 - FARM_J_ISO_FLOOR) * (t * t * (3 - 2 * t));
+  }
+  /* THE RAMP IS NOT A SMOOTHSTEP, and it was one until it was measured. A smoothstep is
+     flat at both ends, so the first two columns past the tower came out at 1.00 and 0.96
+     — the country did not start emptying until the player was most of the way to the
+     property, and a structure census over columns 1-4 against 8-11 found six against six.
+     A 0.7 power curve leaves the tower quickly (0.81 one column on, 0.59 by column 8)
+     and still arrives smoothly at the floor, which is what the brief's "gradually reduce
+     the feeling of human presence" actually asks for. */
+  const t = (j - FARM_J_ISO0) / (FARM_J_HOME - FARM_J_ISO0);
+  return 1 - (1 - FARM_J_ISO_FLOOR) * Math.pow(t, 0.7);
+}
+
+/* THE WATER TOWER. Thirty-seven blocks from its footings to the lamp, which is four and
+   a half times the tallest thing Phase 17 builds and more than three times the Phase 18
+   water tower it replaces as the region's tall silhouette.
+
+   THE CEILING IS REAL AND IT IS 64. Chunk data is CHUNK_SY tall, so the highest writable
+   voxel is y=63, and the Farmlands heightfield can put ground as high as FARM_MAX_Y=29.
+   29 + 37 = 66 would silently truncate the dome. The facility pad is therefore capped at
+   FARM_TOWER_MAX_BASE, which both guarantees three blocks of headroom above the lamp and
+   is the reason the tower stands on a graded platform with a retaining course rather than
+   following the field — which is what a real water tower does anyway. */
+const FARM_TOWER_PLOT = 30;            // facility footprint, blocks square
+const FARM_TOWER_LEG_H = 22;           // footing to the underside of the tank
+const FARM_TOWER_TANK_H = 10;          // tank barrel
+const FARM_TOWER_R = 6;                // tank radius: a 13-block drum
+const FARM_TOWER_MAX_BASE = 24;        // hard cap on the pad height (see above)
+const FARM_TOWER_LAMP_DY = FARM_TOWER_LEG_H + FARM_TOWER_TANK_H + 5;   // 37
+
+/* THE RED LIGHT.
+
+   THE ANOMALY IS A GAZE MECHANIC AND ITS ONLY INPUT IS THE CAMERA. Inside
+   FARM_TOWER_GAZE_DIRECT of the lamp the light is FORCED dark and its schedule stops
+   advancing; outside it the schedule runs and the lamp flashes on an irregular seeded
+   cadence. That is the entire mechanism, and everything about how it is tuned exists to
+   keep it from reading as a mechanism:
+
+     - the intervals are drawn from a hash chain, so no two gaps are alike and none is a
+       multiple of any other. There is no period to spot.
+     - the schedule FREEZES under direct gaze rather than resetting. A player who stares
+       and then looks away does not get a predictable "and now it fires": they get
+       whatever was left of an interval they never saw start.
+     - a flash in progress is extinguished the instant the player looks back, within one
+       frame, so the light is never caught lit.
+     - the clock runs at full rate while the tower sits in the PERIPHERAL band and slower
+       once it is fully behind the player, so flashes concentrate where they can just be
+       seen and are not wasted on a tower nobody is facing.
+
+   THERE IS NO OBJECTIVE, NO PROMPT, NO SOUND AND NO EXPLANATION. */
+const FARM_TOWER_GAZE_DIRECT = 0.24;   // radians (~14 deg) — "looking at it"
+const FARM_TOWER_GAZE_PERIPH = 1.22;   // radians (~70 deg) — the edge-of-vision band
+const FARM_TOWER_PERIPH_RATE = 1.0;    // schedule speed while peripheral
+const FARM_TOWER_BEHIND_RATE = 0.55;   // ...and while fully behind the player
+const FARM_TOWER_GAP_MIN = 0.30, FARM_TOWER_GAP_VAR = 2.45;   // seconds between flashes
+const FARM_TOWER_ON_MIN = 0.08, FARM_TOWER_ON_VAR = 0.30;     // seconds a flash lasts
+const FARM_TOWER_ACTIVE_R = 420;       // beyond this the anomaly stops ticking entirely
+
+/* THE DISTANT SILHOUETTE. The Farmlands run a fixed exponential fog at 0.028 density and
+   the streamer holds eight chunks, so beyond about sixty blocks the real voxel tower is
+   both unloaded and fogged out — and requirement 36 is explicit that the tower must be
+   visible from a substantial distance and must NOT be hidden by fog.
+
+   THE FOG IS NOT THE THING TO CHANGE. Thinning it far enough to show a landmark at two
+   hundred blocks would take the Rotting Fields' entire oppressive close horizon with it,
+   which Phase 16 chose deliberately and the brief asks to preserve. So the tower gets
+   what real games give real landmarks: a fog-exempt silhouette proxy, a dozen boxes
+   drawn at the tower's true position with distance-driven opacity, depth-tested so
+   terrain in front still occludes it. It fades OUT as the player closes to the range
+   where the real structure takes over, so the two are never both visible. */
+const FARM_TOWER_PROXY_NEAR = 70;      // fully handed over to the real voxel tower
+const FARM_TOWER_PROXY_FULL = 120;     // proxy at full strength from here out
+const FARM_TOWER_PROXY_FAR = 380;      // ...and gone again beyond here
+
+/* THE DISCONNECTED HOME 2.0.
+
+   WHERE IT IS. Twelve parcel rows down the journey — about eight hundred blocks — in the
+   parcel east of the lane, which is chosen at boot by a clear-window search identical in
+   spirit to the one a farmstead uses (see _farmResolveJourney). It is NOT a constant
+   coordinate pair any more: the Phase 18.1 routes wander up to fourteen blocks either
+   side of their grid lines and a hard-coded plot would eventually be half under a road.
+
+   WHY IT MOVED AT ALL. The Phase 16 home sat sixty-two blocks from the arrival pad, which
+   made the whole of Level 2 "step out of the rift, walk diagonally for fifteen seconds,
+   open a box". The brief's requirement is that a major horror location be EARNED through
+   a journey; the Core Disk cannot be the second thing that happens in a dimension whose
+   own premise is distance and isolation. */
+/* How far a levelled site's bank can possibly reach: the heightfield's whole range, and
+   not one block more, because the bank walks back a block per ring and stops when it
+   meets the field. Used as a cheap rejection bound, so it must never be an underestimate. */
+const FARM_PAD_BANK = FARM_MAX_Y - FARM_MIN_Y;
+const FARM_TOWER_KEEPOUT = 74;   // nothing else built stands this close to the tower
+const FARM_HOME_PLOT_W = 30, FARM_HOME_PLOT_D = 34;   // property, including yard
+const FARM_HOME_HOUSE_W = 12, FARM_HOME_HOUSE_D = 10; // the farmhouse footprint
+const FARM_HOME_WALL_H = 4;                           // storey height, per floor
 
 /* ---------------------------------------------------------------------------------
    LEVEL 3 — STATIC SUBURBIA. Same enclosed/permanently-pinned pocket approach as
@@ -6187,6 +6475,33 @@ function buildHavenStorageChestProp() {
    light, so nothing about it suggests it can be fought — because it can't be.
    The returned handle keeps every animated part addressable for updateVoidSovereign.
    --------------------------------------------------------------------------------- */
+/* PHASE 20 — module-scope scratch for the water tower's gaze test, so the per-frame
+   anomaly allocates nothing. One vector, reused. */
+const _farmTowerFwd = new THREE.Vector3();
+/* The lamp halo's radial falloff, baked once into a 32x32 texture. A Sprite with no map
+   draws a SQUARE, and a square red light at the top of a mast reads as a rendering bug
+   rather than as an obstruction lamp. Built lazily so nothing is allocated in a session
+   that never enters the Farmlands. */
+let _farmLampHalo = null;
+function _farmLampHaloTexture() {
+  if (_farmLampHalo) return _farmLampHalo;
+  const N = 32;
+  const c = document.createElement('canvas');
+  c.width = N; c.height = N;
+  const ctx = c.getContext('2d');
+  if (ctx && ctx.createRadialGradient) {
+    const grd = ctx.createRadialGradient(N / 2, N / 2, 0, N / 2, N / 2, N / 2);
+    grd.addColorStop(0.0, 'rgba(255,255,255,1)');
+    grd.addColorStop(0.25, 'rgba(255,150,120,0.75)');
+    grd.addColorStop(0.60, 'rgba(255,60,40,0.22)');
+    grd.addColorStop(1.0, 'rgba(255,40,30,0)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, N, N);
+  }
+  _farmLampHalo = new THREE.CanvasTexture(c);
+  return _farmLampHalo;
+}
+
 const VOID_SOVEREIGN_HEIGHT = 8.0;
 
 function buildVoidSovereignMesh() {
@@ -8494,6 +8809,34 @@ BLOCK_HARDNESS[BLOCK.MAILBOX] = 0.9;
   BLOCK_HARDNESS[BLOCK.WATER_PUMP] = 2.0; BLOCK_HARDNESS[BLOCK.MARKER_STONE] = 2.4;
 })();
 
+/* PHASE 20 — the water tower's own names and break times. The structure is steel, so it
+   is the slowest thing in the dimension to dig apart short of a headstone: a landmark a
+   player can casually delete in ten seconds is not a landmark. Nothing here is
+   unbreakable — the dimension's contract is that everything can be dug — it is simply
+   expensive enough that nobody does it by accident. */
+(function nameP20() {
+  const N = {
+    TOWER_LEG: 'Tower Stanchion', TOWER_BRACE_X: 'Tower Bracing',
+    TOWER_BRACE_Z: 'Tower Bracing', TOWER_TANK: 'Tank Plate',
+    TOWER_TANK_RIB: 'Tank Plate', TOWER_DOME: 'Tank Dome', TOWER_MAST: 'Mast',
+    TOWER_LAMP: 'Signal Lamp', CATWALK_X: 'Catwalk', CATWALK_Z: 'Catwalk',
+    RISER_PIPE: 'Riser', PIPE_X: 'Water Main', PIPE_Z: 'Water Main',
+    VALVE_WHEEL: 'Stop Valve',
+    WIN_CLEAR_X: 'Window', WIN_CLEAR_Z: 'Window',
+  };
+  for (const k in N) BLOCK_DISPLAY_NAME[BLOCK[k]] = N[k];
+  for (const k of ['TOWER_LEG', 'TOWER_TANK', 'TOWER_TANK_RIB', 'TOWER_DOME']) {
+    BLOCK_HARDNESS[BLOCK[k]] = 6.5;
+  }
+  for (const k of ['TOWER_BRACE_X', 'TOWER_BRACE_Z', 'TOWER_MAST', 'CATWALK_X',
+                   'CATWALK_Z', 'RISER_PIPE', 'PIPE_X', 'PIPE_Z', 'VALVE_WHEEL',
+                   'TOWER_LAMP']) {
+    BLOCK_HARDNESS[BLOCK[k]] = 3.2;
+  }
+  BLOCK_HARDNESS[BLOCK.WIN_CLEAR_X] = 1.0;
+  BLOCK_HARDNESS[BLOCK.WIN_CLEAR_Z] = 1.0;
+})();
+
 /* Author the interior vocabulary, then flatten every shape — Phase 13's and Phase 14's —
    into the run-time tables in one pass. Order matters: nothing may be registered after
    buildShapeTables() has run. */
@@ -8665,6 +9008,160 @@ BLOCK_HARDNESS[BLOCK.MAILBOX] = 0.9;
   S(BLOCK.MARKER_STONE, { parts: [
     box(T.graveStone, 0.34375, 0, 0.34375, 0.65625, 0.5625, 0.65625),
     box(T.graveStone, 0.375, 0.5625, 0.375, 0.625, 0.625, 0.625),
+  ], light: true });
+})();
+
+/* =====================================================================================
+   PHASE 20 — THE WATER TOWER VOCABULARY
+
+   SCALE IS THE WHOLE PROBLEM THIS SOLVES. Every standing piece in the Farmlands so far
+   was authored to be seen from three metres: a fence rail is 0.125 thick, a timber post
+   0.375 square. Stacked twenty-two blocks into the air those sections vanish — a leg
+   built from POST_TIMBER is, at fifty metres, a single pixel wide and the tower reads as
+   a tank floating on nothing. Measured against the render, the legs had to reach 0.5 of
+   a cell before the structure held together at distance, which is exactly why they are
+   their own piece rather than a reuse.
+
+   NOTHING HERE EMITS. The lamp housing is a dark red shell with a black lens; the flash
+   is a scene sprite driven by where the player is looking (updateFarmTowerLight). A
+   block that emitted would need a light in the world at all times, would be visible
+   through the tank from behind, and could not react to the camera at all.
+
+   light: true ON EVERY PIECE. The tower stands in open farmland and the skylight column
+   under it must reach the ground: a solid 13-wide tank casting a shadow column would put
+   a disc of true darkness under the landmark, which the torch-decay zone test and the
+   Sanity light term would both read as night.
+   ===================================================================================== */
+(function buildPhase20Shapes() {
+  const T = TILE;
+  const S = (id, def) => { SUB_SHAPE_DEF[id] = def; };
+  const box = (t, x0, y0, z0, x1, y1, z1) => ['box', t, x0, y0, z0, x1, y1, z1];
+
+  /* THE LEG. A half-cell steel section with a visible flange either side, so the four
+     legs read as fabricated stanchions rather than as four dark lines. Collides on its
+     full section: walking into a tower leg must stop you. */
+  S(BLOCK.TOWER_LEG, { parts: [
+    box(T.ironDark, 0.25, 0, 0.25, 0.75, 1, 0.75),
+    box(T.rustMetal, 0.1875, 0, 0.4375, 0.8125, 1, 0.5625),
+    box(T.rustMetal, 0.4375, 0, 0.1875, 0.5625, 1, 0.8125),
+  ], light: true });
+
+  /* CROSS-BRACING. Run-tiled along its axis so a whole bay collapses to a few quads,
+     and drawn as a pair of stringers rather than one bar — a single bar reads as a
+     handrail, two read as a truss. Noclip: bracing sits between the legs at head height
+     all the way up and a player walking under the tower must not be stopped by it. */
+  S(BLOCK.TOWER_BRACE_X, { parts: [
+    box(T.ironDark, 0, 0.625, 0.4375, 1, 0.75, 0.5625),
+    box(T.ironDark, 0, 0.25, 0.4375, 1, 0.375, 0.5625),
+    box(T.ironDark, 0.4375, 0.375, 0.46875, 0.5625, 0.625, 0.53125),
+  ], noclip: true, light: true });
+  S(BLOCK.TOWER_BRACE_Z, { parts: [
+    box(T.ironDark, 0.4375, 0.625, 0, 0.5625, 0.75, 1),
+    box(T.ironDark, 0.4375, 0.25, 0, 0.5625, 0.375, 1),
+    box(T.ironDark, 0.46875, 0.375, 0.4375, 0.53125, 0.625, 0.5625),
+  ], noclip: true, light: true });
+
+  /* THE RIB BAND. A full plate cell with a raised hoop around it. Placed on two courses
+     of the tank, it is what turns a box of plate into a riveted drum — the horizontal
+     banding is the single strongest cylinder cue available without curved geometry. */
+  S(BLOCK.TOWER_TANK_RIB, { parts: [
+    box(T.tankSteel, 0, 0, 0, 1, 1, 1),
+    box(T.ironDark, -0.0625, 0.3125, -0.0625, 1.0625, 0.5, 1.0625),
+  ] });
+
+  /* THE DOME. Two stepped shells over a plate base — the tank's crown, laid across the
+     top ring so the silhouette closes with a curve instead of a flat lid. */
+  S(BLOCK.TOWER_DOME, { parts: [
+    box(T.tankSteel, 0, 0, 0, 1, 0.4375, 1),
+    box(T.tankSteel, 0.125, 0.4375, 0.125, 0.875, 0.75, 0.875),
+    box(T.tankSteel, 0.3125, 0.75, 0.3125, 0.6875, 0.9375, 0.6875),
+  ] });
+
+  /* THE MAST. A thin lattice finial carrying the lamp. Deliberately slender: it is the
+     only part of the tower allowed to disappear at distance, and the lamp above it
+     should look like it is standing on nothing. */
+  S(BLOCK.TOWER_MAST, { parts: [
+    box(T.ironDark, 0.4375, 0, 0.4375, 0.5625, 1, 0.5625),
+    box(T.ironDark, 0.34375, 0.1875, 0.46875, 0.65625, 0.25, 0.53125),
+    box(T.ironDark, 0.46875, 0.1875, 0.34375, 0.53125, 0.25, 0.65625),
+    box(T.ironDark, 0.34375, 0.6875, 0.46875, 0.65625, 0.75, 0.53125),
+    box(T.ironDark, 0.46875, 0.6875, 0.34375, 0.53125, 0.75, 0.65625),
+  ], light: true });
+
+  /* THE LAMP HOUSING. Dark red shell, black lens, cage over it. It is never lit in the
+     voxel pass — see updateFarmTowerLight for the half of this that the player actually
+     reacts to. */
+  S(BLOCK.TOWER_LAMP, { parts: [
+    box(T.ironDark, 0.375, 0, 0.375, 0.625, 0.1875, 0.625),
+    box(T.lampRed, 0.28125, 0.1875, 0.28125, 0.71875, 0.65625, 0.71875),
+    box(T.glassDark, 0.34375, 0.28125, 0.21875, 0.65625, 0.5625, 0.28125),
+    box(T.glassDark, 0.34375, 0.28125, 0.71875, 0.65625, 0.5625, 0.78125),
+    box(T.glassDark, 0.21875, 0.28125, 0.34375, 0.28125, 0.5625, 0.65625),
+    box(T.glassDark, 0.71875, 0.28125, 0.34375, 0.78125, 0.5625, 0.65625),
+    box(T.ironDark, 0.3125, 0.65625, 0.3125, 0.6875, 0.75, 0.6875),
+  ], light: true });
+
+  /* THE CLEAR PANE. The same frame the rest of the game uses — sill, head, jambs,
+     mullion, all in the opaque pass — with the glazing moved into `glass`, which routes
+     it to _buildGlassMesh's transparent geometry. */
+  const clearWin = (axis) => (axis === 0 ? {
+    parts: [
+      box(T.trim, 0, 0, 0, 1, 0.125, 1),
+      box(T.trim, 0, 0.875, 0, 1, 1, 1),
+      box(T.trim, 0, 0.125, 0, 0.125, 0.875, 1),
+      box(T.trim, 0.875, 0.125, 0, 1, 0.875, 1),
+      box(T.trim, 0.46875, 0.125, 0.3125, 0.53125, 0.875, 0.6875),
+    ],
+    glass: [box(T.glassDark, 0.125, 0.125, 0.4375, 0.875, 0.875, 0.5625)],
+  } : {
+    parts: [
+      box(T.trim, 0, 0, 0, 1, 0.125, 1),
+      box(T.trim, 0, 0.875, 0, 1, 1, 1),
+      box(T.trim, 0, 0.125, 0, 1, 0.875, 0.125),
+      box(T.trim, 0, 0.125, 0.875, 1, 0.875, 1),
+      box(T.trim, 0.3125, 0.125, 0.46875, 0.6875, 0.875, 0.53125),
+    ],
+    glass: [box(T.glassDark, 0.4375, 0.125, 0.125, 0.5625, 0.875, 0.875)],
+  });
+  S(BLOCK.WIN_CLEAR_X, clearWin(0));
+  S(BLOCK.WIN_CLEAR_Z, clearWin(1));
+
+  /* THE CATWALK. Grated deck plus an outboard handrail, run-tiled on its axis. The deck
+     COLLIDES and the rail does not, so the gallery around the tank is somewhere a player
+     who climbs the ladder can actually stand. */
+  S(BLOCK.CATWALK_X, { parts: [
+    box(T.grate, 0, 0, 0.125, 1, 0.125, 0.875),
+    box(T.ironDark, 0, 0.125, 0.09375, 1, 0.875, 0.15625),
+    box(T.ironDark, 0, 0.8125, 0.0625, 1, 0.875, 0.1875),
+  ], collide: [[0, 0, 0.0625, 1, 0.1875, 0.9375]], light: true });
+  S(BLOCK.CATWALK_Z, { parts: [
+    box(T.grate, 0.125, 0, 0, 0.875, 0.125, 1),
+    box(T.ironDark, 0.09375, 0.125, 0, 0.15625, 0.875, 1),
+    box(T.ironDark, 0.0625, 0.8125, 0, 0.1875, 0.875, 1),
+  ], collide: [[0.0625, 0, 0, 0.9375, 0.1875, 1]], light: true });
+
+  /* THE RISER AND ITS MAINS. The riser is the vertical trunk running the height of one
+     leg; PIPE_X/Z are the horizontal mains that leave the base and go somewhere. A water
+     tower without a pipe leaving it is a sculpture. */
+  S(BLOCK.RISER_PIPE, { parts: [
+    box(T.rustMetal, 0.375, 0, 0.375, 0.625, 1, 0.625),
+    box(T.ironDark, 0.3125, 0.4375, 0.3125, 0.6875, 0.5625, 0.6875),
+  ], light: true });
+  S(BLOCK.PIPE_X, { parts: [
+    box(T.rustMetal, 0, 0.1875, 0.375, 1, 0.4375, 0.625),
+    box(T.fieldstone, 0.375, 0, 0.3125, 0.625, 0.1875, 0.6875),
+  ], collide: [[0, 0, 0.3125, 1, 0.4375, 0.6875]], light: true });
+  S(BLOCK.PIPE_Z, { parts: [
+    box(T.rustMetal, 0.375, 0.1875, 0, 0.625, 0.4375, 1),
+    box(T.fieldstone, 0.3125, 0, 0.375, 0.6875, 0.1875, 0.625),
+  ], collide: [[0.3125, 0, 0, 0.6875, 0.4375, 1]], light: true });
+  // The stop valve on the mains, and the one piece of the facility a hand ever touched.
+  S(BLOCK.VALVE_WHEEL, { parts: [
+    box(T.rustMetal, 0.40625, 0, 0.40625, 0.59375, 0.5, 0.59375),
+    box(T.ironDark, 0.21875, 0.5, 0.4375, 0.78125, 0.5625, 0.5625),
+    box(T.ironDark, 0.4375, 0.5, 0.21875, 0.5625, 0.5625, 0.78125),
+    box(T.ironDark, 0.21875, 0.5, 0.21875, 0.28125, 0.5625, 0.78125),
+    box(T.ironDark, 0.71875, 0.5, 0.21875, 0.78125, 0.5625, 0.78125),
   ], light: true });
 })();
 
@@ -10092,13 +10589,21 @@ class VoxelWorld {
        homeChestKey was assigned as a side effect of stamping the building, which was
        safe only because the whole region was built up front. In a streamed world the
        home's chunks may not be resident when the player opens something, so the key is
-       derived here from constants alone — a pure function of FARM_HOME_X/Z and the
-       heightfield. Progression can therefore never depend on visit order, and the
+       derived here from the resolved plot and the heightfield alone, before a single
+       voxel exists. Progression can therefore never depend on visit order, and the
        guaranteed Level 2 Rift Core Disk cannot be lost to a chunk that streamed out. */
-    const homeBaseY = this._farmHeightAt(FARM_HOME_X, FARM_HOME_Z);
-    const chestY = homeBaseY + FARM_HOME_H - 2;
-    this.homeChestKey = FARM_HOME_X + ',' + chestY + ',' + FARM_HOME_Z;
-    this.farmlandsHomePos = new THREE.Vector3(FARM_HOME_X + 0.5, chestY + 0.5, FARM_HOME_Z + 0.5);
+    /* PHASE 20 — THE JOURNEY IS RESOLVED FIRST, BEFORE ANYTHING READS THE HEIGHTFIELD.
+       The water tower and the Disconnected Home are no longer fixed coordinate pairs:
+       both are placed into the clear window the Phase 18.1 routes actually leave in
+       their parcel, which is a pure function of the lane hashes and therefore identical
+       on every boot — but it is not knowable at module load, because the route maths
+       lives on the world. Nothing below may run before it, because _farmPadAt reads the
+       two plots it produces. */
+    this._farmResolveJourney();
+
+    const chest = this.farmHome.chest;
+    this.homeChestKey = chest.x + ',' + chest.y + ',' + chest.z;
+    this.farmlandsHomePos = new THREE.Vector3(chest.x + 0.5, chest.y + 0.5, chest.z + 0.5);
 
     const cx = FARMLANDS_SPAWN_CHUNK, cz = FARMLANDS_SPAWN_CHUNK;
     for (let dx = -1; dx <= 1; dx++) {
@@ -10114,8 +10619,36 @@ class VoxelWorld {
        without needing to know a pad exists. The generator also suppresses all decor
        inside the pad radius, which means there is nothing to clear: the player cannot
        arrive inside a crop, a fence or a tree because none was ever written there. */
-    const h = this._farmHeightAt(FARM_SPAWN_X, FARM_SPAWN_Z);
-    this.farmlandsSpawn = new THREE.Vector3(FARM_SPAWN_X + 0.5, h + 1, FARM_SPAWN_Z + 0.5);
+    /* PHASE 20 — THE PLAYER ARRIVES ON THE ROAD, NOT BESIDE IT.
+
+       Phase 18 forced both arrival grid lines to carry a lane, which put a real crossroads
+       a few paces from the landing point — but the landing point itself is at parcel
+       offset 8 and the route spine wanders, so where the player actually stood was the
+       verge, four or five blocks off the carriageway, looking at a field. Requirement 2
+       asks for a spawn ON a meaningful rural path and it is worth the three lines: the
+       arrival x is now the lane's own centreline at the arrival z, which is inside the
+       landing pad by construction (the spine is clamped to FARM_ROUTE_A = 14 and the pad
+       is cleared to FARM_PAD_R + 2), so the player steps out of the rift standing in the
+       ruts. */
+    /* THE SPAWN FOLLOWS THE ROAD, NOT THE PAD. The landing pad is eight blocks square and
+       the Phase 18.1 spine wanders up to fourteen, so on this seed the lane's centreline
+       is eleven blocks from the pad centre — clamping the spawn to the pad put the player
+       on the VERGE looking at a field, which is exactly the first impression requirement 2
+       exists to prevent. The arrival point is therefore the carriageway itself. Nothing
+       grows on a cart track, so the pad's "nothing to clear" guarantee still holds where
+       it matters.
+
+       THE CAUSEWAY LIFT HAS TO BE REPLICATED HERE. _farmCache raises a TRACK column to a
+       block clear of the water table and _farmHeightAt does not know about it, so a lane
+       crossing low ground would spawn the player inside the embankment. */
+    const sz = Math.round(this._farmJourneyLaneZ(FARM_SPAWN_X));
+    const h = Math.max(this._farmHeightAt(FARM_SPAWN_X, sz), FARM_WATER_Y + 1);
+    this.farmlandsSpawn = new THREE.Vector3(FARM_SPAWN_X + 0.5, h + 1, sz + 0.5);
+    /* ...and FACING DOWN IT. The journey runs east, and a player who arrives looking the
+       other way has to be told where to go by something other than the world. forward is
+       (-sin y, 0, -cos y), so -PI/2 looks along +x. This is guidance by composition,
+       which is the only kind requirement 66 allows. */
+    this.farmlandsSpawnYaw = -Math.PI / 2;
   }
 
   /* ===================================================================================
@@ -10209,9 +10742,62 @@ class VoxelWorld {
   _farmPadAt(wx, wz) {
     const sdx = Math.abs(wx - FARM_SPAWN_X), sdz = Math.abs(wz - FARM_SPAWN_Z);
     if (sdx <= FARM_PAD_R + 2 && sdz <= FARM_PAD_R + 2) return FARM_BASE_Y;
-    const hdx = Math.abs(wx - FARM_HOME_X), hdz = Math.abs(wz - FARM_HOME_Z);
-    if (hdx <= FARM_HOME_PAD && hdz <= FARM_HOME_PAD) return FARM_BASE_Y;
+    /* PHASE 20 — the two authored journey sites level their own ground, exactly as a
+       farmstead plot does, and for the same reason: a thirty-block structure and a
+       thirty-four-block property both have to sit on ONE height or their four generating
+       chunks will disagree about where the floor is. Both rectangles are resolved once
+       at boot (see _farmResolveJourney) and are pure functions of the lane hashes. */
+    const H = this.farmHome;
+    if (H) { const y = this._farmSitePad(wx, wz, H); if (y >= 0) return y; }
+    const T = this.farmTower;
+    if (T) { const y = this._farmSitePad(wx, wz, T); if (y >= 0) return y; }
     return -1;
+  }
+
+  /* PHASE 20 — A LEVELLED SITE HAS TO BE WALKABLE ONTO, AND THIS IS THE PART THAT WAS
+     ACTUALLY BROKEN.
+
+     A hard rectangle at a fixed height leaves a cliff wherever the field it was cut into
+     sits lower — and both journey sites floor their pad at the water table, so the cliff
+     is routinely two or three blocks. Measured, it made the entire property unenterable
+     on foot: a traversal from the field west of the porch could not reach the front door
+     at all, because PLAYER_STEP_HEIGHT is 0.62 and the plot edge was a two-block wall.
+
+     The fix is the one the rest of the dimension already lives by: NOTHING STEPS BY MORE
+     THAN ONE BLOCK. Outside the plot the pad walks back to the natural heightfield at
+     exactly one block per ring, taking as many rings as the difference needs and no more,
+     so the site sits in the land on a short bank instead of on top of it. It is still a
+     pure function of world position, so every chunk that touches the ramp agrees. */
+  _farmSitePad(wx, wz, site) {
+    /* THE CHEAP REJECTION IS NOT AN OPTIMISATION, IT IS THE DIFFERENCE BETWEEN THIS
+       WORKING AND NOT.
+
+       _farmPadAt is called by _farmHeightAt for every column of every chunk plus its
+       margin — roughly five hundred times per chunk before any pass has drawn anything.
+       Written without the test below, the bank calculation reached _farmBaseHeightAt on
+       every one of those columns to find out how far the natural field was from the pad,
+       and _farmBaseHeightAt is twenty simplex evaluations. Benchmarked against the
+       pre-Phase-20 build over five runs: 14.1 ms per chunk against 3.5, a FOUR-FOLD
+       regression, and — the tell that made it obvious — it was just as bad five thousand
+       blocks from the property as it was standing on it.
+
+       The bank can never reach further than the heightfield's own range, so four integer
+       comparisons decide it for every column in the region but a few hundred. */
+    if (wx < site.bx0 || wx > site.bx1 || wz < site.bz0 || wz > site.bz1) return -1;
+    const dx = wx < site.px0 ? site.px0 - wx : (wx > site.px1 ? wx - site.px1 : 0);
+    const dz = wz < site.pz0 ? site.pz0 - wz : (wz > site.pz1 ? wz - site.pz1 : 0);
+    const d = dx > dz ? dx : dz;
+    if (d === 0) return site.padY;
+    const diff = this._farmBaseHeightAt(wx, wz) - site.padY;
+    if (diff === 0) return -1;
+    const adiff = diff < 0 ? -diff : diff;
+    if (d > adiff) return -1;              // past the bank: the field is itself again
+    /* CLAMPED TOWARD THE FIELD, not merely stepped toward it. `padY + d` alone lets two
+       adjacent ring cells with different natural heights disagree by more than one block
+       at the point where one of them leaves the bank; clamping to the natural height
+       means the bank can never be steeper than the heightfield it is blending into. */
+    return diff > 0 ? Math.min(site.padY + d, site.padY + diff)
+                    : Math.max(site.padY - d, site.padY + diff);
   }
   _farmInPad(wx, wz) { return this._farmPadAt(wx, wz) >= 0; }
   /* PHASE 18 — the two pads are now asked about separately, because they want opposite
@@ -10222,8 +10808,19 @@ class VoxelWorld {
      straight through the landing point. Decor is still suppressed across both pads by
      _farmStampSurface, so the track arrives as bare flat ground with nothing growing on
      it and nothing to clear. */
+  /* PHASE 20 — the suppression rectangle is the PROPERTY, not the levelled pad. A ditch,
+     a hedgerow or a lane verge crossing the farmyard would both look wrong and, more
+     importantly, would write over the yard the Home stamper has already composed. The
+     pad extends two blocks further than this on every side so the ground under the fence
+     line is still flat. */
   _farmInHomePad(wx, wz) {
-    return Math.abs(wx - FARM_HOME_X) <= FARM_HOME_PAD && Math.abs(wz - FARM_HOME_Z) <= FARM_HOME_PAD;
+    const H = this.farmHome;
+    return !!H && wx >= H.ox && wx < H.x1 && wz >= H.oz && wz < H.z1;
+  }
+  // ...and the same for the tower facility, which owns its own graded platform.
+  _farmInTowerPad(wx, wz) {
+    const T = this.farmTower;
+    return !!T && wx >= T.ox && wx < T.x1 && wz >= T.oz && wz < T.z1;
   }
 
   /* Deterministic 0..1 hash. Mirrors _subHash, including the |0 / >>>0 discipline that
@@ -10477,6 +11074,22 @@ class VoxelWorld {
       acc += FARM_FIELD_W[i];
       if (r < acc) { kind = i; break; }
     }
+    /* PHASE 20 — TWO PARCEL ROWS ARE CAST RATHER THAN ROLLED, and only two. The opening
+       of the journey has to establish that this is a real agricultural landscape before
+       anything is allowed to be wrong, and "real agricultural landscape" is not
+       something a weighted die reliably produces: the arrival row could just as easily
+       come up FLOODED and COPSE and the player's first impression of Level 2 would be a
+       swamp. So row 0 is a standing crop on both sides of the lane, and row 1 is pasture
+       on the west side facing Roth Farm on the east. Everything else about those parcels
+       — work axis, row spacing, wall-or-fence — is still the ordinary hash. */
+    if (farmOnJourney(bx, bz)) {
+      const j = farmJourneyOrd(bx, bz);
+      if (j === FARM_J_WHEAT) kind = FARM_FIELD.CROP;
+      /* The stock beat goes on the NORTH side, opposite the working farmstead the lattice
+         already puts on the south side of the same column — so the player walks between a
+         pasture and a farmyard, which is what a rural road actually looks like. */
+      else if (j === FARM_J_STOCK && bz === FARM_J_LINE - FARM_J_LAT) kind = FARM_FIELD.PASTURE;
+    }
     return {
       kind,
       alongX: this._farmHash(bx, bz, 37) < 0.5,
@@ -10494,7 +11107,7 @@ class VoxelWorld {
   _farmSurfaceAt(wx, wz) {
     // Only the HOME apron suppresses the network; the arrival pad deliberately carries
     // the track straight through it. See _farmInHomePad.
-    if (this._farmInHomePad(wx, wz)) return FARM_SURF.FIELD;
+    if (this._farmInHomePad(wx, wz) || this._farmInTowerPad(wx, wz)) return FARM_SURF.FIELD;
     const bx = Math.floor(wx / FARM_P), bz = Math.floor(wz / FARM_P);
     const u = wx - bx * FARM_P, v = wz - bz * FARM_P;
 
@@ -10771,7 +11384,18 @@ class VoxelWorld {
        open ground with no wall against it. That is what "leave believable working
        space" has to mean when the buildings are stamped by somebody else. */
     this._farmStampYards(chunk, C);
-    // --- The Disconnected Home last, so it overwrites anything that grew on its pad.
+    /* --- PHASE 20. The journey's authored layer, and its order inside the pass is the
+       whole of its integration story. It runs AFTER everything Phases 16-19 build, so a
+       crop, a tree, a hedge, a relic or a farmyard can never grow through the water
+       tower, the missing-farm evidence or the property — and it runs in the order the
+       player meets it, so a later beat always wins over an earlier one where two
+       overlap. Every one of these opens with a rectangle test that rejects essentially
+       every chunk in an infinite region for the cost of four comparisons. */
+    this._farmStampTower(chunk);
+    this._farmStampJourneyMarks(chunk);
+    this._farmStampApproach(chunk);
+    // --- The Disconnected Home last of all, so nothing can ever overwrite Level 2
+    // progression — the same guarantee Phase 16 gave it, on a much larger structure.
     this._farmStampHome(chunk);
     this._farmPlotSteads = null; this._farmPlotLms = null; this._farmPlotMinors = null;
     this._farmPlotSigns = null;
@@ -10906,6 +11530,13 @@ class VoxelWorld {
        7 RECLAIMED  barely a field any more
      =================================================================================== */
   _farmFieldState(bx, bz) {
+    /* PHASE 20 — the opening field is STANDING, not failed. State 0 is the healthiest
+       the vocabulary has: dense, tall, unbroken rows. The brief is explicit that the
+       first field must not be horrifying, and it is right for a structural reason as
+       well as a tonal one — every later wrongness in this dimension is measured against
+       what the player accepts as normal in the first minute, so the first minute has to
+       give them something to accept. */
+    if (farmOnJourney(bx, bz) && farmJourneyOrd(bx, bz) === FARM_J_WHEAT) return 0;
     const r = this._farmHash(bx, bz, 149);
     return r < 0.10 ? 0 : r < 0.24 ? 1 : r < 0.36 ? 2 : r < 0.50 ? 3
          : r < 0.64 ? 4 : r < 0.78 ? 5 : r < 0.91 ? 6 : 7;
@@ -11892,9 +12523,14 @@ class VoxelWorld {
        same naming call every other farmstead takes. Forcing only the ACCEPTANCE is what
        keeps it believable — the brief is explicit that it must not read as a reward. */
     const isRoth = (bx === FARM_ROTH_BX && bz === FARM_ROTH_BZ);
+    /* PHASE 20 — THE ISOLATION RAMP, applied as a multiplier on the acceptance rate and
+       nowhere else. Past the water tower the same die is thrown with the same salt; it
+       simply has to come up smaller. Roth Farm is exempt because it is a forced
+       acceptance, and it sits four rows before the ramp begins anyway. */
+    const iso = farmJourneyIsolation(bx, bz);
     if (isFarmlandsWorldPos(bx * FARM_P + 1, bz * FARM_P + 1) &&
         (laneW || laneN) &&
-        (isRoth || this._farmHash(bx, bz, 149) < FARM_STEAD_CHANCE)) {
+        (isRoth || this._farmHash(bx, bz, 149) < FARM_STEAD_CHANCE * iso)) {
       /* PHASE 18.1 — THE PLOT NOW SITS IN THE GAP THE ROAD ACTUALLY LEFT.
 
          A fixed setback was only ever safe because the lane was fixed too. Now that a
@@ -12097,8 +12733,16 @@ class VoxelWorld {
   // A generous keep-out around the Level 2 progression structure and the rift pad.
   _farmPlotClashesHome(x0, z0, x1, z1) {
     const m = FARM_HOME_KEEPOUT;
-    if (x1 >= FARM_HOME_X - m && x0 <= FARM_HOME_X + m &&
-        z1 >= FARM_HOME_Z - m && z0 <= FARM_HOME_Z + m) return true;
+    const H = this.farmHome;
+    if (H && x1 >= H.cx - m && x0 <= H.cx + m && z1 >= H.cz - m && z0 <= H.cz + m) return true;
+    /* PHASE 20 — the water tower facility gets a keep-out of its own, and it is wider
+       than the structure by design. The tower is the region's navigation landmark and
+       the brief requires it to stand ALONE against open farmland; a barn thirty blocks
+       from its legs would give the eye something to measure it against and cost it most
+       of its scale. */
+    const T = this.farmTower;
+    if (T && x1 >= T.cx - FARM_TOWER_KEEPOUT && x0 <= T.cx + FARM_TOWER_KEEPOUT &&
+        z1 >= T.cz - FARM_TOWER_KEEPOUT && z0 <= T.cz + FARM_TOWER_KEEPOUT) return true;
     if (x1 >= FARM_SPAWN_X - m && x0 <= FARM_SPAWN_X + m &&
         z1 >= FARM_SPAWN_Z - m && z0 <= FARM_SPAWN_Z + m) return true;
     return false;
@@ -12396,9 +13040,18 @@ class VoxelWorld {
         /* WHAT STATE THE GLASS IS IN IS THE BUILDING'S BIOGRAPHY. Boarded means someone
            closed the place up on purpose. Broken means nobody came back to. Intact means
            they simply walked out. All three appear on the same farmstead. */
+        /* PHASE 20 DEFECT FIX. This read BLOCK.WINDOW, and there is no such id — the
+           vocabulary has WIN_X and WIN_Z, one per wall orientation. `undefined` written
+           into a Uint16Array is 0, so every INTACT window in every Farmlands building
+           since Phase 17 has been a square hole in the wall instead of a pane. It was
+           invisible in a census (a hole and a window are both "not siding") and only
+           showed up standing in front of a decay-0 farmhouse, which is exactly the class
+           of defect the visual-investigation rule exists for. The glazed id is now
+           picked from the wall's own run axis, which the loop already knows. */
+        const glazed = fx ? BLOCK.WIN_X : BLOCK.WIN_Z;
         let id;
-        if (b.decay === 0) id = r < 0.12 ? BLOCK.WIN_BOARDED : BLOCK.WINDOW;
-        else if (b.decay === 1) id = r < 0.42 ? BLOCK.WIN_BOARDED : (r < 0.60 ? BLOCK.WIN_BROKEN : BLOCK.WINDOW);
+        if (b.decay === 0) id = r < 0.12 ? BLOCK.WIN_BOARDED : glazed;
+        else if (b.decay === 1) id = r < 0.42 ? BLOCK.WIN_BOARDED : (r < 0.60 ? BLOCK.WIN_BROKEN : glazed);
         else id = r < 0.30 ? BLOCK.WIN_BOARDED : (r < 0.85 ? BLOCK.WIN_BROKEN : BLOCK.AIR);
         S(wx, m.floorY + sill, wz, id);
         if (A.tallWin && sill + 1 < H - 1) S(wx, m.floorY + sill + 1, wz, id);
@@ -13132,8 +13785,14 @@ class VoxelWorld {
 
     let mn = null;
     const bx0 = mx * FARM_MINOR_P, bz0 = mz * FARM_MINOR_P;
+    /* PHASE 20 — the same ramp the farmsteads take, on the finer grid. This is the one
+       that a walking player actually feels: farmsteads are hundreds of blocks apart
+       anyway, but the minor layer is what keeps SOMETHING built almost always in view,
+       so thinning it is what makes the country past the tower read as emptying out. */
+    const isoM = farmJourneyIsolation(Math.floor((bx0 + FARM_MINOR_P / 2) / FARM_P),
+                                      Math.floor((bz0 + FARM_MINOR_P / 2) / FARM_P));
     if (isFarmlandsWorldPos(bx0 + 1, bz0 + 1) &&
-        this._farmHash(mx, mz, 401) < FARM_MINOR_CHANCE) {
+        this._farmHash(mx, mz, 401) < FARM_MINOR_CHANCE * isoM) {
       const r = this._farmHash(mx, mz, 409);
       let acc = 0, kind = 0;
       for (let i = 0; i < FARM_MINOR_W.length; i++) { acc += FARM_MINOR_W[i]; if (r < acc) { kind = i; break; } }
@@ -13410,6 +14069,13 @@ class VoxelWorld {
         pool = [FARM_ANIM_SPECIES.SHEEP, FARM_ANIM_SPECIES.CHICKEN, FARM_ANIM_SPECIES.HORSE];
       }
 
+      /* PHASE 20 — livestock thin out along the journey with everything else, and they
+         are the most legible half of it: a pasture with no herd in it reads as
+         abandonment far more directly than one fewer shed does. The multiplier is
+         applied to the CHANCE, so a pasture past the tower is not forbidden livestock,
+         only unlikely to have any — which is what leaves the occasional lone animal
+         standing a long way from anything, exactly as the brief asks. */
+      chance *= farmJourneyIsolation(bxp, bzp);
       if (pool && this._farmHash(ax, az, 709) < chance) {
         /* SPECIES IS PER GROUP. A herd of one species is livestock; a herd of four is a
            spawn table. Condition and behaviour below are per ANIMAL and drawn from their
@@ -13737,43 +14403,1422 @@ class VoxelWorld {
     }
   }
 
-  _farmStampHome(chunk) {
-    const half = FARM_HOME_W >> 1;
-    const x0 = FARM_HOME_X - half, x1 = FARM_HOME_X + half;
-    const z0 = FARM_HOME_Z - half, z1 = FARM_HOME_Z + half;
-    // Cheap rejection: almost every chunk in an infinite world contributes nothing here.
-    const cx0 = chunk.cx * CHUNK_SX, cz0 = chunk.cz * CHUNK_SZ;
-    if (x1 < cx0 || x0 >= cx0 + CHUNK_SX || z1 < cz0 || z0 >= cz0 + CHUNK_SZ) return;
+  /* ===================================================================================
+     PHASE 20 — RESOLVING THE JOURNEY
 
-    const baseY = this._farmHeightAt(FARM_HOME_X, FARM_HOME_Z);
-    const H = FARM_HOME_H;
+     TWO AUTHORED SITES, PLACED RATHER THAN HOPED FOR, AND NEITHER OF THEM A CONSTANT.
 
-    // Shell: obsidian walls, and the roof cap the top wall layer already forms.
-    for (let dx = -half; dx <= half; dx++) {
-      for (let dz = -half; dz <= half; dz++) {
-        const onEdge = dx === -half || dx === half || dz === -half || dz === half;
-        if (!onEdge) continue;
-        for (let dy = 0; dy < H; dy++) {
-          this._farmSet(chunk, FARM_HOME_X + dx, baseY + dy, FARM_HOME_Z + dz, BLOCK.OBSIDIAN);
+     Phase 16 pinned the Disconnected Home to a fixed coordinate pair, which was safe
+     only because the lanes were straight to within two blocks. Phase 18.1's routes
+     wander up to fourteen, so a fixed plot in a laned parcel is a plot that will
+     eventually have a carriageway through the middle of it. Both sites are therefore
+     resolved the way a farmstead resolves its yard: sample the bounding routes across
+     the parcel, take the clear window they leave, and sit the plot inside it.
+
+     THIS RUNS ONCE, AT BOOT, BEFORE ANY CHUNK EXISTS, and it reads nothing but the lane
+     hashes and the route spine. So it is identical on every launch, identical after any
+     unload/reload cycle, and — critically — the Rift Core chest key is derivable from it
+     without a single voxel having been written. Level 2 progression cannot depend on
+     visit order.
+     =================================================================================== */
+  _farmClearWindow(bx, bz, clear) {
+    /* The widest the two bounding routes get across this parcel, sampled at eight
+       stations. Eight rather than four: a FARM_ROUTE_SEG is 40 blocks and a parcel is
+       64, so a parcel can contain a whole node and its neighbours, and four stations
+       measurably missed the extreme of a strong bend. */
+    const spanX = (line) => {
+      let lo = 1e9, hi = -1e9;
+      for (let k = 0; k <= 8; k++) {
+        const o = this._farmRouteX(line, bz * FARM_P + k * (FARM_P / 8));
+        if (o < lo) lo = o;
+        if (o > hi) hi = o;
+      }
+      return [lo, hi];
+    };
+    const spanZ = (line) => {
+      let lo = 1e9, hi = -1e9;
+      for (let k = 0; k <= 8; k++) {
+        const o = this._farmRouteZ(line, bx * FARM_P + k * (FARM_P / 8));
+        if (o < lo) lo = o;
+        if (o > hi) hi = o;
+      }
+      return [lo, hi];
+    };
+    let loX = 0, hiX = FARM_P, loZ = 0, hiZ = FARM_P;
+    if (this._farmLaneX(bx)) loX = Math.ceil(spanX(bx)[1] + clear);
+    if (this._farmLaneX(bx + 1)) hiX = Math.floor(FARM_P + spanX(bx + 1)[0] - clear);
+    if (this._farmLaneZ(bz)) loZ = Math.ceil(spanZ(bz)[1] + clear);
+    if (this._farmLaneZ(bz + 1)) hiZ = Math.floor(FARM_P + spanZ(bz + 1)[0] - clear);
+    if (loX < 0) loX = 0;
+    if (loZ < 0) loZ = 0;
+    if (hiX > FARM_P) hiX = FARM_P;
+    if (hiZ > FARM_P) hiZ = FARM_P;
+    return { loX, hiX, loZ, hiZ };
+  }
+
+  /* Places one authored site in a journey parcel row. `bias` is 'lane' for something the
+     road visibly serves (the tower, which sits hard against its own service road) and
+     'centre' for something that must NOT read as connected to the road — which is the
+     entire point of the Disconnected Home and is why it is centred in its field with a
+     clear band of open ground on both sides. */
+  _farmJourneySite(bx, w, d, bias) {
+    const CLEAR = FARM_MARGIN + 3;
+    /* The lane divides two parcel ROWS: FARM_J_LINE is the one SOUTH of it (the lane runs
+       along that row's northern edge) and FARM_J_LINE-1 the one north. BOTH are evaluated
+       and the better one wins, because "which side of the road" is not arbitrary for
+       either of the two things this places:
+
+         'lane'  the water tower, which must stand hard against its own service road AND
+                 in the open. Of the two candidate plots in its parcel column one came out
+                 at an Ashen Forest field value of 0.155 — the woodland edge, canopy over
+                 17% of the columns within forty blocks — and the other at -0.067, open
+                 fields. The whole point of a thirty-seven-block landmark is that you see
+                 it across country, so the OPENER plot wins and the tie-break is the biome
+                 field itself rather than a coin.
+         'far'   the Disconnected Home, which must NOT read as served by the road: it
+                 takes whichever plot leaves the most open ground between itself and the
+                 lane, and that gap is where every piece of missing-farm evidence goes.  */
+    let best = null, bestScore = -Infinity;
+    for (const bz of [FARM_J_LINE, FARM_J_LINE - 1]) {
+      const win = this._farmClearWindow(bx, bz, CLEAR);
+      if (win.hiX - win.loX < w || win.hiZ - win.loZ < d) continue;
+      const south = (bz === FARM_J_LINE);      // the lane is on this parcel's north edge
+      let lz;
+      if (bias === 'lane') lz = south ? win.loZ : win.hiZ - d;         // hard against the road
+      else lz = south ? win.hiZ - d : win.loZ;                          // as far from it as fits
+      const lx = win.loX + Math.floor((win.hiX - win.loX - w) / 2);
+      const ox = bx * FARM_P + lx, oz = bz * FARM_P + lz;
+      const cx = ox + (w >> 1), cz = oz + (d >> 1);
+      const score = bias === 'lane'
+        ? -farmlandsBiomeValue(cx, cz)                       // the more open, the better
+        : (south ? win.hiZ - d - win.loZ : win.hiZ - d - win.loZ);   // the further off the road
+      if (score <= bestScore) continue;
+      bestScore = score;
+      best = {
+        bx, bz, south, ox, oz, w, d, x1: ox + w, z1: oz + d,
+        cx, cz,
+        px0: ox - 2, px1: ox + w + 1, pz0: oz - 2, pz1: oz + d + 1,
+        /* The bank's outer bound. It can never be wider than the heightfield's own
+           range, because the ramp walks back one block per ring and stops the moment it
+           meets the natural ground. Everything outside this is rejected by four
+           comparisons — see _farmSitePad. */
+        bx0: ox - 2 - FARM_PAD_BANK, bx1: ox + w + 1 + FARM_PAD_BANK,
+        bz0: oz - 2 - FARM_PAD_BANK, bz1: oz + d + 1 + FARM_PAD_BANK,
+      };
+    }
+    return best;
+  }
+
+  _farmResolveJourney() {
+    // --- THE WATER TOWER --------------------------------------------------------------
+    const tbx = FARM_J_B0 + FARM_J_TOWER * FARM_J_DIR;
+    const T = this._farmJourneySite(tbx, FARM_TOWER_PLOT, FARM_TOWER_PLOT, 'lane');
+    if (!T) throw new Error('PHASE 20: no clear window for the water tower facility');
+    /* THE PLATFORM IS CAPPED, and the cap is arithmetic rather than taste. The lamp sits
+       FARM_TOWER_LAMP_DY above the pad and chunk data is CHUNK_SY tall, so a pad above
+       CHUNK_SY - FARM_TOWER_LAMP_DY - 2 would truncate the mast. Capping instead of
+       clamping the structure means the tower is never shortened: it simply stands on a
+       graded platform, which is what a real one does. */
+    /* AND FLOORED AT THE WATER TABLE. _farmCache raises any padded column that would
+       have flooded up to the table and then suppresses the water — so a pad resolved
+       BELOW the table leaves the stamper building at one height and the ground sitting
+       at another, which buries the bottom course of whatever stands on it. Both journey
+       sites therefore resolve their pad against the table directly. */
+    T.padY = Math.min(Math.max(this._farmBaseHeightAt(T.cx, T.cz), FARM_WATER_Y + 1),
+                      FARM_TOWER_MAX_BASE);
+    T.lampY = T.padY + FARM_TOWER_LAMP_DY;
+    T.seed = Math.floor(this._farmHash(T.bx, T.bz, 907) * 1e6);
+    this.farmTower = T;
+
+    // --- THE DISCONNECTED HOME --------------------------------------------------------
+    const hbx = FARM_J_B0 + FARM_J_HOME * FARM_J_DIR;
+    const H = this._farmJourneySite(hbx, FARM_HOME_PLOT_W, FARM_HOME_PLOT_D, 'far');
+    if (!H) throw new Error('PHASE 20: no clear window for the Disconnected Home');
+    H.padY = Math.max(this._farmBaseHeightAt(H.cx, H.cz), FARM_WATER_Y + 1);
+    /* THE HOUSE INSIDE THE PROPERTY. Everything about the building — its walls, its
+       rooms, its staircase, its chest — is derived from this one origin, so the plot can
+       move without a single interior coordinate being touched. */
+    H.hx = H.ox + 11; H.hz = H.oz + 13;
+    H.hw = FARM_HOME_HOUSE_W; H.hd = FARM_HOME_HOUSE_D;
+    H.upY = H.padY + FARM_HOME_WALL_H;         // the upper floor's walkable level
+    /* THE BURIED VOLUME.
+
+       ITS DEPTH IS AN INVARIANT, NOT A PREFERENCE. The ceiling has to stay under the
+       lowest ground the heightfield can ever produce, everywhere it runs — and it runs
+       seventy blocks east of the property, out from under the levelled pad and into
+       terrain the generator is free to shape. FARM_MIN_Y is the floor of that shaping, so
+       the volume is pinned at least five blocks below it as well as eleven below the
+       farmhouse, and takes whichever is deeper. That is what makes it structurally
+       impossible for a basin, a watercourse or a ditch to ever cut into it. */
+    H.deepY = Math.min(H.padY - 11, FARM_MIN_Y - 5);
+    H.hallZ = H.hz + 8;                        // the pantry's own row, carried east
+    H.stairX0 = H.hx + 7;                      // where the floor opens
+    H.stairSteps = H.padY - H.deepY;
+    H.hallX0 = H.stairX0 + H.stairSteps;
+    H.hallX1 = H.hallX0 + 33;                  // thirty-four cells of corridor
+    H.bigX0 = H.hallX1 + 2;                    // 16 wide: wider than the farmhouse
+    H.bigZ0 = H.hallZ - 5;                     // 12 deep: deeper than the farmhouse
+    // The rectangle every chunk overlapping any of it has to help stamp.
+    H.deepX0 = H.stairX0 - 2; H.deepX1 = H.bigX0 + 16;
+    H.deepZ0 = H.hallZ - 10; H.deepZ1 = H.hallZ + 12;
+    // The Ancient Chest, on the hearth of a living room that cannot exist.
+    H.chest = { x: H.bigX0 + 8, y: H.deepY, z: H.bigZ0 + 1 };
+    H.seed = Math.floor(this._farmHash(H.bx, H.bz, 911) * 1e6);
+    this.farmHome = H;
+
+    /* THE APPROACH. The rectangle of open field between the journey lane and the
+       property, which is where every piece of "a farm should be here and the ground does
+       not agree" evidence is written. Held as a rectangle so the chunk pass can reject
+       almost every chunk in the region with one comparison. */
+    /* THE APPROACH is the band of open field between the lane and the property. The lane
+       runs east-west; the property sits thirty-odd blocks off it; so the band is a
+       rectangle spanning the property's width and reaching back to the road. */
+    const laneZ = Math.round(this._farmJourneyLaneZ(H.cx));
+    this.farmApproach = {
+      x0: H.ox - 6, x1: H.x1 + 6,
+      z0: Math.min(laneZ + FARM_MARGIN, H.oz - 1), z1: H.oz - 1,
+      laneZ, laneX: H.cx, south: H.south,
+    };
+    if (!H.south) { this.farmApproach.z0 = H.z1 + 1; this.farmApproach.z1 = Math.max(laneZ - FARM_MARGIN, H.z1 + 1); }
+  }
+
+  /* ===================================================================================
+     PHASE 20 — THE MASSIVE WATER TOWER
+
+     THIRTY-SEVEN BLOCKS, AND THE NUMBER IS THE DESIGN. The tallest thing Phase 17 builds
+     is an eight-block barn; the Phase 18 water tower reached about twelve. In a dimension
+     whose entire relief is ten blocks, a structure nearly four times the height of
+     anything else does not merely stand out — it becomes the only vertical reference the
+     player has, which is exactly what the brief asks for when it says the route should
+     appear to lead there without a marker.
+
+     IT IS ORDINARY RURAL INFRASTRUCTURE AND IT IS BUILT LIKE ONE. Four stanchions on
+     fieldstone footings, three courses of cross-bracing, a riveted drum with two rib
+     hoops, a domed crown, a service ladder up one leg, a catwalk gallery under the tank,
+     a riser and a water main running out to a pump house, a stop valve, a wire fence with
+     a field gate, and a worn service track back to the lane. Nothing about it is
+     supernatural and nothing about it should be. The wrongness is one small red lamp at
+     the top of the mast and it is not in the voxel data at all — see updateFarmTowerLight.
+
+     THE FACILITY IS NOT A DUNGEON. There is no interior to clear, no loot, no encounter
+     and no objective; the pump house is four blocks square and the tank is sealed. The
+     player walks up to it, stands under it, notices something they cannot quite confirm,
+     and walks on. That restraint is the whole point of requirement 20.
+     =================================================================================== */
+  _farmStampTower(chunk) {
+    const T = this.farmTower;
+    if (!T) return;
+    if (!this._subHits(chunk, T.ox - 3, T.oz - 3, T.x1 + 3, T.z1 + 3)) return;
+    const S = (wx, wy, wz, id) => this._subSet(chunk, wx, wy, wz, id);
+    const G = (wx, wy, wz) => this._subGet(chunk, wx, wy, wz);
+    const hsh = (n) => this._farmHash(T.cx * 13 + n, T.cz * 17 + n, 913);
+    const b = T.padY, cx = T.cx, cz = T.cz;
+
+    /* --- THE PLATFORM. Graded, trampled, and drained. A facility yard is not a field:
+       it is compacted ground with nothing growing on it and standing water in the ruts,
+       and getting that right is most of why the tower reads as a working site rather
+       than as a model dropped in a meadow. */
+    for (let wx = T.ox; wx < T.x1; wx++) {
+      for (let wz = T.oz; wz < T.z1; wz++) {
+        const ex = Math.min(wx - T.ox, T.x1 - 1 - wx), ez = Math.min(wz - T.oz, T.z1 - 1 - wz);
+        const edge = Math.min(ex, ez);
+        for (let dy = 0; dy < 12; dy++) S(wx, b + dy, wz, BLOCK.AIR);
+        const r = this._farmHash(wx, wz, 917);
+        let ground;
+        if (edge === 0) ground = BLOCK.SOIL_OVERGROWN;              // the fence line, gone to weed
+        else if (r < 0.16) ground = BLOCK.FARM_MUD;
+        else if (r < 0.34) ground = BLOCK.SOIL_DRY;
+        else ground = BLOCK.SOIL_TRAMPLED;
+        S(wx, b - 1, wz, ground);
+        /* THE RETAINING COURSE. Where the platform was cut or filled against the natural
+           field, a course of fieldstone holds it — without it a capped pad reads as a
+           one-block cliff of soil, which is the single most common tell that a plot was
+           levelled by a generator rather than by people. */
+        const nat = this._farmBaseHeightAt(wx, wz);
+        if (edge <= 1 && nat < b) {
+          for (let y = nat - 1; y < b; y++) S(wx, y, wz, BLOCK.FIELDSTONE);
+        }
+        if (edge >= 2 && r > 0.985) S(wx, b, wz, BLOCK.WEED_CLUMP);
+        else if (edge >= 2 && r > 0.972) S(wx, b, wz, BLOCK.SMALL_STONES);
+      }
+    }
+
+    // --- FOOTINGS AND STANCHIONS -----------------------------------------------------
+    const LEG = 5;                       // half the leg spacing: a 10-block base square
+    const legs = [[-LEG, -LEG], [LEG, -LEG], [-LEG, LEG], [LEG, LEG]];
+    for (const [lx, lz] of legs) {
+      for (let dx = -1; dx <= 1; dx++)
+        for (let dz = -1; dz <= 1; dz++) {
+          S(cx + lx + dx, b - 1, cz + lz + dz, BLOCK.FIELDSTONE);
+          S(cx + lx + dx, b - 2, cz + lz + dz, BLOCK.FIELDSTONE);
+        }
+      for (let dy = 0; dy < FARM_TOWER_LEG_H; dy++) S(cx + lx, b + dy, cz + lz, BLOCK.TOWER_LEG);
+    }
+
+    /* --- CROSS-BRACING, on three courses. Without it the four legs read as four
+       unrelated posts and the tank appears to float; with it the whole understructure
+       reads as one truss, which is what carries the silhouette at distance. */
+    for (const ty of [6, 12, 18]) {
+      const y = b + ty;
+      for (let k = -LEG + 1; k <= LEG - 1; k++) {
+        S(cx + k, y, cz - LEG, BLOCK.TOWER_BRACE_X);
+        S(cx + k, y, cz + LEG, BLOCK.TOWER_BRACE_X);
+        S(cx - LEG, y, cz + k, BLOCK.TOWER_BRACE_Z);
+        S(cx + LEG, y, cz + k, BLOCK.TOWER_BRACE_Z);
+      }
+    }
+
+    /* --- THE SERVICE LADDER, up the outside of the south-west leg and on to the
+       catwalk. Ladders are noclip and the existing step-up handles the climb, so the
+       gallery is somewhere a player can genuinely stand — the tower is not a backdrop. */
+    for (let dy = 1; dy <= FARM_TOWER_LEG_H; dy++) {
+      S(cx - LEG, b + dy, cz - LEG - 1, BLOCK.LADDER_S);
+    }
+
+    /* --- THE CATWALK, a gallery ring one course under the tank. Run-tiled on its axis,
+       so the whole ring is a handful of quads. */
+    const cwY = b + FARM_TOWER_LEG_H - 1;
+    const CW = FARM_TOWER_R + 1;
+    for (let k = -CW; k <= CW; k++) {
+      if (Math.abs(k) > CW - 1) continue;
+      S(cx + k, cwY, cz - CW, BLOCK.CATWALK_X);
+      S(cx + k, cwY, cz + CW, BLOCK.CATWALK_X);
+      S(cx - CW, cwY, cz + k, BLOCK.CATWALK_Z);
+      S(cx + CW, cwY, cz + k, BLOCK.CATWALK_Z);
+    }
+
+    /* --- THE TANK. A thirteen-block drum, approximated as an octagon: |dx| and |dz| both
+       inside the radius AND their sum inside radius+2, which cuts the four corners at
+       forty-five degrees. At the distances this thing is meant to be read from, an
+       octagon and a circle are the same silhouette, and it costs no curved geometry.
+
+       THE RIB HOOPS are on the second and second-to-last courses. Two horizontal bands
+       are what turn a box of plate into a cylinder for the eye — more than any amount of
+       corner-cutting does. */
+    const R = FARM_TOWER_R;
+    const inDrum = (dx, dz, rad) => Math.abs(dx) <= rad && Math.abs(dz) <= rad &&
+                                    Math.abs(dx) + Math.abs(dz) <= rad + 2;
+    for (let ty = 0; ty < FARM_TOWER_TANK_H; ty++) {
+      const y = b + FARM_TOWER_LEG_H + ty;
+      const rib = (ty === 1 || ty === FARM_TOWER_TANK_H - 2);
+      for (let dx = -R; dx <= R; dx++)
+        for (let dz = -R; dz <= R; dz++) {
+          if (!inDrum(dx, dz, R)) continue;
+          S(cx + dx, y, cz + dz, rib ? BLOCK.TOWER_TANK_RIB : BLOCK.TOWER_TANK);
+        }
+    }
+
+    // --- THE DOME AND THE MAST -------------------------------------------------------
+    const domeY = b + FARM_TOWER_LEG_H + FARM_TOWER_TANK_H;
+    for (let ring = 0; ring < 3; ring++) {
+      const rad = R - 1 - ring * 2;
+      for (let dx = -rad; dx <= rad; dx++)
+        for (let dz = -rad; dz <= rad; dz++) {
+          if (!inDrum(dx, dz, rad)) continue;
+          S(cx + dx, domeY + ring, cz + dz, BLOCK.TOWER_DOME);
+        }
+    }
+    S(cx, domeY + 3, cz, BLOCK.TOWER_MAST);
+    S(cx, domeY + 4, cz, BLOCK.TOWER_MAST);
+    // The lamp housing. Always here, always dark in the voxel pass.
+    S(cx, T.lampY, cz, BLOCK.TOWER_LAMP);
+
+    /* --- THE RISER AND THE MAIN. A water tower with no pipe leaving it is a sculpture.
+       The riser climbs the north-east leg to the tank and the main leaves the base and
+       runs west to the pump house, with the stop valve where a hand could reach it. */
+    for (let dy = 0; dy <= FARM_TOWER_LEG_H; dy++) S(cx + LEG + 1, b + dy, cz, BLOCK.RISER_PIPE);
+    const pumpX = T.ox + 3, pumpZ = T.oz + 3;
+    for (let wx = pumpX + 4; wx <= cx + LEG + 1; wx++) S(wx, b, cz, BLOCK.PIPE_X);
+    for (let wz = pumpZ + 2; wz < cz; wz++) S(pumpX + 4, b, wz, BLOCK.PIPE_Z);
+    S(pumpX + 4, b + 1, cz - 3, BLOCK.VALVE_WHEEL);
+    S(cx + LEG + 3, b, cz, BLOCK.WATER_PUMP);
+
+    /* --- THE PUMP HOUSE. Four blocks square, built through the ordinary archetype
+       pipeline exactly as every other Farmlands building is — there is no second
+       building system in this phase either. */
+    const pump = {
+      arch: 'utility', x: pumpX, z: pumpZ, w: FARM_ARCH.utility.w, d: FARM_ARCH.utility.d,
+      ridge: FARM_ARCH.utility.ridge, baseY: b,
+      side: BLOCK.BARN_WHITE, roofMat: BLOCK.ROOF_TIN,
+      face: 3, decay: hsh(3) < 0.55 ? 1 : 2, role: 'tower',
+    };
+    this._farmStampBuilding(chunk, pump, (n) => this._farmHash(pumpX * 5 + n, pumpZ * 3 + n, 919));
+    if (hsh(4) < 0.7) S(pumpX - 1, b, pumpZ + 2, BLOCK.BARREL);
+    if (hsh(5) < 0.6) S(pumpX + 5, b, pumpZ + 1, BLOCK.CRATE);
+
+    /* --- DRAINAGE. The facility sheds water and it has to go somewhere: a shallow ditch
+       along the low edge with a culvert under the gate, and a stagnant puddle in the
+       ruts under the tank. This is Phase 19 vocabulary and it is here because a graded
+       yard with no drainage is the sort of detail whose absence nobody names and
+       everybody feels. */
+    for (let wz = T.oz + 4; wz < T.z1 - 4; wz++) {
+      S(T.ox + 1, b - 1, wz, BLOCK.DITCH_MUD);
+      if (this._farmHash(T.ox + 1, wz, 921) < 0.5) S(T.ox + 1, b, wz, BLOCK.REEDS);
+    }
+    for (let dx = -2; dx <= 2; dx++)
+      for (let dz = -2; dz <= 2; dz++) {
+        if (Math.abs(dx) + Math.abs(dz) > 3) continue;
+        if (this._farmHash(cx + dx, cz + dz, 923) < 0.55) {
+          S(cx + dx, b - 1, cz + dz, BLOCK.SOIL_WET);
+          S(cx + dx, b, cz + dz, BLOCK.WATER_SHALLOW);
+        }
+      }
+
+    /* --- THE FENCE AND THE GATE. Wire on posts around the compound, the gate on the side
+       the service track arrives from, and one section already down. */
+    const gateSide = T.east ? T.ox : T.x1 - 1;
+    for (let wz = T.oz; wz < T.z1; wz++) {
+      for (const wx of [T.ox, T.x1 - 1]) {
+        if (wx === gateSide && Math.abs(wz - cz) <= 1) continue;              // the gateway
+        if (this._farmHash(wx, wz, 929) < 0.12) continue;                     // fallen sections
+        S(wx, b, wz, ((wz & 3) === 0) ? BLOCK.FENCE_POST : BLOCK.FARM_FENCE_Z);
+      }
+    }
+    for (let wx = T.ox; wx < T.x1; wx++) {
+      for (const wz of [T.oz, T.z1 - 1]) {
+        if (this._farmHash(wx, wz, 931) < 0.12) continue;
+        S(wx, b, wz, ((wx & 3) === 0) ? BLOCK.FENCE_POST : BLOCK.FARM_FENCE_X);
+      }
+    }
+    S(gateSide, b, cz, BLOCK.FIELD_GATE_Z);
+    S(gateSide, b - 1, cz - 1, BLOCK.CULVERT_Z);
+
+    /* --- THE SERVICE TRACK back to the lane. The road does not merely pass the tower:
+       something drove in here, regularly, for years, and the track it wore is what makes
+       the facility part of the road network rather than an object beside it. */
+    this._farmSpurToLane(chunk, gateSide + (T.east ? -1 : 1), cz, 1);
+    for (let k = 1; k <= 4; k++) {
+      const wx = gateSide + (T.east ? k : -k);
+      S(wx, b - 1, cz - 1, BLOCK.TIRE_TRACK);
+      S(wx, b - 1, cz + 1, BLOCK.TIRE_TRACK);
+    }
+  }
+
+  /* World z of the journey lane's centreline at a given x. The journey's authored marks
+     are all placed relative to this rather than to the grid line, so a bend that carries
+     the road fourteen blocks sideways carries everything hung off it too — a fence post
+     "beside the road" stays beside the road. */
+  _farmJourneyLaneZ(wx) {
+    return FARM_J_LINE * FARM_P + this._farmRouteZ(FARM_J_LINE, wx);
+  }
+
+  /* ===================================================================================
+     PHASE 20 — GEOGRAPHIC WRONGNESS AND CROSS-DIMENSIONAL ECHOES
+
+     SIX OBJECTS ACROSS FOUR HUNDRED BLOCKS. That is the entire budget of this section and
+     it is deliberately tiny, because the effect the brief asks for depends completely on
+     rarity: "if everything repeats, nothing feels special". Between them they do three
+     jobs and no more.
+
+       REPETITION. One arrangement — a burnt stump, a fallen gate and three posts, in the
+       same relative positions, at the same distance from the road — appears three times,
+       at rows 8, 10 and 11. It is never mirrored and never varied, because a variation is
+       a different object and the whole point is that it is the SAME object. A player who
+       is paying attention gets to the third one and stops walking.
+
+       A NAME IN THE WRONG PLACE. The ROTH FARM board — the board at the first farmstead
+       the player ever reached, eleven parcels and seven hundred blocks back — is standing
+       at a gate in an empty field with no farm behind it. Phase 18 built the sign system
+       around the promise that a destination sign never names something that is not there.
+       This is the first time that promise is broken, and it is broken exactly once.
+
+       CROSS-DIMENSIONAL. Two objects that belong to Static Suburbia: a mailbox on a
+       fragment of concrete sidewalk with two lengths of picket fence and a patch of
+       mown lawn, and, further on, an armchair on a rug, alone in a dead field, facing
+       the road. Neither is explained and neither ever will be here.
+
+     NOTHING HERE IS SUPERNATURAL AND NOTHING MOVES. The horror is entirely that these
+     things are where they are.
+     =================================================================================== */
+  _farmStampJourneyMarks(chunk) {
+    const cx0 = chunk.cx * CHUNK_SX, cx1 = cx0 + CHUNK_SX;
+    // Cheap rejection: the marks live in four parcel columns out of an infinite lattice.
+    const jx0 = (FARM_J_B0 + FARM_J_ECHO0) * FARM_P, jx1 = (FARM_J_B0 + FARM_J_HOME) * FARM_P;
+    if (cx1 < jx0 || cx0 >= jx1) return;
+    const S = (wx, wy, wz, id) => this._subSet(chunk, wx, wy, wz, id);
+
+    /* THE REPEATED ARRANGEMENT. Authored once, as offsets, and stamped verbatim at every
+       site — which is what makes it literally the same object rather than three things
+       that resemble each other. */
+    const motif = (ax, az) => {
+      if (!this._subHits(chunk, ax - 4, az - 4, ax + 6, az + 6)) return;
+      const put = (dx, dz, id, clear) => {
+        const wx = ax + dx, wz = az + dz;
+        if (!isFarmlandsWorldPos(wx, wz)) return;
+        const h = this._farmHeightAt(wx, wz);
+        if (clear) for (let dy = 0; dy < 4; dy++) S(wx, h + dy, wz, BLOCK.AIR);
+        S(wx, h, wz, id);
+      };
+      put(0, 0, BLOCK.BURNT_STUMP, true);
+      put(1, 0, BLOCK.DEADWOOD_X, true);
+      put(2, 0, BLOCK.CHARRED_BRANCH, false);
+      put(0, 3, BLOCK.FENCE_POST, true);
+      put(0, 4, BLOCK.FIELD_GATE_Z, true);
+      put(0, 5, BLOCK.FENCE_POST, true);
+      put(1, 5, BLOCK.FENCE_BROKEN_X, false);
+      put(3, 2, BLOCK.SMALL_STONES, false);
+      put(-1, 4, BLOCK.WEED_CLUMP, false);
+    };
+
+    for (const j of [FARM_J_ECHO0, FARM_J_ECHO0 + 2, FARM_J_ECHO0 + 3]) {
+      const ax = (FARM_J_B0 + j) * FARM_P + 26;
+      const az = Math.round(this._farmJourneyLaneZ(ax)) + 19;   // always the same side,
+      motif(ax, az);                                            // always the same distance
+    }
+
+    /* THE SUBURBAN FRAGMENT. Six cells of another dimension, sitting in a Farmlands
+       field. The sidewalk slab is what sells it: turf and a mailbox could be rural, a
+       poured concrete walk with a kerb going nowhere could not. */
+    {
+      const ax = (FARM_J_B0 + FARM_J_ECHO0 + 1) * FARM_P + 40;
+      const az = Math.round(this._farmJourneyLaneZ(ax)) - 17;
+      if (this._subHits(chunk, ax - 3, az - 3, ax + 5, az + 5)) {
+        for (let dx = 0; dx <= 3; dx++)
+          for (let dz = 0; dz <= 2; dz++) {
+            const wx = ax + dx, wz = az + dz;
+            if (!isFarmlandsWorldPos(wx, wz)) continue;
+            const h = this._farmHeightAt(wx, wz);
+            for (let dy = 0; dy < 3; dy++) S(wx, h + dy, wz, BLOCK.AIR);
+            S(wx, h - 1, wz, dz === 2 ? BLOCK.LAWN : BLOCK.SIDEWALK);
+          }
+        const hh = this._farmHeightAt(ax + 1, az);
+        S(ax, hh, az, BLOCK.CURB);
+        S(ax + 1, hh, az + 2, BLOCK.MAILBOX_Z);
+        S(ax + 3, hh, az + 2, BLOCK.PICKET_X);
+        S(ax + 4, hh, az + 2, BLOCK.PICKET_POST);
+      }
+    }
+
+    /* THE CHAIR. One piece of somebody's living room, in the middle of a dead field,
+       turned to face the road. It uses the Phase 14 furniture compiler, so it is the
+       same armchair that stands in a Suburbia lounge — not a rural approximation of one,
+       which is precisely what makes it wrong. */
+    {
+      const ax = (FARM_J_B0 + FARM_J_ECHO0 + 3) * FARM_P + 47;
+      const az = Math.round(this._farmJourneyLaneZ(ax)) - 23;
+      if (this._subHits(chunk, ax - 3, az - 3, ax + 4, az + 4)) {
+        const h = this._farmHeightAt(ax, az);
+        for (let dx = -1; dx <= 1; dx++)
+          for (let dz = -1; dz <= 1; dz++) {
+            if (!isFarmlandsWorldPos(ax + dx, az + dz)) continue;
+            for (let dy = 0; dy < 3; dy++) S(ax + dx, h + dy, az + dz, BLOCK.AIR);
+            S(ax + dx, h - 1, az + dz, BLOCK.SOIL_EXHAUSTED);
+          }
+        furnStamp(S, 'rugSmall', ax - 1, h, az - 1, 0);
+        furnStamp(S, 'armchairOat', ax, h, az, 0);   // facing +z, toward the lane
+      }
+    }
+
+    /* THE SIGN THAT LIES. Phase 18's board vocabulary, its post pair, its lettering, and
+       its four-id run convention — reused exactly, so this is physically the same kind of
+       object as every honest fingerpost in the region. Only what it says is wrong. */
+    {
+      const ax = (FARM_J_B0 + FARM_J_ECHO0 + 2) * FARM_P + 12;
+      const az = Math.round(this._farmJourneyLaneZ(ax)) + 9;
+      if (this._subHits(chunk, ax - 2, az - 2, ax + 3, az + 4)) {
+        const h0 = this._farmHeightAt(ax, az), h1 = this._farmHeightAt(ax, az + 1);
+        if (Math.abs(h0 - h1) <= 1) {
+          const base = Math.max(h0, h1);
+          for (let dy = 0; dy < 4; dy++) {
+            S(ax, base + dy, az, BLOCK.AIR); S(ax, base + dy, az + 1, BLOCK.AIR);
+          }
+          S(ax, base, az, BLOCK.SIGN_POST); S(ax, base + 1, az, BLOCK.SIGN_POST);
+          S(ax, base, az + 1, BLOCK.SIGN_POST); S(ax, base + 1, az + 1, BLOCK.SIGN_POST);
+          const idx = FARM_SIGN_IDX_OF.ROTH;
+          const bId = BLOCK.SIGN_TEXT_BASE + idx * 4 + 2;   // run along Z
+          S(ax, base + 2, az, bId + 0);
+          S(ax, base + 2, az + 1, bId + 1);
+          // A gate, and behind it nothing at all.
+          S(ax + 2, base, az, BLOCK.FENCE_POST);
+          S(ax + 2, base, az + 1, BLOCK.FIELD_GATE_Z);
+          S(ax + 2, base, az + 2, BLOCK.FENCE_POST);
         }
       }
     }
-    // Doorway: a 2-tall gap centred on the south wall.
-    this._farmSet(chunk, FARM_HOME_X, baseY, FARM_HOME_Z + half, BLOCK.AIR);
-    this._farmSet(chunk, FARM_HOME_X, baseY + 1, FARM_HOME_Z + half, BLOCK.AIR);
+  }
 
-    // Inverted interior: stone "floor", hollow middle, upside-down wood "ceiling".
-    for (let dx = -half + 1; dx <= half - 1; dx++) {
-      for (let dz = -half + 1; dz <= half - 1; dz++) {
-        const wx = FARM_HOME_X + dx, wz = FARM_HOME_Z + dz;
-        this._farmSet(chunk, wx, baseY, wz, (Math.abs(dx + dz) % 2 === 0) ? BLOCK.ANDESITE : BLOCK.GRANITE);
-        for (let dy = 1; dy < H - 1; dy++) this._farmSet(chunk, wx, baseY + dy, wz, BLOCK.AIR);
-        this._farmSet(chunk, wx, baseY + H - 1, wz, BLOCK.OAK_LOG);
+  /* ===================================================================================
+     PHASE 20 — EVIDENCE OF A FARM THAT SHOULD BE HERE
+
+     THE PLAYER MUST REACH THE CONCLUSION, NOT BE TOLD IT. Everything in this pass is a
+     piece of ordinary rural infrastructure that only exists because a property exists,
+     and every one of them is placed so that the property it implies cannot be reached
+     from the road:
+
+       a mailbox standing on the verge with nothing behind it;
+       tyre ruts that leave the lane, run twelve blocks into the field, and stop;
+       a gateway — two posts and a fallen gate — opening onto no track at all;
+       a fence line that starts at the road and ends eleven blocks short of the yard
+         fence it should meet;
+       drill rows that terminate in the middle of a field instead of at a headland;
+       a stock well out in the open where no farmhouse could ever have been built
+         around it.
+
+     Then the farmhouse is visible across the last field, and the ground between the two
+     does not connect. Nothing here is labelled, glowing, or pointed at.
+     =================================================================================== */
+  _farmStampApproach(chunk) {
+    const A = this.farmApproach, H = this.farmHome;
+    if (!A || !H) return;
+    if (!this._subHits(chunk, A.x0 - 2, A.z0 - 2, A.x1 + 2, A.z1 + 2)) return;
+    const S = (wx, wy, wz, id) => this._subSet(chunk, wx, wy, wz, id);
+    const put = (wx, wz, id, clear) => {
+      if (!isFarmlandsWorldPos(wx, wz) || this._farmInHomePad(wx, wz)) return;
+      const h = this._farmHeightAt(wx, wz);
+      if (clear) for (let dy = 0; dy < 4; dy++) S(wx, h + dy, wz, BLOCK.AIR);
+      S(wx, h, wz, id);
+    };
+    const ground = (wx, wz, id) => {
+      if (!isFarmlandsWorldPos(wx, wz) || this._farmInHomePad(wx, wz)) return;
+      const h = this._farmHeightAt(wx, wz);
+      S(wx, h - 1, wz, id);
+      for (let dy = 0; dy < 3; dy++) S(wx, h + dy, wz, BLOCK.AIR);
+    };
+    /* `into` is the direction from the lane toward the property — +1 when the property
+       lies south of the road, -1 when north. Every piece below is written in terms of it,
+       so the whole pass works whichever side the clear window put the plot on. */
+    const into = A.south ? 1 : -1;
+    const laneZ = A.laneZ;
+
+    /* --- DRILL ROWS THAT STOP. A worked field's rows run to a headland; these run to the
+       middle of the field and end, which is a thing that cannot happen to a field that
+       was actually ploughed.
+
+       THEY GO FIRST, because `ground` clears the three cells above whatever it repaints
+       and the mailbox stands in one of them. Written last, the rows silently deleted the
+       mailbox — the single most important piece of evidence in the approach — and left a
+       bare verge that read as nothing having been placed at all. */
+    for (let wx = A.x0 + 4; wx < A.x0 + 22; wx += 2) {
+      const end = 8 + Math.floor(this._farmHash(wx, 0, 947) * 7);
+      for (let k = FARM_MARGIN; k < end + FARM_MARGIN; k++) ground(wx, laneZ + into * k, BLOCK.TILLED_Z);
+    }
+
+    // --- THE MAILBOX ON THE VERGE, and the post it stands on. Nothing behind it.
+    const mx = H.cx - 12;
+    const mz = laneZ + into * (FARM_VERGE_U + 1);
+    put(mx, mz, BLOCK.MAILBOX, true);
+    put(mx + 1, mz, BLOCK.FENCE_POST, true);
+
+    /* --- THE TYRE RUTS. They leave the lane where a driveway would, run into the field
+       on the line the driveway would have taken, thin out, and stop. Twelve blocks is
+       chosen so they die well short of the property: near enough to be obviously heading
+       for it, far enough that the gap cannot be read as erosion. */
+    const rx = H.cx - 6;
+    for (let k = 0; k < 12; k++) {
+      const fade = k / 12;
+      const wz = laneZ + into * (FARM_VERGE_U + k);
+      if (this._farmHash(rx, wz, 941) < fade * 0.8) continue;
+      ground(rx - 1, wz, BLOCK.TIRE_TRACK);
+      ground(rx + 1, wz, BLOCK.TIRE_TRACK);
+      if (fade < 0.5) ground(rx, wz, BLOCK.SOIL_TRAMPLED);
+    }
+
+    // --- THE GATEWAY THAT OPENS ONTO NOTHING.
+    const gx = H.cx + 6;
+    const gz = laneZ + into * (FARM_VERGE_U + 2);
+    put(gx - 1, gz, BLOCK.FENCE_POST, true);
+    put(gx, gz, BLOCK.FIELD_GATE_X, true);
+    put(gx + 1, gz, BLOCK.FENCE_POST, true);
+    put(gx + 2, gz + into, BLOCK.BROKEN_WOOD, false);
+
+    /* --- THE FENCE THAT ALMOST ARRIVES. It runs from the gateway toward the property and
+       stops eleven blocks short of the yard fence, which is close enough that a player
+       following it looks up expecting to see it continue. */
+    const stopZ = (A.south ? H.oz - 11 : H.z1 + 11);
+    for (let wz = gz + into; into > 0 ? wz < stopZ : wz > stopZ; wz += into) {
+      const r = this._farmHash(gx, wz, 943);
+      if (r < 0.14) continue;                                   // sections already down
+      const id = r < 0.34 ? BLOCK.FENCE_BROKEN_Z
+               : (r < 0.58 ? BLOCK.FENCE_LEAN_Z : BLOCK.FENCE_OLD_Z);
+      put(gx, wz, ((wz & 3) === 0) ? BLOCK.POST_BROKEN : id, true);
+    }
+
+    // --- THE WELL, out in the open, where no yard was ever built around it.
+    const wx0 = H.cx + 16, wz0 = laneZ + into * (FARM_VERGE_U + 9);
+    if (isFarmlandsWorldPos(wx0, wz0) && !this._farmInHomePad(wx0, wz0)) {
+      const h = this._farmHeightAt(wx0, wz0);
+      for (let dx = -1; dx <= 1; dx++)
+        for (let dz = -1; dz <= 1; dz++) ground(wx0 + dx, wz0 + dz, BLOCK.SOIL_TRAMPLED);
+      S(wx0, h, wz0, BLOCK.WELL_RIM);
+      for (let dy = 1; dy <= 7; dy++) S(wx0, h - dy, wz0, BLOCK.AIR);
+      S(wx0 - 1, h, wz0, BLOCK.WELL_POST); S(wx0 + 1, h, wz0, BLOCK.WELL_POST);
+      S(wx0 - 1, h + 1, wz0, BLOCK.WELL_POST); S(wx0 + 1, h + 1, wz0, BLOCK.WELL_POST);
+      S(wx0, h + 1, wz0, BLOCK.WELL_WINCH);
+      S(wx0 + 2, h, wz0 + 1, BLOCK.TROUGH);
+    }
+  }
+
+  /* ===================================================================================
+     PHASE 20 — THE DISCONNECTED HOME 2.0
+
+     WHAT WAS THERE BEFORE. A seven-by-seven obsidian box with a hole in one wall, a
+     chequerboard floor, an oak-log ceiling and a chest hanging from it. It was written in
+     Phase 5A as a placeholder for a pocket dimension that no longer exists, and by
+     Phase 19 it was the only structure in the Farmlands that a player could mistake for
+     unfinished work. Requirement 33 is right to call it unacceptable.
+
+     THE ORDER OF OPERATIONS IS THE DESIGN. The house is built to be BELIEVED first:
+     fieldstone footings, clapboard over a timber frame, a gable roof with eaves and a
+     brick chimney, a covered porch on the road side with steps and a rail, a kitchen ell
+     off the back, a shed, a well, a fence, a gate, a mailbox. Inside, a hall, a living
+     room with a hearth, a dining room, a kitchen, a utility room, a pantry, a staircase,
+     two bedrooms and a box room, furnished out of the Phase 14 catalogue with the
+     domestic objects of people who farmed: a table laid and never cleared, work clothes
+     over a chair, a calendar, photographs, boots by the door.
+
+     ONLY THEN DOES IT STOP MAKING SENSE. And when it does, it does not do it with
+     effects — it does it with geometry, because the thing the story needs communicated is
+     that something rebuilt a farmhouse out of an idea of one and did not understand the
+     rules a building obeys:
+
+       a door on the upper landing that opens onto plaster;
+       a window in the box room with nothing behind the glass at midday;
+       a stair down from the pantry that goes eleven blocks — further than the house is
+         tall — into A CORRIDOR PAPERED LIKE THE HOUSE'S OWN HALLWAY and thirty-four
+         blocks long, which is longer than the entire property;
+       a bedroom off that corridor furnished identically to the one upstairs;
+       a doorway with solid ground a block behind it;
+       a room in which the floor is a ceiling and the furniture hangs from above — the
+         same inversion the Level 1 and Level 3 Disconnected Homes use, which is the
+         memory link and is the reason it is quoted rather than invented;
+       a room with a window looking out on six cells of Static Suburbia;
+       and at the end, sixteen by twelve — larger than the whole farmhouse footprint —
+         THE LIVING ROOM AGAIN. Same hearth, same rug, same chair, same picture. Built
+         a second time, bigger, underground, by something working from the same fragment
+         twice.
+
+     The Rift Core chest sits on that second hearth.
+
+     ALL OF IT IS BURIED. The corridor and its rooms are cut into stone a dozen blocks
+     down and are invisible from every angle outside, which is what lets the exterior stay
+     completely honest — and it is why the contradiction lands when the player paces the
+     corridor and realises they walked out from under the house a long time ago.
+     =================================================================================== */
+  _farmStampHome(chunk) {
+    const H = this.farmHome;
+    if (!H) return;
+    const hitProperty = this._subHits(chunk, H.ox - 2, H.oz - 2, H.x1 + 2, H.z1 + 2);
+    const hitDeep = this._subHits(chunk, H.deepX0 - 2, H.deepZ0 - 2, H.deepX1 + 2, H.deepZ1 + 2);
+    if (!hitProperty && !hitDeep) return;
+    if (hitProperty) {
+      this._farmHomeYard(chunk, H);
+      this._farmHomeExterior(chunk, H);
+      this._farmHomeInterior(chunk, H);
+    }
+    if (hitProperty || hitDeep) this._farmHomeBelow(chunk, H);
+  }
+
+  /* --- THE PROPERTY. Ground, boundary, outbuilding, well, and the yard a family used.
+     Every one of these is also a piece of the evidence the approach pass started laying
+     down: the fence that does not reach the road, the gate with no track behind it, the
+     mailbox on the wrong side of the property. */
+  _farmHomeYard(chunk, H) {
+    const S = (wx, wy, wz, id) => this._subSet(chunk, wx, wy, wz, id);
+    const b = H.padY;
+    const x0 = Math.max(H.ox, chunk.cx * CHUNK_SX), x1 = Math.min(H.x1, chunk.cx * CHUNK_SX + CHUNK_SX);
+    const z0 = Math.max(H.oz, chunk.cz * CHUNK_SZ), z1 = Math.min(H.z1, chunk.cz * CHUNK_SZ + CHUNK_SZ);
+    for (let wx = x0; wx < x1; wx++) {
+      for (let wz = z0; wz < z1; wz++) {
+        for (let dy = 0; dy < 14; dy++) S(wx, b + dy, wz, BLOCK.AIR);
+        const r = this._farmHash(wx, wz, 953);
+        /* GROUND STATE COMES OFF THE PHASE 19 PATCH LATTICE, NOT OFF A PER-COLUMN ROLL.
+
+           Written as a per-column hash the yard came out as a chequerboard — which is
+           precisely the defect Phase 19 identified, named and solved for the whole
+           dimension with _farmSoilPatch's sheared eight-block lattice, and which a
+           first-person render of the porch showed straight back. A patch is a corner of
+           a yard that wore differently; a speckle is noise. The BANDS are still keyed on
+           distance from the house, because that part is real: the ground by the door is
+           worn, the far corners have gone back to weed. */
+        const patch = this._farmSoilPatch(wx, wz, 953);
+        const dHouse = Math.max(Math.abs(wx - (H.hx + 6)), Math.abs(wz - (H.hz + 5)));
+        let g;
+        if (dHouse <= 8) g = patch < 0.22 ? BLOCK.SOIL_DRY : BLOCK.SOIL_TRAMPLED;
+        else if (dHouse <= 13) g = patch < 0.5 ? BLOCK.SOIL_OVERGROWN : BLOCK.SOIL_DRY;
+        else g = patch < 0.7 ? BLOCK.SOIL_OVERGROWN : BLOCK.DEAD_EARTH;
+        S(wx, b - 1, wz, g);
+        if (dHouse > 6 && r > 0.90) S(wx, b, wz, r > 0.965 ? BLOCK.WEED_CLUMP : BLOCK.DRY_TUSSOCK);
+        else if (dHouse > 10 && r > 0.86) S(wx, b, wz, BLOCK.STUBBLE);
       }
     }
 
-    // The chest hangs from the inverted ceiling, one block clear of it, dead centre.
-    this._farmSet(chunk, FARM_HOME_X, baseY + H - 2, FARM_HOME_Z, BLOCK.TREASURE_CHEST);
+    /* THE BOUNDARY. Deliberately incomplete: a whole run of the west fence — the side
+       facing the road — is simply not there, and the gate that should serve the missing
+       driveway stands open onto grass. */
+    const fence = (wx, wz, alongX) => {
+      if (wx < x0 || wx >= x1 || wz < z0 || wz >= z1) return;
+      const r = this._farmHash(wx, wz, 959);
+      if (r < 0.15) return;
+      const id = r < 0.36 ? (alongX ? BLOCK.FENCE_BROKEN_X : BLOCK.FENCE_BROKEN_Z)
+               : (r < 0.62 ? (alongX ? BLOCK.FENCE_LEAN_X : BLOCK.FENCE_LEAN_Z)
+                           : (alongX ? BLOCK.FENCE_OLD_X : BLOCK.FENCE_OLD_Z));
+      S(wx, b, wz, (((alongX ? wx : wz) & 3) === 0) ? BLOCK.POST_BROKEN : id);
+    };
+    /* THE ROAD SIDE OF THE BOUNDARY is the one with the hole in it: two-thirds of the
+       run facing the lane simply never happened, which is the first thing a player sees
+       of this property and the first thing that is wrong with it. */
+    const roadZ = H.south ? H.oz + 1 : H.z1 - 2;
+    const farZ = H.south ? H.z1 - 2 : H.oz + 1;
+    for (let wx = H.ox + 1; wx < H.x1 - 1; wx++) {
+      if (wx > H.ox + 8 && wx < H.x1 - 12) continue;
+      fence(wx, roadZ, true);
+    }
+    for (let wx = H.ox + 1; wx < H.x1 - 1; wx++) fence(wx, farZ, true);
+    for (let wz = H.oz + 1; wz < H.z1 - 1; wz++) { fence(H.ox + 1, wz, false); fence(H.x1 - 2, wz, false); }
+
+    /* THE GATE, on the side facing the road — and the farmhouse's own front door faces
+       WEST, across open field, at right angles to it. A property whose entrance and whose
+       front are on different sides is not impossible, exactly; it is the sort of thing
+       that is true of a house nobody planned, which is precisely what this one is. */
+    const gx = H.cx + 1;
+    S(gx - 1, b, roadZ, BLOCK.FENCE_POST);
+    S(gx, b, roadZ, BLOCK.FIELD_GATE_X);
+    S(gx + 1, b, roadZ, BLOCK.FENCE_POST);
+    S(gx + 3, b, roadZ, BLOCK.MAILBOX);
+    // Ruts inside the yard that begin at the gate and go nowhere in particular.
+    for (let k = 2; k <= 8; k++) {
+      const wz = H.south ? roadZ + k : roadZ - k;
+      if (this._farmHash(gx, wz, 961) < 0.25) continue;
+      S(gx - 1, b - 1, wz, BLOCK.TIRE_TRACK);
+      S(gx + 1, b - 1, wz, BLOCK.TIRE_TRACK);
+    }
+
+    /* THE SHED. A real outbuilding through the ordinary archetype pipeline, standing in
+       the relationship a real one stands in: off the yard, square to the house, its door
+       facing the working ground between them. */
+    const shed = {
+      arch: 'shed', x: H.ox + 22, z: H.oz + 5, w: FARM_ARCH.shed.w, d: FARM_ARCH.shed.d,
+      ridge: FARM_ARCH.shed.ridge, baseY: b, side: BLOCK.FARM_CLAPBOARD,
+      roofMat: BLOCK.ROOF_TIN, face: 1, decay: 2, role: 'home',
+    };
+    this._farmStampBuilding(chunk, shed, (n) => this._farmHash(H.ox * 5 + n, H.oz * 3 + n, 967));
+
+    // The yard well, its trough, and the mud around both.
+    const wx0 = H.ox + 5, wz0 = H.oz + 26;
+    for (let dx = -1; dx <= 2; dx++)
+      for (let dz = -1; dz <= 2; dz++) S(wx0 + dx, b - 1, wz0 + dz, BLOCK.FARM_MUD);
+    S(wx0, b, wz0, BLOCK.WELL_RIM);
+    for (let dy = 1; dy <= 8; dy++) S(wx0, b - dy, wz0, BLOCK.AIR);
+    S(wx0 - 1, b, wz0, BLOCK.WELL_POST); S(wx0 + 1, b, wz0, BLOCK.WELL_POST);
+    S(wx0 - 1, b + 1, wz0, BLOCK.WELL_POST); S(wx0 + 1, b + 1, wz0, BLOCK.WELL_POST);
+    S(wx0, b + 1, wz0, BLOCK.WELL_WINCH);
+    S(wx0 + 2, b, wz0, BLOCK.TROUGH);
+
+    // What a working yard leaves lying about. Sparse, and every piece has a reason.
+    S(H.ox + 20, b, H.oz + 12, BLOCK.HAY_BALE);
+    S(H.ox + 21, b, H.oz + 12, BLOCK.HAY_BALE);
+    S(H.ox + 20, b + 1, H.oz + 12, BLOCK.HAY_BALE);
+    S(H.ox + 24, b, H.oz + 14, BLOCK.PLOUGH);
+    S(H.ox + 25, b, H.oz + 14, BLOCK.WHEEL_SPOKE);
+    S(H.ox + 8, b, H.oz + 30, BLOCK.BARREL);
+    S(H.ox + 9, b, H.oz + 31, BLOCK.CRATE);
+    S(H.ox + 26, b, H.oz + 22, BLOCK.SACK_PILE);
+    // A dead tree in the corner of the yard, and the stump of the one before it.
+    this._farmTree(chunk, H.ox + 25, b, H.oz + 30, 5, 2, BLOCK.BLACK_CANOPY);
+    S(H.ox + 22, b, H.oz + 29, BLOCK.BURNT_STUMP);
+  }
+
+  /* --- THE HOUSE ITSELF, from outside. Two masses through the suburb's shell and roof
+     pipeline — the same one every barn and farmhouse in the region already uses — plus
+     the pieces a farmhouse has that a tract house does not: a fieldstone plinth, a
+     covered porch the full width of the road side, a brick chimney carrying the living
+     room hearth, and a kitchen ell dropped a storey off the back. */
+  _farmHomeExterior(chunk, H) {
+    const S = (wx, wy, wz, id) => this._subSet(chunk, wx, wy, wz, id);
+    const b = H.padY;
+    const side = BLOCK.FARM_CLAPBOARD;
+    const main = {
+      x: H.hx, z: H.hz, w: H.hw, d: H.hd,
+      floorY: b, plateY: b + 8, roof: 'gable', ridge: 'x', main: true,
+    };
+    const ell = {
+      x: H.hx + 5, z: H.hz + H.hd - 1, w: 6, d: 6,
+      floorY: b, plateY: b + 4, roof: 'gable', ridge: 'z', wing: true,
+    };
+    const masses = [main, ell];
+
+    // Fieldstone plinth, one course proud, under both masses.
+    for (const m of masses)
+      for (let dx = -1; dx <= m.w; dx++)
+        for (let dz = -1; dz <= m.d; dz++) S(m.x + dx, b - 1, m.z + dz, BLOCK.FIELDSTONE);
+
+    for (const m of masses) this._subStampShell(chunk, m, side, b);
+    for (const m of masses) this._subStampRoof(chunk, m, masses, BLOCK.ROOF_B, b, side, false);
+
+    /* THE CHIMNEY. Brick, on the north gable, carrying the living-room hearth up past
+       the ridge with a cap on top. It is also the first thing that will contradict
+       itself: the same hearth exists again, sixty blocks east and eleven blocks down,
+       with no chimney at all. */
+    const chx = H.hx + 3, chz = H.hz - 1;
+    for (let y = b - 1; y <= b + 13; y++) S(chx, y, chz, BLOCK.BRICK);
+    S(chx, b + 14, chz, BLOCK.CHIMNEY_CAP);
+
+    /* --- THE PORCH, the full depth of the road side. Deck, posts, rail, a plank ceiling
+       and two steps down to the yard. It is the single strongest cue that this is a
+       dwelling and not a shed, and it is what the player sees first from across the
+       field. */
+    const py0 = H.hz + 1, py1 = H.hz + H.hd - 2;
+    for (let wz = py0; wz <= py1; wz++) {
+      for (let dx = 1; dx <= 2; dx++) {
+        S(H.hx - dx, b - 1, wz, BLOCK.DECK);
+        for (let dy = 0; dy < 4; dy++) S(H.hx - dx, b + dy, wz, BLOCK.AIR);
+        S(H.hx - dx, b + 3, wz, BLOCK.SLAB_TRIM);          // porch ceiling
+      }
+      S(H.hx - 3, b + 3, wz, BLOCK.FASCIA_W);
+    }
+    for (const wz of [py0, Math.floor((py0 + py1) / 2), py1]) {
+      for (let dy = 0; dy < 3; dy++) S(H.hx - 2, b + dy, wz, BLOCK.POST);
+    }
+    for (let wz = py0; wz <= py1; wz++) {
+      if (wz >= H.hz + 5 && wz <= H.hz + 6) continue;        // the gap the steps come up
+      if (this._subGet(chunk, H.hx - 2, b, wz) === BLOCK.AIR) S(H.hx - 2, b, wz, BLOCK.RAIL_Z);
+    }
+    S(H.hx - 3, b - 1, H.hz + 5, BLOCK.STEP_W);
+    S(H.hx - 3, b - 1, H.hz + 6, BLOCK.STEP_W);
+    S(H.hx - 2, b - 1, H.hz + 5, BLOCK.DECK);
+    S(H.hx - 2, b - 1, H.hz + 6, BLOCK.DECK);
+    S(H.hx - 1, b - 1, H.hz + 5, BLOCK.DOORMAT);
+    // Boots by the door, and the chair somebody sat in.
+    S(H.hx - 1, b, H.hz + 2, BLOCK.CRATE);
+    furnStamp(S, 'chairOak', H.hx - 2, b, H.hz + 7, 3);
+
+    /* --- OPENINGS. The front door stands open, folded back into the hall — the same
+       decision Phase 17 made for every rural building and for the same reason: a house
+       the player cannot walk into is a decorative shell. */
+    /* THE THRESHOLD IS ON THE HALL, and getting that wrong is a walkability bug rather
+       than a cosmetic one: the interior grid puts the hall at hz+5 and a partition at
+       hz+4, so a doorway cut at hz+4 opened onto the end of an internal wall. A
+       traversal from the field could reach the doorway and go no further, which is
+       exactly the class of defect a census cannot see and a walk can.
+
+       THE LEAF STANDS OPEN ON THE PORCH, not in the cell behind the threshold. Phase 17
+       folds a rural door back into the room it opens onto, which is fine for a barn with
+       a four-block opening and is not fine here: a door slab in the one-cell threshold of
+       a one-cell hall leaves the player edging past it. Hung back against the outside
+       wall, the way it always was on a working farm, the doorway is completely clear. */
+    const dz = H.hz + 5;
+    S(H.hx, b, dz, BLOCK.AIR);
+    S(H.hx, b + 1, dz, BLOCK.AIR);
+    S(H.hx - 1, b, dz - 1, BLOCK.DOOR_B_Z);
+    // The back door, out of the kitchen ell into the yard — in line with the inner door
+    // and the back passage, so the kitchen has a straight run through it.
+    const bx = H.hx + 6, bz = ell.z + ell.d - 1;
+    S(bx, b, bz, BLOCK.AIR); S(bx, b + 1, bz, BLOCK.AIR);
+    S(bx, b - 1, bz + 1, BLOCK.STEP_S);
+
+    /* WINDOWS. Domestic sill height, two courses tall, and their condition is the
+       building's biography: boarded on the road side where somebody closed the place up,
+       broken at the back where nobody came back to. */
+    const win = (wx, wy, wz, wallAlongX, brokenBias) => {
+      const r = this._farmHash(wx, wz, 971);
+      const glazed = wallAlongX ? BLOCK.WIN_X : BLOCK.WIN_Z;
+      const id = r < brokenBias ? BLOCK.WIN_BROKEN : (r < brokenBias + 0.22 ? BLOCK.WIN_BOARDED : glazed);
+      S(wx, wy, wz, id); S(wx, wy + 1, wz, id);
+    };
+    for (const wz of [H.hz + 2, H.hz + 7]) { win(H.hx, b + 1, wz, false, 0.18); win(H.hx, b + 5, wz, false, 0.18); }
+    for (const wz of [H.hz + 2, H.hz + 6]) { win(H.hx + H.hw - 1, b + 1, wz, false, 0.38); win(H.hx + H.hw - 1, b + 5, wz, false, 0.38); }
+    for (const wx of [H.hx + 1, H.hx + 8]) win(wx, b + 1, H.hz, true, 0.30);
+    win(H.hx + 1, b + 5, H.hz, true, 0.30);
+    win(H.hx + 2, b + 1, H.hz + H.hd - 1, true, 0.42);
+    win(H.hx + 6, b + 1, ell.z + ell.d - 1, true, 0.42);
+    win(ell.x, b + 1, ell.z + 2, false, 0.42);
+    win(ell.x + ell.w - 1, b + 1, ell.z + 3, false, 0.42);
+
+    /* A NOTE ON A BEAT THAT WAS CUT. The box room was going to carry a window backed
+       with obsidian — a pane on an exterior wall showing nothing at midday. It cannot be
+       built honestly: a one-block wall has no cavity to hide the backing in, so the
+       obsidian has to go either into the room (a black slab floating at head height) or
+       into the yard (visible from outside, which destroys the believable exterior the
+       whole first half of this structure exists to establish). Both are worse than not
+       having the beat, and the box room already carries the stronger one — see the door
+       that opens onto plaster in _farmHomeInterior. Left recorded rather than left as a
+       comment-free absence, because the next person to notice the box room has one
+       anomaly instead of two should not have to re-derive why. */
+
+    // Planting: what a garden becomes when nobody cuts it.
+    for (const [gx, gz] of [[-4, 1], [-4, 3], [-4, 8], [-5, 6], [H.hw + 1, 2], [H.hw + 2, 7]]) {
+      const wx = H.hx + gx, wz = H.hz + gz;
+      if (this._farmHash(wx, wz, 977) < 0.3) continue;
+      S(wx, b, wz, this._farmHash(wx, wz, 979) < 0.5 ? BLOCK.SHRUB : BLOCK.HEDGE_LOW);
+    }
+  }
+
+  /* --- SMALL INTERIOR PRIMITIVES, shared by the house and by what is under it. They are
+     methods rather than closures because the buried volume is stamped by a different
+     pass and has to build the SAME hallway out of the SAME pieces — that identity is the
+     entire point of the corridor down there. */
+  _homeWall(S, x0, z0, x1, z1, y0, h, id) {
+    for (let wx = x0; wx <= x1; wx++)
+      for (let wz = z0; wz <= z1; wz++)
+        for (let dy = 0; dy < h; dy++) S(wx, y0 + dy, wz, id);
+  }
+  // A cased opening with no leaf: two cells of clear height under a lintel.
+  _homeDoorway(S, wx, wz, y0, alongX) {
+    S(wx, y0, wz, alongX ? CASE_X : CASE_Z);
+    S(wx, y0 + 1, wz, alongX ? CASE_X : CASE_Z);
+    S(wx, y0 + 2, wz, alongX ? HEADER_X : HEADER_Z);
+  }
+  // ...and one with a leaf standing open in it. `swing` picks the side it folds to.
+  _homeDoor(S, wx, wz, y0, alongX, swing) {
+    const rec = INT_DOOR[(alongX ? 0 : 1) + ':' + (swing > 0 ? 1 : -1)];
+    S(wx, y0, wz, rec ? rec.openId : (alongX ? CASE_X : CASE_Z));
+    S(wx, y0 + 1, wz, alongX ? CASE_X : CASE_Z);
+    S(wx, y0 + 2, wz, alongX ? HEADER_X : HEADER_Z);
+  }
+  // A closed leaf. Used exactly once above ground: the door that opens onto plaster.
+  _homeDoorShut(S, wx, wz, y0, alongX, swing) {
+    const rec = INT_DOOR[(alongX ? 0 : 1) + ':' + (swing > 0 ? 1 : -1)];
+    S(wx, y0, wz, rec ? rec.closedId : (alongX ? CASE_X : CASE_Z));
+    S(wx, y0 + 1, wz, alongX ? CASE_X : CASE_Z);
+    S(wx, y0 + 2, wz, alongX ? HEADER_X : HEADER_Z);
+  }
+
+  /* --- INSIDE THE HOUSE.
+
+     THE PLAN IS AUTHORED, NOT SEARCHED. Suburbia's floor planner exists to make eight
+     archetypes produce a thousand different houses; this is one house, it is the
+     culmination of the dimension, and the brief asks for specific rooms in specific
+     relationships. So the walls are placed by hand, and every piece of furniture is put
+     where a person would have put it rather than where an occupancy grid allowed it.
+
+     WHAT THE FURNITURE IS FOR. Requirement 39 asks that the player believe people lived
+     here, and the way to lose that is to furnish a house like a showroom. So the table is
+     still laid, there are work clothes over a chair, the calendar is on the kitchen wall,
+     there are boots at the door and a child's bed in the small room, and the pantry has
+     more sacks in it than a family would have got through. Nothing is a note and nothing
+     is a collectible. */
+  _farmHomeInterior(chunk, H) {
+    const S = (wx, wy, wz, id) => this._subSet(chunk, wx, wy, wz, id);
+    const b = H.padY, up = H.upY;
+    const A = H.hx + 1, B = H.hz + 1;              // interior origin
+    const X = (i) => A + i, Z = (i) => B + i;      // room-grid helpers, 10 x 8
+    const RH = 3;
+
+    // ---- GROUND FLOOR --------------------------------------------------------------
+    // Partitions: two east-west walls with the hall between them, and two cross walls.
+    this._homeWall(S, X(0), Z(3), X(9), Z(3), b, RH, PART_WALL[3]);
+    this._homeWall(S, X(0), Z(5), X(9), Z(5), b, RH, PART_WALL[3]);
+    this._homeWall(S, X(6), Z(0), X(6), Z(2), b, RH, PART_WALL[12]);
+    this._homeWall(S, X(4), Z(6), X(4), Z(7), b, RH, PART_WALL[12]);
+    // Doorways off the hall: living room, dining room, utility, pantry.
+    this._homeDoorway(S, X(2), Z(3), b, true);
+    this._homeDoorway(S, X(8), Z(3), b, true);
+    this._homeDoor(S, X(1), Z(5), b, true, 1);
+    this._homeDoorway(S, X(7), Z(5), b, true);
+    this._homeDoorway(S, X(4), Z(6), b, false);
+
+    /* THE HEARTH. Firebrick back, a stone surround, a mantel shelf, and a cold grate with
+       last winter's ash still in it. This exact arrangement is reproduced underground, at
+       a different size, in a room with no chimney above it. */
+    const hx0 = H.hx + 2;
+    for (let dx = 0; dx <= 2; dx++) {
+      S(hx0 + dx, b, H.hz, BLOCK.BRICK);
+      S(hx0 + dx, b + 1, H.hz, BLOCK.BRICK);
+      S(hx0 + dx, b + 2, H.hz, BLOCK.STONE_VENEER);
+    }
+    S(hx0 + 1, b, Z(0), BLOCK.ASH_DRIFT);
+    S(hx0, b, Z(0), BLOCK.STICKS);
+    S(hx0 + 2, b, Z(0), BLOCK.BROKEN_WOOD);
+    furnStamp(S, 'artLandscape', hx0 + 1, b + 2, Z(0), 0);
+
+    // LIVING ROOM — the room the family actually used, and the one that comes back.
+    furnStamp(S, 'rugRed', X(1), b, Z(1), 0);
+    furnStamp(S, 'couchOlive', X(1), b, Z(2), 2);
+    furnStamp(S, 'armchairOat', X(4), b, Z(1), 3);
+    furnStamp(S, 'sideTable', X(0), b, Z(2), 0);
+    furnStamp(S, 'lampBase', X(0), b, Z(1), 0);
+    furnStamp(S, 'bookshelf', X(5), b, Z(0), 0);
+    // DINING — the table is still laid.
+    furnStamp(S, 'diningTable', X(7), b, Z(1), 0);
+    furnStamp(S, 'chairWalnut', X(7), b, Z(0), 0);
+    furnStamp(S, 'chairWalnut', X(9), b, Z(2), 2);
+    furnStamp(S, 'artFamily', X(9), b + 2, Z(0), 0);
+    // HALL — a runner, a mirror, and the coat hooks somebody emptied.
+    furnStamp(S, 'rugSmall', X(3), b, Z(4), 0);
+    furnStamp(S, 'mirrorHall', X(0), b + 1, Z(4), 3);
+    /* UTILITY / BATHROOM — and the Z(6) row through it is the back passage, so nothing
+       stands on it either. This room is not a dead end: it is the ONLY way from the hall
+       to the pantry, the cellar stair and the kitchen, because the staircase occupies the
+       east end of the hall. A shelf on X(3) blocked the last half-step into the cross
+       doorway and cut the whole back of the house off; the traversal found it, a block
+       census could not have. */
+    furnStamp(S, 'washer', X(0), b, Z(6), 0);
+    furnStamp(S, 'toilet', X(0), b, Z(7), 0);
+    furnStamp(S, 'vanity', X(1), b, Z(7), 0);
+    furnStamp(S, 'bathMat', X(2), b, Z(7), 0);
+    furnStamp(S, 'utilityShelf', X(3), b, Z(7), 0);
+    /* PANTRY / BACK PASSAGE — more stores than a family would ever have got through,
+       and every one of them east of the walking lane.
+
+       THE LANE IS NOT DECORATION-DRIVEN, IT IS THE ONLY ROUTE TO LEVEL 2 PROGRESSION.
+       X(5)..X(6) on both rows is the corridor from the cross doorway to the head of the
+       cellar stair and on into the kitchen ell, and the first version of this put a
+       barrel in the middle of it. A traversal proved the entire back half of the house
+       — and therefore the Rift Core Disk — unreachable; the census saw a barrel in a
+       pantry and had nothing to say about it. Nothing may stand on X(5) or X(6). */
+    furnStamp(S, 'boxes', X(9), b, Z(6), 0);
+    S(X(7), b, Z(6), BLOCK.SACK_PILE);
+    S(X(8), b, Z(6), BLOCK.SACK_PILE);
+    S(X(9), b + 1, Z(6), BLOCK.HAND_TOOLS);
+
+    /* THE STAIRCASE. Four treads east along the hall, arriving on the deck. The deck is
+       opened above the first three exactly as the suburb's stair stamper does — the top
+       tread IS the deck course, and the bottom one keeps its soffit. */
+    const stairId = FURN['stair'].rot[furnRotIndex('stair', 3)].cells[0][3];
+    for (let p = 0; p < 4; p++) {
+      S(X(5 + p), b + p, Z(4), stairId);
+      if (p < 3) S(X(5 + p), b + 3, Z(4), BLOCK.AIR);
+    }
+    furnStamp(S, 'newel', X(4), b, Z(4), 3);
+
+    // ---- THE KITCHEN ELL -----------------------------------------------------------
+    /* The ell shares the main mass's south wall, so the way through is cut after both
+       shells are up: two clear courses and a lintel, in the wall the pantry backs onto. */
+    /* The way through is on X(5), in line with the back passage, so pantry, cellar stair
+       and kitchen are all served by one corridor — which is how a farmhouse back of house
+       actually works, and is also what keeps the route to the Core Disk a straight line
+       nothing can be dropped into. */
+    S(H.hx + 6, b, H.hz + H.hd - 1, BLOCK.AIR);
+    S(H.hx + 6, b + 1, H.hz + H.hd - 1, BLOCK.AIR);
+    const kx = H.hx + 6, kz = H.hz + H.hd;         // interior origin of the ell (4 x 4)
+    // The run goes down the far wall, leaving the whole of the near column walkable from
+    // the inner door to the back door.
+    furnStamp(S, 'counterSink', kx + 3, b, kz, 0);
+    furnStamp(S, 'counter', kx + 3, b, kz + 1, 0);
+    furnStamp(S, 'stove', kx + 3, b, kz + 2, 0);
+    furnStamp(S, 'fridge', kx + 3, b, kz + 3, 0);
+    furnStamp(S, 'wallCabinet', kx + 3, b + 1, kz, 0);
+    furnStamp(S, 'wallCabinet', kx + 3, b + 1, kz + 1, 0);
+    furnStamp(S, 'diningTable', kx + 1, b, kz + 2, 0);
+    furnStamp(S, 'chairOak', kx + 1, b, kz + 1, 0);
+    furnStamp(S, 'chairOak', kx + 1, b, kz + 3, 2);
+    // The calendar nobody turned over, and the crate of stores by the door.
+    furnStamp(S, 'artPortrait', kx + 1, b + 2, kz, 0);
+    S(kx + 2, b, kz, BLOCK.CRATE);
+
+    // ---- UPPER FLOOR ---------------------------------------------------------------
+    /* THE UPPER PLAN DELIBERATELY DOES NOT MATCH THE LOWER ONE. Its corridor runs one
+       cell further north than the hall below it, which is completely ordinary in a real
+       farmhouse and is also the first quiet note that this building does not stack the
+       way the player assumes. */
+    this._homeWall(S, X(0), Z(2), X(9), Z(2), up, RH, PART_WALL[3]);
+    this._homeWall(S, X(0), Z(5), X(9), Z(5), up, RH, PART_WALL[3]);
+    this._homeWall(S, X(6), Z(0), X(6), Z(1), up, RH, PART_WALL[12]);
+    this._homeWall(S, X(6), Z(6), X(6), Z(7), up, RH, PART_WALL[12]);
+    this._homeDoorway(S, X(2), Z(2), up, true);
+    this._homeDoorway(S, X(8), Z(2), up, true);
+    this._homeDoor(S, X(2), Z(5), up, true, -1);
+    this._homeDoorway(S, X(8), Z(5), up, true);
+    // The stairwell guard, along the north lip of the opening.
+    for (let i = 5; i <= 7; i++) furnStamp(S, 'banister', X(i), up, Z(3), 2);
+    furnStamp(S, 'newel', X(8), up, Z(3), 2);
+    // Ceiling: the attic starts here.
+    for (let i = 0; i <= 9; i++)
+      for (let k = 0; k <= 7; k++) S(X(i), up + 3, Z(k), CEIL_PANEL);
+
+    // MAIN BEDROOM.
+    furnStamp(S, 'bedDoubleWarm', X(1), up, Z(0), 0);
+    furnStamp(S, 'nightstand', X(0), up, Z(1), 0);
+    furnStamp(S, 'dresserOak', X(4), up, Z(0), 0);
+    furnStamp(S, 'artPortrait', X(2), up + 2, Z(0), 0);
+    furnStamp(S, 'lampBase', X(0), up + 1, Z(0), 0);
+    // Work clothes over the chair, which is the detail that says these were farmers.
+    furnStamp(S, 'chairOak', X(5), up, Z(1), 2);
+    // SECOND BEDROOM — a child's.
+    furnStamp(S, 'bedSingle', X(1), up, Z(6), 0);
+    furnStamp(S, 'nightstand', X(0), up, Z(6), 0);
+    furnStamp(S, 'rugSmallBlue', X(3), up, Z(7), 0);
+    furnStamp(S, 'binSmall', X(4), up, Z(6), 0);
+    // LINEN STORE.
+    furnStamp(S, 'dresser', X(8), up, Z(6), 0);
+    furnStamp(S, 'boxes', X(9), up, Z(7), 0);
+
+    /* THE BOX ROOM, and THE FIRST THING THAT IS ACTUALLY WRONG.
+
+       Its window looks out over open farmland at midday and shows nothing at all — the
+       pane is backed with obsidian one block behind the glass, which is a thing that can
+       only be true if the wall has no outside. And in its east wall there is a door, in a
+       proper stub of partition with a proper architrave, and a block behind the leaf is
+       the exterior wall of the house. It opens onto plaster.
+
+       Both are quiet. Neither is announced. A player can miss both, and the ones who do
+       not will spend the rest of the house checking. */
+    furnStamp(S, 'boxes', X(7), up, Z(0), 0);
+    furnStamp(S, 'desk', X(8), up, Z(1), 0);
+    this._homeWall(S, X(9), Z(0), X(9), Z(0), up, RH, PART_WALL[12]);
+    this._homeDoorShut(S, X(9), Z(1), up, false, 1);
+
+    /* THE HATCH IN THE PANTRY FLOOR. There is no cellar door on the outside of this
+       house, there is no bulkhead in the yard, and the plinth is unbroken all the way
+       round — a player who walked the exterior first has already been told, without
+       being told, that what they are about to walk down into cannot be here. */
+    S(X(6), b - 1, Z(7), BLOCK.AIR);
+  }
+
+  /* ===================================================================================
+     WHAT IS UNDER THE HOUSE
+
+     THE CONTRADICTION IS MEASURED IN PACES, NOT IN EFFECTS. A player who goes down the
+     pantry stair walks east along a corridor for thirty-four blocks and arrives in a room
+     sixteen wide. The farmhouse above them is twelve wide and thirty-four blocks is
+     longer than the whole property. Nothing tells them that. They simply notice that the
+     wallpaper is the wallpaper from the hall upstairs, and that it has been going on for
+     a very long time.
+
+     WHY IT IS PAPERED. A cellar would prove nothing: cellars are long, cellars are dark,
+     cellars are ordinary. What is down here is not a cellar, it is a HOUSE INTERIOR —
+     plaster walls, a plank floor, a plaster ceiling, a runner rug, framed pictures, wall
+     lamps, and doors on both sides. Whatever built it had the pieces of a farmhouse and
+     no idea how many of each a farmhouse has.
+
+     BOUNDS. Roughly seventy by twenty-four by five cells of authored volume, cut into
+     stone at least two blocks below the lowest ground the heightfield can produce, so it
+     is invisible from outside at every point and can never be exposed by the terrain. It
+     is stamped clipped-per-chunk exactly like a farmstead, it holds five torches and one
+     point light, and it allocates nothing.
+     =================================================================================== */
+  _farmHomeBelow(chunk, H) {
+    const S = (wx, wy, wz, id) => this._subSet(chunk, wx, wy, wz, id);
+    const b = H.padY, d = H.deepY;
+    const hallZ = H.hallZ;
+
+    /* --- THE FLIGHT DOWN. One tread per block, running east out of the pantry and under
+       the yard. The number of treads is padY - deepY, which varies with the terrain the
+       property sits on, so the stair is built from the drop rather than from a constant —
+       the one thing that must never happen here is a flight that stops a block short of
+       its own floor. */
+    const stairDown = FURN['stair'].rot[furnRotIndex('stair', 1)].cells[0][3];
+    const steps = b - d;
+    for (let k = 0; k < steps; k++) {
+      const wx = H.stairX0 + k, wy = b - 1 - k;
+      /* THE SHAFT WALLS ONLY EXIST UNDERGROUND, and the guard is load-bearing. Written
+         without it they ran up to head height either side of the flight for its whole
+         length — including the four treads that are still inside the house — and filled
+         the pantry, the back passage and the ell's shared wall with fieldstone. A
+         traversal proved the entire south half of the ground floor unreachable; nothing
+         in the block census showed it, because fieldstone in a farmhouse is not on its
+         face wrong. Below the floor course they are what stops the flight reading as a
+         gap in the earth; at or above it the house's own construction is already there. */
+      for (const dz of [-1, 1]) {
+        for (let dy = 0; dy <= 3; dy++) {
+          const y = wy + dy;
+          if (y >= b - 1) continue;
+          S(wx, y, hallZ + dz, BLOCK.FIELDSTONE);
+        }
+      }
+      S(wx, wy, hallZ, stairDown);
+      for (let dy = 1; dy <= 3; dy++) S(wx, wy + dy, hallZ, BLOCK.AIR);
+    }
+    // The head of the flight keeps a lintel so the pantry floor still reads as a floor.
+    S(H.stairX0 - 1, b, hallZ, BLOCK.AIR);
+
+    /* --- THE LONG HALL. Three cells wide, three high, thirty-four long, and finished
+       exactly like the hallway on the ground floor of the house above. */
+    const cx0 = Math.max(H.deepX0, chunk.cx * CHUNK_SX - 1);
+    const cx1 = Math.min(H.deepX1, chunk.cx * CHUNK_SX + CHUNK_SX);
+    for (let wx = cx0; wx <= cx1; wx++) {
+      const inHall = wx >= H.hallX0 && wx <= H.hallX1 + 1;
+      if (!inHall) continue;
+      for (let dz = -2; dz <= 2; dz++) {
+        const wz = hallZ + dz;
+        if (Math.abs(dz) === 2) {
+          this._homeWall(S, wx, wz, wx, wz, d - 1, 5, BLOCK.DRYWALL);
+          continue;
+        }
+        S(wx, d - 1, wz, BLOCK.WOOD_FLOOR);
+        for (let dy = 0; dy < 3; dy++) S(wx, d + dy, wz, BLOCK.AIR);
+        S(wx, d + 3, wz, CEIL_PANEL);
+      }
+      /* THE RUNNER IS FLOORING, NOT AN OBJECT. Written as a block standing ON the floor
+         every third cell it came out — a render of the corridor showed it plainly — as a
+         row of waist-high red boxes down the middle of the hall. RUG is a full cube; it
+         belongs in the floor course, where it reads as a carpet runner laid the length of
+         a hallway, which is the image this corridor is entirely built around. */
+      S(wx, d - 1, hallZ, BLOCK.RUG);
+      if (((wx - H.hallX0) % 9) === 4) furnStamp(S, 'artLandscape', wx, d + 1, hallZ - 1, 0);
+      if (((wx - H.hallX0) % 9) === 7) furnStamp(S, 'artPortrait', wx, d + 1, hallZ + 1, 2);
+      // Wall lamps at the same pitch a hall would have them. Most of them are out.
+      if (((wx - H.hallX0) % 11) === 5) S(wx, d + 2, hallZ - 1, BLOCK.TORCH);
+    }
+    /* THE ARRIVAL CELL BELONGS TO THE FLIGHT, NOT TO THE HALL, and this is the single
+       fiddliest block in the phase.
+
+       The flight is stairSteps treads long and its LAST tread sits exactly on the cell
+       where the corridor begins — that is what puts the player down at the corridor's own
+       floor level instead of a block above it. Written the obvious way, with the hall
+       laid over that cell and a doorway cut through the end wall, three things went
+       wrong at once: the tread was overwritten with air, the player arrived a block high
+       standing on the SECOND-to-last tread, and the gap between that tread's surface and
+       the corridor ceiling came to 1.7 blocks against a body 1.8 tall. The corridor, its
+       four rooms and the Rift Core Disk were all unreachable, and every one of those
+       cells looked completely ordinary in a block census.
+
+       So the hall stops one cell short, this cell keeps its tread, and only the two
+       sides and the ceiling are built around it. */
+    /* ...and its ceiling is one course HIGHER than the corridor's, because the tread
+       above it hangs into the corridor's own headroom. At the corridor height the gap
+       between the second-to-last tread and the ceiling measured 1.7 blocks against a
+       1.8-block body — a full stop, one cell short of the corridor, in a corner nothing
+       looks wrong in. */
+    for (const dz of [-1, 1]) {
+      for (let y = d - 1; y <= d + 4; y++) S(H.hallX0 - 1, y, hallZ + dz, BLOCK.DRYWALL);
+    }
+    S(H.hallX0 - 1, d + 4, hallZ, CEIL_PANEL);
+
+    /* --- THE ROOMS OFF IT. Four, and each one is a different way of being wrong. */
+    // 1. THE BEDROOM THAT IS ALREADY UPSTAIRS. Same bed, same nightstand, same dresser,
+    //    same lamp, same relative positions. Not similar: identical.
+    this._homeRoomBelow(chunk, H, H.hallX0 + 4, hallZ - 9, 8, 7, -1, H.hallX0 + 7);
+    {
+      const rx = H.hallX0 + 5, rz = hallZ - 8;
+      furnStamp(S, 'bedDoubleWarm', rx, d, rz, 0);
+      furnStamp(S, 'nightstand', rx - 1, d, rz + 1, 0);
+      furnStamp(S, 'dresserOak', rx + 3, d, rz, 0);
+      furnStamp(S, 'lampBase', rx - 1, d + 1, rz, 0);
+      furnStamp(S, 'chairOak', rx + 4, d, rz + 1, 2);
+    }
+
+    /* 2. THE DOORWAY WITH GROUND BEHIND IT. A proper architrave, a proper leaf standing
+       open, and one block later the stone the corridor was cut out of. It is the plainest
+       statement in the building: this door was built by something that knew houses have
+       doors and did not know what they are for. */
+    {
+      const dx = H.hallX0 + 16;
+      S(dx, d, hallZ - 2, BLOCK.AIR);
+      this._homeDoor(S, dx, hallZ - 2, d, true, -1);
+      S(dx, d, hallZ - 3, BLOCK.STONE);
+      S(dx, d + 1, hallZ - 3, BLOCK.STONE);
+      S(dx, d + 2, hallZ - 3, BLOCK.STONE);
+    }
+
+    /* 3. THE INVERTED ROOM. The floor is ceiling panel, the ceiling is floorboards, and
+       the table, the chairs and the rug are hung from it. This is a direct quotation of
+       the Level 1 and Level 3 Disconnected Homes — the same inversion, in the same role,
+       three dimensions apart — and it is the memory link requirement 44 asks for. */
+    {
+      const rx = H.hallX0 + 19, rz = hallZ - 9, rw = 8, rd = 7;
+      this._homeRoomBelow(chunk, H, rx, rz, rw, rd, -1, rx + 3);
+      for (let wx = rx + 1; wx < rx + rw - 1; wx++)
+        for (let wz = rz + 1; wz < rz + rd - 1; wz++) {
+          S(wx, d - 1, wz, CEIL_PANEL);          // the floor is a ceiling
+          S(wx, d + 3, wz, BLOCK.WOOD_FLOOR);    // the ceiling is a floor
+        }
+      // ...and the room stands on it, upside down. The furnisher does not care which
+      // way up a cell is, so the same models simply hang.
+      const ix = rx + 2, iz = rz + 2;
+      furnStamp(S, 'rugRed', ix, d + 2, iz, 0);
+      furnStamp(S, 'diningTable', ix + 1, d + 1, iz + 1, 0);
+      furnStamp(S, 'chairWalnut', ix, d + 1, iz + 2, 0);
+      furnStamp(S, 'chairWalnut', ix + 3, d + 1, iz + 1, 2);
+      furnStamp(S, 'ceilingLight', ix + 2, d, iz + 2, 0);   // standing up out of the floor
+    }
+
+    /* 4. THE WINDOW. Six cells of Static Suburbia in a sealed box behind a pane, at the
+       bottom of a farmhouse eight hundred blocks and a dimension away from it: mown turf,
+       a poured sidewalk, a picket fence, a suburban mailbox, and a strip of flat sky.
+       There is no way to reach it and no explanation of it anywhere in the game. */
+    {
+      const rx = H.hallX0 + 10, rz = hallZ + 3, rw = 7, rd = 6;
+      this._homeRoomBelow(chunk, H, rx, rz, rw, rd, 1, rx + 3);
+      const wz = rz + rd - 1;                       // the far wall of the room
+      for (let k = 2; k <= 4; k++) {
+        S(rx + k, d + 1, wz, BLOCK.WIN_CLEAR_X);
+        S(rx + k, d + 2, wz, BLOCK.WIN_CLEAR_X);
+      }
+      for (let k = 1; k <= 5; k++)
+        for (let j = 1; j <= 3; j++) {
+          const bx = rx + k, bz = wz + j;
+          for (let dy = 0; dy <= 3; dy++) S(bx, d + dy, bz, BLOCK.AIR);
+          S(bx, d, bz, j === 1 ? BLOCK.SIDEWALK : BLOCK.LAWN);
+          S(bx, d + 4, bz, BLOCK.GLASS_DARK);       // a flat lid of "sky"
+        }
+      S(rx + 2, d + 1, wz + 2, BLOCK.PICKET_X);
+      S(rx + 3, d + 1, wz + 2, BLOCK.PICKET_POST);
+      /* AND IT HAS TO BE LIT, or the whole beat is a black rectangle. The diorama is
+         sealed a dozen blocks underground, so its baked skylight is zero and a render of
+         the room showed exactly that: a well-made window with nothing behind it. Two
+         torches in the box's top corners, tucked under the lid and mostly out of the
+         sightline, give it the daylight it is pretending to have. They are ordinary
+         generated torches, so they are picked up by the existing chunk light scan and
+         taken down again with the chunk; the whole buried volume holds seven. */
+      S(rx + 1, d + 3, wz + 3, BLOCK.TORCH);
+      S(rx + 5, d + 3, wz + 3, BLOCK.TORCH);
+      // The mailbox. It is here now. See updateFarmHomeAnomaly.
+      S(rx + 4, d + 1, wz + 2, BLOCK.MAILBOX_Z);
+      this.farmHomeMailbox = { x: rx + 4, y: d + 1, z: wz + 2, rx, rz, rw, rd };
+    }
+
+    /* --- THE ROOM AT THE END. Sixteen by twelve: wider and deeper than the farmhouse
+       standing over it, and furnished as its living room. Same hearth, same rug, same
+       couch, same chair, same picture over the mantel — reproduced by something working
+       from one fragment twice and getting the size wrong the second time.
+
+       The Ancient Chest sits on the hearth. */
+    const bx0 = H.bigX0, bz0 = H.bigZ0, bw = 16, bd = 12;
+    const qx0 = Math.max(bx0 - 1, chunk.cx * CHUNK_SX - 1);
+    const qx1 = Math.min(bx0 + bw, chunk.cx * CHUNK_SX + CHUNK_SX);
+    for (let wx = qx0; wx <= qx1; wx++) {
+      for (let wz = bz0 - 1; wz <= bz0 + bd; wz++) {
+        const edge = wx === bx0 - 1 || wx === bx0 + bw || wz === bz0 - 1 || wz === bz0 + bd;
+        if (edge) { this._homeWall(S, wx, wz, wx, wz, d - 1, 5, BLOCK.DRYWALL); continue; }
+        S(wx, d - 1, wz, BLOCK.WOOD_FLOOR);
+        for (let dy = 0; dy < 3; dy++) S(wx, d + dy, wz, BLOCK.AIR);
+        S(wx, d + 3, wz, CEIL_PANEL);
+      }
+    }
+    // The way in, from the hall.
+    S(bx0 - 1, d, hallZ, BLOCK.AIR);
+    S(bx0 - 1, d + 1, hallZ, BLOCK.AIR);
+    S(bx0 - 1, d + 2, hallZ, HEADER_Z);
+
+    // THE HEARTH, AGAIN. No chimney above it, and nothing behind it but stone.
+    const fx = bx0 + 7;
+    for (let k = 0; k <= 2; k++) {
+      S(fx + k, d, bz0, BLOCK.BRICK);
+      S(fx + k, d + 1, bz0, BLOCK.BRICK);
+      S(fx + k, d + 2, bz0, BLOCK.STONE_VENEER);
+    }
+    S(fx + 1, d, bz0 + 1, BLOCK.ASH_DRIFT);
+    S(fx, d, bz0 + 1, BLOCK.STICKS);
+    furnStamp(S, 'artLandscape', fx + 1, d + 2, bz0 + 1, 0);
+    furnStamp(S, 'rugRed', bx0 + 6, d, bz0 + 3, 0);
+    furnStamp(S, 'couchOlive', bx0 + 6, d, bz0 + 4, 2);
+    furnStamp(S, 'armchairOat', bx0 + 9, d, bz0 + 3, 3);
+    furnStamp(S, 'sideTable', bx0 + 5, d, bz0 + 4, 0);
+    furnStamp(S, 'bookshelf', bx0 + 11, d, bz0 + 2, 0);
+    furnStamp(S, 'artFamily', bx0 + 2, d + 2, bz0 + 1, 0);
+    furnStamp(S, 'lampBase', bx0 + 5, d + 1, bz0 + 3, 0);
+    // The two torches that make the room findable from the far end of the hall.
+    S(bx0 + 1, d + 2, bz0 + 1, BLOCK.TORCH);
+    S(bx0 + bw - 2, d + 2, bz0 + 1, BLOCK.TORCH);
+
+    /* THE LEVEL 2 RIFT CORE DISK. On the hearth, dead centre, exactly where
+       _farmResolveJourney said it would be before a single voxel of this existed. */
+    S(H.chest.x, H.chest.y, H.chest.z, BLOCK.TREASURE_CHEST);
+  }
+
+  /* One room off the long hall: walls, floor, ceiling and a doorway back into the
+     corridor. `side` is -1 for the north wall of the hall and +1 for the south. */
+  _homeRoomBelow(chunk, H, rx, rz, rw, rd, side, doorX) {
+    const S = (wx, wy, wz, id) => this._subSet(chunk, wx, wy, wz, id);
+    if (!this._subHits(chunk, rx - 1, rz - 1, rx + rw, rz + rd)) return;
+    const d = H.deepY, hallZ = H.hallZ;
+    for (let wx = rx; wx < rx + rw; wx++)
+      for (let wz = rz; wz < rz + rd; wz++) {
+        const edge = wx === rx || wx === rx + rw - 1 || wz === rz || wz === rz + rd - 1;
+        if (edge) { this._homeWall(S, wx, wz, wx, wz, d - 1, 5, BLOCK.DRYWALL); continue; }
+        S(wx, d - 1, wz, BLOCK.WOOD_FLOOR);
+        for (let dy = 0; dy < 3; dy++) S(wx, d + dy, wz, BLOCK.AIR);
+        S(wx, d + 3, wz, CEIL_PANEL);
+      }
+    // Through the hall's own wall and into the room.
+    const dz = hallZ + 2 * side;
+    S(doorX, d, dz, BLOCK.AIR);
+    this._homeDoor(S, doorX, dz, d, true, side);
+    for (let wz = Math.min(dz, rz + (side < 0 ? rd - 1 : 0)); wz <= Math.max(dz, rz + (side < 0 ? rd - 1 : 0)); wz++) {
+      for (let dy = 0; dy < 3; dy++) if (wz !== dz) S(doorX, d + dy, wz, BLOCK.AIR);
+      if (wz !== dz) S(doorX, d - 1, wz, BLOCK.WOOD_FLOOR);
+    }
   }
 
   // THE DISCONNECTED HOME (LEVEL 3) — PROGRESSION KEY STRUCTURE (PHASE 5A PART 2).
@@ -13917,6 +15962,275 @@ class VoxelWorld {
   updateDisconnectedHomeGlow(t) {
     if (!this.disconnectedHomeL3Glow) return;
     this.disconnectedHomeL3Glow.intensity = 1.6 * (0.9 + Math.sin(t * 1.3) * 0.35);
+  }
+
+  /* ===================================================================================
+     PHASE 20 — THE WATER TOWER'S DISTANT SILHOUETTE
+
+     WHY THIS EXISTS AT ALL. The Farmlands run a fixed exponential fog at 0.028 and the
+     streamer holds eight chunks — so past about sixty blocks the real tower is neither
+     loaded nor visible, and requirement 36 asks for a landmark readable from a
+     substantial distance that fog does NOT hide. The two obvious fixes are both wrong:
+     thinning the fog would take the Rotting Fields' close, oppressive horizon with it,
+     and widening the stream radius would cost generation time in every direction to
+     serve one object.
+
+     So the tower gets what a real game gives a real landmark: a fog-exempt proxy. Ten
+     boxes, three shared materials, one group, built once and never rebuilt, standing at
+     the tower's true position with its opacity driven by distance and its colour lerped
+     toward the fog it is standing against so it reads as far away rather than as pasted
+     on. It is depth-tested, so a hill or a barn in front of it still occludes it.
+
+     IT HANDS OVER RATHER THAN OVERLAPPING. Inside FARM_TOWER_PROXY_NEAR the proxy is
+     fully faded out and the real voxel structure is doing all the work, so the player is
+     never looking at both.
+     =================================================================================== */
+  _farmTowerBuildBeacon() {
+    const T = this.farmTower;
+    if (!T || this.farmTowerProxy) return;
+    const g = new THREE.Group();
+    /* Three materials for ten meshes. The silhouette colour is a desaturated grey-green
+       a shade darker than the Rotting Fields fog: dark enough to read as a shape against
+       the sky, close enough in hue that it belongs to the same air. */
+    /* MEASURED AGAINST THE FOG IT STANDS IN, not chosen. EnvironmentSystem paints the
+       Rotting Fields at 0x2D3328 — a very dark olive — so a silhouette DARKER than the
+       air disappears into it, which is what the first pass did: rendered from two hundred
+       and fifty blocks the tower was a barely-there smudge, and requirement 36 asks for
+       something a player cannot casually miss. These are deliberately lighter than the
+       fog, so the tower reads as a pale shape against a dark sky the way a real structure
+       does at dusk. */
+    const steel = new THREE.MeshBasicMaterial({
+      color: 0x707A6E, fog: false, transparent: true, opacity: 0, depthWrite: false });
+    const dark = new THREE.MeshBasicMaterial({
+      color: 0x596052, fog: false, transparent: true, opacity: 0, depthWrite: false });
+    this._towerProxyMats = [steel, dark];
+    const box = (w, h, d, x, y, z, m) => {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+      mesh.position.set(x, y, z);
+      g.add(mesh);
+      return mesh;
+    };
+    const LEG = 5, R = FARM_TOWER_R;
+    for (const [lx, lz] of [[-LEG, -LEG], [LEG, -LEG], [-LEG, LEG], [LEG, LEG]]) {
+      box(1.1, FARM_TOWER_LEG_H, 1.1, lx + 0.5, FARM_TOWER_LEG_H / 2, lz + 0.5, dark);
+    }
+    // Two bracing bands, so the understructure does not read as four unconnected lines.
+    for (const ty of [7, 15]) {
+      box(LEG * 2 + 1.4, 0.5, 0.5, 0.5, ty, -LEG + 0.5, dark);
+      box(LEG * 2 + 1.4, 0.5, 0.5, 0.5, ty, LEG + 0.5, dark);
+      box(0.5, 0.5, LEG * 2 + 1.4, -LEG + 0.5, ty, 0.5, dark);
+      box(0.5, 0.5, LEG * 2 + 1.4, LEG + 0.5, ty, 0.5, dark);
+    }
+    box(R * 2 + 1, FARM_TOWER_TANK_H, R * 2 + 1, 0.5,
+        FARM_TOWER_LEG_H + FARM_TOWER_TANK_H / 2, 0.5, steel);
+    box(R * 2 - 3, 3, R * 2 - 3, 0.5, FARM_TOWER_LEG_H + FARM_TOWER_TANK_H + 1.5, 0.5, steel);
+    box(0.7, 3, 0.7, 0.5, FARM_TOWER_LEG_H + FARM_TOWER_TANK_H + 4, 0.5, dark);
+    g.position.set(T.cx, T.padY, T.cz);
+    g.visible = false;
+    g.renderOrder = -1;      // behind everything: it is scenery, not an object
+    this.scene.add(g);
+    this.farmTowerProxy = g;
+
+    /* THE LAMP ITSELF. A small emissive core and a soft halo, both fog-exempt, both at
+       zero opacity until the schedule says otherwise. The halo carries a generated
+       radial texture rather than a flat sprite, because an untextured sprite is a
+       square and a square red light at the top of a mast reads as a bug. */
+    const core = new THREE.Mesh(
+      new THREE.SphereGeometry(0.5, 8, 6),
+      new THREE.MeshBasicMaterial({ color: 0xff2f22, fog: false, transparent: true,
+                                    opacity: 0, depthWrite: false }));
+    core.position.set(T.cx + 0.5, T.lampY + 0.55, T.cz + 0.5);
+    core.visible = false;
+    this.scene.add(core);
+    this.farmTowerCore = core;
+
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: _farmLampHaloTexture(), color: 0xff4433, fog: false, transparent: true,
+      opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+    halo.scale.set(5, 5, 1);
+    halo.position.copy(core.position);
+    halo.visible = false;
+    this.scene.add(halo);
+    this.farmTowerHalo = halo;
+
+    /* THE SCHEDULE. Its clock is gameplay state, not world state: nothing it does can
+       write a voxel, so it cannot desynchronise the world. Every INTERVAL it uses,
+       though, comes from the world seed and the tower's own identity through the same
+       integer hash everything else in this dimension uses — so a given flash index has
+       the same gap and the same duration on every launch, which is what makes the
+       anomaly reproducible for a test while remaining unpredictable for a player. */
+    this.farmTowerLight = {
+      idx: 0, clock: 0, on: false, onUntil: 0,
+      next: this._farmTowerGap(0), gaze: 'far', flashes: 0,
+    };
+  }
+
+  _farmTowerGap(k) {
+    return FARM_TOWER_GAP_MIN + this._farmHash(k, this.farmTower.seed, 811) * FARM_TOWER_GAP_VAR;
+  }
+  _farmTowerDur(k) {
+    return FARM_TOWER_ON_MIN + this._farmHash(k, this.farmTower.seed, 823) * FARM_TOWER_ON_VAR;
+  }
+
+  /* THE ANOMALY. Two dozen lines, no objective, no prompt, no sound, no explanation.
+
+     Read it as a state machine on one variable — where the player is looking:
+
+       DIRECT   (< FARM_TOWER_GAZE_DIRECT off the lamp)
+                the lamp is forced dark THIS FRAME, and the schedule clock does not
+                advance. A player who stares at the tower sees a tower.
+       PERIPHER (out to FARM_TOWER_GAZE_PERIPH)
+                the clock runs at full rate. This is the band where the lamp is on
+                screen but not being looked at, and it is where the flashes land.
+       BEHIND   (anything further)
+                the clock runs slower, so flashes are not spent on a tower nobody
+                could see even out of the corner of an eye.
+
+     A flash in progress is killed the instant the gaze comes back, which is the whole
+     trick: the light is never caught lit, only ever just-having-been. */
+  updateFarmTowerLight(dt, camera, inFarmlands, fogColor) {
+    const T = this.farmTower;
+    if (!T) return;
+    if (!this.farmTowerProxy) this._farmTowerBuildBeacon();
+    const proxy = this.farmTowerProxy, core = this.farmTowerCore, halo = this.farmTowerHalo;
+    if (!inFarmlands || !camera) {
+      proxy.visible = false; core.visible = false; halo.visible = false;
+      return;
+    }
+
+    const px = camera.position.x, py = camera.position.y, pz = camera.position.z;
+    const lx = T.cx + 0.5 - px, ly = T.lampY + 0.55 - py, lz = T.cz + 0.5 - pz;
+    const dist = Math.sqrt(lx * lx + ly * ly + lz * lz);
+
+    // --- THE SILHOUETTE. Opacity by distance, colour lerped toward the fog it stands in.
+    let vis = 0;
+    if (dist > FARM_TOWER_PROXY_NEAR && dist < FARM_TOWER_PROXY_FAR) {
+      if (dist < FARM_TOWER_PROXY_FULL) {
+        vis = (dist - FARM_TOWER_PROXY_NEAR) / (FARM_TOWER_PROXY_FULL - FARM_TOWER_PROXY_NEAR);
+      } else if (dist > FARM_TOWER_PROXY_FAR - 90) {
+        vis = (FARM_TOWER_PROXY_FAR - dist) / 90;
+      } else vis = 1;
+    }
+    proxy.visible = vis > 0.01;
+    if (proxy.visible && this._towerProxyMats) {
+      /* Aerial perspective, done honestly: the further away the silhouette is, the more
+         of the fog colour is mixed into it, so at three hundred blocks it is barely
+         separated from the air and at eighty it is nearly its own colour. Without this
+         the proxy reads as a cardboard cut-out the moment it appears. */
+      /* ...and the haze is capped at half. Blended further than that the silhouette stops
+         being a landmark and starts being weather. */
+      const haze = Math.min(0.50, dist / FARM_TOWER_PROXY_FAR * 0.60);
+      for (let i = 0; i < this._towerProxyMats.length; i++) {
+        const m = this._towerProxyMats[i];
+        m.opacity = vis * (i === 0 ? 0.95 : 1.0);
+        m.color.setHex(i === 0 ? 0x707A6E : 0x596052);
+        if (fogColor) m.color.lerp(fogColor, haze);
+      }
+    }
+
+    // --- THE GAZE.
+    const st = this.farmTowerLight;
+    if (dist > FARM_TOWER_ACTIVE_R) {
+      st.gaze = 'far';
+      if (st.on) { st.on = false; }
+      core.visible = false; halo.visible = false;
+      return;
+    }
+    /* THE GAZE TEST IS AGAINST THE WHOLE TOWER, NOT AGAINST THE LAMP.
+
+       This mattered more than it looks. Aimed at the lamp alone, a player standing a
+       hundred and twenty blocks away and looking level at the structure is seventeen
+       degrees off it — the tower is thirty-seven blocks tall and they are looking at its
+       legs — so the schedule kept running and the lamp flashed while they were staring
+       straight at it. Measured over three minutes of exactly that pose: a hundred and two
+       flashes, which is the opposite of the entire design.
+
+       So the offset is taken to the nearest point of the tower's AXIS, sampled at five
+       stations from the footings to the mast. Looking anywhere at the tower counts as
+       looking at it, which is what a player means by the phrase. */
+    _farmTowerFwd.set(0, 0, -1).applyQuaternion(camera.quaternion);
+    let cosBest = -1;
+    for (let i = 0; i <= 4; i++) {
+      const y = T.padY + (T.lampY - T.padY) * (i / 4);
+      const ax = T.cx + 0.5 - px, ay = y - py, az = T.cz + 0.5 - pz;
+      const inv = 1 / Math.max(1e-6, Math.sqrt(ax * ax + ay * ay + az * az));
+      const c = _farmTowerFwd.x * ax * inv + _farmTowerFwd.y * ay * inv + _farmTowerFwd.z * az * inv;
+      if (c > cosBest) cosBest = c;
+    }
+    const ang = Math.acos(Math.max(-1, Math.min(1, cosBest)));
+    const direct = ang < FARM_TOWER_GAZE_DIRECT;
+    st.gaze = direct ? 'direct' : (ang < FARM_TOWER_GAZE_PERIPH ? 'peripheral' : 'behind');
+
+    if (direct) {
+      // Looking straight at it: the lamp is dark, and time does not pass for it.
+      if (st.on) st.on = false;
+    } else {
+      st.clock += dt * (st.gaze === 'peripheral' ? FARM_TOWER_PERIPH_RATE : FARM_TOWER_BEHIND_RATE);
+      if (st.on) {
+        if (st.clock >= st.onUntil) {
+          st.on = false;
+          st.idx++;
+          st.next = st.clock + this._farmTowerGap(st.idx);
+        }
+      } else if (st.clock >= st.next) {
+        st.on = true;
+        st.flashes++;
+        st.onUntil = st.clock + this._farmTowerDur(st.idx);
+      }
+    }
+
+    /* THE LAMP IS NEVER FULL BRIGHTNESS AT DISTANCE AND NEVER OFF-SCREEN-BRIGHT UP
+       CLOSE. Its opacity falls with range the way a real obstruction light does, which is
+       also what keeps it deniable: at two hundred blocks it is a pinprick that was
+       either there or was not. */
+    const near = Math.max(0.30, Math.min(1, 260 / Math.max(40, dist)));
+    core.visible = st.on;
+    halo.visible = st.on;
+    if (st.on) {
+      core.material.opacity = 0.85 * near;
+      halo.material.opacity = 0.55 * near;
+      const s = 3.2 + dist * 0.012;
+      halo.scale.set(s, s, 1);
+    }
+  }
+
+  /* ===================================================================================
+     PHASE 20 — THE ONE STRONGER HORROR EVENT
+
+     Requirement 46 allows the Home a single stronger beat and warns against making it a
+     jumpscare maze. This is that beat, and it is deliberately the quietest thing in the
+     phase: the suburban mailbox behind the impossible window is there when the player
+     looks at it, and once they have walked away and are not looking, it is not.
+
+     ONE VOXEL. It fires at most once per session, it is gated on the player having
+     actually stood in that room, it never fires while the room is in view, and it never
+     touches anything the player can reach. There is no sound, no flash and no message —
+     the entire effect is the possibility that they misremembered.
+
+     It is also the title of the game, stated once, in a basement.
+     =================================================================================== */
+  updateFarmHomeAnomaly(dt, playerPos, camera, inFarmlands) {
+    const m = this.farmHomeMailbox;
+    if (!m || !inFarmlands || this._farmMailboxGone) return;
+    const dx = playerPos.x - (m.x + 0.5), dz = playerPos.z - (m.z + 0.5);
+    const dy = playerPos.y - m.y;
+    const d2 = dx * dx + dz * dz;
+    if (!this._farmMailboxSeen) {
+      // "Seen" means standing in the room it looks out of, not merely nearby.
+      if (Math.abs(dy) < 4 && playerPos.x >= m.rx && playerPos.x <= m.rx + m.rw &&
+          playerPos.z >= m.rz && playerPos.z <= m.rz + m.rd) {
+        this._farmMailboxSeen = true;
+      }
+      return;
+    }
+    if (d2 < 100 || Math.abs(dy) > 6) return;         // still close enough to check
+    if (camera) {
+      _farmTowerFwd.set(0, 0, -1).applyQuaternion(camera.quaternion);
+      const inv = 1 / Math.sqrt(d2);
+      if ((-dx * inv) * _farmTowerFwd.x + (-dz * inv) * _farmTowerFwd.z > 0.35) return;
+    }
+    this._writeBlockRaw(m.x, m.y, m.z, BLOCK.AIR);
+    this._farmMailboxGone = true;
   }
 
   // LEVEL 3 — STATIC SUBURBIA GENERATION (PHASE 5A). Same enclosed/permanently-
@@ -24226,6 +26540,8 @@ class UIManager {
     this.objStatus = document.getElementById('objStatus');
     this.memStatus = document.getElementById('memStatus');
     this.stageStatus = document.getElementById('stageStatus');
+    this.journeyStep = document.getElementById('journeyStep');
+    this._journeyText = null;
     this.dayLabel = document.getElementById('dayLabel');
     this.winScreen = document.getElementById('winScreen');
     this.winTitle = document.getElementById('winTitle');
@@ -24740,6 +27056,26 @@ class UIManager {
     if (this.stageStatus) this.stageStatus.textContent = `Stage ${stage} \u2022 Day ${day}`;
   }
 
+  /* PHASE 20 — THE FARMLAND JOURNEY LINE.
+
+     WHAT IT MAY SAY IS AS IMPORTANT AS WHAT IT DOES. Requirement 32 rules out "Find the
+     Disconnected Home" and "Find the mysterious farmhouse" outright, and it is right to:
+     naming the destination hands the player the discovery the whole journey exists to
+     earn. So the line only ever describes what the player has ALREADY got a reason to do,
+     it never names the farmhouse until they can see it, and it never points anywhere.
+
+     Passing `null` hides it, which is what every dimension other than the Farmlands does.
+     The DOM write is guarded on the text actually changing, because this is called from
+     the frame loop. */
+  setJourneyStep(text, done) {
+    if (!this.journeyStep) return;
+    if (text === this._journeyText && this._journeyDone === done) return;
+    this._journeyText = text; this._journeyDone = done;
+    if (!text) { this.journeyStep.className = ''; this.journeyStep.textContent = ''; return; }
+    this.journeyStep.textContent = text;
+    this.journeyStep.className = done ? 'show done' : 'show';
+  }
+
   triggerWinScreen(stage) {
     document.exitPointerLock();
     if (this.winTitle) this.winTitle.textContent = 'PURGE COMPLETE';
@@ -25112,7 +27448,14 @@ class Game {
     this.player.hp = this.player.maxHp;
     this.player.velocity.set(0, 0, 0);
     this.player.position.copy(this.world.farmlandsSpawn);
+    if (this.world.farmlandsSpawnYaw !== undefined) {
+      this.player.yaw = this.world.farmlandsSpawnYaw;
+      this.player.pitch = 0;
+    }
     this.sanity.value = 100;
+    // PHASE 20 — the journey line starts from nothing on every arrival.
+    this.farmJourneyOrd = 0;
+    this.farmHouseSeen = false;
 
     this.ui.showToast('The Rift tears open \u2014 The Shattered Farmlands await.', 3000);
     this.ui.updateVitals(this.player);
@@ -25388,6 +27731,57 @@ class Game {
     window.location.reload();
   }
 
+  /* ===================================================================================
+     PHASE 20 — THE FARMLAND JOURNEY OBJECTIVE
+
+     ONE LINE, AND IT IS ALWAYS BEHIND THE PLAYER RATHER THAN AHEAD OF THEM. Every string
+     below describes something the player has already been given a reason to do by the
+     world itself — a road they are standing on, a tower they can see, a route that
+     continued, a property whose fences they have been following. None of them names the
+     Disconnected Home, and the word "farmhouse" does not appear until the player is close
+     enough to be looking at it.
+
+     PROGRESS IS MONOTONIC AND POSITIONAL. It is the furthest journey row the player has
+     ever reached, so wandering off the route, doubling back to look at something, or
+     leaving the corridor entirely never rewinds the line — which matters because the
+     brief's whole freedom requirement is that leaving the route must not break anything.
+     Nothing here is a trigger volume: it is a comparison against a parcel index.
+     =================================================================================== */
+  _updateFarmJourneyObjective() {
+    if (!this.player.inFarmlands) { this.ui.setJourneyStep(null, false); return; }
+    const w = this.world;
+    const H = w.farmHome, T = w.farmTower;
+    if (!H) { this.ui.setJourneyStep(null, false); return; }
+
+    const px = this.player.position.x, pz = this.player.position.z;
+    const ord = farmJourneyOrd(Math.floor(px / FARM_P), Math.floor(pz / FARM_P));
+    if (this.farmJourneyOrd === undefined) this.farmJourneyOrd = 0;
+    /* Only advance while the player is somewhere the journey actually is. Sixteen parcels
+       of lateral tolerance is generous on purpose — a player who cut across three fields
+       is still on the journey; a player who walked a thousand blocks east is not. */
+    if (Math.abs(Math.floor(pz / FARM_P) - FARM_J_LINE) <= 16 && ord > this.farmJourneyOrd) {
+      this.farmJourneyOrd = ord;
+    }
+    const j = this.farmJourneyOrd;
+
+    // Has the player got close enough to the house for it to be named?
+    const dHouse = Math.hypot(px - (H.hx + 6), pz - (H.hz + 5));
+    if (dHouse < 26) this.farmHouseSeen = true;
+    const gotCore = w.openedChests && w.homeChestKey && w.openedChests.has(w.homeChestKey);
+
+    let text, done = false;
+    if (gotCore) { text = 'Investigate the farmhouse.'; done = true; }
+    else if (this.farmHouseSeen) text = 'Investigate the farmhouse.';
+    else if (j >= FARM_J_HOME) text = 'Investigate the property.';
+    else if (j >= FARM_J_ECHO0 + 2) text = 'Follow the old route.';
+    else if (j >= FARM_J_ECHO0) text = 'Something here feels familiar.';
+    else if (j > FARM_J_TOWER + 1) text = 'Continue beyond the tower.';
+    else if (j >= FARM_J_TOWER - 2 && T) text = 'Investigate the water tower.';
+    else if (j >= 1) text = 'Follow the old farm road.';
+    else text = 'Explore the Shattered Farmlands.';
+    this.ui.setJourneyStep(text, done);
+  }
+
   _animate() {
     requestAnimationFrame(this._animate);
     let dt = this.clock.getDelta();
@@ -25423,6 +27817,15 @@ class Game {
     this.world.updateSoulAnchorPulse(this.env.t);
     this.world.updateTorchDecay(dt);
     this.world.updateDisconnectedHomeGlow(this.env.t);
+    /* PHASE 20 — the water tower's distant silhouette and its red lamp. Both are pure
+       scene state driven by the camera: no voxel is written, nothing is remeshed, and the
+       whole thing costs one distance, one dot product and two opacity assignments per
+       frame. Outside the Farmlands it hides everything and returns immediately. */
+    this.world.updateFarmTowerLight(dt, this.camera, this.player.inFarmlands,
+                                    this.env.fog ? this.env.fog.color : null);
+    // ...and the Disconnected Home's single stronger beat, which fires at most once.
+    this.world.updateFarmHomeAnomaly(dt, this.player.position, this.camera,
+                                     this.player.inFarmlands);
     // PHASE 14 — advance any door leaf currently swinging. Costs nothing when none is.
     this.world.updateDoorSwings(dt);
     // LEVEL 4 — hearth flames + warm fireplace light flicker.
@@ -25611,6 +28014,7 @@ class Game {
     const hasIronGear = this.player.inventory.hasItem(ITEM.IRON_PICKAXE) || this.player.inventory.hasItem(ITEM.IRON_SWORD);
     this.ui.updateObjectiveHUD(hasTorches, hasAnchor, this.memoryFragments > 0, fuel, this.memoryFragments, this.stage, this.nightsRequired, this.dayCount,
       this.player.chestsOpened || 0, hasIronGear, this.behemothDefeated);
+    this._updateFarmJourneyObjective();
 
     this.ui.updateHotbarSelection();
     this.ui.updateVitals(this.player);
@@ -26185,8 +28589,26 @@ class Game {
 
     // --- Progression.
     L.push('');
-    L.push(`Disconnected Home      ${FARM_HOME_X},${FARM_HOME_Z}  ` +
-           `(biome ${farmlandsBiomeAt(FARM_HOME_X, FARM_HOME_Z)})`);
+    const AH = w.farmHome, AT = w.farmTower;
+    L.push(`Disconnected Home      plot ${AH ? AH.ox + ',' + AH.oz : 'UNRESOLVED'} ` +
+           `${AH ? '(' + AH.w + 'x' + AH.d + ', pad y=' + AH.padY + ', biome ' +
+                   farmlandsBiomeAt(AH.cx, AH.cz) + ')' : '*** PHASE 20 RESOLUTION FAILED ***'}`);
+    if (AH) {
+      L.push(`  house                ${AH.hx},${AH.hz} ${AH.hw}x${AH.hd}, two storeys, ` +
+             `upper floor y=${AH.upY}`);
+      L.push(`  buried volume        floor y=${AH.deepY}, ${AH.stairSteps}-tread descent, ` +
+             `hall ${AH.hallX1 - AH.hallX0 + 1} blocks long, room ${AH.bigX0},${AH.bigZ0} 16x12`);
+      L.push(`  journey ordinal      column ${farmJourneyOrd(AH.bx, AH.bz)} of the journey ` +
+             `(${Math.abs(AH.cz - FARM_SPAWN_Z)} blocks from arrival)`);
+    }
+    L.push(`water tower            ${AT ? AT.cx + ',' + AT.cz + '  pad y=' + AT.padY +
+                                          ', lamp y=' + AT.lampY + ' (' + FARM_TOWER_LAMP_DY +
+                                          ' above the pad)' : 'UNRESOLVED'}`);
+    if (AT) {
+      const st = w.farmTowerLight;
+      L.push(`  red lamp             ${st ? (st.on ? 'LIT' : 'dark') + ', flash #' + st.idx +
+                                            ', gaze ' + st.gaze : 'not ticking'}`);
+    }
     L.push(`Core Disk chest        ${w.homeChestKey || 'NOT REGISTERED'}` +
            (w.homeChestKey ? '' : '   *** LEVEL 2 PROGRESSION IS BROKEN ***'));
     const opened = w.openedChests && w.homeChestKey && w.openedChests.has(w.homeChestKey);
@@ -26211,7 +28633,7 @@ class Game {
              `${w._farmLaneX(bx) && w._farmDitchX(bx) ? ' + ditch' : ''}, ` +
              `E-W edge ${w._farmLaneZ(bz) ? 'track' : 'none'}` +
              `${w._farmLaneZ(bz) && w._farmDitchZ(bz) ? ' + ditch' : ''}`);
-      const dHome = Math.hypot(px - FARM_HOME_X, pz - FARM_HOME_Z);
+      const dHome = AH ? Math.hypot(px - AH.cx, pz - AH.cz) : NaN;
       const dEdge = Math.min(px - FARMLANDS_CHUNK_OFFSET * CHUNK_SX, FARMLANDS_CHUNK_MAX * CHUNK_SX - px,
                              pz - FARMLANDS_CHUNK_OFFSET * CHUNK_SZ, FARMLANDS_CHUNK_MAX * CHUNK_SZ - pz);
       L.push(`distances              ${dHome.toFixed(0)} blocks to the Disconnected Home, ` +
@@ -26266,21 +28688,93 @@ class Game {
     const g = game(); if (!g) return console.warn('DEV: game not ready');
     const w = g.world;
     if (!g.player.inFarmlands) global.debugTeleportToFarmlands();
-    w._eagerLoadAround(FARM_HOME_X, FARM_HOME_Z, 3);
+    const H = w.farmHome;
+    if (!H) return console.warn('DEV: the Farmlands journey has not been resolved');
+    // Stand on the approach, west of the property, looking across the last field at it —
+    // which is the composition the player is meant to arrive on.
+    const ax = H.ox - 16, az = H.oz + 17;
+    w._eagerLoadAround(ax, az, 3);
     let pos = null;
-    for (const d of [12, 10, 14, 8, 16]) {
-      const c = safeGround(w, FARM_HOME_X, FARM_HOME_Z + d, FARM_BASE_Y);
+    for (const d of [0, 3, -3, 6, -6]) {
+      const c = safeGround(w, ax, az + d, H.padY);
       if (c) { pos = c; break; }
     }
-    if (!pos) pos = new THREE.Vector3(FARM_HOME_X + 0.5, FARM_BASE_Y + 1, FARM_HOME_Z + 12.5);
+    if (!pos) pos = new THREE.Vector3(ax + 0.5, H.padY + 1, az + 0.5);
     g.player.inFarmlands = true;
     g.player.inSuburbia = false;
     g.player.inFakeHaven = false;
     resetPlayer(g, pos);
     applyDimensionState(g, 'farmlands');
-    announce('The Disconnected Home (Level 2) @ ' + FARM_HOME_X + ',' + FARM_HOME_Z +
+    announce('The Disconnected Home (Level 2) @ ' + H.ox + ',' + H.oz +
              ' (Core Disk chest ' + (w.homeChestKey ? 'registered @ ' + w.homeChestKey : 'NOT REGISTERED') + ')');
   };
+  /* PHASE 20 — stands the player on the journey lane a chosen distance west of the water
+     tower, facing it. The default is a hundred and forty blocks, which is where the
+     silhouette reads most clearly against the fog and is the distance the phase's own
+     visual check uses. */
+  global.debugTeleportToWaterTower = function (dist) {
+    const g = game(); if (!g) return console.warn('DEV: game not ready');
+    const w = g.world, T = w.farmTower;
+    if (!T) return console.warn('DEV: the Farmlands journey has not been resolved');
+    if (!g.player.inFarmlands) global.debugTeleportToFarmlands();
+    const d = dist === undefined ? 140 : Math.max(0, dist);
+    const x = T.cx - d, z = Math.round(w._farmJourneyLaneZ(x));
+    w._eagerLoadAround(x, z, 3);
+    const pos = safeGround(w, x, z, FARM_BASE_Y) ||
+                new THREE.Vector3(x + 0.5, w._farmHeightAt(x, z) + 1, z + 0.5);
+    g.player.inFarmlands = true;
+    g.player.inSuburbia = false;
+    g.player.inFakeHaven = false;
+    resetPlayer(g, pos);
+    // Face the tower.
+    g.player.yaw = Math.atan2(-(T.cx - pos.x), -(T.cz - pos.z));
+    g.player.pitch = 0.10;
+    applyDimensionState(g, 'farmlands');
+    announce('The water tower @ ' + T.cx + ',' + T.cz + ' — ' + d + ' blocks west of it, ' +
+             (T.lampY - T.padY) + ' blocks of tower, lamp at y=' + T.lampY);
+  };
+
+  /* PHASE 20 — the whole journey printed as coordinates, so a session that has to check
+     one beat does not have to walk to it. Reads only resolved state; writes nothing. */
+  global.debugFarmJourney = function () {
+    const g = game(); if (!g) return console.warn('DEV: game not ready');
+    const w = g.world, H = w.farmHome, T = w.farmTower;
+    if (!H || !T) return console.warn('DEV: the Farmlands journey has not been resolved');
+    const L = [];
+    const laneAt = (j) => {
+      const x = (FARM_J_B0 + j * FARM_J_DIR) * FARM_P + 32;
+      return [x, Math.round(w._farmJourneyLaneZ(x))];
+    };
+    L.push('=== PHASE 20 — THE FARMLAND JOURNEY ===');
+    L.push(`lane            grid line ${FARM_J_LINE} (E-W), walked ${FARM_J_DIR > 0 ? 'east' : 'west'} from column ${FARM_J_B0}`);
+    L.push(`arrival         ${w.farmlandsSpawn.x.toFixed(1)},${w.farmlandsSpawn.z.toFixed(1)}  ` +
+           `surface ${w._farmSurfaceAt(Math.floor(w.farmlandsSpawn.x), Math.floor(w.farmlandsSpawn.z))} (1=track, 2=rut)`);
+    const beats = [
+      [FARM_J_WHEAT, 'wheat field'], [FARM_J_STOCK, 'pasture + farmstead'],
+      [FARM_J_TOWER, 'the water tower'], [FARM_J_ISO0, 'isolation begins'],
+      [FARM_J_ECHO0, 'repetition and echoes begin'], [FARM_J_HOME, 'the property'],
+    ];
+    for (const [j, name] of beats) {
+      const [x, z] = laneAt(j);
+      const d = Math.hypot(x - FARM_SPAWN_X, z - FARM_SPAWN_Z);
+      L.push(`  column ${String(j).padStart(2)}  ${name.padEnd(28)} lane at ${x},${z}   ${d.toFixed(0)} blocks from arrival   ` +
+             `biome ${farmlandsBiomeAt(x, z)}   density x${farmJourneyIsolation(FARM_J_B0 + j, FARM_J_LINE).toFixed(2)}`);
+    }
+    L.push(`water tower     ${T.cx},${T.cz}  pad y=${T.padY}, lamp y=${T.lampY} (${FARM_TOWER_LAMP_DY} above the pad)`);
+    L.push(`  red lamp      ${w.farmTowerLight ? (w.farmTowerLight.on ? 'LIT' : 'dark') + ', gaze ' + w.farmTowerLight.gaze +
+                              ', ' + w.farmTowerLight.flashes + ' flashes this session' : 'not ticking (never entered range)'}`);
+    L.push(`the property    ${H.ox},${H.oz} .. ${H.x1},${H.z1}   pad y=${H.padY}`);
+    L.push(`  farmhouse     ${H.hx},${H.hz}  ${H.hw}x${H.hd}, upper floor y=${H.upY}`);
+    L.push(`  buried volume floor y=${H.deepY}, ${H.stairSteps}-tread descent from the pantry`);
+    L.push(`  the long hall ${H.hallX0}..${H.hallX1} (${H.hallX1 - H.hallX0 + 1} blocks) on z=${H.hallZ}`);
+    L.push(`  the last room ${H.bigX0},${H.bigZ0}  16x12 — larger than the farmhouse above it`);
+    L.push(`  Core Disk     ${w.homeChestKey}` + (w.openedChests && w.openedChests.has(w.homeChestKey) ? '  (opened)' : '  (unopened)'));
+    const gap = H.south ? H.oz - Math.round(w._farmJourneyLaneZ(H.cx)) : Math.round(w._farmJourneyLaneZ(H.cx)) - H.z1;
+    L.push(`  road gap      ${gap} blocks of open field between the lane and the property, with nothing joining them`);
+    console.log(L.join('\n'));
+    return undefined;
+  };
+
   /* ===================================================================================
      PHASE 13 — LIVE SUBURBIA AUDIT
 
@@ -26454,7 +28948,9 @@ class Game {
       'BLOCK & RUIN — DEV TELEPORTS',
       '  debugTeleportToOverworld()          Normal Overworld, at the world spawn',
       '  debugTeleportToFarmlands()          Level 2 — The Shattered Farmlands (Phase 16 streaming)',
-      '  debugTeleportToFarmHome()           Farmlands, standing in front of the upside-down house',
+      '  debugTeleportToFarmHome()           Farmlands, on the approach, looking at the Disconnected Home',
+      '  debugTeleportToWaterTower(dist)     Farmlands, on the journey lane `dist` blocks west of the tower',
+      '  debugFarmJourney()                  The Phase 20 journey, beat by beat, as coordinates',
       '  debugTeleportToSuburbia()           Level 3 — Static Suburbia (Phase 9 streaming)',
       '  debugTeleportToFakeHaven()          Level 4 — The Fake Haven (peaceful, 30s countdown)',
       '  debugTeleportToDisconnectedHome()   Suburbia, standing in front of the upside-down house',
