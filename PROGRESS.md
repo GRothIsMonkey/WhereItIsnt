@@ -1,11 +1,13 @@
 # WHERE IT ISN'T — PROJECT STATE
 
 ```
-Current phase              20 — FARMLANDS JOURNEY + DISCONNECTED HOME 2.0
+Current phase              21 — DROPPED ITEM GROUND CONTACT (complete)
+Next phase                 22 — SETTINGS + GAME OPTIONS
 Phase 19                   COMPLETE
 Phase 20                   COMPLETE
 Phase 20 journey revision  COMPLETE           (20.1 — see section 0)
 Phase 20.2 guidance        COMPLETE           (see section 0.5)
+Phase 21                   COMPLETE           (see section 0.2)
 Authoritative build        game.html          (there is no other game file)
 Offline validation suite   tests/             (see tests/README.md)
 ```
@@ -19,6 +21,84 @@ journey revision that followed a human playtest and supersedes them wherever the
 disagree** — principally the beat table, the landmark set, the distances, and the
 performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
 instruction and the compass and changed no world generation at all.
+
+---
+
+## 0.2. PHASE 21 — DROPPED ITEM GROUND CONTACT
+
+### The defect, measured
+
+`ItemEntity.position` is the item's **foot**: the collider spans `[y, y + ITEM_SIZE_Y]`,
+and landing, the spawn-overlap escape and the support test are all written against that.
+The **mesh did not agree**. `THREE.BoxGeometry` is centred on its origin — measured off
+the real BufferGeometry, bounds −0.125…+0.125 — and was drawn at `position.y` directly, so
+the rendered cube's bottom sat **0.125 blocks below** the surface it was standing on.
+
+The bob made it worse rather than better. Applied as ±0.08 around that already-sunk
+centre, the rendered bottom oscillated between **0.045 and 0.205 blocks under the ground**.
+A dropped item never once touched the surface it was resting on, and was at its deepest at
+the bottom of every bob cycle.
+
+Then the tests found a **second, independent defect**. The integrator, on a downward
+collision, reverted to the position at the start of the substep:
+
+```js
+p.y += this.velocity.y * sdt;
+if (this._collidesAt(world, p)) { p.y = prevY; ... }
+```
+
+That leaves the item wherever the substep grid happened to put it — up to a full substep
+of travel above the thing it just hit. Measured on real drops: items came to rest between
+**0.002 and 0.037 blocks in the air**, the amount varying with impact speed, so no two
+drops floated by the same amount. It also broke support: the wake-up probe reaches 0.02
+down, so an item resting 0.026 up could not see its own floor, woke, fell, floated again,
+and cycled forever.
+
+### What was changed
+
+Four small, isolated changes. **No player physics, no collision architecture, no mining,
+no placement, no world generation.**
+
+| change | why |
+|---|---|
+| the mesh is drawn at `position.y + ITEM_MESH_HALF_Y` | puts the centred geometry's bottom face on the collider's bottom face — draw it where the collider already is, rather than moving the collider |
+| the bob is a **raised cosine**, `(1 − cos)·½·0.16` | same 3.0 rad/s rate, same 0.16 peak-to-peak travel, same per-item phase desync; only its zero point moved, from "centred on the floor" to "resting on the floor" |
+| on a downward collision, **bisect** between the last free height and the first colliding one | closes the residual gap to float precision. Runs only on the frame of contact — a couple of dozen cheap AABB tests once per landing, never per frame |
+| support is `collidesAABB` at −0.02, not an `isSolid` scan | landing and support now ask the **same predicate**. `isSolid` answers "is there a block id here" and is true for every noclip decoration in the game — weeds, tussock, stubble, leaf litter, reeds, ladders — while `collidesAABB` correctly falls through them. Two systems disagreeing about what counts as ground is the root of a whole family of "item hangs in the air" bugs |
+
+Plus two robustness fixes the tests demanded: `_chunkReady` now checks **every chunk the
+item's footprint touches**, not just the one containing its centre (an item on a seam has a
+collider spanning two chunk columns, and an unloaded chunk answers AIR for every voxel);
+and pickup is measured from the item's **collider centre** rather than `mesh.position`,
+which oscillates — an item at the edge of reach used to flicker in and out of range three
+times a second. The pickup radius, trigger, inventory call, sound and destroy are all
+untouched.
+
+### Result
+
+| | rendered bottom, relative to the support surface |
+|---|---|
+| **before** | −0.205 … −0.045 (always penetrating; deepest at the bottom of the bob) |
+| **after** | 0.000000 … +0.160 (touches down once per bob, never below) |
+
+Across five drop heights the worst before was −0.205; the worst after is `7e-7`.
+
+### Cost
+
+The item system ended up **54% cheaper** than the build it replaces — 300 resting items
+per frame went from 0.332 ms to 0.153 ms. The exact support probe alone cost 37% *more*
+than the cheap-but-wrong `isSolid` scan; a monotonic `worldEdits` counter on VoxelWorld,
+bumped by the only two paths that mutate chunk data after generation, lets a resting item
+skip a probe whose answer cannot have changed. It is a cache invalidated by the one thing
+that could invalidate it. World generation is untouched — `performance.js` unchanged.
+
+### Honest scope note
+
+**Every dropped item in this build shares one geometry**: `BoxGeometry(0.25)` with a flat
+per-item colour. That is asserted by the suite across eight item categories rather than
+assumed. So "audit the mesh origin for every item category" has one answer, not many, and
+Phase 21 deliberately did not add per-item meshes — that would be an art change, which the
+brief forbids.
 
 ---
 
@@ -577,6 +657,31 @@ built on:**
     Overworld and reaches the Farmland crossroads a long time later. The one-shot recall
     on arrival is the mitigation; whether the whole arrangement produces "I was told to go
     east" rather than "what was I supposed to do?" needs a real playthrough.
+**Added by Phase 21, and honestly unverified:**
+
+16. **No browser or WebGL validation, again.** Every item-contact result is a geometry or
+    simulation measurement: the real `ItemEntity` stepped against real generated chunks,
+    with contact read off the real mesh's world position. `tests/render-items.js` draws
+    the real item mesh depth-tested over the real chunk geometry and shows the defect and
+    the fix side by side, but it is a CPU rasteriser with no block atlas, not a frame from
+    the engine. Nobody has watched an item land in a browser.
+17. **How the new bob FEELS.** Rate, travel and phase desync are preserved exactly and
+    asserted, but the bob now swings up from the surface instead of through it, so the
+    item touches down once per cycle rather than hovering around a midpoint. That is what
+    the brief asked for and it is measurably correct; whether it reads as livelier or
+    busier than before is a judgement only a player can make.
+18. **Pickup at the extreme of reach.** The radius is unchanged and pickup is asserted to
+    fire on flat ground and at a chunk seam, but the measured point moved from the bobbing
+    mesh to the stable collider centre. Effective horizontal reach is now a constant
+    1.4948 blocks instead of pulsing between roughly 1.473 and 1.498. That is an
+    improvement on paper; it has not been felt.
+19. **Blocks placed INTO a resting item.** Support wake-up covers removal — mining below,
+    beside, and a floor replaced by decoration are all tested. A block *placed* into the
+    cell a resting item occupies would leave it embedded, because `placeBlock` tests the
+    player's AABB but not item AABBs. That is pre-existing behaviour, is not in Phase 21's
+    brief (which lists only removals), and was left alone rather than widened into.
+20. **Items in water.** Drops sink through water by design and the Farmland terrain test
+    skips flooded columns. Phase 21 did not change water interaction and did not test it.
 15. **Phase 23 does not exist, so save/load could not be tested.** There is no save system
     in the build at all — `localStorage` appears zero times in `game.html`. What Phase
     20.2 could do, and did, is put `compassAcquired` in the canonical `Game` progression
@@ -615,6 +720,18 @@ built on:**
 | the great tree | `_farmStampGreatTree` |
 | the dead land around it | `_farmDeadLand` |
 | the other three silhouette proxies | `_farmBuildLandmarkProxies` / `updateFarmLandmarkProxies` |
+
+### Added by Phase 21
+
+| what | search for |
+|---|---|
+| the root cause, and the mesh/collider relationship | `PHASE 21 — DROPPED ITEM GROUND CONTACT` |
+| the mesh lift and the re-based bob | `ITEM_MESH_HALF_Y` / `ITEM_BOB_TRAVEL` |
+| snapping onto the contact surface | `SNAP ONTO THE SURFACE INSTEAD OF REVERTING` |
+| support via the landing predicate | `_stillSupported` |
+| the edit-epoch cache | `worldEdits` |
+| footprint-aware chunk readiness | `_chunkReady` |
+| allocation-free collision queries | `_collidesAtY` / `_itemAABB` |
 
 ### Added by Phase 20.2
 

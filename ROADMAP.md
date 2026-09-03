@@ -1410,6 +1410,32 @@ Test:
 
 # 39. PHASE 21 — DROPPED ITEM GROUND CONTACT
 
+STATUS:
+COMPLETE
+
+Two independent defects, both measured rather than guessed at, both fixed:
+
+  THE MESH ORIGIN.  position is the item's FOOT, but THREE.BoxGeometry is
+  centred on its origin and was drawn at position.y directly, so every dropped
+  item was rendered 0.125 blocks below the surface it stood on. The bob, applied
+  as +/-0.08 around that already-sunk centre, meant the rendered bottom sat
+  between 0.045 and 0.205 blocks UNDER the ground and never once touched it.
+
+  THE LANDING GAP.  On a downward collision the integrator reverted to the start
+  of the substep instead of closing the gap, leaving items resting 0.002 to 0.037
+  blocks in the air depending on impact speed — and, because the wake-up probe
+  only reaches 0.02 down, unable to see their own floor.
+
+Fixed by drawing the mesh where the collider already is, re-basing the bob to
+swing up from the surface rather than through it (same rate, same travel, same
+desync), bisecting onto the contact surface on the frame of landing, and making
+support use the SAME predicate as landing instead of isSolid().
+
+Rendered bottom relative to the support surface went from -0.205..-0.045 to
+0.000..+0.160. The item system also ended up 54% CHEAPER than before.
+
+See PROGRESS.md section 0.2.
+
 Purpose:
 
 Fix remaining dropped-item contact problems.
@@ -2795,12 +2821,13 @@ Claude Code should inspect the repository before making assumptions.
 
 Current completed milestone:
 
-Phase 20 (including the 20.1 journey revision and the 20.2 guidance pass —
+Phase 21 — Dropped Item Ground Contact
+(Phase 20 including the 20.1 journey revision and the 20.2 guidance pass —
 see PROGRESS.md)
 
 Current next major phase:
 
-Phase 21 — Dropped Item Ground Contact
+Phase 22 — Settings + Game Options
 
 Current game build baseline:
 
