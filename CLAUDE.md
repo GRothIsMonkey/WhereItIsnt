@@ -1620,24 +1620,49 @@ Never substitute XP with another meaningless hidden number.
 
 ---
 
-# 53. PHASE 27 — HEALTH / SANITY / HUD
+# 53. PHASE 27 — HEALTH / SANITY / HUD — COMPLETE
 
-The HUD should no longer resemble Minecraft.
+PHASE 27 CARRIED THIS OUT. The heart, the brain, both vital bars and the bordered
+objective panel are gone from the document; the hotbar is a strip; every element is
+made of one set of tokens. This section is now a statement about the code, not an
+intention. See `PROGRESS.md` section 0.00000 for the full record.
 
-Health should communicate physical condition.
+WHAT THE HUD IS NOW:
 
-Sanity should communicate:
+  CONDITION   a row of ticks, ten health per tick, bottom-left. Discrete, DOM, warm,
+              still. It grows with max health, so the endurance milestones are visible
+              in it. States: hp-steady / hp-worn / hp-failing / hp-critical / hp-gone.
 
-- perception
-- instability
-- reality distortion
+  PERCEPTION  a signal traced on a small canvas, directly under CONDITION. Continuous,
+              canvas, cool, alive. It carries no hue, no number and no label that reads
+              as a diagnostic: what it reports is how steady the line is, and at the
+              worst states the line loses pieces of itself and turns up displaced.
+              States: p-calm / p-drifting / p-breaking / p-lost.
 
-Do NOT simply recolor hearts.
+  OBJECTIVE   one line of text against a hairline, top-left, plus a dim status line.
+              No panel, no title, no checklist. The objective SYSTEM still owns the
+              text; the HUD only renders what it is handed.
 
-Health and sanity should feel like different systems.
+  HOTBAR      one continuous strip, bottom-centre. Selection is a lit cell, a brass
+              under-rule and a slightly larger item — never a glowing gold box.
 
-Objectives, hotbar, prompts, and all HUD elements should share one
-Where It Isn't identity.
+  PROMPT      a key chip and a verb above the hotbar, raised by the look-target path
+              when something under the crosshair can be acted on.
+
+RULES THAT NOW HOLD:
+
+- Health and sanity must never converge on the same visual language. They are kept
+  apart on four axes deliberately — discrete vs continuous, DOM vs canvas, warm vs
+  cool, still vs moving — and `tests/hud.js` fails if a stylesheet rule reaches both
+  or if either becomes a percentage-width fill.
+- The HUD is a RENDERER. `UIManager` may not read an objective table, own a gameplay
+  value, or reach a block id, chunk or mesh — the last of those is what lets Era 2
+  reskin it without touching gameplay. `tests/hud.js` asserts all four.
+- `UIManager.view` is a PRESENTATION CACHE. It mirrors what was last painted so a
+  frame-loop setter can compare and return. It is never authoritative.
+- Anything transient must be cleared in `UIManager.resetPresentation()`, which is
+  called from the one teardown path a New Game and a Load both run.
+- Do not reintroduce hearts, a vital bar, a quest panel, or a nine-box hotbar.
 
 ---
 
@@ -2168,6 +2193,19 @@ Future UI should emphasize:
 - atmospheric framing
 - functional clarity
 - horror identity
+
+Phase 27 established the tokens the whole interface is now built from. They live in
+one `:root` block at the top of the stylesheet:
+
+- `--hud-ink` / `--hud-ink-dim` / `--hud-ink-faint`  parchment, for everything read
+- `--hud-rule`                                        hairlines
+- `--hud-ground`                                      the dark panel fill
+- `--hud-brass`                                       selection, and nothing else
+- `--hud-warn`                                        a failing body, and nothing else
+- `--hud-shadow`                                      legibility over any terrain
+
+Use them. A new interface element that invents its own colour is how the HUD became
+five unrelated widgets the first time.
 
 Do not redesign the entire HUD outside its scheduled phase unless required
 to fix a bug.

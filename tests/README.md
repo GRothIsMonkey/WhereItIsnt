@@ -2,14 +2,15 @@
 
 These are the checks Phase 20, its journey revision (20.1), the guidance pass (20.2), the
 item-contact pass (21), the settings pass (22), the save/load pass (23), the story
-foundation (24), the objective system (25) and the XP removal (26) were built against. They run the **real game code** — the
+foundation (24), the objective system (25), the XP removal (26) and the HUD rebirth (27)
+were built against. They run the **real game code** — the
 `<script>` body of `game.html` is loaded into a Node VM with a small DOM stub, and a real
 `VoxelWorld` is constructed and asked to generate real chunks. Nothing here reimplements
 the generator, and nothing here asserts on metadata where a player-facing property could
 be measured instead.
 
-Everything here is offline **except `browser-save.js`**, which launches Chromium, serves
-`game.html` over HTTP and drives the real page. Where a file is offline it says so, and
+Everything here is offline **except `browser-save.js` and `preview-hud.js`**, which launch
+Chromium, serve `game.html` over HTTP and drive the real page. Where a file is offline it says so, and
 where a claim needs a browser it is made in that file and nowhere else.
 
 ## Running them
@@ -28,12 +29,14 @@ node save.js                       # Phase 23 — save schema, validation, world
 node story.js                      # Phase 24 — the story bible, and the fragments it preserves
 node objectives.js                 # Phase 25 — the objective tables, resolution and migration
 node progression.js                # Phase 26 — XP absence, milestones, legacy-save migration
+node hud.js                        # Phase 27 — condition, perception, objective, hotbar, prompt
 node browser-save.js               # Phase 23 — the same thing in a REAL browser, see below
 node red-light.js
 node runtime.js
 node regression.js                 # needs a baseline, see below
 node performance.js                # needs a baseline, see below
 node render-journey.js             # writes PNGs into tests/renders/
+node preview-hud.js                # Phase 27 — REAL browser screenshots of the HUD
 ```
 
 `regression.js`, `journey.js`, `chain.js` and `performance.js` compare against the build
@@ -42,6 +45,14 @@ node render-journey.js             # writes PNGs into tests/renders/
 ```
 git show 1002f7b:game.html > tests/baseline.html     # the pre-Phase-20 build
 # ...or somewhere else, and: WII_BASELINE=/path/to/old.html node regression.js
+```
+
+`hud.js` takes the **pre-Phase-27** build the same way, to count what the old HUD wrote to
+the DOM on a steady frame against what the new one writes:
+
+```
+git show c05efbe:game.html > tests/phase26.html
+# ...or: WII_PRE27=/path/to/old.html node hud.js
 ```
 
 `items.js` and `render-items.js` take the **pre-Phase-21** build the same way, to measure
@@ -87,7 +98,9 @@ Both are gitignored: they are reproducible from git and each is over a megabyte.
 | `story.js` | Phase 24. Structural only, and says so: that `STORY.md` exists with all 22 required canonical sections plus the knowledge curve, the never-explain list and the Phase 31 opportunities; that the canon's five load-bearing mechanics (the tower's gaze-keyed light, the vanishing mailbox, the Stalker's freeze, the animals, Suburbia's rearrangement) are all still in the build, so the bible describes THIS game; that the retired project name is gone from every player-facing string; that the finale is not named on screen; that all 12 audited narrative fragments and all 11 journey objective lines **survived** the phase; and that no lore dump, note UI or new toast was smuggled in. **It makes no claim about whether the story is any good** |
 | `objectives.js` | Phase 25. Drives the REAL objective tables with synthetic player states: every step of every chain in order; that a player who did three steps before being asked is credited with all three; that spending your last plank does **not** send you back to "Gather wood." (50 evaluations of an empty pack); override priority across 256 combinations of live state; the Farmland ordinal walked through all eleven authored lines; that no Suburbia objective reads a coordinate or a room index; the save round trip, eight kinds of corrupt mark, and a real **version 1 Phase 23 save migrated up the whole ladder** without losing the player's place. Also audits all 21 objective strings against STORY.md's internal-only vocabulary. Says plainly that it cannot judge whether the wording lands |
 | `progression.js` | Phase 26. Two halves. The **absence** is proved lexically against the shipped source, because an absence has no function to call: no XP symbol is defined, no call site survives in executable code (comments stripped first — the phase left a lot of gravestones), the XP bar / level label / FINAL LEVEL row are not in the document, no stylesheet paints one, no recipe carries a level gate, and the only executable mentions left are the two `delete` lines in the migration, named rather than pattern-excused. The **behaviour** is run for real: the milestone table's shape, its grant path granting once against 500 repeats, the three wiring sites, an XP-era schema 2 save carrying level 6 and 175 max health migrated with the currency dropped and every consequence kept, the double-grant trap (a returning player replaying all three milestones gains nothing), a day-1 save deriving none, a malformed milestone list repaired, 20 byte-stable cycles, and that crafting, mining, combat, the Rift bridge and the Behemoth bridge all still work without it |
-| `browser-save.js` | Phase 23 **in Chromium**, plus the Phase 26 additions. Serves `game.html` over HTTP, boots it with a real WebGL context, plays, clicks SAVE in the real pause panel, **reloads the page**, clicks CONTINUE, and asserts on the live runtime: position, orientation, health, sanity, inventory and selected slot, stage and day, the day/night clock, the compass, **the objective line**, the opened chest, the Anchor Monument and its fuel, and the actual voxels the player dug and built. Then three loads in a row with no scene-graph growth, NEW GAME inheriting nothing, and a corrupt slot that still starts the game. Phase 26 adds: the XP bar and level label are absent from the **live** document, nothing rendered in the HUD reads Lv./XP/LEVEL UP, the live crafting menu shows no level requirement, and **placing an Anchor in the running game grants the shelter milestone once** — 41/100 to 61/120 — which then survives the reload as reached rather than being paid a second time. **This is the browser validation** — see below |
+| `hud.js` | Phase 27. Drives the **real `UIManager`** against a DOM stub that records what was written to it: that the condition readout is ten ticks at 100 max health and seventeen at 170 — the endurance milestones lengthening the instrument rather than rescaling a bar — that 63/100 lights six whole ticks and fills the seventh three tenths, that the four states arrive in order and are proportional, that no heart, brain, vital bar or XP element is in the document; that the perception trace is a canvas whose line travels 0.83px when calm, 13.07px when lost, breaks into 27 pieces at the bottom, draws displaced fragments, is deterministic, and shares no stylesheet rule, colour or state name with health; that the objective arrives rather than flashing on the first line of a run, that its notification is 1.1s of opacity and four pixels of lift and nothing else, and that `UIManager` reads no objective table; that the strip marks one cell, prints a count of 12 and not a count of 1, and names the held item on a change; that the prompt table answers doors both ways, the Anchor and a chest, and that every exit of the look-target update and the gate above it clear it; that each of 18 HUD elements is in the document exactly once and rebuilding does not stack; death, respawn, New Game and load; the z-index ladder; that no render path writes gameplay state and no block id, chunk or mesh is reachable from the HUD at all; and that 600 steady frames cost 0 DOM writes, 0 icon redraws, 0 canvas strokes and 4.3 µs a frame, against 1,200 style writes and 600 icon redraws for the build it replaces. **It makes no claim about whether the HUD looks good** |
+| `browser-save.js` | Phase 23 **in Chromium**, plus the Phase 26 and Phase 27 additions. Serves `game.html` over HTTP, boots it with a real WebGL context, plays, clicks SAVE in the real pause panel, **reloads the page**, clicks CONTINUE, and asserts on the live runtime: position, orientation, health, sanity, inventory and selected slot, stage and day, the day/night clock, the compass, **the objective line**, the opened chest, the Anchor Monument and its fuel, and the actual voxels the player dug and built. Then three loads in a row with no scene-graph growth, NEW GAME inheriting nothing, and a corrupt slot that still starts the game. Phase 26 adds: the XP bar and level label are absent from the **live** document, nothing rendered in the HUD reads Lv./XP/LEVEL UP, the live crafting menu shows no level requirement, and **placing an Anchor in the running game grants the shelter milestone once** — 41/100 to 61/120 — which then survives the reload as reached rather than being paid a second time. **This is the browser validation** — see below. Phase 27 adds thirteen live-document checks: the condition ticks laid out non-zero inside the viewport, real pixels in the perception canvas and visibly more of them broken at low sanity, the two readings aligned and clear of the hotbar and the objective, no heart/brain/bar in the live document, 8 health computing as critical on one part-lit tick, the hotbar computing as a continuous strip with a 2px brass rule under exactly one cell, **the frame loop raising the interaction prompt for a chest placed under the crosshair and dropping it when it is removed**, every HUD layer below the settings panel with a hit test to prove it, no two HUD clusters overlapping, and the readout matching the restored body after a reload with exactly one of every element |
+| `preview-hud.js` | writes `renders/hud-{day,day-vitals,objective,mid,critical}.png` — **real Chromium screenshots of the real game**, the only browser capture in this suite. It boots `game.html`, plays far enough to have a hotbar and a compass, and captures the HUD over live terrain at full, half and near-death. It exists because the HUD's worst defects are invisible to assertions: the first capture of Phase 27 showed captions that were present, laid out, non-zero and the right colour, and completely unreadable against sunlit grass — which is how the caption ink, the trace's dark underlay and the unlit tick value were chosen. **It proves nothing and asserts nothing; it is for looking at** |
 | `preview-compass.js` | writes `renders/compass-tape.svg` — the compass at six headings, re-emitted from the real `updateCompass` draw calls onto the real panel colours. Derived from the shipped code; **not** a browser render |
 
 ## About the browser run

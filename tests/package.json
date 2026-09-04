@@ -19,7 +19,9 @@
     "browser-save": "node browser-save.js",
     "story": "node story.js",
     "objectives": "node objectives.js",
-    "progression": "node progression.js"
+    "progression": "node progression.js",
+    "hud": "node hud.js",
+    "preview-hud": "node preview-hud.js"
   },
   "dependencies": {
     "three": "0.128.0"

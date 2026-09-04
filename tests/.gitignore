@@ -13,3 +13,6 @@ phase20_2.html
 # Vendored three.js r128 for the hermetic browser run. Reproducible with:
 #   curl -o tests/vendor/three.min.js https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js
 vendor/
+# The Phase 26 build, for the HUD before/after cost comparison:
+#   git show c05efbe:game.html > tests/phase26.html
+phase26.html

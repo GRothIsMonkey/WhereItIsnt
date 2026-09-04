@@ -1,8 +1,8 @@
 # WHERE IT ISN'T — PROJECT STATE
 
 ```
-Current phase              26 — REMOVE XP / REBUILD PROGRESSION (complete)
-Next phase                 27 — HEALTH / SANITY / HUD REBIRTH
+Current phase              27 — HEALTH / SANITY / HUD REBIRTH (complete)
+Next phase                 28 — REMOVE TUTORIAL / ORGANIC ONBOARDING
 Phase 19                   COMPLETE
 Phase 20                   COMPLETE
 Phase 20 journey revision  COMPLETE           (20.1 — see section 0)
@@ -13,7 +13,9 @@ Phase 23                   COMPLETE           (see section 0.0)
 Phase 24                   COMPLETE           (the canon lives in STORY.md)
 Phase 25                   COMPLETE           (see section 0.000)
 Phase 26                   COMPLETE           (see section 0.0000)
+Phase 27                   COMPLETE           (see section 0.00000)
 XP                         REMOVED            (no runtime XP exists; see section 0.0000)
+Hearts / vital bars        REMOVED            (no runtime HUD bar exists; see section 0.00000)
 Authoritative build        game.html          (there is no other game file)
 Canonical story            STORY.md           (read before writing ANY player text)
 Validation suite           tests/             (see tests/README.md)
@@ -23,11 +25,208 @@ Phases 1–19 are as their sections in `ROADMAP.md` describe them. This file rec
 state of Phase 20 specifically: what was built, what was measured, what was found and
 fixed along the way, and what is honestly not verified.
 
-**Sections 0.0000–0.5 describe the phases that followed (26, 25, 23, 22, 21, 20.2). Sections 1–5
+**Sections 0.00000–0.5 describe the phases that followed (27, 26, 25, 23, 22, 21, 20.2). Sections 1–5
 describe Phase 20 as it was first delivered, and Section 0 describes the 20.1 journey
 revision that followed a human playtest and supersedes them wherever they disagree** — principally the beat table, the landmark set, the distances, and the
 performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
 instruction and the compass and changed no world generation at all.
+
+---
+
+## 0.00000. PHASE 27 — HEALTH / SANITY / HUD REBIRTH
+
+**The HUD is not a survival game's HUD any more.** The heart, the brain, both vital bars,
+the bordered MISSION DIRECTIVES panel and the nine separated gold-bordered hotbar boxes
+are gone from the document. Nothing about the game underneath them changed.
+
+### WHAT THE HUD WAS, AND WHAT EACH PIECE IS NOW
+
+| the element | what it was | what it is |
+|---|---|---|
+| health | `❤` + a 180×12 red-gradient bar with a percentage width, top-left | **CONDITION** — a row of ticks, ten health each, bottom-left. Discrete, DOM, warm, still |
+| sanity | `🧠` + a 180×14 red→amber→green gradient bar, top-left, with the brain pulsing under 30 | **PERCEPTION** — a signal traced on a 176×18 canvas under CONDITION. Continuous, canvas, cool, alive |
+| objective | one italic line inside a bordered box titled STATUS, above six hidden `.obj-step` directives | one line of text against a hairline, top-left. No box, no title, and the six directives are **deleted**, not hidden |
+| status | `Anchor Status: Unplaced \| Fuel: 0s` / `Memory Fragments: 0 / 3` / `Stage 1 • Day 1`, three stacked sentences | one dim line: `ANCHOR 42S · FRAGMENTS 1/3 · STAGE 2`, each part silent when it has nothing to say |
+| hotbar | nine 48px boxes, 2px brass borders, 6px gaps, selection a gold border with an 8px glow | one continuous 9×40px strip divided by hairlines. Selection is a lit cell, a 2px brass under-rule and a 14% larger item |
+| held item | never named | names itself for 1.5s when the selection changes, then fades |
+| interaction | `showToast('Right-click to open', 1100)` at the top of the screen, doors only | a key chip and a verb above the hotbar — doors, the Anchor, Ancient Chests, and the Haven's bed and storage props |
+| dimension label | `☠ THE SHATTERED FARMLANDS ☠` in a red-bordered plaque | the same name, letterspaced, under the compass, no plaque, no skulls |
+| clock | a bordered plaque, top-right | the same reading in the HUD's own type, no plaque |
+| mining readout | a 148×10 bordered bar with a glowing yellow fill | a 118×3 brass rule with the same six crack-stage ticks |
+| toast | 16px glowing orange | 12px parchment, letterspaced, fading |
+| compass | **unchanged instrument** | **unchanged instrument**, in a 1px frame instead of a 2px one |
+| `#loseCrosshairMsg` | a permanently visible line reading "Look at it and hold your torch to banish it." | **deleted — see DEFECTS below** |
+
+### WHY HEALTH AND PERCEPTION LOOK NOTHING ALIKE
+
+The brief's hardest requirement is that sanity must not read as a second health bar, and
+the easy failure is a red bar and a purple bar. The two readings are therefore separated
+on **four axes at once**, so they cannot converge by accident:
+
+| | CONDITION | PERCEPTION |
+|---|---|---|
+| geometry | discrete — ticks you can count | continuous — a line you read the shape of |
+| medium | DOM elements | a canvas, drawn like the compass |
+| colour | a warm ramp, parchment → rust as the body fails | cool ash, and it never changes hue |
+| motion | still except when hurt or healed | alive whenever the mind is not steady |
+| state names | `hp-steady` … `hp-gone` | `p-calm` … `p-lost` |
+
+`tests/hud.js` fails if a single stylesheet rule reaches both of them, if the two state
+vocabularies overlap, or if perception ever becomes a percentage-width fill.
+
+**Ten health per tick** is the one decision worth defending. Phase 26 replaced the stat
+curve with three one-shot endurance milestones that grant max health (100 → 120 → 145 →
+170). A bar rescales, so those grants were invisible: the bar was full before and full
+after. A ladder of fixed ticks gets longer — ten ticks at the start, seventeen for a
+player who has stood at an Anchor, survived a night and felled the Behemoth. The
+instrument is as long as the body is durable, and the thresholds are proportions, so
+20/170 reads CRITICAL exactly as 12/100 does.
+
+### WHAT PERCEPTION ACTUALLY DRAWS
+
+A faint rule, and a signal traced against it — the rule stays visible where the signal is
+not. As the value falls the trace gains amplitude, then starts **dropping segments**, and
+below the last threshold short fragments of it appear displaced above and below the line:
+pieces of the reading turning up where the reading isn't. There is no number, no
+percentage, no hue and no word like "integrity" or "stability" anywhere near it.
+
+It is deterministic — the same value at the same clock draws the same picture, from a
+cheap integer hash rather than `Math.random` — so a screenshot is reproducible and the
+same state never reads two different ways.
+
+Measured, not asserted: the line travels **0.83px** at full perception, **3.47px** at 55,
+and **13.07px** at 6, with **1** break when calm and **27** when lost. Those figures come
+out of a recording canvas context in `tests/hud.js`, not out of a description.
+
+### THE HUD OWNS NOTHING
+
+`UIManager.view` is a presentation cache and says so in the source. Every field is a copy
+of what was last **painted**, kept for one purpose: so a setter called from the frame loop
+can compare and return without touching the DOM. Health lives on the player, sanity on
+`SanitySystem`, the objective on the objective system, the selected slot on the player.
+There is no `hudHp`, no `hudSanity`, no `hudObjective`.
+
+`tests/hud.js` asserts, against brace-matched method bodies rather than a text window:
+
+- no HUD render path writes health, sanity, death, the selected slot or the inventory;
+- `UIManager` reads no objective table and knows no objective rule;
+- and — the Era 2 requirement — no block id, chunk, mesh or geometry is reachable from
+  `UIManager` at all. The HUD is semantic, so the non-voxel rebirth can reskin it without
+  touching gameplay.
+
+### COST
+
+Health is event-driven and perception is capped. On a **steady frame** — health unmoved,
+sanity unmoved, inventory unmoved, which is the overwhelming majority of frames — the
+whole HUD performs **zero DOM writes, zero icon redraws and zero canvas strokes**, and
+costs **4.3 µs**, or 0.026% of a 60fps frame. Counted, not estimated: the offline harness
+records every write.
+
+The build it replaces performed, over the same 600 steady frames, **1,200 style writes**
+(one per `setSanity`, one per `updateVitals`) and **600 icon redraws** (nine `drawImage`
+calls every frame to redraw the identical hotbar). The difference is the "has this
+actually changed" guard, not cheaper drawing — what the new HUD draws is strictly more
+than what it replaced.
+
+A **forced** perception repaint costs 33 µs, and the cap allows at most fourteen a second,
+so the trace's entire budget is **0.47 ms per second** at the worst sanity value in the
+game. Above 85 sanity it draws once and stops.
+
+### DEFECTS FOUND AND FIXED
+
+1. **`#loseCrosshairMsg` had been on the screen for several phases.** A `position: fixed`
+   line 80px above the bottom of the viewport reading *"Look at it and hold your torch to
+   banish it."* — no rule ever hid it, no code ever wrote to it, and the mechanic it
+   describes does not exist in this build (`banish` appears nowhere else in the file). It
+   was visible over gameplay in every dimension. Removed.
+
+2. **The new interaction prompt could stick to the screen.** `PlayerController.update`
+   returns before the look-target work when the player is not pointer-locked, has a menu
+   open, or is dead — so a prompt raised while looking at a door stayed up for as long as
+   that lasted, offering an interaction the player could not perform. Found by the browser
+   run, which could not make the prompt go away again; fixed by clearing it at that gate
+   as well as at every exit of `_updateTargetHighlight` (all four of which are asserted).
+
+Two smaller things were corrected in passing: `updateHotbarSelection` no longer rebuilds
+the crafting and backpack grids on every frame they happen to be open (only when the
+inventory actually changed), and the browser suite's Anchor-milestone wait, which raced
+about half the time on a cold SwiftShader boot, was given a real timeout instead of five
+seconds.
+
+### VALIDATION
+
+| what | result |
+|---|---|
+| `tests/hud.js` (new, 15 sections) | **PASS** — the real `UIManager` driven against a recording DOM |
+| `tests/browser-save.js` (extended) | **PASS** — including 13 new live-document HUD checks |
+| `determinism.js` `core-disk.js` `journey.js` `chain.js` `compass.js` `items.js` `settings.js` `save.js` `story.js` `objectives.js` `progression.js` `red-light.js` `runtime.js` `regression.js` | **PASS** |
+| `performance.js` | **1 pre-existing failure — see below** |
+
+The offline harness was upgraded to make this testable: `tests/harness/load.js` now gives
+stub elements a **real `classList`** backed by a Set (kept in sync with `className` both
+ways), a `style` object that remembers custom properties, and an `innerHTML` setter that
+genuinely empties an element. Nothing in `game.html` reads `classList`, so this cannot
+change what the game does — it only makes what the game wrote observable, which is the
+difference between a HUD test that proves something and one that asserts against a no-op.
+
+**In a real browser** (Chromium, SwiftShader, hermetic three.js): the condition ticks are
+laid out and non-zero inside the viewport; the perception canvas has real pixels drawn
+into it and visibly breaks across more rows at low sanity; the two readings are aligned
+with each other and clear of the hotbar and the objective; no heart, brain or vital bar is
+in the live document; 8 health puts the live readout into its critical state on one
+part-lit tick; the hotbar computes as one continuous strip with a 2px brass rule under
+exactly one cell; **the frame loop raises the interaction prompt for a chest placed under
+the crosshair and drops it again when the chest is removed**; every HUD layer computes
+below the settings panel and a hit test at the top of the open panel belongs to the panel;
+no two HUD clusters overlap and all are inside the viewport; and after a reload the
+condition readout, the hotbar mark and both vital states match the restored body with
+exactly one of every HUD element in the document.
+
+One measurement had to be taken differently in the browser than intended: under
+SwiftShader the *animated* opacity of the interaction prompt read back on the main thread
+lagged the class by seconds, at random, which made "did it become visible" unanswerable
+from a poll. The browser run therefore suppresses the 140ms transition and measures the
+end state; that the fade exists at all is asserted in the offline stylesheet audit. This
+is a measurement compromise and is recorded as one.
+
+### THE PERFORMANCE FAILURE, HONESTLY
+
+`performance.js` reports **`the revised journey costs +12.8% per chunk against the Phase 20
+build`**, against a 12% gate. It is not this phase's.
+
+This phase changed no world generation, and `regression.js` proves the chunks are
+byte-identical. The gate was checked against the **Phase 26 build** (`c05efbe`, the
+accepted `origin/main`) on the same machine, in the same conditions: it reads **+11.4%,
++15.2%, +12.8%** — median 12.8%, the same median this build reads (**+12.8%, +14.8%,
++8.8%**). The gate straddles its threshold on this hardware for the build that was already
+accepted.
+
+It was **not** loosened to make this phase green. It is a pre-existing, environment-
+dependent failure and it is left failing and recorded here.
+
+### WHAT WAS NOT VALIDATED
+
+**No human played this build.** Nothing here is a claim that the HUD looks good, that the
+perception trace is unsettling rather than merely busy, that ten ticks read faster than a
+bar in the middle of a fight, or that the interface says "indie horror game" rather than
+"survival game with a different palette". Those are judgements for a person, and the
+automated suite can only prove presence, state, transitions, layout and cost. The offline
+suite and the browser suite both say so in their own output.
+
+### WHERE IT IS IN `game.html`
+
+| what | where |
+|---|---|
+| HUD tokens (`:root`) | top of the stylesheet, immediately after `#gameCanvas` |
+| vitals, objective, hotbar, prompt styling | the PHASE 27 blocks through the stylesheet |
+| small-viewport rules | one media query at the end of the compass block |
+| HUD markup | the single `<div id="hud">`, mounted once |
+| `HUD_HP_PER_TICK`, `HUD_TRACE_*`, `hudNoise` | immediately above `class UIManager` |
+| the view cache | `UIManager` constructor, under the PHASE 27 banner |
+| condition | `updateVitals` / `_buildConditionTicks` / `_paintCondition` |
+| perception | `setSanity` / `_drawPerception` |
+| prompt | `UIManager.setInteractPrompt`, driven from `PlayerController._promptForBlock` and `_havenPropPrompt` |
+| clearing between runs | `UIManager.resetPresentation`, called only from `Game._teardownForRestore` |
 
 ---
 
