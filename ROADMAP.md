@@ -1533,9 +1533,14 @@ Do not add excessive options.
 
 ---
 
-# 41. PHASE 23 — SAVE / LOAD
+# 41. PHASE 23 — SAVE / LOAD  — **COMPLETE**
 
 Implement robust browser-local save/load.
+
+Delivered. See `PROGRESS.md` section 0.0 for the schema, the world-delta representation,
+the safe-placement rules, the corruption behaviour, what is deliberately NOT persisted
+(XP), the one place saving is refused (the Fake Haven) and exactly what was validated in a
+real browser.
 
 Persist relevant information such as:
 
@@ -3291,13 +3296,13 @@ Claude Code should inspect the repository before making assumptions.
 
 Current completed milestone:
 
-Phase 22 — Settings + Game Options
-(Phase 20 including the 20.1 journey revision and the 20.2 guidance pass, and
-Phase 21 dropped item ground contact — see PROGRESS.md)
+Phase 23 — Save / Load
+(Phase 22 settings, Phase 21 dropped item ground contact, and Phase 20 including
+the 20.1 journey revision and the 20.2 guidance pass — see PROGRESS.md)
 
 Current next major phase:
 
-Phase 23 — Save / Load
+Phase 24 — Canonical Story Foundation
 
 Current game build baseline:
 
