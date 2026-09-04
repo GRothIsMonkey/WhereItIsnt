@@ -1,11 +1,16 @@
-# WHERE IT ISN'T — OFFLINE VALIDATION SUITE
+# WHERE IT ISN'T — VALIDATION SUITE
 
-These are the checks Phase 20, its journey revision (20.1), the guidance pass (20.2) and
-the item-contact pass (21) and the settings pass (22) were built against. They run the **real game code** — the
+These are the checks Phase 20, its journey revision (20.1), the guidance pass (20.2), the
+item-contact pass (21), the settings pass (22) and the save/load pass (23) were built
+against. They run the **real game code** — the
 `<script>` body of `game.html` is loaded into a Node VM with a small DOM stub, and a real
 `VoxelWorld` is constructed and asked to generate real chunks. Nothing here reimplements
 the generator, and nothing here asserts on metadata where a player-facing property could
 be measured instead.
+
+Everything here is offline **except `browser-save.js`**, which launches Chromium, serves
+`game.html` over HTTP and drives the real page. Where a file is offline it says so, and
+where a claim needs a browser it is made in that file and nowhere else.
 
 ## Running them
 
@@ -19,6 +24,8 @@ node chain.js                      # the journey revision; needs a baseline, see
 node compass.js                    # Phase 20.2 — compass, instruction, crossroads
 node items.js                      # Phase 21 — dropped-item ground contact
 node settings.js                   # Phase 22 — settings state, persistence, pause, audio
+node save.js                       # Phase 23 — save schema, validation, world round trip
+node browser-save.js               # Phase 23 — the same thing in a REAL browser, see below
 node red-light.js
 node runtime.js
 node regression.js                 # needs a baseline, see below
@@ -73,7 +80,31 @@ Both are gitignored: they are reproducible from git and each is over a megabyte.
 | `render-journey.js` | offline first-person renders of the whole journey |
 | `render-items.js` | writes `renders/item-contact-{before,after}.png` — an item resting on real terrain, on a step and against a wall, drawn from the **real item mesh** depth-tested over the **real chunk geometry**, at the worst point of the bob. Reuses the existing rasteriser; **not** a browser render |
 | `preview-settings.js` | writes `renders/settings-panel.html` — the real `#settingsOverlay` markup and the real stylesheet lifted out of `game.html`, populated from the real defaults. Static HTML for judging layout and density; **not** a browser render |
+| `save.js` | Phase 23 save/load. The validator as a pure function: sixteen kinds of invalid save rejected with a reason, fifteen kinds of dented field repaired and every repair reported, absent fields and numeric strings coerced silently, an inventory of nonsense stripped without minting an item, malformed edit tables and crafted `__proto__` keys discarded. Then the property the phase rests on, against REAL chunks: a Farmland region is generated, mined and built in, captured, and replayed into a SECOND world booted from scratch — 107,584 blocks compared, zero differences — with the opened-chest ledger, the door registry, the Suburbia recognition ledger and the torch-decay timers coming back with it, and the one-shot mailbox anomaly reconciled so it cannot undo itself. Safe placement against real terrain, including the trap where an ungenerated chunk reads as clear air. Then the storage layer: a truncated primary recovered from the backup, a quota failure that leaves the previous good save intact, nine kinds of corrupt slot handled without throwing, 25 byte-stable cycles, and 1,000 reads that perform zero writes. The Game-level orchestration is asserted STRUCTURALLY against the real source — one teardown path, every verb through it, no write anywhere in the frame loop |
+| `browser-save.js` | Phase 23 **in Chromium**. Serves `game.html` over HTTP, boots it with a real WebGL context, plays, clicks SAVE in the real pause panel, **reloads the page**, clicks CONTINUE, and asserts on the live runtime: position, orientation, health, sanity, inventory and selected slot, stage and day, the day/night clock, the compass, the opened chest, the Anchor Monument and its fuel, and the actual voxels the player dug and built. Then three loads in a row with no scene-graph growth, NEW GAME inheriting nothing, and a corrupt slot that still starts the game. **This is the browser validation** — see below |
 | `preview-compass.js` | writes `renders/compass-tape.svg` — the compass at six headings, re-emitted from the real `updateCompass` draw calls onto the real panel colours. Derived from the shipped code; **not** a browser render |
+
+## About the browser run
+
+`browser-save.js` is the only file in this suite that is a browser. It needs Playwright
+and a Chromium build (both are present in the development container; without them the
+file prints `SKIP` and exits 0). It starts its own static server, so nothing else has to
+be running.
+
+`game.html` pulls three.js from a CDN. Drop the same file in `tests/vendor/` and the run
+becomes hermetic — the request is intercepted and served locally instead:
+
+```
+mkdir -p tests/vendor
+curl -o tests/vendor/three.min.js https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js
+```
+
+It is gitignored, for the same reason the baselines are: reproducible from one command,
+and 600 KB.
+
+Headless Chromium renders through SwiftShader, so this run proves that the game **boots,
+simulates and restores** in a browser. It does not prove anything about GPU performance
+and does not claim to.
 
 ## About the renders
 

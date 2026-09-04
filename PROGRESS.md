@@ -1,27 +1,173 @@
 # WHERE IT ISN'T — PROJECT STATE
 
 ```
-Current phase              22 — SETTINGS + GAME OPTIONS (complete)
-Next phase                 23 — SAVE / LOAD
+Current phase              23 — SAVE / LOAD (complete)
+Next phase                 24 — CANONICAL STORY FOUNDATION
 Phase 19                   COMPLETE
 Phase 20                   COMPLETE
 Phase 20 journey revision  COMPLETE           (20.1 — see section 0)
 Phase 20.2 guidance        COMPLETE           (see section 0.5)
 Phase 21                   COMPLETE           (see section 0.2)
 Phase 22                   COMPLETE           (see section 0.1)
+Phase 23                   COMPLETE           (see section 0.0)
 Authoritative build        game.html          (there is no other game file)
-Offline validation suite   tests/             (see tests/README.md)
+Validation suite           tests/             (see tests/README.md)
 ```
 
 Phases 1–19 are as their sections in `ROADMAP.md` describe them. This file records the
 state of Phase 20 specifically: what was built, what was measured, what was found and
 fixed along the way, and what is honestly not verified.
 
-**Sections 1–5 describe Phase 20 as it was first delivered. Section 0 describes the 20.1
-journey revision that followed a human playtest and supersedes them wherever they
-disagree** — principally the beat table, the landmark set, the distances, and the
+**Sections 0.0–0.5 describe the phases that followed (23, 22, 21, 20.2). Sections 1–5
+describe Phase 20 as it was first delivered, and Section 0 describes the 20.1 journey
+revision that followed a human playtest and supersedes them wherever they disagree** — principally the beat table, the landmark set, the distances, and the
 performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
 instruction and the compass and changed no world generation at all.
+
+---
+
+## 0.0. PHASE 23 — SAVE / LOAD
+
+One slot, one schema, one restore path.
+
+### THE MODEL
+
+Nothing is snapshotted. The save holds the STATE the world is a function of, and the load
+reconstructs the world by running the same deterministic generators against the same
+coordinates and replaying the player's edit deltas over them:
+
+```
+deterministic generation  +  persistent player edits  =  the current world
+```
+
+which is exactly what the chunk streamer already does every time a chunk unloads and
+comes back. No renderer, no scene object, no mesh, no material, no texture, no DOM node,
+no AudioContext, no listener and no frame timer is ever serialised — `save.js` asserts
+that by reading the capture function's own source.
+
+### SCHEMA
+
+`whereitisnt.save.v1` (primary) and `whereitisnt.save.v1.backup`. `SAVE_VERSION = 1`.
+`SAVE_MIGRATIONS` is an empty table with a working ladder behind it: a future version adds
+one entry, and nothing in the loader changes. There are no fabricated future versions.
+
+| block | fields |
+|---|---|
+| root | `version`, `savedAt`, `dimension` (`overworld` / `farmlands` / `suburbia`) |
+| player | `position{x,y,z}`, `yaw`, `pitch`, `hp`, `maxHp`, `dead`, `level`, `attackBonus`, `miningSpeedBonus`, `chestsOpened`, `selectedSlot`, `inventory[36]` |
+| — | `sanity` |
+| progression | `stage`, `dayCount`, `memoryFragments`, `nightsRequired`, `awaitingAdvance`, `behemothDefeated`, `behemothSpawned`, **`compassAcquired`**, `pendingLevel2Transition`, `fakeHavenTriggered`, `farmCrossroadsRecalled`, `farmJourneyOrd`, `farmHouseSeen`, `killCount`, `riftDisks[]`, `dimensionsBreached[]` |
+| time | `cycleSeconds` (seconds within the 720s cycle, not the raw accumulating `t`), `wasNight` |
+| anchor | `x`, `y`, `z`, `fuel`, `riftActive`, `riftTargetLevel` — or `null` |
+| world | `edits{chunkKey: [idx, id, …]}`, `openedChests[]`, `doors[]`, `torchDecay[]`, `suburbiaVisits[]`, `suburbiaStage[]`, `suburbiaDoorOverrides[]`, `mailboxSeen`, `mailboxGone` |
+| settings | a snapshot through `GameSettings.toJSON()` |
+
+**XP IS NOT IN THE SCHEMA.** The roadmap forbids persisting it, so the `xp` counter is
+absent and `p.xp = 0` on every restore. What XP has already BOUGHT — max health, attack
+bonus, mining bonus, and the level for the HUD label — is persisted, because losing those
+on load would be destroying progress rather than declining to store a number. Partial
+progress toward the next level is discarded. That is deliberate, and it disappears when
+Phase 26 removes the system.
+
+### THE WORLD DELTA
+
+`editedChunks` is the representation the roadmap asks for, written per chunk as a flat
+`[index, id, index, id, …]` array — roughly a third of the JSON an object of index keys
+would cost, and it round-trips through a `Map` with no key parsing. A session that dug a
+ten-block shaft, built a pillar and stripped a patch of topsoil — 61 edits — serialises to
+**825 bytes**. A raw snapshot of the same 41×41 columns would be 210 KB of voxels alone.
+
+One reconciliation lives here: the Disconnected Home's one-shot mailbox anomaly is written
+with `_writeBlockRaw`, which deliberately records no edit. A save is not a stream-out, so
+`captureWorldState` emits that single voxel as an edit when the latch is set. Without it
+the horror beat quietly undid itself on the next load.
+
+### SAFE PLACEMENT
+
+The saved position is a hypothesis. It is accepted only once its chunks are resident AND a
+body of the player's real dimensions fits there. Every repair is deterministic:
+
+1. the saved spot, if a real `collidesAABB` query says it is clear
+2. up to 8 blocks up, then up to 8 down, in the same column
+3. a deterministic ring walk outward, nearest first, on real `findSpawnHeight` ground
+4. the dimension's own arrival point — the same one its transition uses
+
+A column only counts if the chunk is **resident**. `getBlockWorld` answers AIR for an
+ungenerated chunk, so without that test an out-of-range coordinate would read as beautifully
+clear and drop the player through the bottom of the world. `save.js` tests exactly that trap.
+
+The validator refuses a position before placement ever runs when it is non-finite, outside
+the world, or **in the wrong dimension for the coordinates it names** — the three regions
+are disjoint bands of one coordinate space, so that is decidable.
+
+### CORRUPTION, AND NEVER LOSING A GOOD SAVE
+
+`JSON.parse` succeeding is not validity. Unknown dimensions, a version from a newer build,
+a missing player block and a non-object payload are hard rejections with a reason. Dented
+fields are repaired and every repair is reported to the player. An empty or negative stack
+is DROPPED rather than clamped up: a loader must never mint an item.
+
+Writes copy the current payload to the backup key first and restore it if the write throws,
+so a quota failure cannot be the thing that loses the run. A truncated primary falls
+through to the backup rather than reporting "no save".
+
+### ONE RESTORE PATH
+
+`_teardownForRestore()` exists once and has exactly one caller, `_applyRestoredState()`,
+and Save, Load, Continue and New Game all go through it. **New Game is that same path
+applied to `defaultSaveState()`**, which is what makes "a new game inherits nothing" a
+structural property. It does not delete the stored save — starting fresh is not a request
+to destroy the run you already have.
+
+Order is the contract: registries replaced → region cores rebuilt (so the replay lands as
+each chunk is first built) → ground loaded → player placed → progression → presentation.
+
+### SAVING IS REFUSED IN THE FAKE HAVEN
+
+The Haven is a terminal scripted sequence: movement is taken away, the world behind the
+player has been flushed, and it ends in the credits under a minute later. Its cabin is
+built from scene props with no teardown path, so a "restore" would have to rebuild an
+illusion the game only ever builds once. Save and Load both refuse there, in one place,
+with a message. This is a **known limitation**, recorded as one.
+
+### SETTINGS
+
+Phase 22 keeps its authority. The browser-global `whereitisnt.settings.v1` is where
+settings live; the save carries a validated snapshot that is applied **only** when the
+browser has no settings of its own (cleared site data, a different profile), which makes
+the save a recovery path rather than a competing owner.
+
+### UI
+
+No new menu framework. Three buttons in one more `.settings-group` at the top of the
+existing pause panel (SAVE / LOAD / NEW GAME, with NEW GAME asking twice), a status line
+under them, and a CONTINUE button on the existing start screen that appears only when a
+save actually validates. Autosave fires on the two dimension crossings and nowhere else —
+no timer, no per-frame write.
+
+### VALIDATION
+
+`tests/save.js` — 152 offline checks against the real code, including the round trip that
+generates a Farmland region, mines and builds in it, captures, boots a **second world from
+scratch**, restores, and compares **107,584 blocks with zero differences**.
+
+`tests/browser-save.js` — **56 checks in a real Chromium with a real WebGL context.** It
+plays, clicks SAVE in the real panel, **reloads the page**, clicks CONTINUE, and asserts on
+the live runtime. This is the browser validation; it was run and it passes.
+
+Measured in that browser: capture 0.5 ms, validate + write 0.8 ms. A full load —
+teardown, region rebuild, eager chunk load and restore — is about 1.0 s, which is world
+reconstruction and is expected to cost more than a save.
+
+### NOT VERIFIED
+
+- **No human has played a save/load cycle.** Everything above is automated, including the
+  browser run. Chromium renders through SwiftShader, so nothing here is a claim about GPU
+  performance or about how any of it looks.
+- The Fake Haven is not saveable, by design, and therefore not tested as a restore target.
+- Lantern and Soul Anchor lights are re-registered only for chunks resident at load time.
+  That matches the existing streaming behaviour (their blocks persist; their lights come
+  back with the chunk) and is not made worse, but it is not made better either.
 
 ---
 
@@ -765,13 +911,12 @@ built on:**
     brief (which lists only removals), and was left alone rather than widened into.
 20. **Items in water.** Drops sink through water by design and the Farmland terrain test
     skips flooded columns. Phase 21 did not change water interaction and did not test it.
-15. **Phase 23 does not exist, so save/load could not be tested.** There is no save system
-    in the build at all — `localStorage` appears zero times in `game.html`. What Phase
-    20.2 could do, and did, is put `compassAcquired` in the canonical `Game` progression
-    block beside the other one-shot latches, so it is serialised by construction when
-    Phase 23 persists that object, and expose `_syncProgressionHUD()` as the single call a
-    load should make after restoring it. **The claim is that it is save-ready, not that it
-    was observed surviving a save.**
+15. ~~**Phase 23 does not exist, so save/load could not be tested.**~~ **RESOLVED BY
+    PHASE 23.** The compass now genuinely survives a save: `compassAcquired` is persisted
+    from the `Game` progression block it was deliberately put in, `_syncProgressionHUD()`
+    is the call the restore makes, and `browser-save.js` asserts in a real Chromium that
+    the tape is back on screen after a page reload — and that the compass is still not an
+    inventory item. See section 0.0.
 
 ---
 
@@ -815,6 +960,23 @@ built on:**
 | the edit-epoch cache | `worldEdits` |
 | footprint-aware chunk readiness | `_chunkReady` |
 | allocation-free collision queries | `_collidesAtY` / `_itemAABB` |
+
+### Added by Phase 23
+
+| what | search for |
+|---|---|
+| the whole module, and what it refuses to serialise | `PHASE 23 — SAVE / LOAD` |
+| the schema, the keys, the migration ladder | `SAVE_VERSION` / `SAVE_MIGRATIONS` |
+| validation and repair | `validateSaveState` |
+| the world delta, and the mailbox reconciliation | `captureWorldState` / `restoreWorldState` |
+| safe placement, and the resident-chunk trap | `findSafeLanding` / `saveFallbackSpawn` |
+| storage, backup and the write order | `class SaveSystem` |
+| capture, teardown, restore | `captureSaveState` / `_teardownForRestore` / `_applyRestoredState` |
+| the four verbs | `saveGame` / `loadGame` / `newGame` / `continueFromSave` |
+| why the Fake Haven refuses | `saveBlockedReason` |
+| the panel controls | `attachSaveActions` / `id="setSave"` |
+| the start-screen button | `id="continuePlay"` / `_refreshContinueButton` |
+| the documented initial state | `defaultSaveState` |
 
 ### Added by Phase 20.2
 

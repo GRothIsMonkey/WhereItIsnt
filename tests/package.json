@@ -10,7 +10,15 @@
     "runtime": "node runtime.js",
     "regression": "node regression.js",
     "performance": "node performance.js",
-    "render": "node render-journey.js"
+    "render": "node render-journey.js",
+    "settings": "node settings.js",
+    "items": "node items.js",
+    "compass": "node compass.js",
+    "chain": "node chain.js",
+    "save": "node save.js",
+    "browser-save": "node browser-save.js"
   },
-  "dependencies": { "three": "0.128.0" }
+  "dependencies": {
+    "three": "0.128.0"
+  }
 }

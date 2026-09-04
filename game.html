@@ -435,6 +435,11 @@
   .settings-toggle:hover { background: #2e2517; color: #b9ad8c; }
   .settings-toggle.on { background: #3a2e1c; color: #ffcf6b; border-color: #6b5a3c; }
   .settings-note { font-size: 10px; color: #5a4e38; letter-spacing: 1px; margin-top: 2px; }
+  /* PHASE 23 — the save/load row. Deliberately the existing .settings-toggle chrome in
+     a flex row rather than a new visual language: the panel is not being redesigned. */
+  .settings-actions { display: flex; gap: 6px; }
+  .settings-actions .settings-toggle { flex: 1; min-width: 0; padding: 6px 0; }
+  .settings-note.warn { color: #d8483f; }
 
   .settings-foot {
     display: flex; align-items: center; justify-content: space-between;
@@ -662,6 +667,7 @@
     <h1>BLOCK &amp; RUIN</h1>
     <div class="sub">A COZY WORLD. AN UNKIND NIGHT.</div>
     <div class="divider"></div>
+    <button id="continuePlay" class="action-btn" style="display:none;">CONTINUE</button>
     <button id="clickPlay" class="action-btn">BEGIN EXPEDITION</button>
     <div class="controls">
       WASD MOVE &nbsp;&bull;&nbsp; MOUSE LOOK &nbsp;&bull;&nbsp; SPACE JUMP/SWIM &nbsp;&bull;&nbsp; SHIFT SPRINT<br>
@@ -678,6 +684,19 @@
     <div class="settings-head">
       <span class="settings-title">SETTINGS</span>
       <span class="settings-hint">O &nbsp;OR&nbsp; ESC TO CLOSE</span>
+    </div>
+
+    <div class="settings-group">
+      <div class="settings-row" style="align-items:center;">
+        <span class="settings-label">GAME</span>
+        <span class="settings-value" id="setSaveSlot">NO SAVE</span>
+      </div>
+      <div class="settings-actions">
+        <button class="settings-toggle" id="setSave">SAVE</button>
+        <button class="settings-toggle" id="setLoad">LOAD</button>
+        <button class="settings-toggle" id="setNewGame">NEW GAME</button>
+      </div>
+      <div class="settings-note" id="setSaveStatus"></div>
     </div>
 
     <div class="settings-group">
@@ -23230,7 +23249,10 @@ class PlayerController {
     this.dead = true;
     this.hp = 0;
     if (this.ui) this.ui.updateVitals(this);
-    setTimeout(() => this._respawn(), 900);
+    /* PHASE 23 — the handle matters now. A load during the 900ms between dying and
+       respawning would otherwise be undone by the respawn firing afterwards and
+       teleporting the freshly-restored player back to the spawn point. */
+    this._respawnTimer = setTimeout(() => { this._respawnTimer = null; this._respawn(); }, 900);
   }
 
   _respawn() {
@@ -28520,6 +28542,13 @@ class UIManager {
        panel accumulates duplicate listeners until one slider drag fires forty times. */
     this.settingsOverlay = document.getElementById('settingsOverlay');
     this.settingsOpen = false;
+    /* PHASE 23 — the save/load actions the panel offers. Injected by the Game rather
+       than reached for, so the UI holds no reference back up to the save system and the
+       panel stays inert (and honest about it) if they are never attached. */
+    this._saveActions = null;
+    this._saveActionsBound = false;
+    this._saveStatus = '';
+    this._newGameArmed = false;
     this.settings = null;          // the GameSettings instance, injected by the Game
     this._onSettingsClose = null;  // what to do when it closes (restore pointer lock)
     this._settingsBound = false;
@@ -29222,6 +29251,78 @@ class UIManager {
      IT DOES NOT OWN PAUSE. `settingsOpen` feeds the existing `menuOpen` getter, which
      every gameplay input path already consults — so mining, placing, looking, dropping
      and the hotbar all stop for exactly the same reason they stop for the inventory. */
+  /* PHASE 23 — SAVE / LOAD IN THE PAUSE PANEL.
+
+     No new menu framework and no new visual language: three buttons in the existing
+     .settings-group chrome, at the top of the panel the game already pauses for. The
+     panel is the pause menu, so Save and Load are where a player already goes to stop
+     playing for a moment. NEW GAME asks twice, because it is the one control here that
+     can throw away a run. */
+  attachSaveActions(actions) {
+    this._saveActions = actions || null;
+    this._bindSaveActions();
+    this.syncSaveUI();
+  }
+
+  _bindSaveActions() {
+    if (this._saveActionsBound || !this.settingsOverlay) return;
+    this._saveActionsBound = true;
+    const el = (id) => document.getElementById(id);
+    const saveBtn = el('setSave'), loadBtn = el('setLoad'), newBtn = el('setNewGame');
+
+    if (saveBtn) saveBtn.addEventListener('click', () => {
+      this._disarmNewGame();
+      if (this._saveActions) this._saveActions.save();
+      this.syncSaveUI();
+    });
+    if (loadBtn) loadBtn.addEventListener('click', () => {
+      this._disarmNewGame();
+      if (this._saveActions) this._saveActions.load();
+      this.syncSaveUI();
+    });
+    if (newBtn) newBtn.addEventListener('click', () => {
+      if (!this._newGameArmed) {
+        this._newGameArmed = true;
+        newBtn.textContent = 'CONFIRM?';
+        newBtn.classList.add('on');
+        return;
+      }
+      this._disarmNewGame();
+      if (this._saveActions) this._saveActions.newGame();
+      this.syncSaveUI();
+    });
+  }
+
+  _disarmNewGame() {
+    this._newGameArmed = false;
+    const b = document.getElementById('setNewGame');
+    if (b) { b.textContent = 'NEW GAME'; b.classList.remove('on'); }
+  }
+
+  /* The one line the panel says about saving. Set by the Game after every save, load or
+     refusal, and cleared when the panel is re-opened so a stale "Saved." can never be
+     mistaken for a fresh one. */
+  setSaveStatus(text, isError) {
+    this._saveStatus = text || '';
+    const n = document.getElementById('setSaveStatus');
+    if (n) {
+      n.textContent = this._saveStatus;
+      n.classList.toggle('warn', !!isError || /failed|Not from here|Not during|unavailable|not readable|cannot open/i.test(this._saveStatus));
+    }
+  }
+
+  syncSaveUI() {
+    const slot = document.getElementById('setSaveSlot');
+    if (slot && this._saveActions && typeof this._saveActions.describe === 'function') {
+      const d = this._saveActions.describe();
+      slot.textContent = d ? d.toUpperCase() : 'NO SAVE';
+    }
+    const load = document.getElementById('setLoad');
+    if (load && this._saveActions && typeof this._saveActions.describe === 'function') {
+      load.disabled = !this._saveActions.describe();
+    }
+  }
+
   attachSettings(settings, onClose) {
     this.settings = settings;
     this._onSettingsClose = onClose || null;
@@ -29312,12 +29413,16 @@ class UIManager {
     this.settingsOpen = true;
     this.settingsOverlay.classList.add('active');
     this.syncSettingsUI();
+    this._disarmNewGame();
+    this.setSaveStatus('');
+    this.syncSaveUI();
     // Same pattern the crafting and inventory overlays use.
     document.exitPointerLock();
   }
 
   closeSettings() {
     if (!this.settingsOverlay || !this.settingsOpen) return;
+    this._disarmNewGame();
     this.settingsOpen = false;
     this.settingsOverlay.classList.remove('active');
     if (this.settings) this.settings.save();      // flush the debounce on the way out
@@ -29634,6 +29739,721 @@ class TutorialController {
   }
 }
 
+/* =====================================================================================
+   PHASE 23 — SAVE / LOAD
+
+   WHAT IS SAVED, AND WHAT IS NOT.
+
+   Nothing here serialises the runtime. No renderer, no scene graph, no mesh, no
+   material, no texture, no DOM node, no AudioContext, no listener, no generated
+   geometry and no frame-local timer ever reaches the storage layer. What is written is
+   the STATE the world is a function of:
+
+       deterministic generation  +  the player's persistent edits  =  the current world
+
+   so a load reconstructs the world by running the same generators against the same
+   coordinates and then replaying the edit deltas over them — which is exactly what the
+   chunk streamer already does every time a chunk unloads and comes back.
+
+   THE THREE LAYERS, kept apart on purpose so each can be tested without the other two:
+
+     1. VALIDATION      validateSaveState() — a pure function. No world, no DOM, no
+                        THREE. Takes anything at all (a parsed JSON blob from storage,
+                        a hand-edited file, garbage) and returns either a rejection with
+                        a reason, or a fully-typed state object plus the list of repairs
+                        it had to make to get there. Nothing downstream ever reads a
+                        field this function did not construct.
+     2. WORLD STATE     captureWorldState() / restoreWorldState() — take a VoxelWorld and
+                        nothing else, so the offline suite can round-trip real edits
+                        through a real generated world with no Game and no browser.
+     3. ORCHESTRATION   Game.captureSaveState() / Game.applySaveState() — the one
+                        authoritative teardown-and-rebuild path. Save, Load, Continue and
+                        New Game all funnel through it; there is no second route that
+                        could drift from it.
+
+   THE STORAGE CONTRACT. A failed write must never cost the player the save they already
+   had, so SaveSystem copies the current payload to a backup key BEFORE overwriting the
+   primary, and puts the backup back if the write throws. A read that cannot validate the
+   primary falls through to the backup rather than reporting "no save".
+
+   XP IS DELIBERATELY NOT PERSISTED. The roadmap is explicit that XP is a removed system
+   and must not appear in save data, so the `xp` counter is absent from the schema. What
+   the player has already EARNED with it — their max health, their attack bonus, their
+   mining bonus — is persisted, because losing those on load would be destroying
+   progress rather than declining to store a number. Partial progress toward the next
+   level is discarded. That is a deliberate, documented consequence, and it disappears
+   entirely when Phase 26 removes the system.
+   ===================================================================================== */
+
+const SAVE_VERSION = 1;
+const SAVE_STORAGE_KEY = 'whereitisnt.save.v1';
+const SAVE_BACKUP_KEY = 'whereitisnt.save.v1.backup';
+
+/* THE DIMENSIONS A SAVE MAY NAME. Strings, not the numeric DIMENSION ids: a save file
+   outlives the enum, and "farmlands" cannot silently become a different dimension the
+   way `2` can. The Fake Haven is deliberately absent — see SAVE_BLOCKED_REASON. */
+const SAVE_DIMENSIONS = ['overworld', 'farmlands', 'suburbia'];
+
+/* Coordinate ceiling. The Farmlands sit at x >= -65,536 and the water simulation's cell
+   key is documented exact only for |w| < 2^20, so that is the honest outer bound of the
+   world's addressable space and therefore of a legal saved coordinate. */
+const SAVE_COORD_LIMIT = 1 << 20;
+const SAVE_CHUNK_VOXELS = CHUNK_SX * CHUNK_SY * CHUNK_SZ;
+/* A soft ceiling on the number of voxel edits a save will carry. Mining and building
+   produce these one at a time; the Farmland water simulation can produce a few hundred
+   from a single dam break. A million would be a runaway, not a player. */
+const SAVE_MAX_EDITS = 400000;
+
+/* MIGRATION HOOKS. Keyed by the version being migrated FROM; each returns the state one
+   version newer. Empty because version 1 is the first schema — the architecture exists
+   so a future version can be added without touching the loader, and inventing fake
+   entries now would only be inventing untested code. */
+const SAVE_MIGRATIONS = {};
+
+/* ---------------------------------------------------------------------------------
+   VALIDATION PRIMITIVES
+
+   Every one of them takes the repair log, so a save that is merely dented is repaired
+   and the player is told what was repaired, while a save that is structurally wrong is
+   rejected outright. `undefined` always means "field absent" and takes the default
+   silently: that is what lets a future schema add a field without every older save
+   reporting a repair.
+   --------------------------------------------------------------------------------- */
+function _svNum(rep, path, raw, def, min, max) {
+  if (raw === undefined || raw === null) return def;
+  const n = typeof raw === 'number' ? raw : (typeof raw === 'string' ? parseFloat(raw) : NaN);
+  if (!Number.isFinite(n)) { rep.push(path + ' was not a finite number; using ' + def); return def; }
+  if (n < min) { rep.push(path + ' was ' + n + ', below ' + min + '; clamped'); return min; }
+  if (n > max) { rep.push(path + ' was ' + n + ', above ' + max + '; clamped'); return max; }
+  return n;
+}
+function _svInt(rep, path, raw, def, min, max) {
+  return Math.round(_svNum(rep, path, raw, def, min, max));
+}
+function _svBool(rep, path, raw, def) {
+  if (raw === undefined || raw === null) return !!def;
+  if (typeof raw === 'boolean') return raw;
+  rep.push(path + ' was not a boolean; using ' + !!def);
+  return !!def;
+}
+function _svPlainObject(raw) {
+  return (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : null;
+}
+function _svArray(raw) { return Array.isArray(raw) ? raw : []; }
+
+/* Keys are re-parsed and re-emitted rather than trusted, which is what keeps a crafted
+   file from smuggling "__proto__" or "constructor" in as a chunk key: only strings this
+   function BUILDS from parsed integers ever become object keys downstream. */
+function _svChunkKey(raw) {
+  if (typeof raw !== 'string') return null;
+  const m = /^(-?\d{1,8}),(-?\d{1,8})$/.exec(raw);
+  if (!m) return null;
+  const cx = parseInt(m[1], 10), cz = parseInt(m[2], 10);
+  const lim = SAVE_COORD_LIMIT / CHUNK_SX;
+  if (!Number.isFinite(cx) || !Number.isFinite(cz)) return null;
+  if (Math.abs(cx) > lim || Math.abs(cz) > lim) return null;
+  return cx + ',' + cz;
+}
+function _svBlockKey(raw) {
+  if (typeof raw !== 'string') return null;
+  const m = /^(-?\d{1,8}),(-?\d{1,8}),(-?\d{1,8})$/.exec(raw);
+  if (!m) return null;
+  const x = parseInt(m[1], 10), y = parseInt(m[2], 10), z = parseInt(m[3], 10);
+  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return null;
+  if (Math.abs(x) > SAVE_COORD_LIMIT || Math.abs(z) > SAVE_COORD_LIMIT) return null;
+  if (y < 0 || y >= CHUNK_SY) return null;
+  return x + ',' + y + ',' + z;
+}
+
+/* Which dimension does a world position belong to? The regions are disjoint bands of the
+   single shared coordinate space, so this is decidable from the position alone — which
+   is what lets the loader catch "dimension says farmlands, coordinates say overworld"
+   instead of teleporting the player into empty sky. */
+function saveDimensionAtWorldPos(wx, wz) {
+  if (isFakeHavenWorldPos(wx, wz)) return 'fake_haven';
+  if (isFarmlandsWorldPos(wx, wz)) return 'farmlands';
+  if (isStaticSuburbiaWorldPos(wx, wz)) return 'suburbia';
+  return 'overworld';
+}
+
+/* ---------------------------------------------------------------------------------
+   THE VALIDATOR
+
+   Returns { ok, error, state, repairs }. `ok:false` means the save must not be applied
+   at all; `ok:true` with a non-empty `repairs` means it was applied after being fixed,
+   and the player is told so. JSON.parse succeeding is not validity and is never treated
+   as such — every branch below is a thing a syntactically perfect JSON file can get
+   wrong.
+   --------------------------------------------------------------------------------- */
+function validateSaveState(input) {
+  const rep = [];
+  const fail = (msg) => ({ ok: false, error: msg, state: null, repairs: rep });
+
+  const root = _svPlainObject(input);
+  if (!root) return fail('The save is not a save object.');
+
+  // --- VERSION, and the migration ladder ------------------------------------------
+  const version = root.version;
+  if (typeof version !== 'number' || !Number.isFinite(version) || Math.floor(version) !== version) {
+    return fail('The save has no usable schema version.');
+  }
+  if (version > SAVE_VERSION) {
+    return fail('This save was written by a newer version of the game (schema ' +
+                version + '; this build reads up to ' + SAVE_VERSION + ').');
+  }
+  let src = root;
+  for (let v = version; v < SAVE_VERSION; v++) {
+    const mig = SAVE_MIGRATIONS[v];
+    if (typeof mig !== 'function') return fail('No migration exists from schema ' + v + '.');
+    src = _svPlainObject(mig(src));
+    if (!src) return fail('Migration from schema ' + v + ' produced nothing usable.');
+    rep.push('migrated from schema ' + v + ' to ' + (v + 1));
+  }
+
+  // --- DIMENSION. Unknown dimensions are a hard reject, never a guess. -------------
+  const dimension = src.dimension;
+  if (typeof dimension !== 'string' || SAVE_DIMENSIONS.indexOf(dimension) < 0) {
+    return fail('The save names a dimension this build cannot open (' +
+                (typeof dimension === 'string' ? dimension : typeof dimension) + ').');
+  }
+
+  // --- PLAYER ----------------------------------------------------------------------
+  const rawP = _svPlainObject(src.player);
+  if (!rawP) return fail('The save has no player state.');
+
+  const maxHp = _svInt(rep, 'player.maxHp', rawP.maxHp, 100, 1, 10000);
+  let hp = _svNum(rep, 'player.hp', rawP.hp, maxHp, 0, maxHp);
+  /* A SAVE IS NEVER RESTORED DEAD. The game's own death handling is a respawn at full
+     health, so a save written with no health left (or with the death latch set) comes
+     back alive rather than dropping the player straight back into the death handler on
+     the first frame after a load. */
+  if (hp <= 0 || rawP.dead === true) {
+    rep.push('the save was written with the player dead or at zero health; restored alive');
+    hp = maxHp;
+  }
+
+  const finite3 = (o) => o && Number.isFinite(o.x) && Number.isFinite(o.y) && Number.isFinite(o.z);
+  const rawPos = _svPlainObject(rawP.position);
+  let posValid = true, pos = { x: 0, y: 0, z: 0 };
+  if (!finite3(rawPos)) {
+    posValid = false;
+    rep.push('player.position was missing or not finite; a safe landing will be chosen');
+  } else if (Math.abs(rawPos.x) > SAVE_COORD_LIMIT || Math.abs(rawPos.z) > SAVE_COORD_LIMIT ||
+             rawPos.y < -64 || rawPos.y > CHUNK_SY + 64) {
+    posValid = false;
+    rep.push('player.position was outside the world; a safe landing will be chosen');
+  } else if (saveDimensionAtWorldPos(rawPos.x, rawPos.z) !== dimension) {
+    posValid = false;
+    rep.push('player.position is not inside ' + dimension + '; a safe landing will be chosen');
+  } else {
+    pos = { x: rawPos.x, y: rawPos.y, z: rawPos.z };
+  }
+
+  /* ORIENTATION is a resume comfort, not a safety property, so a broken one is simply
+     replaced with "facing north, level" instead of invalidating the save. */
+  const yaw = _svNum(rep, 'player.yaw', rawP.yaw, 0, -1e6, 1e6);
+  const pitch = _svNum(rep, 'player.pitch', rawP.pitch, 0, -Math.PI / 2, Math.PI / 2);
+
+  const rawInv = _svArray(rawP.inventory);
+  const inventory = new Array(INVENTORY_SIZE).fill(null);
+  for (let i = 0; i < INVENTORY_SIZE; i++) {
+    const slot = _svPlainObject(rawInv[i]);
+    if (!slot) continue;
+    const item = slot.item;
+    if (typeof item !== 'number' || !Number.isFinite(item) || item === ITEM.NONE) continue;
+    if (!ITEM_DATA[item]) { rep.push('inventory slot ' + i + ' held unknown item ' + item + '; dropped'); continue; }
+    /* AN EMPTY OR NEGATIVE STACK IS A SLOT THAT SHOULD NOT EXIST, so it is dropped
+       rather than clamped up to one — clamping would MINT an item the save never had,
+       which is the one thing a loader must never do. */
+    const rawCount = slot.count;
+    let count = 1;
+    if (rawCount !== undefined && rawCount !== null) {
+      const n = typeof rawCount === 'number' ? rawCount : parseFloat(rawCount);
+      if (!Number.isFinite(n)) { rep.push('inventory slot ' + i + ' had no usable count; treated as one'); }
+      else if (n <= 0) { rep.push('inventory slot ' + i + ' held an empty stack; dropped'); continue; }
+      else if (n > 64) { rep.push('inventory slot ' + i + ' held ' + n + '; clamped to one stack'); count = 64; }
+      else count = Math.round(n) || 1;
+    }
+    inventory[i] = { item: item, count: count };
+  }
+  const selectedSlot = _svInt(rep, 'player.selectedSlot', rawP.selectedSlot, 0, 0, HOTBAR_SIZE - 1);
+
+  const player = {
+    position: pos,
+    positionValid: posValid,
+    yaw: yaw,
+    pitch: pitch,
+    hp: hp,
+    maxHp: maxHp,
+    /* Earned capabilities, not XP. See the header. */
+    level: _svInt(rep, 'player.level', rawP.level, 1, 1, 999),
+    attackBonus: _svNum(rep, 'player.attackBonus', rawP.attackBonus, 0, 0, 999),
+    miningSpeedBonus: _svNum(rep, 'player.miningSpeedBonus', rawP.miningSpeedBonus, 0, 0, 999),
+    chestsOpened: _svInt(rep, 'player.chestsOpened', rawP.chestsOpened, 0, 0, 1e6),
+    selectedSlot: selectedSlot,
+    inventory: inventory,
+  };
+
+  // --- SANITY ----------------------------------------------------------------------
+  const sanity = _svNum(rep, 'sanity', src.sanity, 100, 0, 100);
+
+  // --- PROGRESSION -----------------------------------------------------------------
+  const rawG = _svPlainObject(src.progression) || {};
+  const stage = _svInt(rep, 'progression.stage', rawG.stage, 1, 1, 999);
+  const progression = {
+    stage: stage,
+    dayCount: _svInt(rep, 'progression.dayCount', rawG.dayCount, 1, 1, 1e6),
+    memoryFragments: _svInt(rep, 'progression.memoryFragments', rawG.memoryFragments, 0, 0, 1e6),
+    nightsRequired: _svInt(rep, 'progression.nightsRequired', rawG.nightsRequired, 2 + stage, 1, 1e6),
+    awaitingAdvance: _svBool(rep, 'progression.awaitingAdvance', rawG.awaitingAdvance, false),
+    behemothDefeated: _svBool(rep, 'progression.behemothDefeated', rawG.behemothDefeated, false),
+    behemothSpawned: _svBool(rep, 'progression.behemothSpawned', rawG.behemothSpawned, false),
+    compassAcquired: _svBool(rep, 'progression.compassAcquired', rawG.compassAcquired, false),
+    pendingLevel2Transition: _svBool(rep, 'progression.pendingLevel2Transition', rawG.pendingLevel2Transition, false),
+    fakeHavenTriggered: _svBool(rep, 'progression.fakeHavenTriggered', rawG.fakeHavenTriggered, false),
+    farmCrossroadsRecalled: _svBool(rep, 'progression.farmCrossroadsRecalled', rawG.farmCrossroadsRecalled, false),
+    farmJourneyOrd: _svInt(rep, 'progression.farmJourneyOrd', rawG.farmJourneyOrd, 0, -1e6, 1e6),
+    farmHouseSeen: _svBool(rep, 'progression.farmHouseSeen', rawG.farmHouseSeen, false),
+    killCount: _svInt(rep, 'progression.killCount', rawG.killCount, 0, 0, 1e9),
+    riftDisks: [],
+    dimensionsBreached: [DIMENSION.OVERWORLD],
+  };
+  for (const d of _svArray(rawG.riftDisks)) {
+    if (typeof d === 'number' && ITEM_DATA[d] && progression.riftDisks.indexOf(d) < 0) progression.riftDisks.push(d);
+  }
+  for (const d of _svArray(rawG.dimensionsBreached)) {
+    if (typeof d === 'number' && d >= DIMENSION.OVERWORLD && d <= DIMENSION.FAKE_HAVEN &&
+        progression.dimensionsBreached.indexOf(d) < 0) progression.dimensionsBreached.push(d);
+  }
+
+  // --- TEMPORAL --------------------------------------------------------------------
+  /* The clock is stored as SECONDS WITHIN THE CURRENT CYCLE, not as the raw accumulating
+     `t`. Gameplay reads nothing else from it (isDay/isNight/dayFraction are all derived
+     from `t % cycleLength`), so this is lossless for the state that matters, bounded,
+     and immune to a save carrying an ever-growing float. Frame-local animation timers
+     are not saved at all. */
+  const rawT = _svPlainObject(src.time) || {};
+  const time = {
+    cycleSeconds: _svNum(rep, 'time.cycleSeconds', rawT.cycleSeconds, 60, 0, 86400),
+    wasNight: _svBool(rep, 'time.wasNight', rawT.wasNight, false),
+  };
+
+  // --- ANCHOR ----------------------------------------------------------------------
+  let anchor = null;
+  const rawA = _svPlainObject(src.anchor);
+  if (rawA) {
+    const ax = _svInt(rep, 'anchor.x', rawA.x, NaN, -SAVE_COORD_LIMIT, SAVE_COORD_LIMIT);
+    const ay = _svInt(rep, 'anchor.y', rawA.y, NaN, 0, CHUNK_SY - 1);
+    const az = _svInt(rep, 'anchor.z', rawA.z, NaN, -SAVE_COORD_LIMIT, SAVE_COORD_LIMIT);
+    if (!Number.isFinite(ax) || !Number.isFinite(ay) || !Number.isFinite(az)) {
+      rep.push('the anchor record had no usable position; the anchor was dropped');
+    } else {
+      const lvl = _svInt(rep, 'anchor.riftTargetLevel', rawA.riftTargetLevel, 0, 0, 4);
+      anchor = {
+        x: ax, y: ay, z: az,
+        fuel: _svNum(rep, 'anchor.fuel', rawA.fuel, 0, 0, 300),
+        riftActive: _svBool(rep, 'anchor.riftActive', rawA.riftActive, false),
+        riftTargetLevel: (lvl === 2 || lvl === 3) ? lvl : null,
+      };
+      if (anchor.riftActive && anchor.riftTargetLevel === null) {
+        rep.push('the anchor claimed an open rift with no destination; the rift was closed');
+        anchor.riftActive = false;
+      }
+    }
+  }
+
+  // --- WORLD -----------------------------------------------------------------------
+  const rawW = _svPlainObject(src.world) || {};
+  const edits = {};
+  let editCount = 0, editsDropped = 0;
+  const rawEdits = _svPlainObject(rawW.edits) || {};
+  for (const rawKey of Object.keys(rawEdits)) {
+    const key = _svChunkKey(rawKey);
+    if (!key) { editsDropped++; continue; }
+    const flat = _svArray(rawEdits[rawKey]);
+    const out = [];
+    for (let i = 0; i + 1 < flat.length; i += 2) {
+      const idx = flat[i], id = flat[i + 1];
+      if (typeof idx !== 'number' || !Number.isInteger(idx) || idx < 0 || idx >= SAVE_CHUNK_VOXELS) { editsDropped++; continue; }
+      if (typeof id !== 'number' || !Number.isInteger(id) || id < 0 || id >= BLOCK_ID_COUNT) { editsDropped++; continue; }
+      if (editCount >= SAVE_MAX_EDITS) { editsDropped++; continue; }
+      out.push(idx, id);
+      editCount++;
+    }
+    if (out.length) edits[key] = out;
+  }
+  if (editsDropped) rep.push(editsDropped + ' malformed world edit(s) were discarded');
+
+  const keySet = (raw, label) => {
+    const out = [];
+    let dropped = 0;
+    for (const k of _svArray(raw)) {
+      const ok = _svBlockKey(k);
+      if (ok) { if (out.indexOf(ok) < 0) out.push(ok); } else dropped++;
+    }
+    if (dropped) rep.push(dropped + ' malformed ' + label + ' entr(ies) were discarded');
+    return out;
+  };
+  const countMap = (raw, label, min, max) => {
+    const out = [];
+    let dropped = 0;
+    for (const pair of _svArray(raw)) {
+      if (!Array.isArray(pair) || pair.length < 2 || typeof pair[0] !== 'string' || !/^[-0-9,]{1,40}$/.test(pair[0])) { dropped++; continue; }
+      const n = pair[1];
+      if (typeof n !== 'number' || !Number.isFinite(n) || n < min || n > max) { dropped++; continue; }
+      out.push([pair[0], Math.round(n)]);
+    }
+    if (dropped) rep.push(dropped + ' malformed ' + label + ' entr(ies) were discarded');
+    return out;
+  };
+
+  const world = {
+    edits: edits,
+    editCount: editCount,
+    openedChests: keySet(rawW.openedChests, 'opened-chest'),
+    doors: keySet(rawW.doors, 'open-door'),
+    torchDecay: countMap(rawW.torchDecay, 'torch-decay', 0, 1e6),
+    suburbiaVisits: countMap(rawW.suburbiaVisits, 'suburb-visit', 0, 1e6),
+    suburbiaStage: countMap(rawW.suburbiaStage, 'suburb-stage', 0, 1e6),
+    suburbiaDoorOverrides: countMap(rawW.suburbiaDoorOverrides, 'suburb-door-override', 0, 3),
+    mailboxSeen: _svBool(rep, 'world.mailboxSeen', rawW.mailboxSeen, false),
+    mailboxGone: _svBool(rep, 'world.mailboxGone', rawW.mailboxGone, false),
+  };
+
+  // --- SETTINGS (a snapshot; the browser-global settings remain the authority) ------
+  const settings = {};
+  const rawS = _svPlainObject(src.settings);
+  if (rawS) {
+    for (const k of Object.keys(SETTINGS_SCHEMA)) {
+      if (Object.prototype.hasOwnProperty.call(rawS, k)) settings[k] = coerceSetting(k, rawS[k]);
+    }
+  }
+
+  return {
+    ok: true,
+    error: null,
+    repairs: rep,
+    state: {
+      version: SAVE_VERSION,
+      savedAt: _svInt(rep, 'savedAt', src.savedAt, 0, 0, 1e15),
+      dimension: dimension,
+      player: player,
+      sanity: sanity,
+      progression: progression,
+      time: time,
+      anchor: anchor,
+      world: world,
+      settings: settings,
+    },
+  };
+}
+
+/* A one-line description of a save, for the Continue button and the menu. Derived, never
+   stored, so it can never disagree with the state it describes. */
+const SAVE_DIMENSION_NAMES = {
+  overworld: 'The Overworld',
+  farmlands: 'The Shattered Farmlands',
+  suburbia: 'Static Suburbia',
+};
+function describeSaveState(state) {
+  if (!state) return '';
+  const where = SAVE_DIMENSION_NAMES[state.dimension] || state.dimension;
+  return where + ' • Day ' + state.progression.dayCount;
+}
+
+/* ---------------------------------------------------------------------------------
+   WORLD STATE — CAPTURE AND RESTORE
+
+   Both take a VoxelWorld and nothing else. The edit map is written as a flat
+   [idx, id, idx, id, ...] array per chunk rather than as an object of index keys: it is
+   roughly a third of the JSON, and it round-trips through a Map with no key parsing.
+
+   Nothing here generates, disposes or meshes a chunk. Restoring the registries is
+   separate from rebuilding the world on purpose — the caller replaces the registries
+   FIRST and regenerates AFTER, so the replay in _generateChunk sees the restored edits
+   the first time each chunk is built rather than having to be re-applied over the top.
+   --------------------------------------------------------------------------------- */
+function captureWorldState(world) {
+  const edits = {};
+  let editCount = 0;
+  for (const [key, m] of world.editedChunks) {
+    if (!m || m.size === 0) continue;
+    const flat = new Array(m.size * 2);
+    let i = 0;
+    for (const [idx, id] of m) { flat[i++] = idx; flat[i++] = id; }
+    edits[key] = flat;
+    editCount += m.size;
+  }
+
+  /* THE ONE-SHOT FARMLAND ANOMALY is written with _writeBlockRaw, which deliberately
+     does not record an edit — it is meant to be forgotten if the chunk streams out. A
+     save is not a stream-out: the latch says the mailbox is gone, so the voxel has to
+     agree with the latch after a load. Recording it here is the only place the two are
+     reconciled, and it costs one entry. */
+  const mb = world.farmHomeMailbox;
+  if (world._farmMailboxGone && mb) {
+    const cx = Math.floor(mb.x / CHUNK_SX), cz = Math.floor(mb.z / CHUNK_SZ);
+    const lx = ((mb.x % CHUNK_SX) + CHUNK_SX) % CHUNK_SX;
+    const lz = ((mb.z % CHUNK_SZ) + CHUNK_SZ) % CHUNK_SZ;
+    const key = cx + ',' + cz, idx = (mb.y * CHUNK_SZ + lz) * CHUNK_SX + lx;
+    const flat = edits[key] || (edits[key] = []);
+    let present = false;
+    for (let i = 0; i < flat.length; i += 2) if (flat[i] === idx) { flat[i + 1] = BLOCK.AIR; present = true; break; }
+    if (!present) { flat.push(idx, BLOCK.AIR); editCount++; }
+  }
+
+  const pairs = (map, pick) => {
+    const out = [];
+    for (const [k, v] of map) out.push([k, pick ? pick(v) : v]);
+    return out;
+  };
+
+  return {
+    edits: edits,
+    editCount: editCount,
+    openedChests: Array.from(world.openedChests),
+    doors: Array.from(world.suburbiaDoorState.keys()),
+    torchDecay: pairs(world.torchDecay, (rec) => Math.max(0, Math.round(rec.fuel))),
+    suburbiaVisits: pairs(world.suburbiaVisits),
+    suburbiaStage: pairs(world.suburbiaStage),
+    suburbiaDoorOverrides: pairs(world.suburbiaDoorOverrides),
+    mailboxSeen: !!world._farmMailboxSeen,
+    mailboxGone: !!world._farmMailboxGone,
+  };
+}
+
+function restoreWorldState(world, ws) {
+  world.editedChunks = new Map();
+  for (const key of Object.keys(ws.edits)) {
+    const flat = ws.edits[key];
+    const m = new Map();
+    for (let i = 0; i + 1 < flat.length; i += 2) m.set(flat[i], flat[i + 1]);
+    if (m.size) world.editedChunks.set(key, m);
+  }
+
+  world.openedChests = new Set(ws.openedChests);
+
+  world.suburbiaDoorState = new Map();
+  world._doorStateOrder = [];
+  for (const k of ws.doors.slice(-DOOR_STATE_CAP)) {
+    world.suburbiaDoorState.set(k, 1);
+    world._doorStateOrder.push(k);
+  }
+
+  /* The decay ledger is rebuilt from its keys: the record's world coordinates are the
+     key, so nothing else has to be stored for it to be exact. */
+  world.torchDecay = new Map();
+  for (const [k, fuel] of ws.torchDecay) {
+    const parts = k.split(',');
+    const wx = parseInt(parts[0], 10), wy = parseInt(parts[1], 10), wz = parseInt(parts[2], 10);
+    if (!Number.isFinite(wx) || !Number.isFinite(wy) || !Number.isFinite(wz)) continue;
+    world.torchDecay.set(k, { wx: wx, wy: wy, wz: wz, fuel: fuel });
+  }
+
+  world.suburbiaVisits = new Map(ws.suburbiaVisits);
+  world._subVisitOrder = ws.suburbiaVisits.map(p => p[0]);
+  world.suburbiaStage = new Map(ws.suburbiaStage);
+  world._subStageOrder = ws.suburbiaStage.map(p => p[0]);
+  world.suburbiaDoorOverrides = new Map(ws.suburbiaDoorOverrides);
+
+  world._farmMailboxSeen = ws.mailboxSeen;
+  world._farmMailboxGone = ws.mailboxGone;
+}
+
+/* ---------------------------------------------------------------------------------
+   SAFE PLAYER PLACEMENT
+
+   The saved position is a hypothesis, not an instruction. It is only accepted once the
+   chunks it needs are resident AND a body of the player's real dimensions fits there.
+   Everything below the first branch is repair, and every repair is DETERMINISTIC — the
+   same broken save always lands in the same place, so a player who reloads twice does
+   not end up somewhere different each time.
+
+     1. the saved spot, if a real collision query says it is clear
+     2. straight up from it, then straight down from it, in the same column
+     3. the surface of a deterministic ring of nearby columns, nearest first
+     4. the dimension's own canonical arrival point
+
+   findSpawnHeight is used for the ring rather than a hand-rolled scan, because it is the
+   same function the game's own spawn and respawn paths use.
+   --------------------------------------------------------------------------------- */
+function findSafeLanding(world, dimension, x, y, z, halfWidth, height) {
+  /* A COLUMN IS ONLY A CANDIDATE IF THE WORLD ACTUALLY EXISTS THERE. getBlockWorld
+     answers AIR for an ungenerated chunk, so without this test an out-of-range or
+     never-generated coordinate would read as beautifully clear and drop the player
+     through the bottom of the world. Every corner of the body's footprint is checked,
+     not just its centre, because a chunk edge is exactly where this goes wrong. */
+  const resident = (px, pz) => {
+    if (!Number.isFinite(px) || !Number.isFinite(pz)) return false;
+    if (Math.abs(px) > SAVE_COORD_LIMIT || Math.abs(pz) > SAVE_COORD_LIMIT) return false;
+    for (const ox of [-halfWidth, halfWidth]) {
+      for (const oz of [-halfWidth, halfWidth]) {
+        if (!world.getChunk(Math.floor((px + ox) / CHUNK_SX), Math.floor((pz + oz) / CHUNK_SZ))) return false;
+      }
+    }
+    return true;
+  };
+  const fits = (px, py, pz) => {
+    if (py < 1 || py + height >= CHUNK_SY) return false;
+    if (!resident(px, pz)) return false;
+    return !world.collidesAABB({
+      minX: px - halfWidth, maxX: px + halfWidth,
+      minY: py, maxY: py + height,
+      minZ: pz - halfWidth, maxZ: pz + halfWidth,
+    });
+  };
+
+  if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z)) {
+    if (fits(x, y, z)) return { x: x, y: y, z: z, repaired: false, reason: null };
+    for (let dy = 1; dy <= 8; dy++) if (fits(x, y + dy, z)) return { x: x, y: y + dy, z: z, repaired: true, reason: 'lifted out of solid ground' };
+    for (let dy = 1; dy <= 8; dy++) if (fits(x, y - dy, z)) return { x: x, y: y - dy, z: z, repaired: true, reason: 'dropped onto the surface below' };
+
+    /* A deterministic ring walk: rings outward, and within a ring in a fixed order. No
+       randomness anywhere, so the repair is reproducible and explainable. */
+    for (let r = 1; r <= 6; r++) {
+      for (let dx = -r; dx <= r; dx++) {
+        for (let dz = -r; dz <= r; dz++) {
+          if (Math.max(Math.abs(dx), Math.abs(dz)) !== r) continue;
+          const cx = Math.floor(x) + dx + 0.5, cz = Math.floor(z) + dz + 0.5;
+          const gy = world.findSpawnHeight(Math.floor(cx), Math.floor(cz));
+          if (fits(cx, gy, cz)) return { x: cx, y: gy, z: cz, repaired: true, reason: 'moved to clear ground nearby' };
+        }
+      }
+    }
+  }
+
+  const fallback = saveFallbackSpawn(world, dimension);
+  return { x: fallback.x, y: fallback.y, z: fallback.z, repaired: true, reason: 'returned to the arrival point for this dimension' };
+}
+
+/* The last-resort landing for each dimension: the exact point the game's own transition
+   into that dimension uses, so a recovered player arrives somewhere the game already
+   guarantees is safe rather than somewhere invented for the occasion. */
+function saveFallbackSpawn(world, dimension) {
+  if (dimension === 'farmlands' && world.farmlandsSpawn) return world.farmlandsSpawn.clone();
+  if (dimension === 'suburbia' && world.suburbiaSpawn) return world.suburbiaSpawn.clone();
+  const sx = WORLD_CHUNKS_X * CHUNK_SX / 2, sz = WORLD_CHUNKS_Z * CHUNK_SZ / 2;
+  return new THREE.Vector3(sx, world.findSpawnHeight(Math.floor(sx), Math.floor(sz)), sz);
+}
+
+/* ---------------------------------------------------------------------------------
+   STORAGE
+
+   One slot, plus a backup of the payload it is about to replace. Deliberately not a
+   multi-profile manager: the brief asks for robustness, and every additional slot is
+   another thing that can half-write.
+   --------------------------------------------------------------------------------- */
+class SaveSystem {
+  constructor(storage) {
+    this.storage = storage || null;
+    this._cached = undefined;    // undefined = not probed yet; null = nothing loadable
+  }
+
+  get available() { return !!this.storage; }
+
+  _readKey(key) {
+    try { return this.storage ? this.storage.getItem(key) : null; }
+    catch (e) { return null; }
+  }
+
+  /* Parses and FULLY VALIDATES, falling through to the backup when the primary is
+     unusable. Returns { ok, state, repairs, error, source }. */
+  read() {
+    if (!this.storage) return { ok: false, state: null, repairs: [], error: 'Browser storage is unavailable.', source: null };
+    let lastError = 'No save found.';
+    for (const source of ['primary', 'backup']) {
+      const raw = this._readKey(source === 'primary' ? SAVE_STORAGE_KEY : SAVE_BACKUP_KEY);
+      if (raw === null || raw === undefined || raw === '') continue;
+      let parsed = null;
+      try { parsed = JSON.parse(raw); }
+      catch (e) { lastError = 'The save file is not readable.'; continue; }
+      const res = validateSaveState(parsed);
+      if (res.ok) return { ok: true, state: res.state, repairs: res.repairs, error: null, source: source };
+      lastError = res.error;
+    }
+    return { ok: false, state: null, repairs: [], error: lastError, source: null };
+  }
+
+  /* Cheap for the start screen: probed once, then remembered. */
+  peek() {
+    if (this._cached === undefined) {
+      const r = this.read();
+      this._cached = r.ok ? r.state : null;
+    }
+    return this._cached;
+  }
+
+  /* THE WRITE ORDER IS THE WHOLE POINT. The payload is serialised and re-validated
+     BEFORE anything is touched, then the existing save is copied to the backup key, and
+     only then is the primary replaced. A throw at any step leaves at least one complete,
+     valid payload on disk — never a partial one. */
+  write(state) {
+    if (!this.storage) return { ok: false, error: 'Browser storage is unavailable.', bytes: 0 };
+
+    let text;
+    try { text = JSON.stringify(state); }
+    catch (e) { return { ok: false, error: 'The game state could not be serialised.', bytes: 0 }; }
+
+    const check = validateSaveState(JSON.parse(text));
+    if (!check.ok) return { ok: false, error: 'Refused to write an invalid save (' + check.error + ').', bytes: 0 };
+
+    const previous = this._readKey(SAVE_STORAGE_KEY);
+    if (previous) {
+      try { this.storage.setItem(SAVE_BACKUP_KEY, previous); }
+      catch (e) { /* no room for a backup is not a reason to refuse the save */ }
+    }
+    try {
+      this.storage.setItem(SAVE_STORAGE_KEY, text);
+    } catch (e) {
+      /* Quota, private mode, or a storage that simply refuses. Put the old payload back
+         so a failed save cannot be the thing that loses the good one. */
+      if (previous) { try { this.storage.setItem(SAVE_STORAGE_KEY, previous); } catch (e2) { /* nothing more to try */ } }
+      return { ok: false, error: 'The save could not be written (storage full or blocked).', bytes: text.length };
+    }
+    this._cached = check.state;
+    return { ok: true, error: null, bytes: text.length };
+  }
+
+  clear() {
+    try { if (this.storage) this.storage.removeItem(SAVE_STORAGE_KEY); } catch (e) { /* nothing to do */ }
+    try { if (this.storage) this.storage.removeItem(SAVE_BACKUP_KEY); } catch (e) { /* nothing to do */ }
+    this._cached = null;
+  }
+
+  invalidate() { this._cached = undefined; }
+}
+
+/* THE DOCUMENTED INITIAL STATE. A New Game is this state applied through the same path a
+   load uses, which is what makes "a new game inherits nothing" true by construction
+   rather than by a checklist. Routed through the validator so the shape a New Game
+   produces and the shape a load produces are provably identical. */
+function defaultSaveState(settings) {
+  return validateSaveState({
+    version: SAVE_VERSION,
+    savedAt: 0,
+    dimension: 'overworld',
+    player: {
+      position: null,          // no saved position: the arrival point is resolved for it
+      yaw: 0, pitch: 0,
+      hp: 100, maxHp: 100,
+      level: 1, attackBonus: 0, miningSpeedBonus: 0,
+      chestsOpened: 0, selectedSlot: 0, inventory: [],
+    },
+    sanity: 100,
+    progression: {
+      stage: 1, dayCount: 1, memoryFragments: 0, nightsRequired: 3,
+      awaitingAdvance: false, behemothDefeated: false, behemothSpawned: false,
+      compassAcquired: false, pendingLevel2Transition: false, fakeHavenTriggered: false,
+      farmCrossroadsRecalled: false, farmJourneyOrd: 0, farmHouseSeen: false,
+      killCount: 0, riftDisks: [], dimensionsBreached: [DIMENSION.OVERWORLD],
+    },
+    time: { cycleSeconds: 60, wasNight: false },
+    anchor: null,
+    world: {},
+    settings: settings ? settings.toJSON() : {},
+  }).state;
+}
+
 class Game {
   constructor() {
     this.canvas = document.getElementById('gameCanvas');
@@ -29649,6 +30469,10 @@ class Game {
     this.settings = new GameSettings(safeLocalStorage());
     this.settings.onChange((key) => this._onSettingChanged(key));
     this.running = false;    // PHASE 22 — true once _beginPlay has entered the frame loop
+    /* PHASE 23 — the save slot. Constructed beside the settings and given the same
+       probed storage handle, so a browser that blocks site data loses saving exactly the
+       way it loses settings: cleanly, with the game still playable. */
+    this.saves = new SaveSystem(safeLocalStorage());
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 400);
@@ -29671,9 +30495,7 @@ class Game {
     this.player = new PlayerController(this.camera, this.world, this.canvas, this.sound, this.ui);
     this.ui.bindPlayer(this.player);
 
-    const sx = Math.floor(this.player.position.x) + 2, sz = Math.floor(this.player.position.z) + 2;
-    const sy = this.world.findSpawnHeight(sx, sz);
-    this.world.setBlockWorld(sx, sy, sz, BLOCK.TORCH);
+    this._placeStarterTorch();
 
     this.env = new EnvironmentSystem(this.scene, this.renderer);
     this.ashParticles = new AshParticleSystem(this.scene); // Level 2 — Ashen Forest cinder flakes
@@ -29753,6 +30575,17 @@ class Game {
     document.getElementById('skipTutorialLink').addEventListener('click', () => this._start());
     // PHASE 22 — settings are reachable before the game begins as well as during it.
     document.getElementById('startSettingsLink').addEventListener('click', () => this.ui.toggleSettings());
+    /* PHASE 23 — CONTINUE. Hidden unless a save that actually validates exists, so the
+       button can never offer to resume something the loader would then refuse. */
+    const continueBtn = document.getElementById('continuePlay');
+    if (continueBtn) continueBtn.addEventListener('click', () => this.continueFromSave());
+    this.ui.attachSaveActions({
+      save: () => this.saveGame('manual'),
+      load: () => { const r = this.loadGame(); if (r.ok) this.ui.closeSettings(); return r; },
+      newGame: () => { this.newGame(); this.ui.closeSettings(); if (!this.running) this._start(); },
+      describe: () => { const st = this.saves.peek(); return st ? describeSaveState(st) : null; },
+    });
+    this._refreshContinueButton();
     document.getElementById('nextLevelBtn').addEventListener('click', () => {
       if (this.pendingLevel2Transition) this._transitionToLevel2();
       else this._advanceStage();
@@ -29766,6 +30599,444 @@ class Game {
     this.stopEmbers = startEmbers(document.getElementById('startEmbers'));
 
     this._animate = this._animate.bind(this);
+  }
+
+
+  /* ===================================================================================
+     PHASE 23 — SAVE / LOAD ORCHESTRATION
+
+     Four player-facing verbs — Save, Load, Continue, New Game — and exactly ONE path
+     through the world underneath all of them: _applyRestoredState(). There is no second
+     route that rebuilds the world, which is what makes "loading twice does not duplicate
+     anything" a structural property rather than a thing to remember.
+     =================================================================================== */
+
+  /* The Fake Haven is the one place the game refuses to save. It is a terminal, scripted
+     sequence — movement is taken away, the world behind the player has been flushed, and
+     the whole thing ends in the credits under a minute later. There is no progression in
+     it to preserve, and its cabin is built from scene props with no teardown path, so a
+     "restore" would have to rebuild an illusion the game only ever builds once. Refusing
+     honestly is better than restoring something broken. */
+  saveBlockedReason() {
+    if (this.player.inFakeHaven || this.fakeHavenTriggered || this.climaxTriggered) {
+      return 'Not from here.';
+    }
+    if (this.player.movementLocked) return 'Not during this.';
+    if (!this.running) return 'Nothing to save yet.';
+    return null;
+  }
+
+  /* --- CAPTURE -------------------------------------------------------------------- */
+  captureSaveState() {
+    const p = this.player, w = this.world, a = this.anchorManager;
+    const dimension = p.inFarmlands ? 'farmlands' : (p.inSuburbia ? 'suburbia' : 'overworld');
+
+    const inventory = p.inventory.slots.map(s =>
+      (s.item === ITEM.NONE || s.count <= 0) ? null : { item: s.item, count: s.count });
+
+    let anchor = null;
+    if (a.activeAnchor) {
+      const ap = a.activeAnchor.pos;
+      anchor = {
+        x: Math.floor(ap.x), y: Math.floor(ap.y), z: Math.floor(ap.z),
+        fuel: a.activeAnchor.fuel,
+        riftActive: !!a.riftActive,
+        riftTargetLevel: a.riftTargetLevel || null,
+      };
+    }
+
+    return {
+      version: SAVE_VERSION,
+      savedAt: Date.now(),
+      dimension: dimension,
+      player: {
+        position: { x: p.position.x, y: p.position.y, z: p.position.z },
+        yaw: p.yaw, pitch: p.pitch,
+        hp: p.hp, maxHp: p.maxHp, dead: !!p.dead,
+        /* Earned capabilities. The XP counter itself is deliberately absent — see the
+           Phase 23 header. */
+        level: p.level, attackBonus: p.attackBonus, miningSpeedBonus: p.miningSpeedBonus,
+        chestsOpened: p.chestsOpened || 0,
+        selectedSlot: p.selectedSlot,
+        inventory: inventory,
+      },
+      sanity: this.sanity.value,
+      progression: {
+        stage: this.stage,
+        dayCount: this.dayCount,
+        memoryFragments: this.memoryFragments,
+        nightsRequired: this.nightsRequired,
+        awaitingAdvance: !!this.awaitingAdvance,
+        behemothDefeated: !!this.behemothDefeated,
+        behemothSpawned: !!this.behemothSpawned,
+        compassAcquired: !!this.compassAcquired,
+        pendingLevel2Transition: !!this.pendingLevel2Transition,
+        fakeHavenTriggered: !!this.fakeHavenTriggered,
+        farmCrossroadsRecalled: !!this.farmCrossroadsRecalled,
+        farmJourneyOrd: this.farmJourneyOrd || 0,
+        farmHouseSeen: !!this.farmHouseSeen,
+        killCount: this.mobs.killCount || 0,
+        riftDisks: Array.from(this.riftDisksCollected),
+        dimensionsBreached: Array.from(this.dimensionsBreached),
+      },
+      time: {
+        cycleSeconds: this.env.cycleSeconds,
+        wasNight: !!this.wasNight,
+      },
+      anchor: anchor,
+      world: captureWorldState(w),
+      settings: this.settings.toJSON(),
+    };
+  }
+
+  /* --- TEARDOWN -------------------------------------------------------------------
+     Everything that could survive a load and become a duplicate is taken down here, and
+     nothing is taken down anywhere else. Deliberately the same set the Level 4 flush
+     clears, plus the world-level light registries that flush does not reach. */
+  _teardownForRestore() {
+    const w = this.world;
+
+    this.mobs.clearAll(true);
+    this.mobs.spawningDisabled = false;
+    this.stalker.clearAll();
+    this.phantoms.clearAll();
+    this.arrows.clearAll();
+    for (const e of this.itemManager.entities.slice()) e.destroy();
+    this.itemManager.entities.length = 0;
+    this.ashParticles.setActive(false);
+    this.farmAnimals.destroyAll();
+    this.stalkerDistance = Infinity;
+
+    /* Lantern and Soul Anchor props are registered per world position rather than per
+       chunk, so disposeChunk never takes them down. Left alone they would stack up one
+       full set per load. */
+    for (const k of Array.from(this.world.lanternLights.keys())) {
+      const p = k.split(',');
+      w._removeLanternLight(+p[0], +p[1], +p[2]);
+    }
+    for (const k of Array.from(this.world.soulAnchors.keys())) {
+      const p = k.split(',');
+      w._removeSoulAnchorZone(+p[0], +p[1], +p[2]);
+    }
+
+    /* wipeAllChunks clears the pin registry, disposes every chunk (pinned cores
+       included) and tears down the standalone Suburbia/Home props, which is exactly what
+       has to happen before the edit registry is replaced: a pinned chunk that survived
+       would still be holding the PREVIOUS session's blocks. */
+    w.wipeAllChunks();
+    w._genQueue.length = 0;
+    w._queuedKeys.clear();
+    w.mimicCandidates.clear();
+    if (w._wQ) { w._wQ.length = 0; w._wPending.clear(); w._wAcc = 0; }
+    w._subInsideLot = null;
+    w._subInsideKey = null;
+    w._subRecogTick = 0;
+    w._subRecogCooldown = 0;
+    if (w._subPending) w._subPending.clear();
+    w._suburbiaRearrangeTimer = 0;
+
+    this.anchorManager.removeAnchor();
+
+    // UI: nothing modal may survive a load.
+    if (this.ui.storageOpen) this.ui.closeStorage();
+    if (this.ui.craftingOpen) this.ui.toggleCrafting();
+    if (this.ui.backpackOpen) this.ui.toggleBackpack();
+    this.ui.hideWinScreen();
+
+    // Player body: no residual motion, mining, lock or death.
+    const p = this.player;
+    if (p._respawnTimer) { clearTimeout(p._respawnTimer); p._respawnTimer = null; }
+    p.velocity.set(0, 0, 0);
+    p.dead = false;
+    p.mining = false;
+    p.movementLocked = false;
+    p.breakProgress = 0;
+    p.miningHitTimer = 0;
+    p.swingTimer = 0;
+    p.attackCooldown = 0;
+    p.invulnTimer = 0;
+    p.stationaryTimer = 0;
+    p.walkDistance = 0;
+    p.footstepTimer = 0;
+    p.waterClimb = 0;
+    p.inDeepWater = false;
+    p.wading = false;
+    p.havenBedUsed = false;
+    p.keys = {};
+    if (p.highlight) p.highlight.hide();
+    this.ui.setMiningProgress(0);
+
+    // Game-level cinematic latches that are not progression.
+    this.havenTimer = 0;
+    this.havenShiftTriggered = false;
+    this.havenShiftElapsed = 0;
+    this.climaxTriggered = false;
+    this.shakeAmount = 0; this.shakeDuration = 0; this.shakeTime = 0;
+  }
+
+  /* --- APPLY ----------------------------------------------------------------------
+     The order is the contract: registries before generation, generation before
+     placement, placement before the player, the player before the HUD. */
+  _applyRestoredState(state) {
+    const w = this.world, p = this.player;
+    const notes = [];
+
+    this._teardownForRestore();
+
+    // 1. WORLD REGISTRIES — replaced wholesale, before a single chunk is rebuilt.
+    restoreWorldState(w, state.world);
+
+    // 2. DETERMINISTIC WORLD — the region cores are rebuilt from the same generators the
+    //    boot uses, and now replay the restored edits as they build.
+    w._genFarmlandsRegion();
+    w._genStaticSuburbiaRegion();
+
+    // 3. DIMENSION.
+    p.inFarmlands = state.dimension === 'farmlands';
+    p.inSuburbia = state.dimension === 'suburbia';
+    p.inFakeHaven = false;
+
+    // 4. THE GROUND UNDER THE PLAYER, before the player is put on it.
+    const want = state.player.positionValid
+      ? state.player.position
+      : saveFallbackSpawn(w, state.dimension);
+    w._eagerLoadAround(want.x, want.z, 3);
+
+    const landing = findSafeLanding(w, state.dimension, want.x, want.y, want.z,
+                                    p.halfWidth, p.height);
+    if (!state.player.positionValid) notes.push('placed at the arrival point');
+    else if (landing.repaired) notes.push(landing.reason);
+
+    // 5. THE PLAYER.
+    p.position.set(landing.x, landing.y, landing.z);
+    p.yaw = state.player.yaw;
+    p.pitch = state.player.pitch;
+    p.maxHp = state.player.maxHp;
+    p.hp = Math.max(1, Math.min(state.player.maxHp, state.player.hp));
+    p.level = state.player.level;
+    p.attackBonus = state.player.attackBonus;
+    p.miningSpeedBonus = state.player.miningSpeedBonus;
+    p.xp = 0;                              // never persisted; see the Phase 23 header
+    p.chestsOpened = state.player.chestsOpened;
+    p.selectedSlot = state.player.selectedSlot;
+    for (let i = 0; i < INVENTORY_SIZE; i++) {
+      const s = state.player.inventory[i];
+      p.inventory.slots[i].item = s ? s.item : ITEM.NONE;
+      p.inventory.slots[i].count = s ? s.count : 0;
+    }
+    /* spawnPosition is deliberately NOT recomputed here. It is the Overworld respawn
+       point, it was resolved at boot while those chunks were resident, and re-deriving it
+       from a world whose loaded footprint is currently in the Farmlands would read an
+       ungenerated column and move it. */
+
+    // 6. ANCHOR. The block itself came back with the edits; this restores the monument
+    //    the block stands for, and re-pins its chunk exactly as placing it does.
+    if (state.anchor) {
+      const a = state.anchor;
+      this.anchorManager.placeAnchor(a.x, a.y, a.z);
+      this.anchorManager.activeAnchor.fuel = a.fuel;
+      w.pinnedChunkKeys.add(w.key(Math.floor(a.x / CHUNK_SX), Math.floor(a.z / CHUNK_SZ)));
+      if (a.riftActive && a.riftTargetLevel) this.anchorManager.powerRiftCore(a.riftTargetLevel);
+    }
+
+    /* 7. PLACED LIGHT SOURCES inside the loaded footprint. Torches and portals are
+       re-lit by the mesher's own light scan; lanterns and Soul Anchors are not in that
+       scan, so their restored blocks are re-registered here. Bounded to chunks that are
+       actually resident, so this can never add scene objects for ground the player is
+       nowhere near. */
+    for (const chunk of w.chunks.values()) {
+      const edits = w.editedChunks.get(w.key(chunk.cx, chunk.cz));
+      if (!edits) continue;
+      for (const [idx, id] of edits) {
+        if (id !== BLOCK.LANTERN && id !== BLOCK.SOUL_ANCHOR) continue;
+        const y = Math.floor(idx / (CHUNK_SX * CHUNK_SZ));
+        const rem = idx - y * CHUNK_SX * CHUNK_SZ;
+        const lz = Math.floor(rem / CHUNK_SX), lx = rem - lz * CHUNK_SX;
+        const wx = chunk.cx * CHUNK_SX + lx, wz = chunk.cz * CHUNK_SZ + lz;
+        if (id === BLOCK.LANTERN) w._addLanternLight(wx, y, wz);
+        else w._addSoulAnchorZone(wx, y, wz);
+      }
+    }
+
+    // 8. PROGRESSION.
+    const g = state.progression;
+    this.stage = g.stage;
+    this.dayCount = g.dayCount;
+    this.memoryFragments = g.memoryFragments;
+    this.nightsRequired = g.nightsRequired;
+    this.awaitingAdvance = g.awaitingAdvance;
+    this.behemothDefeated = g.behemothDefeated;
+    this.behemothSpawned = g.behemothSpawned;
+    this.compassAcquired = g.compassAcquired;
+    this.pendingLevel2Transition = g.pendingLevel2Transition;
+    this.fakeHavenTriggered = g.fakeHavenTriggered;
+    this.farmCrossroadsRecalled = g.farmCrossroadsRecalled;
+    this.farmJourneyOrd = g.farmJourneyOrd;
+    this.farmHouseSeen = g.farmHouseSeen;
+    this.mobs.killCount = g.killCount;
+    this.riftDisksCollected = new Set(g.riftDisks);
+    this.dimensionsBreached = new Set(g.dimensionsBreached);
+    // Difficulty is a pure function of the stage, exactly as _advanceStage computes it.
+    this.mobs.difficultyMult = 1 + (this.stage - 1) * 0.4;
+    this.mobs.maxMobs = Math.min(MOB_CAP_MAX, MOB_CAP_BASE + this.stage * MOB_CAP_PER_STAGE);
+
+    // 9. TEMPORAL. The night-survived edge is restored with the clock, so a load can
+    //    never award a night the player already banked (nor swallow one they had not).
+    this.env.t = state.time.cycleSeconds % this.env.cycleLength;
+    this.wasNight = state.time.wasNight;
+
+    // 10. SANITY — the value only. Thresholds are read from it every frame; nothing is
+    //     re-fired, because nothing here calls a threshold handler.
+    this.sanity.value = state.sanity;
+
+    // 11. AUDIO / POST-FX / SKY, applied now rather than a frame later.
+    this._applyRestoredPresentation(state);
+
+    /* 12. The win screen is modal state, not progression: if the save was taken with it
+       up, put it back up, or the stage the player had already cleared could never be
+       advanced past. */
+    if (this.awaitingAdvance) {
+      if (this.behemothDefeated && !this.pendingLevel2Transition) this.ui.triggerBossVictory();
+      else this.ui.triggerWinScreen(this.stage);
+    }
+
+    return notes;
+  }
+
+  /* Everything the frame loop does NOT re-derive on its own each tick. The environment
+     overrides, Suburbia audio and the compass all follow the dimension flags every
+     frame; the Haven music mode and the horror post-FX switch are latched, so they are
+     set explicitly here. */
+  _applyRestoredPresentation(state) {
+    this.sound.setFakeHavenMode(false);
+    this.sound.setSuburbiaMode(this.player.inSuburbia);
+    this.postfx.setHorrorEnabled(true);
+    this.env.setNightmareOverride(false);
+    this.env.setFakeHavenOverride(false);
+    this.env.setSuburbiaOverride(this.player.inSuburbia);
+    this.env.setFarmlandsOverride(this.player.inFarmlands
+      ? farmlandsBiomeAt(this.player.position.x, this.player.position.z) : null);
+    this.env.setFollowTarget(this.player.position);
+    this.env.update(0);
+    this.ashParticles.setActive(false);
+
+    this._syncProgressionHUD();
+    this.ui.setSanity(this.sanity.value);
+    this.ui.updateVitals(this.player);
+    this.ui.updateHotbarSelection();
+    this.ui.setDay(this.dayCount);
+    this.ui.setPhase(this.env.isNight, this.env.dayFraction);
+    if (this.compassAcquired) this.ui.updateCompass(this.player.yaw);
+    this.ui.setJourneyStep(null, false);
+  }
+
+  /* --- THE VERBS ------------------------------------------------------------------ */
+
+  saveGame(reason) {
+    const blocked = this.saveBlockedReason();
+    if (blocked) return { ok: false, error: blocked };
+    let state;
+    try { state = this.captureSaveState(); }
+    catch (e) { return { ok: false, error: 'The game state could not be captured.' }; }
+    const res = this.saves.write(state);
+    this._lastSaveResult = res;
+    if (res.ok) {
+      this._refreshContinueButton();
+      this.ui.setSaveStatus('Saved. ' + describeSaveState(this.saves.peek()));
+      if (reason !== 'auto') this.ui.showToast('Game saved.', 1600);
+    } else {
+      this.ui.setSaveStatus('Save failed: ' + res.error);
+      this.ui.showToast('Save failed: ' + res.error, 2600);
+    }
+    return res;
+  }
+
+  /* A conservative, event-based autosave: the two dimension crossings, and nothing else.
+     No timer, no per-frame write, no write on an ordinary block edit. */
+  autosave() {
+    if (this.saveBlockedReason()) return;
+    this.saveGame('auto');
+  }
+
+  loadGame() {
+    if (this.player.inFakeHaven || this.climaxTriggered) {
+      this.ui.setSaveStatus('Not from here.');
+      return { ok: false, error: 'Not from here.' };
+    }
+    const read = this.saves.read();
+    if (!read.ok) {
+      this.ui.setSaveStatus(read.error);
+      this.ui.showToast(read.error, 2600);
+      return { ok: false, error: read.error };
+    }
+    const notes = this._applyRestoredState(read.state);
+    const extra = read.repairs.concat(notes);
+    const recovered = read.source === 'backup' ? ' (recovered from the backup copy)' : '';
+    this.ui.setSaveStatus('Loaded: ' + describeSaveState(read.state) + recovered +
+                          (extra.length ? ' — repaired: ' + extra.join('; ') : ''));
+    this.ui.showToast('Game loaded.' + (recovered ? ' Recovered from backup.' : ''), 2000);
+    return { ok: true, state: read.state, repairs: extra };
+  }
+
+  /* A NEW GAME IS THE SAME PATH, applied to the documented initial state, so it cannot
+     inherit anything a load cannot inherit. The stored save is deliberately NOT deleted:
+     starting fresh is not a request to destroy the run the player already has, and the
+     next explicit Save is what replaces it. */
+  newGame() {
+    this._applyRestoredState(defaultSaveState(this.settings));
+    this._placeStarterTorch();
+    this.ui.setSaveStatus('New game started.');
+    return { ok: true };
+  }
+
+  /* Continue from the start screen: the world is restored first and the frame loop is
+     entered afterwards, so nothing simulates against a half-built world. The opening
+     instruction is not replayed — the player has already heard it, and it is the closing
+     beat of the opening film rather than a loading screen. */
+  continueFromSave() {
+    const read = this.saves.read();
+    if (!read.ok) return { ok: false, error: read.error };
+    document.getElementById('startScreen').style.display = 'none';
+    document.getElementById('tutorialScreen').classList.remove('active');
+    if (this.stopEmbers) { this.stopEmbers(); this.stopEmbers = null; }
+    this.sound.start();
+    this._applyAudioSettings();
+    /* A save carries a copy of the settings, but the browser-global settings written by
+       Phase 22 remain the authority — the copy is only consulted when the browser has no
+       settings of its own (cleared site data, a different profile), which makes the save
+       a recovery path rather than a competing owner. */
+    if (this.settings.storage) {
+      let stored = null;
+      try { stored = this.settings.storage.getItem(SETTINGS_STORAGE_KEY); } catch (e) { stored = null; }
+      if (!stored) this.settings.applyJSON(read.state.settings);
+    }
+    this._applyRestoredState(read.state);
+    this._beginPlay();
+    return { ok: true, state: read.state };
+  }
+
+  hasSave() { return !!this.saves.peek(); }
+
+  _refreshContinueButton() {
+    this.saves.invalidate();
+    const state = this.saves.peek();
+    this.ui.syncSaveUI();
+    const btn = document.getElementById('continuePlay');
+    if (!btn) return;
+    if (state) {
+      btn.style.display = '';
+      btn.textContent = 'CONTINUE — ' + describeSaveState(state).toUpperCase();
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+
+  /* The one torch the world starts with. Extracted so a New Game puts it back: it is a
+     world EDIT, and a New Game clears the edit registry. */
+  _placeStarterTorch() {
+    const sx = Math.floor(this.player.position.x) + 2, sz = Math.floor(this.player.position.z) + 2;
+    const sy = this.world.findSpawnHeight(sx, sz);
+    this.world.setBlockWorld(sx, sy, sz, BLOCK.TORCH);
   }
 
   _openTutorial() {
@@ -29989,6 +31260,10 @@ class Game {
     }
     this.ui.updateVitals(this.player);
     this.canvas.requestPointerLock();
+    /* PHASE 23 — AUTOSAVE, and only here. A dimension crossing is the one event in the
+       game that is both irreversible and expensive to redo, so it is the one event worth
+       a write. There is no timer, no per-frame write and no write on an ordinary edit. */
+    this.autosave();
   }
 
   // LEVEL TRANSITION — fired directly from the Rift Core trigger-radius check in
@@ -30021,6 +31296,7 @@ class Game {
     this._syncProgressionHUD();
     this.ui.updateVitals(this.player);
     this.canvas.requestPointerLock();
+    this.autosave();   // PHASE 23 — see _transitionToLevel2
   }
 
   /* ---------------------------------------------------------------------------------
