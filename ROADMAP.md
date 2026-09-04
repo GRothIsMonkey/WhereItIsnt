@@ -1582,7 +1582,11 @@ Never load the player into:
 
 ---
 
-# 42. PHASE 24 — CANONICAL STORY FOUNDATION
+# 42. PHASE 24 — CANONICAL STORY FOUNDATION  — **COMPLETE**
+
+Delivered. The canon is in **`STORY.md`** — the authority on what the game means, what
+every dimension and entity is for, the player knowledge curve, and the explicit list of
+things that must never be explained. Read it before writing any player-facing text.
 
 Purpose:
 
@@ -3296,13 +3300,14 @@ Claude Code should inspect the repository before making assumptions.
 
 Current completed milestone:
 
-Phase 23 — Save / Load
-(Phase 22 settings, Phase 21 dropped item ground contact, and Phase 20 including
-the 20.1 journey revision and the 20.2 guidance pass — see PROGRESS.md)
+Phase 24 — Canonical Story Foundation
+(Phase 23 save/load, Phase 22 settings, Phase 21 dropped item ground contact, and
+Phase 20 including the 20.1 journey revision and the 20.2 guidance pass —
+see PROGRESS.md, and STORY.md for the canon)
 
 Current next major phase:
 
-Phase 24 — Canonical Story Foundation
+Phase 25 — Dynamic Objective System
 
 Current game build baseline:
 

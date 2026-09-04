@@ -246,13 +246,21 @@ This creates:
 - increasingly impossible environments
 - the final entity
 
-Do not treat this exact wording as immutable final lore.
+This wording was the working sketch. It has now been superseded.
 
-The canonical story is established formally in the future story foundation
-phase.
+THE CANONICAL STORY IS ESTABLISHED IN:
 
-However, all new systems should remain compatible with the concept unless
-explicitly instructed otherwise.
+STORY.md
+
+Phase 24 completed the story foundation. STORY.md is the authority on what the
+game means, what every location and entity is for, what the player learns and
+when, and — importantly — what must never be explained.
+
+Read STORY.md before writing any player-facing text, objective line,
+environmental detail, cinematic, or creature.
+
+The sketch above remains directionally correct. Where it and STORY.md differ,
+STORY.md wins.
 
 ---
 
@@ -1491,9 +1499,11 @@ Never load a player into:
 
 ---
 
-# 50. PHASE 24 — CANONICAL STORY FOUNDATION
+# 50. PHASE 24 — CANONICAL STORY FOUNDATION — COMPLETE
 
-The purpose is to define one coherent story connecting:
+Delivered. The canon lives in STORY.md; this section records the brief it answered.
+
+The purpose was to define one coherent story connecting:
 
 - Overworld
 - Blood Nights
