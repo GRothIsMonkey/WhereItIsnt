@@ -1,8 +1,8 @@
 # WHERE IT ISN'T — PROJECT STATE
 
 ```
-Current phase              23 — SAVE / LOAD (complete)
-Next phase                 24 — CANONICAL STORY FOUNDATION
+Current phase              24 — CANONICAL STORY FOUNDATION (complete)
+Next phase                 25 — DYNAMIC OBJECTIVE SYSTEM
 Phase 19                   COMPLETE
 Phase 20                   COMPLETE
 Phase 20 journey revision  COMPLETE           (20.1 — see section 0)
@@ -10,7 +10,9 @@ Phase 20.2 guidance        COMPLETE           (see section 0.5)
 Phase 21                   COMPLETE           (see section 0.2)
 Phase 22                   COMPLETE           (see section 0.1)
 Phase 23                   COMPLETE           (see section 0.0)
+Phase 24                   COMPLETE           (the canon lives in STORY.md)
 Authoritative build        game.html          (there is no other game file)
+Canonical story            STORY.md           (read before writing ANY player text)
 Validation suite           tests/             (see tests/README.md)
 ```
 
@@ -23,6 +25,110 @@ describe Phase 20 as it was first delivered, and Section 0 describes the 20.1 jo
 revision that followed a human playtest and supersedes them wherever they disagree** — principally the beat table, the landmark set, the distances, and the
 performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
 instruction and the compass and changed no world generation at all.
+
+---
+
+## 0.00. PHASE 24 — CANONICAL STORY FOUNDATION
+
+**The canon itself is in `STORY.md`, not here.** This section records what Phase 24 did
+to the repository; the story lives in one file so a future session has one place to look.
+
+### THE METHOD
+
+The canon was **derived from the build, not imposed on it.** Five systems written across
+five separate phases — the water tower's red light, the Disconnected Home's mailbox, the
+Stalker's freeze, the farm animals, and Suburbia's rearrangement — all independently key
+off the same thing: **they change only when nobody is looking.** Nobody planned that as a
+theme; it emerged because it is what felt frightening each time it was built.
+
+Phase 24's central decision was to promote that accident to the canon:
+
+> The world resolves under attention and lets go of what nobody is looking at.
+
+Everything else in `STORY.md` follows from that one sentence, which is why the canon
+explains the existing mechanics instead of sitting beside them.
+
+### THE PREMISE, IN ONE PARAGRAPH
+
+Reality was damaged. Something is rebuilding it from an incomplete **record** of what was
+there, and the rebuild only resolves under observation. The record holds geometry, roads
+and compass directions perfectly and holds **people not at all**. The further the player
+travels, the worse the record gets and the more of the work is being done from copies of
+copies — until the distinction between the place and the imitation stops being answerable.
+Nothing in the game ever names the thing doing the rebuilding, and nothing ever explains
+why.
+
+### WHAT EACH DIMENSION IS FOR
+
+| stage | what it is |
+|---|---|
+| Overworld | the thickest part of the record — the baseline the rest violates |
+| Shattered Farmlands | the thin part: buildings came back, people did not |
+| Disconnected Home | two records (outside and inside) that were never reconciled |
+| Static Suburbia | the record rebuilt **from a rebuild** — a second-generation copy |
+| Fake Haven | a small record rebuilt perfectly, because it was *loved* rather than merely observed |
+| The final scene | the record's subject, with nothing left in front of it |
+
+### THE AUDIT — EXISTING LORE, AND WHAT IT COST
+
+Every narrative string in `game.html` was inventoried before anything was written:
+tutorial pages, the opening instruction, journey objective lines, dimension banners,
+toasts, win screens, credits, farm sign names, and the entity comment blocks.
+
+**Kept, and now explained rather than replaced:**
+
+- *"At the crossroads, go east." / "Go east."* — untouched
+- *"A brass compass, still true. North holds."* — now canon: direction is one of the few
+  things the record kept perfectly
+- the journey's observation-only objective lines — the model Phase 25 must follow
+- the farm signs (ROTH / JOHNSON / MILLER FARM) — canon: a name on a board is geometry,
+  so it survives; the family does not
+- every observation-keyed behaviour listed above — now the load-bearing wall
+
+**Contradictions found and fixed (four strings, no logic):**
+
+1. `<title>Block &amp; Ruin</title>` — the retired project name, in the browser tab
+2. the start screen `<h1>BLOCK &amp; RUIN</h1>`
+3. the credits title `BLOCK &amp; RUIN`
+4. the tutorial's opening line, *"**Block & Ruin** is a survival horror expedition…"*
+
+All four are forbidden by `CLAUDE.md` §1. They now read **WHERE IT ISN'T**. Four
+dev-console banner strings were changed too, so the retired name is gone from the file.
+
+**One further correction:** the credits read `STARRING — THE VOID SOVEREIGN`, which
+credits the finale like a boss with a marquee. `STORY.md` §19 is explicit that the final
+creature is not a boss and must never be named on screen. It now reads
+`AND — WHATEVER WAS ALWAYS THERE`. The internal name survives in code comments only.
+
+### DELIBERATELY NOT CHANGED
+
+- **No lore was added to the game.** No notes, no journals, no exposition, no HUD text.
+  Phase 24 wrote a document; the player-facing string count went **down**, not up.
+- The win screen's *"PURGE COMPLETE / THE RUIN GROWS DARKER"* still uses the old title's
+  vocabulary. It is not the retired name, it is scheduled for the Phase 27 HUD rebirth,
+  and rewriting it now would be doing Phase 27 badly and early. **Recorded, not fixed.**
+- The tutorial survives as-is apart from the name. Phase 28 removes it.
+
+### VALIDATION
+
+`tests/story.js` (new) — structural checks only: the bible exists with all 22 required
+canonical sections plus the knowledge curve, the mystery/explanation split and the
+environmental-storytelling list; the retired project name appears nowhere in `game.html`;
+the finale is not named in player-facing text; and every narrative marker the audit
+catalogued (the opening lines, the compass toast, the journey lines, the banners, the farm
+signs) is **still present** — the point being that Phase 24 must not have quietly deleted
+the story fragments it was supposed to preserve.
+
+**It does not, and cannot, test whether the story is any good.** No test in this
+repository makes a claim about literary quality, and none should.
+
+Every pre-existing suite was re-run and is green, including the Phase 23 browser run.
+
+### INTENTIONALLY LEFT OPEN
+
+`STORY.md` §22 is the list of things that must never be answered — among them what is
+doing the rebuilding, why, whose memory the Haven is, and whether the player is original.
+Those are not gaps to be filled by a later phase. **They are the deliverable.**
 
 ---
 

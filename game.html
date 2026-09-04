@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Block &amp; Ruin</title>
+<title>Where It Isn’t</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
   html, body { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; background: #000; font-family: 'Courier New', monospace; }
@@ -628,7 +628,7 @@
 
 <div id="creditsScreen">
   <div class="credits-inner">
-    <div class="credits-title">BLOCK &amp; RUIN</div>
+    <div class="credits-title">WHERE IT ISN&rsquo;T</div>
     <div class="credits-sub">THERE WAS NEVER A WAY OUT</div>
 
     <div class="credits-block">
@@ -648,7 +648,7 @@
         <em>VOXEL SYSTEMS</em>PROCEDURAL CHUNK STREAMER
         <em>AUDIO</em>PROCEDURAL WEBAUDIO SYNTHESIS
         <em>RENDERER</em>THREE.JS r128
-        <em>STARRING</em>THE VOID SOVEREIGN
+        <em>AND</em>WHATEVER WAS ALWAYS THERE
       </div>
     </div>
 
@@ -664,7 +664,7 @@
     <div class="corner tl"></div><div class="corner tr"></div>
     <div class="corner bl"></div><div class="corner br"></div>
     <div class="eyebrow">A SURVIVAL HORROR EXPEDITION</div>
-    <h1>BLOCK &amp; RUIN</h1>
+    <h1>WHERE IT ISN&rsquo;T</h1>
     <div class="sub">A COZY WORLD. AN UNKIND NIGHT.</div>
     <div class="divider"></div>
     <button id="continuePlay" class="action-btn" style="display:none;">CONTINUE</button>
@@ -29525,7 +29525,7 @@ const TUTORIAL_PAGES = [
     icon: '&#127961;',
     title: 'Welcome, Wanderer',
     lines: [
-      '<b>Block &amp; Ruin</b> is a survival horror expedition: gather by day, defend by night.',
+      '<b>Where It Isn&rsquo;t</b> is a survival horror expedition: gather by day, defend by night.',
       'Each <b>Stage</b> gets harder — tougher mobs, longer sieges, richer rewards.',
       'This quick walkthrough covers everything you need for your first night.',
     ],
@@ -32384,7 +32384,7 @@ class Game {
       if (w.pinnedChunkKeys.has(w.key(c.cx, c.cz))) { pinned++; if (isFarm) farmPinned++; }
       if (c.mesh) meshed++;
     }
-    L.push('BLOCK & RUIN — THE SHATTERED FARMLANDS AUDIT');
+    L.push('WHERE IT ISN\u2019T — THE SHATTERED FARMLANDS AUDIT');
     L.push('');
     L.push(`region                 chunks ${FARMLANDS_CHUNK_OFFSET}..${FARMLANDS_CHUNK_MAX} ` +
            `(world ${FARMLANDS_CHUNK_OFFSET * CHUNK_SX}..${FARMLANDS_CHUNK_MAX * CHUNK_SX}), ` +
@@ -32664,7 +32664,7 @@ class Game {
       if (c.mesh) meshed++;
       if (isStaticSuburbiaChunk(c.cx, c.cz)) sub++;
     }
-    L.push('BLOCK & RUIN — STATIC SUBURBIA AUDIT');
+    L.push('WHERE IT ISN\u2019T — STATIC SUBURBIA AUDIT');
     L.push('');
     L.push(`resident chunks        ${total}  (${sub} Suburbia, ${pinned} pinned, ${meshed} meshed)`);
 
@@ -32807,7 +32807,7 @@ class Game {
 
   global.debugTeleportHelp = function () {
     console.log([
-      'BLOCK & RUIN — DEV TELEPORTS',
+      'WHERE IT ISN\u2019T — DEV TELEPORTS',
       '  debugTeleportToOverworld()          Normal Overworld, at the world spawn',
       '  debugTeleportToFarmlands()          Level 2 — The Shattered Farmlands (Phase 16 streaming)',
       '  debugTeleportToFarmHome()           Farmlands, on the approach, looking at the Disconnected Home',
@@ -32820,7 +32820,7 @@ class Game {
       '  debugTeleportToDisconnectedHome()   Suburbia, standing in front of the upside-down house',
       '  debugTeleportHelp()                 This list',
       '',
-      'BLOCK & RUIN — DIAGNOSTICS',
+      'WHERE IT ISN\u2019T — DIAGNOSTICS',
       '  debugSuburbiaAudit()                Resident chunks, quads, lights, registries',
       '  debugSuburbiaAudit(true)            ...and re-verify deterministic regeneration',
       '  debugFarmlandsRoutes()              PHASE 18.1 — top-down map of the nearest lane,',
