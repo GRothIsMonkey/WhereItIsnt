@@ -1,8 +1,8 @@
 # WHERE IT ISN'T — PROJECT STATE
 
 ```
-Current phase              25 — DYNAMIC OBJECTIVE SYSTEM (complete)
-Next phase                 26 — REMOVE XP / REBUILD PROGRESSION
+Current phase              26 — REMOVE XP / REBUILD PROGRESSION (complete)
+Next phase                 27 — HEALTH / SANITY / HUD REBIRTH
 Phase 19                   COMPLETE
 Phase 20                   COMPLETE
 Phase 20 journey revision  COMPLETE           (20.1 — see section 0)
@@ -12,6 +12,8 @@ Phase 22                   COMPLETE           (see section 0.1)
 Phase 23                   COMPLETE           (see section 0.0)
 Phase 24                   COMPLETE           (the canon lives in STORY.md)
 Phase 25                   COMPLETE           (see section 0.000)
+Phase 26                   COMPLETE           (see section 0.0000)
+XP                         REMOVED            (no runtime XP exists; see section 0.0000)
 Authoritative build        game.html          (there is no other game file)
 Canonical story            STORY.md           (read before writing ANY player text)
 Validation suite           tests/             (see tests/README.md)
@@ -21,11 +23,161 @@ Phases 1–19 are as their sections in `ROADMAP.md` describe them. This file rec
 state of Phase 20 specifically: what was built, what was measured, what was found and
 fixed along the way, and what is honestly not verified.
 
-**Sections 0.0–0.5 describe the phases that followed (23, 22, 21, 20.2). Sections 1–5
+**Sections 0.0000–0.5 describe the phases that followed (26, 25, 23, 22, 21, 20.2). Sections 1–5
 describe Phase 20 as it was first delivered, and Section 0 describes the 20.1 journey
 revision that followed a human playtest and supersedes them wherever they disagree** — principally the beat table, the landmark set, the distances, and the
 performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
 instruction and the compass and changed no world generation at all.
+
+---
+
+## 0.0000. PHASE 26 — REMOVE XP / REBUILD PROGRESSION
+
+**XP is gone.** Not hidden, not renamed, not moved behind a flag: there is no XP counter,
+no level, no threshold, no bar and no function anywhere in the build that a kill, a broken
+block or an opened chest can call to increase a progression number.
+
+### WHAT XP WAS, AND EVERYTHING THAT DEPENDED ON IT
+
+The system was six pieces and seven dependants. Every one is listed here because "we
+removed XP" is only checkable against a list of what XP actually was.
+
+| the system | what it was | now |
+|---|---|---|
+| `LEVEL_XP_BASE` / `LEVEL_XP_GROWTH` / `xpForLevel()` | the curve: 30 × 1.35^(n-1) | **deleted** |
+| `XP_REWARDS` | per-block payout table (log 2, iron ore 5, obsidian 7…) | **deleted** |
+| `CHEST_XP_REWARD` | 12 per Ancient Chest | **deleted** |
+| `player.xp` / `player.level` | the counter and the level it fed | **deleted** |
+| `PlayerController.addXP()` | the only grant path: +15 max HP, +1 attack, +18% mining per level | **deleted, and nothing replaced it as a function** |
+| `MOB_STATS[*].xp` / `Mob.xpReward` | 14 / 12 / 250 per mob type, scaled by difficulty | **deleted** |
+
+| what depended on it | how | what it depends on now |
+|---|---|---|
+| **combat** | melee and arrow kills paid `mob.xpReward` | nothing. A kill pays its loot table. Damage progression is the **weapon** (wood 4 → stone 7 → iron 10) |
+| **mining** | every broken block paid 1–7 XP; levels bought `miningSpeedBonus` | nothing. Break-speed progression is the **tool** (the existing pickaxe/axe tier tables — an Iron Pickaxe takes stone in 0.60s where bare hands take 8.00s and drop nothing) |
+| **chests** | 12 XP on top of the loot | nothing. The loot is the reward, and in the Overworld the first chest still carries the compass |
+| **crafting** | twelve recipes carried `levelReq` (1–7); the menu printed "Requires Level 3" | **materials, which are themselves discoveries.** Every one of those numbers stood in front of an ingredient the player either had found or had not — ore is underground, string is off a spider, obsidian is deep, Corrupted Stone comes out of a Rift. Removing the gate handed it back to the world |
+| **the HUD** | an XP bar, a `Lv.N` label, a `LEVEL UP — LEVEL n` toast | health is the only bar on that row. The toast element survives, renamed `#hudToast`, carrying Core Disk pickups and milestone notices |
+| **the credits** | a `FINAL LEVEL` row | removed. Kills, days, disks, dimensions and chests remain |
+| **stat growth** | +15 max HP / +1 attack / +18% mining, every level, forever | three authored milestones, below |
+
+**Story progression, Rift progression, Behemoth progression and the objective system never
+depended on XP at all.** That was checked before anything was changed rather than assumed:
+the Rift opens because a Core Disk was fed to an Anchor, the Behemoth bridge is its Core
+Disk landing in the pack, and not one of the 21 Phase 25 objectives reads a level or a
+total. Nothing in any of them was touched.
+
+### WHAT REPLACED IT
+
+Two shapes, and neither is a number the player accumulates.
+
+**ACCESS** — what the player can now *do*, because of something they found or opened. The
+compass out of the first Ancient Chest. A recipe, because the ore for it is in the pack. A
+dimension, because a Core Disk is in the Anchor. None of these is new; all of them were
+already direct, and XP was sitting in front of some of them for no reason.
+
+**ENDURANCE** — `PROGRESSION_MILESTONES`, and it is three rows long:
+
+| id | the event | grant |
+|---|---|---|
+| `shelter` | the first Safehouse Anchor is standing | +20 max health |
+| `firstNight` | the first night survived | +20 max health |
+| `behemoth` | the Hollowed Behemoth is down and its Core Disk is in the pack | +30 max health |
+
+A run therefore ends at **170 max health and that is the ceiling** — there is no fourth
+milestone, no repeat, and nothing counts toward any of them. Each is latched by id in a
+`Set`, the `Set` is what the save carries, and `Game._reachMilestone()` adds the id
+*before* it grants anything, so a caller that fires every frame grants once and returns
+`false` forever after (tested against 500 repeats, and in a real browser). Each hangs off
+an event that already existed: the dawn branch, the Behemoth defeat latch, and the anchor
+standing.
+
+**Attack and mining growth were not replaced.** `attackBonus` and `miningSpeedBonus`
+survive as fields with **no runtime source at all** — they exist only so a save written
+while XP was alive keeps what it paid for. New runs leave both at zero and get their damage
+from weapons and their break speed from tools, which is the direct progression the phase
+was asked for.
+
+**Why these three and not a longer table.** They are drawn from the phase brief's own
+"survival progression" list, they are the three moments the game already treats as
+turning points, and none of them can be farmed. A fourth would have started to look like a
+curve with different triggers, which is the thing the brief calls "another grind system".
+
+### THE SAVE, AND THE ONE THING THIS COULD HAVE GOT WRONG
+
+Schema **2 → 3**. The migration drops `player.level` (and `player.xp`, which this game
+never wrote but a hand-edited file may carry) and leaves `maxHp`, `attackBonus` and
+`miningSpeedBonus` completely untouched: **remove the currency, keep the consequences.**
+
+The hard part is `progression.milestones`. A schema 2 save was written by a player who has
+already survived nights, may already have felled the Behemoth, and whose `maxHp` **already
+includes whatever XP paid them for it**. Defaulting their milestone set to empty would
+leave all three armed, so the next dawn would hand them health for a night they survived
+weeks ago. So the migration **derives** which milestones that save has already lived, out
+of state it already carries — an anchor in the file, `dayCount > 1`, the `behemothDefeated`
+latch — and marks them reached **without granting anything**:
+
+| the schema 2 save | derives |
+|---|---|
+| anchor, day 9, Behemoth defeated | `shelter, firstNight, behemoth` — nothing left to grant |
+| anchor, day 9, no Behemoth | `shelter, firstNight` |
+| no anchor, day 1, no Behemoth | none — all three genuinely still ahead of them |
+
+This consumes old XP-era data exactly once, at migration, to preserve progression. It does
+not keep XP alive: nothing it writes is a currency, and the runtime it hands the save to
+has none. The validator rebuilds the list from the authored ids rather than trusting it, so
+a file cannot invent a milestone, list one twice, or choose the order.
+
+### WHAT WAS MEASURED, AND WHAT WAS NOT
+
+`tests/progression.js` is new and is described in `tests/README.md`. The claims worth
+repeating here:
+
+- an **XP-era schema 2 save** — level 6, 175 max health, +5 attack, +0.9 mining, an Iron
+  Pickaxe, a Core Disk, a compass, an anchor, 9 days, in the Farmlands — loads, loses `xp`
+  and `level`, and keeps **every** other thing it was: health, bonuses, pack, position,
+  dimension, compass, journey ordinal, objective marks, world edits, opened chests;
+- replaying all three milestones against that restored player grants **nothing**;
+- a version 1 Phase 23 save climbs the whole ladder to 3 with the same result;
+- 20 save/load cycles are byte-stable — nothing accumulates;
+- crafting, mining, combat, the Rift bridge and the Behemoth bridge all still work.
+
+**In a real browser** (`browser-save.js`, Chromium + SwiftShader, hermetic three.js): the
+XP bar and level label are absent from the live document, nothing rendered in the HUD reads
+`Lv.` / `XP` / `LEVEL UP`, the live crafting menu shows no level requirement on any recipe,
+and **placing an Anchor granted the shelter milestone in the running game** — 41/100 to
+61/120 — which then survived a full page reload as *reached*, granting nothing a second
+time.
+
+**Not verified.** No human played a run from a new game to the Behemoth to confirm the
+three milestones land at the right emotional moments; that is a judgement, not a test, and
+nothing here claims otherwise. The `performance.js` journey-revision gate fails at +13.6%,
+which is **pre-existing** — the same gate fails at +12.9% on the Phase 25 build this phase
+started from, the difference is inside that file's own stated run-to-run noise, and Phase
+26 changes no world generation whatsoever.
+
+### PERFORMANCE
+
+Removing XP removed work: `addXP` (and its `while` loop, its `Math.pow` and its two UI
+calls) is no longer invoked on every broken block, every kill and every chest. Nothing
+per-frame replaced it. The three milestone triggers are two branches inside events that
+already ran once each, plus one `Set.has` on a three-element set beside a line that was
+already reading `activeAnchor` for the HUD.
+
+### WHERE THINGS ARE
+
+| what | search for |
+|---|---|
+| the design, and what it replaced | `PHASE 26 — DIRECT PROGRESSION, AND WHAT IT REPLACED` |
+| the milestone table | `PROGRESSION_MILESTONES` / `PROGRESSION_MILESTONE_IDS` |
+| the single grant path | `Game._reachMilestone` |
+| the three triggers | `_reachMilestone('shelter'` / `'firstNight'` / `'behemoth'` |
+| the latch set on the Game | `this.milestones` |
+| the schema bump and the migration | `SAVE_VERSION` (3) / `SAVE_MIGRATIONS[2]` |
+| milestone validation | `_svMilestones` |
+| what the recipe gate is now | `PHASE 26 — THERE IS NO LEVEL GATE ON A RECIPE` |
+| the surviving legacy fields, and why | `LEGACY EARNED VALUES, NOT PROGRESSION` |
+| the renamed toast | `#hudToast` / `showToast` |
 
 ---
 
@@ -268,20 +420,20 @@ one entry, and nothing in the loader changes. There are no fabricated future ver
 | block | fields |
 |---|---|
 | root | `version`, `savedAt`, `dimension` (`overworld` / `farmlands` / `suburbia`) |
-| player | `position{x,y,z}`, `yaw`, `pitch`, `hp`, `maxHp`, `dead`, `level`, `attackBonus`, `miningSpeedBonus`, `chestsOpened`, `selectedSlot`, `inventory[36]` |
+| player | `position{x,y,z}`, `yaw`, `pitch`, `hp`, `maxHp`, `dead`, `attackBonus`, `miningSpeedBonus`, `chestsOpened`, `selectedSlot`, `inventory[36]` — **`level` was here until Phase 26 removed it (schema 3)** |
 | — | `sanity` |
-| progression | `stage`, `dayCount`, `memoryFragments`, `nightsRequired`, `awaitingAdvance`, `behemothDefeated`, `behemothSpawned`, **`compassAcquired`**, `pendingLevel2Transition`, `fakeHavenTriggered`, `farmCrossroadsRecalled`, `farmJourneyOrd`, `farmHouseSeen`, `killCount`, `riftDisks[]`, `dimensionsBreached[]` |
+| progression | `stage`, `dayCount`, `memoryFragments`, `nightsRequired`, `awaitingAdvance`, `behemothDefeated`, `behemothSpawned`, **`compassAcquired`**, `pendingLevel2Transition`, `fakeHavenTriggered`, **`milestones[]`** (added by Phase 26, schema 3), `farmCrossroadsRecalled`, `farmJourneyOrd`, `farmHouseSeen`, `killCount`, `riftDisks[]`, `dimensionsBreached[]` |
 | time | `cycleSeconds` (seconds within the 720s cycle, not the raw accumulating `t`), `wasNight` |
 | anchor | `x`, `y`, `z`, `fuel`, `riftActive`, `riftTargetLevel` — or `null` |
 | world | `edits{chunkKey: [idx, id, …]}`, `openedChests[]`, `doors[]`, `torchDecay[]`, `suburbiaVisits[]`, `suburbiaStage[]`, `suburbiaDoorOverrides[]`, `mailboxSeen`, `mailboxGone` |
 | settings | a snapshot through `GameSettings.toJSON()` |
 
-**XP IS NOT IN THE SCHEMA.** The roadmap forbids persisting it, so the `xp` counter is
-absent and `p.xp = 0` on every restore. What XP has already BOUGHT — max health, attack
-bonus, mining bonus, and the level for the HUD label — is persisted, because losing those
-on load would be destroying progress rather than declining to store a number. Partial
-progress toward the next level is discarded. That is deliberate, and it disappears when
-Phase 26 removes the system.
+**XP IS NOT IN THE SCHEMA, AND SINCE PHASE 26 NEITHER IS `level`.** The `xp` counter was
+never written; `level` went out with schema 3, and a schema 2 save's copy is dropped by the
+2 → 3 migration. What XP has already BOUGHT — max health, attack bonus, mining bonus — is
+still persisted, because losing those on load would be destroying progress rather than
+declining to store a number. Section 0.0000 describes what replaced the system, and what
+the migration has to do so a returning player is not paid twice.
 
 ### THE WORLD DELTA
 

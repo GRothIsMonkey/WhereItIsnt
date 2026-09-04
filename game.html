@@ -90,11 +90,13 @@
   #sanityBrain.pulse { animation: pulseBrain 0.6s infinite ease-in-out; }
   @keyframes pulseBrain { 0%,100% { transform: scale(1); } 50% { transform: scale(1.3); } }
 
-  #healthWrap, #xpWrap {
+  /* PHASE 26 — the XP bar and its level label stood here. Both are gone with the
+     system they displayed; health is now the only bar on this row. */
+  #healthWrap {
     display: flex; align-items: center; gap: 8px; color: #d8cba8;
   }
-  #healthIcon, #xpIcon { font-size: 18px; filter: drop-shadow(0 0 3px #000); }
-  #healthBarOuter, #xpBarOuter {
+  #healthIcon { font-size: 18px; filter: drop-shadow(0 0 3px #000); }
+  #healthBarOuter {
     width: 180px; height: 12px; border: 2px solid #6b5a3c; background: rgba(20,16,12,0.75);
     border-radius: 3px; overflow: hidden;
   }
@@ -102,11 +104,6 @@
     height: 100%; width: 100%; background: linear-gradient(90deg, #7a1414, #d8434a);
     transition: width 0.2s linear;
   }
-  #xpBarInner {
-    height: 100%; width: 0%; background: linear-gradient(90deg, #2f6ea8, #4fd0ff);
-    transition: width 0.2s linear;
-  }
-  #levelLabel { font-size: 11px; color: #ffcf6b; min-width: 46px; }
 
   #damageFlash {
     position: fixed; inset: 0; background: radial-gradient(circle, transparent 40%, #7a0000 130%);
@@ -196,13 +193,13 @@
   }
   .storage-label { font-size: 11px; color: #a89a78; letter-spacing: 1.5px; margin: 12px 0 6px; }
 
-  #levelUpToast {
+  #hudToast {
     position: fixed; top: 90px; left: 50%; transform: translateX(-50%);
     color: #ffcf6b; font-size: 16px; letter-spacing: 2px; z-index: 25;
     text-shadow: 0 0 8px #ff8a3d; opacity: 0; pointer-events: none;
     transition: opacity 0.4s ease, transform 0.4s ease;
   }
-  #levelUpToast.show { opacity: 1; transform: translateX(-50%) translateY(10px); }
+  #hudToast.show { opacity: 1; transform: translateX(-50%) translateY(10px); }
 
   /* Vintage Objective Tracker HUD */
   #objectiveHUD {
@@ -572,11 +569,6 @@
       <div id="healthIcon">&#10084;</div>
       <div id="healthBarOuter"><div id="healthBarInner"></div></div>
     </div>
-    <div id="xpWrap">
-      <div id="xpIcon">&#9733;</div>
-      <div id="xpBarOuter"><div id="xpBarInner"></div></div>
-      <div id="levelLabel">Lv.1</div>
-    </div>
     <div id="sanityWrap">
       <div id="sanityBrain">&#129504;</div>
       <div id="sanityBarOuter"><div id="sanityBarInner"></div></div>
@@ -607,7 +599,7 @@
 </div>
 
 <div id="dimensionBanner"></div>
-<div id="levelUpToast"></div>
+<div id="hudToast"></div>
 <div id="damageFlash"></div>
 
 <div id="craftingOverlay">
@@ -655,7 +647,6 @@
       <div class="credits-row"><span class="k">RIFT DISKS RECOVERED</span><span class="v" id="statDisks">0 / 3</span></div>
       <div class="credits-row"><span class="k">DIMENSIONS BREACHED</span><span class="v" id="statDims">0 / 4</span></div>
       <div class="credits-row"><span class="k">CHESTS CRACKED</span><span class="v" id="statChests">0</span></div>
-      <div class="credits-row"><span class="k">FINAL LEVEL</span><span class="v" id="statLevel">1</span></div>
     </div>
 
     <div class="credits-block">
@@ -839,6 +830,13 @@ const ITEM_DATA = {
 ITEM_DATA[ITEM.STONE_PICKAXE].isPickaxe = true; ITEM_DATA[ITEM.STONE_PICKAXE].pickaxeTier = 2;
 ITEM_DATA[ITEM.IRON_PICKAXE].isPickaxe = true; ITEM_DATA[ITEM.IRON_PICKAXE].pickaxeTier = 3;
 
+/* PHASE 26 — THERE IS NO LEVEL GATE ON A RECIPE ANY MORE.
+   Every recipe here used to carry a `levelReq`, and every one of those numbers was
+   redundant: a recipe's real gate has always been its INGREDIENTS, and the ingredients
+   are themselves discoveries. Iron needs ore, and ore is underground. String comes off a
+   spider. Obsidian is deep. Corrupted Stone comes out of a Rift. "Requires Level 3" was
+   an XP threshold standing in front of a material the player either had found or had
+   not, so removing it takes nothing away — it hands the gate back to the world. */
 const CRAFTING_RECIPES = [
   { id: 'planks', result: ITEM.WOOD_PLANK, count: 4, reqs: [{ item: ITEM.OAK_LOG, count: 1 }] },
   { id: 'sticks', result: ITEM.STICK, count: 4, reqs: [{ item: ITEM.WOOD_PLANK, count: 2 }] },
@@ -846,20 +844,20 @@ const CRAFTING_RECIPES = [
   { id: 'wooden_pickaxe', result: ITEM.WOODEN_PICKAXE, count: 1, reqs: [{ item: ITEM.WOOD_PLANK, count: 3 }, { item: ITEM.STICK, count: 2 }] },
   { id: 'wooden_axe', result: ITEM.WOODEN_AXE, count: 1, reqs: [{ item: ITEM.WOOD_PLANK, count: 3 }, { item: ITEM.STICK, count: 2 }] },
   { id: 'pickaxe', result: ITEM.STONE_PICKAXE, count: 1, reqs: [{ item: ITEM.COBBLESTONE, count: 3 }, { item: ITEM.STICK, count: 2 }] },
-  { id: 'stone_axe', result: ITEM.STONE_AXE, count: 1, reqs: [{ item: ITEM.COBBLESTONE, count: 3 }, { item: ITEM.STICK, count: 2 }], levelReq: 1 },
+  { id: 'stone_axe', result: ITEM.STONE_AXE, count: 1, reqs: [{ item: ITEM.COBBLESTONE, count: 3 }, { item: ITEM.STICK, count: 2 }] },
   { id: 'anchor', result: ITEM.SAFEHOUSE_ANCHOR, count: 1, reqs: [{ item: ITEM.WOOD_PLANK, count: 4 }] },
-  { id: 'wood_sword', result: ITEM.WOODEN_SWORD, count: 1, reqs: [{ item: ITEM.STICK, count: 2 }, { item: ITEM.WOOD_PLANK, count: 2 }], levelReq: 1 },
-  { id: 'stone_sword', result: ITEM.STONE_SWORD, count: 1, reqs: [{ item: ITEM.STICK, count: 1 }, { item: ITEM.COBBLESTONE, count: 2 }], levelReq: 1 },
-  { id: 'arrow', result: ITEM.ARROW, count: 4, reqs: [{ item: ITEM.STICK, count: 1 }, { item: ITEM.STRING, count: 1 }], levelReq: 1 },
-  { id: 'bow', result: ITEM.BOW, count: 1, reqs: [{ item: ITEM.STICK, count: 3 }, { item: ITEM.STRING, count: 3 }], levelReq: 2 },
-  { id: 'iron_ingot', result: ITEM.IRON_INGOT, count: 1, reqs: [{ item: ITEM.IRON_ORE, count: 1 }, { item: ITEM.COAL, count: 1 }], levelReq: 3 },
-  { id: 'iron_pickaxe', result: ITEM.IRON_PICKAXE, count: 1, reqs: [{ item: ITEM.IRON_INGOT, count: 4 }, { item: ITEM.STICK, count: 2 }], levelReq: 3 },
-  { id: 'iron_axe', result: ITEM.IRON_AXE, count: 1, reqs: [{ item: ITEM.IRON_INGOT, count: 3 }, { item: ITEM.STICK, count: 2 }], levelReq: 3 },
-  { id: 'iron_sword', result: ITEM.IRON_SWORD, count: 1, reqs: [{ item: ITEM.IRON_INGOT, count: 3 }, { item: ITEM.STICK, count: 1 }], levelReq: 4 },
-  { id: 'void_shield', result: ITEM.VOID_SHIELD, count: 1, reqs: [{ item: ITEM.IRON_INGOT, count: 5 }, { item: ITEM.OBSIDIAN, count: 2 }], levelReq: 7 },
+  { id: 'wood_sword', result: ITEM.WOODEN_SWORD, count: 1, reqs: [{ item: ITEM.STICK, count: 2 }, { item: ITEM.WOOD_PLANK, count: 2 }] },
+  { id: 'stone_sword', result: ITEM.STONE_SWORD, count: 1, reqs: [{ item: ITEM.STICK, count: 1 }, { item: ITEM.COBBLESTONE, count: 2 }] },
+  { id: 'arrow', result: ITEM.ARROW, count: 4, reqs: [{ item: ITEM.STICK, count: 1 }, { item: ITEM.STRING, count: 1 }] },
+  { id: 'bow', result: ITEM.BOW, count: 1, reqs: [{ item: ITEM.STICK, count: 3 }, { item: ITEM.STRING, count: 3 }] },
+  { id: 'iron_ingot', result: ITEM.IRON_INGOT, count: 1, reqs: [{ item: ITEM.IRON_ORE, count: 1 }, { item: ITEM.COAL, count: 1 }] },
+  { id: 'iron_pickaxe', result: ITEM.IRON_PICKAXE, count: 1, reqs: [{ item: ITEM.IRON_INGOT, count: 4 }, { item: ITEM.STICK, count: 2 }] },
+  { id: 'iron_axe', result: ITEM.IRON_AXE, count: 1, reqs: [{ item: ITEM.IRON_INGOT, count: 3 }, { item: ITEM.STICK, count: 2 }] },
+  { id: 'iron_sword', result: ITEM.IRON_SWORD, count: 1, reqs: [{ item: ITEM.IRON_INGOT, count: 3 }, { item: ITEM.STICK, count: 1 }] },
+  { id: 'void_shield', result: ITEM.VOID_SHIELD, count: 1, reqs: [{ item: ITEM.IRON_INGOT, count: 5 }, { item: ITEM.OBSIDIAN, count: 2 }] },
   // PHASE 4B — advanced Level 2 lighting & crafting tier.
-  { id: 'lantern', result: ITEM.LANTERN, count: 1, reqs: [{ item: ITEM.IRON_INGOT, count: 4 }, { item: ITEM.TORCH, count: 1 }], levelReq: 4 },
-  { id: 'soul_anchor', result: ITEM.SOUL_ANCHOR, count: 1, reqs: [{ item: ITEM.COAL, count: 1 }, { item: ITEM.CORRUPTED_STONE_ITEM, count: 1 }], levelReq: 3 }
+  { id: 'lantern', result: ITEM.LANTERN, count: 1, reqs: [{ item: ITEM.IRON_INGOT, count: 4 }, { item: ITEM.TORCH, count: 1 }] },
+  { id: 'soul_anchor', result: ITEM.SOUL_ANCHOR, count: 1, reqs: [{ item: ITEM.COAL, count: 1 }, { item: ITEM.CORRUPTED_STONE_ITEM, count: 1 }] }
 ];
 
 /* ---------------------------------------------------------------------------------
@@ -3922,15 +3920,9 @@ function shapeTopAt(id) {
 }
 
 
-// XP granted for harvesting each block type
-const XP_REWARDS = {
-  [BLOCK.OAK_LOG]: 2, [BLOCK.STONE]: 1, [BLOCK.COAL_ORE]: 3, [BLOCK.IRON_ORE]: 5,
-  [BLOCK.OBSIDIAN]: 7, [BLOCK.LEAVES]: 1,
-  [BLOCK.ASH_WOOD]: 2, [BLOCK.BLACK_CANOPY]: 1
-};
-
-// XP granted for cracking open an Ancient Chest
-const CHEST_XP_REWARD = 12;
+/* PHASE 26 — the per-block and per-chest XP reward tables stood here. Mining a log and
+   cracking a chest no longer pay a currency; what a log and a chest give the player is
+   the log and the chest's contents. */
 
 /* ---------------------------------------------------------------------------------
    BLOCK HARDNESS & TOOL SPEEDS
@@ -4060,7 +4052,11 @@ function computeBreakTime(id, heldMeta, miningSpeedBonus) {
   } else {
     time = base;
   }
-  // Player-level mining speed bonus (from XP/leveling) further reduces time, floor at 10%.
+  /* PHASE 26 — miningSpeedBonus is now a LEGACY value only. Nothing in the running game
+     increases it: mining speed comes from the tool in the player's hand (the tier tables
+     above), which is the direct progression that replaced the XP curve. The term is kept
+     because a save written before the removal may carry a bonus the player already
+     earned, and silently deleting it would be taking progress away. */
   time = time / (1 + (miningSpeedBonus || 0));
   time = Math.max(0.05, time);
 
@@ -23077,8 +23073,49 @@ function aabbIntersect(a, b) {
          a.minZ < b.maxZ && a.maxZ > b.minZ;
 }
 
-const LEVEL_XP_BASE = 30, LEVEL_XP_GROWTH = 1.35;
-function xpForLevel(level) { return Math.round(LEVEL_XP_BASE * Math.pow(LEVEL_XP_GROWTH, level - 1)); }
+/* =====================================================================================
+   PHASE 26 — DIRECT PROGRESSION, AND WHAT IT REPLACED
+
+   THE XP CURVE IS GONE. `LEVEL_XP_BASE`, `LEVEL_XP_GROWTH` and `xpForLevel()` stood here
+   and drove the only progression the game had: break a block, kill a mob, crack a chest,
+   fill a bar, cross a threshold, receive +15 max health, +1 attack and +18% mining speed.
+   That is an RPG's progression and this is not an RPG.
+
+   WHAT PROGRESSION IS NOW. Two shapes, and neither of them is a number the player
+   accumulates:
+
+     ACCESS      what the player can now DO, because of something they found or opened.
+                 The compass out of the first Ancient Chest. A recipe, because the ore
+                 for it is in the pack. A dimension, because a Rift Core Disk is in the
+                 Anchor. The Anchor itself. None of these is awarded — the player takes
+                 them, and none of them is on this table because none of them is a stat.
+
+     ENDURANCE   the three MILESTONES below. Each is a single named event that can only
+                 ever happen once in a run, each grants max health and nothing else, and
+                 none of them can be farmed, ground, repeated or accumulated toward. They
+                 are what is left of "surviving makes you harder to kill" after the
+                 currency in front of it was removed.
+
+   WHAT IS DELIBERATELY NOT HERE. No attack or mining growth. Damage comes from the
+   weapon, break speed comes from the tool, and both are things the player crafted or
+   found. `attackBonus` and `miningSpeedBonus` survive as fields ONLY so a save written
+   before this phase keeps what its XP already bought (see the save header); no code path
+   in the running game increases either one.
+
+   AND NOT THIS EITHER. There is no hidden counter behind these three. They are latched
+   by id in a Set, the Set is what the save carries, and the grant happens once at the
+   moment the event does.
+   ===================================================================================== */
+const PROGRESSION_MILESTONES = [
+  /* The player asserts a place is theirs. Canon's model for progression exactly: the
+     Anchor is not given to them, they put it down. */
+  { id: 'shelter',    maxHp: 20, toast: 'SOMEWHERE TO COME BACK TO' },
+  /* The first night survived — the game's oldest real accomplishment. */
+  { id: 'firstNight', maxHp: 20, toast: 'YOU SURVIVED THE NIGHT' },
+  /* The Hollowed Behemoth is down and its Core Disk is in the pack. */
+  { id: 'behemoth',   maxHp: 30, toast: 'THE BEHEMOTH IS DOWN' },
+];
+const PROGRESSION_MILESTONE_IDS = PROGRESSION_MILESTONES.map(m => m.id);
 
 /* =====================================================================================
    PHASE 20.2 — WORLD DIRECTIONS, AND WHY THEY ARE WHAT THEY ARE
@@ -23190,11 +23227,13 @@ class PlayerController {
     // --- Survival / combat / progression state ---
     this.maxHp = 100;
     this.hp = 100;
-    this.level = 1;
-    this.xp = 0;
     this.baseAttackDamage = 2; // unarmed
-    this.attackBonus = 0;      // grows with level
-    this.miningSpeedBonus = 0; // grows with level
+    /* PHASE 26 — LEGACY EARNED VALUES, NOT PROGRESSION. Nothing in the running game
+       raises either of these any more; they exist so a save written while the XP system
+       was alive keeps the attack and mining speed it already paid for. New runs leave
+       them at zero and get their damage from weapons and their break speed from tools. */
+    this.attackBonus = 0;
+    this.miningSpeedBonus = 0;
     this.swingTimer = 0;       // cosmetic/gating cooldown for melee swings
     this.attackCooldown = 0;
     this.invulnTimer = 0;      // brief i-frames after taking damage
@@ -23231,22 +23270,10 @@ class PlayerController {
     return meta && meta.isWeapon ? meta.knockback : 3;
   }
 
-  addXP(amount) {
-    if (this.dead) return;
-    this.xp += amount;
-    let leveled = false;
-    while (this.xp >= xpForLevel(this.level)) {
-      this.xp -= xpForLevel(this.level);
-      this.level++;
-      this.maxHp += 15;
-      this.hp = Math.min(this.maxHp, this.hp + 15);
-      this.attackBonus += 1;
-      this.miningSpeedBonus += 0.18;
-      leveled = true;
-    }
-    if (leveled && this.ui) this.ui.announceLevelUp(this.level);
-    if (this.ui) this.ui.updateVitals(this);
-  }
+  /* PHASE 26 — addXP() stood here. Nothing replaced it: there is no function anywhere in
+     this build that a mob death, a broken block or an opened chest can call to increase a
+     progression number, because there is no progression number. See
+     PROGRESSION_MILESTONES and Game._reachMilestone(). */
 
   takeDamage(amount, knockbackDir) {
     if (this.dead || this.invulnTimer > 0) return;
@@ -23430,10 +23457,11 @@ class PlayerController {
     if (hitMob) {
       const dir = new THREE.Vector3().subVectors(hitMob.position, this.position);
       dir.y = 0; if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1); dir.normalize();
-      const killed = mobManager.damageMob(hitMob, this.attackDamage, dir, this.knockbackForce);
+      mobManager.damageMob(hitMob, this.attackDamage, dir, this.knockbackForce);
       this.sound.playBlockBreak(null);
       this.attackCooldown = 0.4;
-      if (killed) this.addXP(hitMob.xpReward);
+      /* PHASE 26 — a kill used to pay XP here. It pays the mob's loot table and nothing
+         else now; the fight is the point, not the reward. */
       return;
     }
     // No mob in range: start (or continue) holding down to mine the targeted block.
@@ -23552,7 +23580,7 @@ class PlayerController {
     const center = new THREE.Vector3(hit.bx + 0.5, hit.by + 0.5, hit.bz + 0.5);
     const brokenId = this.world.destroyBlock(hit.bx, hit.by, hit.bz, this.sound, willDrop);
     if (brokenId !== null && brokenId !== BLOCK.AIR) {
-      this.addXP(XP_REWARDS[brokenId] || 1);
+      // PHASE 26 — the block used to pay XP here. It pays the block.
       // PHASE 2 — the break itself gets a distinct, heavier chip burst on top of the
       // existing playBlockBreak() crunch fired inside destroyBlock().
       spawnBlockChips(this.world.scene, center, brokenId, MINING_CHIP_COUNT, 1.0);
@@ -23664,7 +23692,7 @@ class PlayerController {
     if (targetBlock === BLOCK.TREASURE_CHEST) {
       const loot = this.world.openChest(hit.bx, hit.by, hit.bz, this.sound);
       if (loot) {
-        this.addXP(CHEST_XP_REWARD);
+        // PHASE 26 — the chest used to pay XP on top of its loot. The loot is the reward.
         this.chestsOpened = (this.chestsOpened || 0) + 1;
         /* PHASE 20.2 — the first Ancient Chest cracked in the OVERWORLD carries a brass
            compass. Gated on the dimension rather than on the chest, because the two
@@ -26191,13 +26219,13 @@ const MOB_STATS = {
   // ZOMBIE — hp 20->14 (fights ~30% shorter), damage 8->9 and cadence 1.0->0.85
   // (close range is MORE lethal per second than before), speed 1.9->2.6 so it
   // actually commits to a chase instead of shambling behind you.
-  [MOB_TYPE.ZOMBIE]: { hp: 14, damage: 9, speed: 2.6, xp: 14, attackCooldown: 0.85, meleeRange: 1.0, color: 0x3f6b3a, size: [0.6, 1.8, 0.6], loot: [{ item: ITEM.BONE, count: 1, chance: 0.6 }] },
+  [MOB_TYPE.ZOMBIE]: { hp: 14, damage: 9, speed: 2.6, attackCooldown: 0.85, meleeRange: 1.0, color: 0x3f6b3a, size: [0.6, 1.8, 0.6], loot: [{ item: ITEM.BONE, count: 1, chance: 0.6 }] },
   // SPIDER — glass cannon. hp 12->8 (dies to a single stone-sword hit), speed
   // 3.1->3.9 (you must sprint to break away), cadence 1.0->0.7 for a rapid worrying
   // bite. Damage only 5->6: the threat is the rhythm, not the number.
-  [MOB_TYPE.SPIDER]: { hp: 8, damage: 6, speed: 3.9, xp: 12, attackCooldown: 0.7, meleeRange: 1.1, color: 0x241a2e, size: [0.9, 0.6, 0.9], loot: [{ item: ITEM.STRING, count: 1, chance: 0.8 }] },
+  [MOB_TYPE.SPIDER]: { hp: 8, damage: 6, speed: 3.9, attackCooldown: 0.7, meleeRange: 1.1, color: 0x241a2e, size: [0.9, 0.6, 0.9], loot: [{ item: ITEM.STRING, count: 1, chance: 0.8 }] },
   // BEHEMOTH — UNTOUCHED this phase (see the boss-gate verification in the notes).
-  [MOB_TYPE.BEHEMOTH]: { hp: 420, damage: 26, speed: 1.15, xp: 250, attackCooldown: 1.0, meleeRange: 0.8, color: 0x161018, size: [3.2, 6.0, 3.2], loot: [{ item: ITEM.CORE_DISK, count: 1, chance: 1.0 }] }
+  [MOB_TYPE.BEHEMOTH]: { hp: 420, damage: 26, speed: 1.15, attackCooldown: 1.0, meleeRange: 0.8, color: 0x161018, size: [3.2, 6.0, 3.2], loot: [{ item: ITEM.CORE_DISK, count: 1, chance: 1.0 }] }
 };
 
 /* --- Spawn pacing ---------------------------------------------------------------
@@ -26223,7 +26251,6 @@ class Mob {
     this.hp = this.maxHp;
     this.damage = stats.damage * (0.6 + diffMult * 0.4);
     this.speed = stats.speed * Math.min(1.3, 0.9 + diffMult * 0.1);
-    this.xpReward = Math.round(stats.xp * (0.8 + diffMult * 0.2));
     this.loot = stats.loot;
     // PHASE 4 — per-type combat cadence. Both were previously hardcoded in update()
     // (1.0s cooldown, 0.8 melee range) for every mob type alike.
@@ -28511,7 +28538,8 @@ class ArrowManager {
       const arrow = this.arrows[i];
       arrow.update(dt, this.world, mobManager);
       if (!arrow.alive) {
-        if (arrow.killedMob && arrow.hitMob && player) player.addXP(arrow.hitMob.xpReward);
+        // PHASE 26 — an arrow kill paid XP here. Loot resolves inside MobManager; there
+        // is nothing left for this branch to award.
         this.arrows.splice(i, 1);
       }
     }
@@ -28583,10 +28611,12 @@ class UIManager {
     this.miningBarOuter = document.getElementById('miningBarOuter');
     this.miningBarInner = document.getElementById('miningBarInner');
     this.healthBar = document.getElementById('healthBarInner');
-    this.xpBar = document.getElementById('xpBarInner');
-    this.levelLabel = document.getElementById('levelLabel');
     this.dimensionBanner = document.getElementById('dimensionBanner');
-    this.levelUpToast = document.getElementById('levelUpToast');
+    /* PHASE 26 — #xpBarInner and #levelLabel are gone with the XP system. The toast is
+       the same element it always was, renamed off its level-up heritage: it is the one
+       transient HUD line the game has, and Core Disk pickups and progression milestones
+       share it. */
+    this.hudToast = document.getElementById('hudToast');
     this.damageFlash = document.getElementById('damageFlash');
 
     // HUD Directives UI
@@ -28672,7 +28702,7 @@ class UIManager {
     set('statDisks', `${stats.disks || 0} / 3`);
     set('statDims', `${stats.dimensions || 0} / 4`);
     set('statChests', stats.chests || 0);
-    set('statLevel', stats.level || 1);
+    /* PHASE 26 — the FINAL LEVEL row is gone. There is no level to report. */
 
     if (this.creditsScreen) this.creditsScreen.classList.add('active');
     if (this.reenterBtn && onReenter) {
@@ -28951,25 +28981,18 @@ class UIManager {
       info.appendChild(name);
       info.appendChild(reqs);
 
-      const levelReq = recipe.levelReq || 0;
-      const levelOk = this.player.level >= levelReq;
-      if (levelReq > 0) {
-        const lockLine = document.createElement('div');
-        lockLine.className = 'recipe-reqs';
-        lockLine.style.color = levelOk ? '#6bbf59' : '#b23a3a';
-        lockLine.textContent = levelOk ? `Unlocked at Lv.${levelReq}` : `Requires Level ${levelReq}`;
-        info.appendChild(lockLine);
-      }
-
+      /* PHASE 26 — the "Requires Level 3" line stood here. A recipe is now locked by
+         exactly one thing, the one already printed above it: whether the player has the
+         materials. Nothing else is consulted. */
       const btn = document.createElement('button');
       btn.className = 'craft-btn';
       btn.textContent = 'Craft';
-      const canCraft = levelOk && this.player.inventory.hasIngredients(recipe.reqs);
+      const canCraft = this.player.inventory.hasIngredients(recipe.reqs);
       btn.disabled = !canCraft;
 
       const handleCraft = (e) => {
         e.stopPropagation();
-        if (levelOk && this.player.inventory.hasIngredients(recipe.reqs)) {
+        if (this.player.inventory.hasIngredients(recipe.reqs)) {
           this.player.inventory.consumeIngredients(recipe.reqs);
           this.player.inventory.addItem(recipe.result, recipe.count);
           this.updateHotbarSelection();
@@ -28989,10 +29012,8 @@ class UIManager {
   updateVitals(player) {
     const hpPct = Math.max(0, Math.min(100, (player.hp / player.maxHp) * 100));
     this.healthBar.style.width = hpPct + '%';
-    const need = xpForLevel(player.level);
-    const xpPct = Math.max(0, Math.min(100, (player.xp / need) * 100));
-    this.xpBar.style.width = xpPct + '%';
-    this.levelLabel.textContent = 'Lv.' + player.level;
+    /* PHASE 26 — the XP bar and the level label were written from here. Health is the
+       only vital this row carries now. */
     if (player.inFakeHaven) {
       // LEVEL 4 — warm, unthreatening banner: no skulls, no red, no horror styling.
       this.dimensionBanner.textContent = '\u2600 THE HAVEN \u2600';
@@ -29019,20 +29040,15 @@ class UIManager {
     }, 90);
   }
 
-  // Generic reusable toast (the level-up banner, Core Disk pickup notice, etc. all
-  // share this one DOM element/animation rather than each spinning up their own).
+  /* Generic reusable toast — Core Disk pickups and Phase 26 progression milestones share
+     this one DOM element and animation rather than each spinning up their own.
+     PHASE 26 — announceLevelUp() sat directly below this and is gone; it was the only
+     caller that ever wrote a number into the HUD. */
   showToast(text, duration = 2000) {
-    this.levelUpToast.textContent = text;
-    this.levelUpToast.classList.add('show');
-    clearTimeout(this._levelUpTimer);
-    this._levelUpTimer = setTimeout(() => this.levelUpToast.classList.remove('show'), duration);
-  }
-
-  announceLevelUp(level) {
-    this.levelUpToast.textContent = `LEVEL UP \u2014 LEVEL ${level}`;
-    this.levelUpToast.classList.add('show');
-    clearTimeout(this._levelUpTimer);
-    this._levelUpTimer = setTimeout(() => this.levelUpToast.classList.remove('show'), 2000);
+    this.hudToast.textContent = text;
+    this.hudToast.classList.add('show');
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => this.hudToast.classList.remove('show'), duration);
   }
 
   setSanity(value) {
@@ -29808,16 +29824,15 @@ class TutorialController {
    primary, and puts the backup back if the write throws. A read that cannot validate the
    primary falls through to the backup rather than reporting "no save".
 
-   XP IS DELIBERATELY NOT PERSISTED. The roadmap is explicit that XP is a removed system
-   and must not appear in save data, so the `xp` counter is absent from the schema. What
-   the player has already EARNED with it — their max health, their attack bonus, their
-   mining bonus — is persisted, because losing those on load would be destroying
-   progress rather than declining to store a number. Partial progress toward the next
-   level is discarded. That is a deliberate, documented consequence, and it disappears
-   entirely when Phase 26 removes the system.
+   PHASE 26 — WHAT THE SCHEMA CARRIES NOW THAT XP IS GONE. Neither `xp` nor `level` is in
+   the schema: the first was never in it, and the second went out with schema 3. What the
+   player has already EARNED — max health, attack bonus, mining bonus — is still
+   persisted, because deleting those on load would be destroying progress rather than
+   declining to store a number. Schema 3 adds `progression.milestones`, the latch set for
+   PROGRESSION_MILESTONES, and its migration is the interesting one: see SAVE_MIGRATIONS.
    ===================================================================================== */
 
-const SAVE_VERSION = 2;
+const SAVE_VERSION = 3;
 const SAVE_STORAGE_KEY = 'whereitisnt.save.v1';
 const SAVE_BACKUP_KEY = 'whereitisnt.save.v1.backup';
 
@@ -29845,12 +29860,58 @@ const SAVE_MAX_EDITS = 400000;
    save has none, and zeroing them is lossless rather than merely safe: the objective
    system re-derives its position on the first evaluation after the load, so a Phase 23
    save of a player who already has torches, an Anchor and a Core Disk is credited with
-   all three the moment the world comes back. Nothing regresses and nothing is lost. */
+   all three the moment the world comes back. Nothing regresses and nothing is lost.
+
+   2 -> 3 (PHASE 26). XP REMOVAL, AND THE ONE THING IT COULD HAVE GOT WRONG. Dropping
+   `player.level` (and `player.xp`, which some hand-written or third-party file may carry
+   even though this game never wrote it) is the easy half — nothing reads either field any
+   more. The hard half is `progression.milestones`.
+
+   A schema-2 save was written by a player who has already lived through the three events
+   PROGRESSION_MILESTONES now grants max health for, and whose saved `maxHp` ALREADY
+   includes whatever the old XP curve paid them for it. Defaulting their milestone set to
+   empty would leave every milestone armed, so the next night they survived would hand
+   them a second helping of health for a night they survived weeks ago. So the migration
+   DERIVES which milestones that save has already lived, from state it already carries —
+   an anchor in the file, a day count past the first, the Behemoth latch — and marks them
+   reached WITHOUT granting anything. The player's max health comes across exactly as they
+   left it, and the milestones ahead of them are the ones they genuinely have not reached.
+
+   This consumes old XP-era data (`dayCount`, `behemothDefeated`, the anchor) exactly once,
+   at migration, to preserve progression. It does not keep XP alive: nothing it writes is a
+   currency, and the runtime it hands the save to has no XP in it. */
 const SAVE_MIGRATIONS = {
   1: (state) => {
     const out = Object.assign({}, state);
     out.version = 2;
     out.objectives = { overworld: 0, farmlands: 0, suburbia: 0, haven: 0 };
+    return out;
+  },
+  2: (state) => {
+    const out = Object.assign({}, state);
+    out.version = 3;
+
+    /* The XP-era player fields, dropped rather than carried. maxHp / attackBonus /
+       miningSpeedBonus are deliberately NOT touched: they are what XP bought. */
+    const rawP = _svPlainObject(out.player);
+    if (rawP) {
+      const player = Object.assign({}, rawP);
+      delete player.level;
+      delete player.xp;
+      out.player = player;
+    }
+
+    const rawG = _svPlainObject(out.progression) || {};
+    const progression = Object.assign({}, rawG);
+    if (!Array.isArray(progression.milestones)) {
+      const reached = [];
+      if (_svPlainObject(out.anchor)) reached.push('shelter');
+      const day = Number(rawG.dayCount);
+      if (Number.isFinite(day) && day > 1) reached.push('firstNight');
+      if (rawG.behemothDefeated === true) reached.push('behemoth');
+      progression.milestones = reached;
+    }
+    out.progression = progression;
     return out;
   },
 };
@@ -29885,6 +29946,21 @@ function _svPlainObject(raw) {
   return (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : null;
 }
 function _svArray(raw) { return Array.isArray(raw) ? raw : []; }
+
+/* PHASE 26 — the milestone latch set, validated against the authored table rather than
+   accepted as written. A save cannot invent a milestone, cannot list one twice, and
+   cannot control the order they come back in. Absent means "none reached", which is
+   correct for a new game and is never what a migrated schema-2 save gets (see the 2 -> 3
+   migration, which derives the set the player has actually lived). */
+function _svMilestones(rep, raw) {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) { rep.push('progression.milestones was not a list; using none'); return []; }
+  const seen = new Set();
+  for (const v of raw) { if (typeof v === 'string') seen.add(v); }
+  const out = PROGRESSION_MILESTONE_IDS.filter(id => seen.has(id));
+  if (out.length !== raw.length) rep.push('progression.milestones contained entries this build does not know; they were dropped');
+  return out;
+}
 
 /* Keys are re-parsed and re-emitted rather than trusted, which is what keeps a crafted
    file from smuggling "__proto__" or "constructor" in as a chunk key: only strings this
@@ -30030,8 +30106,9 @@ function validateSaveState(input) {
     pitch: pitch,
     hp: hp,
     maxHp: maxHp,
-    /* Earned capabilities, not XP. See the header. */
-    level: _svInt(rep, 'player.level', rawP.level, 1, 1, 999),
+    /* PHASE 26 — what XP already bought, kept. The `level` that sat here is gone: it
+       existed only because XP incremented it, and nothing reads it any more. A schema-2
+       save's level field is dropped by the 2 -> 3 migration before this ever sees it. */
     attackBonus: _svNum(rep, 'player.attackBonus', rawP.attackBonus, 0, 0, 999),
     miningSpeedBonus: _svNum(rep, 'player.miningSpeedBonus', rawP.miningSpeedBonus, 0, 0, 999),
     chestsOpened: _svInt(rep, 'player.chestsOpened', rawP.chestsOpened, 0, 0, 1e6),
@@ -30057,6 +30134,10 @@ function validateSaveState(input) {
     pendingLevel2Transition: _svBool(rep, 'progression.pendingLevel2Transition', rawG.pendingLevel2Transition, false),
     fakeHavenTriggered: _svBool(rep, 'progression.fakeHavenTriggered', rawG.fakeHavenTriggered, false),
     farmCrossroadsRecalled: _svBool(rep, 'progression.farmCrossroadsRecalled', rawG.farmCrossroadsRecalled, false),
+    /* PHASE 26 — the milestone latch set. Rebuilt from scratch out of the known ids
+       rather than trusted: an unknown id in the file is dropped, a duplicate collapses,
+       and the order is the table's, so what comes out is always a legal set. */
+    milestones: _svMilestones(rep, rawG.milestones),
     farmJourneyOrd: _svInt(rep, 'progression.farmJourneyOrd', rawG.farmJourneyOrd, 0, -1e6, 1e6),
     farmHouseSeen: _svBool(rep, 'progression.farmHouseSeen', rawG.farmHouseSeen, false),
     killCount: _svInt(rep, 'progression.killCount', rawG.killCount, 0, 0, 1e9),
@@ -30495,7 +30576,7 @@ function defaultSaveState(settings) {
       position: null,          // no saved position: the arrival point is resolved for it
       yaw: 0, pitch: 0,
       hp: 100, maxHp: 100,
-      level: 1, attackBonus: 0, miningSpeedBonus: 0,
+      attackBonus: 0, miningSpeedBonus: 0,
       chestsOpened: 0, selectedSlot: 0, inventory: [],
     },
     sanity: 100,
@@ -30503,6 +30584,7 @@ function defaultSaveState(settings) {
       stage: 1, dayCount: 1, memoryFragments: 0, nightsRequired: 3,
       awaitingAdvance: false, behemothDefeated: false, behemothSpawned: false,
       compassAcquired: false, pendingLevel2Transition: false, fakeHavenTriggered: false,
+      milestones: [],
       farmCrossroadsRecalled: false, farmJourneyOrd: 0, farmHouseSeen: false,
       killCount: 0, riftDisks: [], dimensionsBreached: [DIMENSION.OVERWORLD],
     },
@@ -30848,6 +30930,12 @@ class Game {
     this.awaitingAdvance = false;
     this.behemothDefeated = false; // bonus-directive tracking (step 6)
     this.behemothSpawned = false; // Night 3 spawn-once gate for the Hollowed Behemoth
+    /* PHASE 26 — THE DIRECT-PROGRESSION LATCH SET, and it is a Set of ids, not a number.
+       Membership is the whole of it: an id is either in here or it is not, nothing counts
+       up toward one, and there is no order in which they must be reached. It sits in this
+       block beside compassAcquired and behemothDefeated because it is the same kind of
+       thing they are — a record of something that happened, which the save carries. */
+    this.milestones = new Set();
     /* PHASE 20.2 — THE COMPASS, and it lives HERE on purpose.
 
        Requirement 10 asks that it go into the canonical progression rather than an
@@ -30975,9 +31063,9 @@ class Game {
         position: { x: p.position.x, y: p.position.y, z: p.position.z },
         yaw: p.yaw, pitch: p.pitch,
         hp: p.hp, maxHp: p.maxHp, dead: !!p.dead,
-        /* Earned capabilities. The XP counter itself is deliberately absent — see the
-           Phase 23 header. */
-        level: p.level, attackBonus: p.attackBonus, miningSpeedBonus: p.miningSpeedBonus,
+        /* PHASE 26 — what the removed XP system already bought. No counter and no level
+           accompanies them; neither exists any more. */
+        attackBonus: p.attackBonus, miningSpeedBonus: p.miningSpeedBonus,
         chestsOpened: p.chestsOpened || 0,
         selectedSlot: p.selectedSlot,
         inventory: inventory,
@@ -30995,6 +31083,8 @@ class Game {
         pendingLevel2Transition: !!this.pendingLevel2Transition,
         fakeHavenTriggered: !!this.fakeHavenTriggered,
         farmCrossroadsRecalled: !!this.farmCrossroadsRecalled,
+        // PHASE 26 — the direct-progression latch set, in the table's own order.
+        milestones: PROGRESSION_MILESTONE_IDS.filter(id => this.milestones.has(id)),
         farmJourneyOrd: this.farmJourneyOrd || 0,
         farmHouseSeen: !!this.farmHouseSeen,
         killCount: this.mobs.killCount || 0,
@@ -31139,10 +31229,8 @@ class Game {
     p.pitch = state.player.pitch;
     p.maxHp = state.player.maxHp;
     p.hp = Math.max(1, Math.min(state.player.maxHp, state.player.hp));
-    p.level = state.player.level;
     p.attackBonus = state.player.attackBonus;
     p.miningSpeedBonus = state.player.miningSpeedBonus;
-    p.xp = 0;                              // never persisted; see the Phase 23 header
     p.chestsOpened = state.player.chestsOpened;
     p.selectedSlot = state.player.selectedSlot;
     for (let i = 0; i < INVENTORY_SIZE; i++) {
@@ -31193,6 +31281,10 @@ class Game {
     this.awaitingAdvance = g.awaitingAdvance;
     this.behemothDefeated = g.behemothDefeated;
     this.behemothSpawned = g.behemothSpawned;
+    /* PHASE 26 — restored as REACHED, never as granted: the max health these milestones
+       paid out is already in state.player.maxHp, which was applied above. Re-running the
+       grants here would pay a returning player twice for the same night. */
+    this.milestones = new Set(g.milestones);
     this.compassAcquired = g.compassAcquired;
     this.pendingLevel2Transition = g.pendingLevel2Transition;
     this.fakeHavenTriggered = g.fakeHavenTriggered;
@@ -31492,7 +31584,8 @@ class Game {
   }
 
   // Called from the win screen button. Escalates difficulty and sends the player
-  // back out rather than reloading the page — XP, level, gear and inventory persist.
+  // back out rather than reloading the page — gear, inventory and every progression
+  // latch (milestones included) persist across the stage change.
   _advanceStage() {
     this.stage++;
     this.memoryFragments = 0;
@@ -31864,6 +31957,33 @@ class Game {
     }, 900);
   }
 
+  /* ===================================================================================
+     PHASE 26 — REACHING A MILESTONE.
+
+     The single place in the game where a capability is granted, and it is reachable only
+     from three named events. Idempotent by construction: the id goes into the Set before
+     anything is granted, so a caller that fires twice (and two of the three callers are
+     re-checked every frame) grants once and returns false forever after.
+
+     Note what is NOT here: no accumulation, no threshold, no comparison against a total,
+     nothing that reads a counter. The argument is the name of a thing that happened.
+     =================================================================================== */
+  _reachMilestone(id) {
+    if (this.milestones.has(id)) return false;
+    const m = PROGRESSION_MILESTONES.find(x => x.id === id);
+    if (!m) return false;
+    this.milestones.add(id);
+    const p = this.player;
+    if (m.maxHp) {
+      p.maxHp += m.maxHp;
+      /* The health granted is health the player HAS, not just a bigger empty bar —
+         reaching one of these in the middle of a fight should feel like relief. */
+      p.hp = Math.min(p.maxHp, p.hp + m.maxHp);
+    }
+    if (this.ui) { this.ui.showToast(m.toast); this.ui.updateVitals(p); }
+    return true;
+  }
+
   /* Assembles the end-credits stats summary. Counters are read defensively (|| 0)
      because several of them are only created lazily the first time the relevant event
      happens — a player who never opened a chest has no chestsOpened field at all. */
@@ -31874,7 +31994,6 @@ class Game {
       disks: this.riftDisksCollected ? this.riftDisksCollected.size : 0,
       dimensions: this.dimensionsBreached ? this.dimensionsBreached.size : 1,
       chests: this.player.chestsOpened || 0,
-      level: this.player.level || 1
     };
   }
 
@@ -32187,6 +32306,10 @@ class Game {
       this.wasNight = false;
       this.dayCount++;
       this.memoryFragments++;
+      /* PHASE 26 — the night the player lived through IS the progression. Fired from the
+         dawn branch, which runs once per night survived, so this needs no guard of its
+         own beyond the latch inside _reachMilestone. */
+      this._reachMilestone('firstNight');
       if (this.memoryFragments >= this.nightsRequired && !this.awaitingAdvance) {
         this.awaitingAdvance = true;
         this.ui.triggerWinScreen(this.stage);
@@ -32224,10 +32347,20 @@ class Game {
     // Core Disk pickup marks the boss defeated & Level 2 unlocked (bonus directive step 6)
     if (!this.behemothDefeated && this.player.inventory.hasItem(ITEM.CORE_DISK)) {
       this.behemothDefeated = true;
+      // PHASE 26 — the defeat itself advances progression. No XP bridges it any more.
+      this._reachMilestone('behemoth');
       if (!this.awaitingAdvance) {
         this.awaitingAdvance = true;
         this.ui.triggerBossVictory();
       }
+    }
+
+    /* PHASE 26 — MILESTONE: the player has somewhere to come back to. The Anchor is
+       placed deep inside VoxelWorld.setBlock, which has no Game reference, so the latch
+       is read here instead — beside the line that already reads activeAnchor for the HUD,
+       and behind a three-element Set.has that costs nothing. */
+    if (!this.milestones.has('shelter') && this.anchorManager.activeAnchor) {
+      this._reachMilestone('shelter');
     }
 
     // HUD Directives Update

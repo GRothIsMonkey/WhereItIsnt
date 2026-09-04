@@ -1559,7 +1559,9 @@ Persist relevant information such as:
 - necessary structure state
 - settings
 
-XP MUST NOT be persisted because XP is permanently removed.
+XP MUST NOT be persisted because XP is permanently removed. Phase 26 finished the job:
+the player `level` the schema carried for the HUD label went out with schema 3, and its
+migration is documented in `PROGRESS.md` section 0.0000.
 
 Use edited-chunk/world-edit style persistence rather than giant snapshots
 where practical.
@@ -1691,9 +1693,20 @@ REST.
 
 ---
 
-# 44. PHASE 26 — REMOVE XP / REBUILD PROGRESSION
+# 44. PHASE 26 — REMOVE XP / REBUILD PROGRESSION  — **COMPLETE**
 
 XP is permanently removed.
+
+Delivered. See `PROGRESS.md` section 0.0000 for what XP was, everything that depended on
+it, what each dependant depends on now, the three-row `PROGRESSION_MILESTONES` table that
+replaced the stat curve, the schema 2 → 3 migration (and the double-grant trap it exists to
+avoid), and exactly what was and was not validated in a real browser.
+
+The end state, in one line: **there is no XP counter, no player level, no threshold and no
+grant function.** Progression is ACCESS (the compass, a recipe's materials, a Core Disk, a
+dimension) and ENDURANCE (three one-shot survival milestones, ceiling 170 max health).
+`attackBonus` and `miningSpeedBonus` remain as fields with no runtime source, purely so a
+save written while XP was alive keeps what it already paid for.
 
 Remove:
 
@@ -1716,6 +1729,10 @@ Replace progression with:
 - story milestones
 
 Do not replace XP with another invisible number.
+
+**None of the above may be reintroduced.** Phase 27 rebuilds the HUD and Phase 28 removes
+the tutorial; neither may bring back a level, a bar, a threshold or a grant function, and
+`tests/progression.js` fails if any of them does.
 
 ---
 
@@ -3304,14 +3321,15 @@ Claude Code should inspect the repository before making assumptions.
 
 Current completed milestone:
 
-Phase 25 — Dynamic Objective System
-(Phase 24 canonical story foundation, Phase 23 save/load, Phase 22 settings,
-Phase 21 dropped item ground contact, and Phase 20 including the 20.1 journey
-revision and the 20.2 guidance pass — see PROGRESS.md, and STORY.md for the canon)
+Phase 26 — Remove XP / Rebuild Progression
+(Phase 25 dynamic objectives, Phase 24 canonical story foundation, Phase 23
+save/load, Phase 22 settings, Phase 21 dropped item ground contact, and Phase 20
+including the 20.1 journey revision and the 20.2 guidance pass — see PROGRESS.md,
+and STORY.md for the canon)
 
 Current next major phase:
 
-Phase 26 — Remove XP / Rebuild Progression
+Phase 27 — Health / Sanity / HUD Rebirth
 
 Current game build baseline:
 

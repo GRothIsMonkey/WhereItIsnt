@@ -145,8 +145,11 @@ function fakeGame() {
   chk(syncs >= 5,
       `every dimension crossing re-applies it: ${syncs} call sites (Levels 2, 3 and 4, the ` +
       `dev teleports, and the definition)`);
+  /* The window is a proximity check, not a byte count — Phase 26 dropped the milestone
+     latch set into this same block, between behemothSpawned and the compass, which is
+     exactly where a one-shot progression latch belongs. */
   chk(/this\.compassAcquired = false;/.test(SRC) &&
-      /this\.behemothSpawned = false;[\s\S]{0,1200}this\.compassAcquired = false;/.test(SRC),
+      /this\.behemothSpawned = false;[\s\S]{0,2400}this\.compassAcquired = false;/.test(SRC),
       'the flag lives in the Game progression block beside the other one-shot latches, ' +
       'not in an isolated container');
   chk(/this\.progression\.grantCompass\(\)/.test(SRC) &&
