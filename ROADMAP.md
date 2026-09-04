@@ -2228,216 +2228,644 @@ Era 1 is NOT supposed to represent the final visual quality.
 
 ---
 
-# 58. ERA 2 — MAJOR VISUAL IDENTITY REVOLUTION
+# ERA 2 — REBIRTH
 
-Era 2 begins only after the complete playable alpha exists.
+Status: Planned
 
-Purpose:
-
-Take Where It Isn't from:
-
-"strong voxel/low-poly horror prototype"
-
-to:
-
-"distinctive polished horror game with a visual identity that does not look
-like Minecraft."
-
-Potential areas:
-
-- architectural redesign
-- world materials
-- terrain
-- foliage
-- structures
-- creatures
-- character presentation
-- water
-- skies
-- fog
-- lighting
-- shadows
-- interiors
-- furniture
-- roads
-- environmental props
-- UI
-- cinematic presentation
-- animation
-
-The Era 2 plan should be divided into dedicated visual systems rather than
-trying to redesign everything simultaneously.
+Target Start:
+Immediately following completion of Era 1 Alpha.
 
 ---
 
-# 59. ERA 2 — ARCHITECTURE
+# Vision
 
-Push further into:
+Era 1 proves that Where It Isn't works.
 
-- irregular roofs
-- richer foundations
-- believable wall thickness
-- trim
-- custom windows
-- custom doors
-- curved/tapered components
-- architectural asymmetry
-- stronger proportions
+Era 2 transforms Where It Isn't into the game it was always meant to become.
+
+The purpose of Era 2 is not to create a sequel.
+
+The purpose of Era 2 is not to restart development.
+
+The purpose of Era 2 is to rebuild the presentation, atmosphere, visual identity, and horror delivery while preserving the completed Era 1 experience.
+
+Players should recognize:
+
+- The same story
+- The same journey
+- The same dimensions
+- The same landmarks
+- The same progression
+- The same mystery
+
+But should no longer recognize the game as a voxel game.
+
+By the end of Era 2:
+
+Where It Isn't should stand visually beside modern indie horror games rather than voxel survival games.
+
+---
+
+# Core Rebirth Rules
+
+## Rule 1
+
+Never remove completed story content.
+
+## Rule 2
+
+Never remove dimensions.
+
+## Rule 3
+
+Never remove major landmarks.
+
+## Rule 4
+
+Never restart progression systems.
+
+## Rule 5
+
+Every Rebirth phase must reduce the game's voxel identity.
+
+## Rule 6
+
+Every Rebirth phase must increase the game's horror identity.
+
+## Rule 7
+
+Atmosphere always comes before realism.
+
+## Rule 8
+
+The game should feel lonely, hostile, and mysterious.
+
+## Rule 9
+
+If a feature only exists because the game was voxel-based, it should be reconsidered.
+
+## Rule 10
+
+Preserve the soul of the game at all costs.
+
+---
+
+# Phase 1 — Foundation Rebuild
 
 Goal:
 
-Structures should stop looking like collections of voxel blocks and start
-looking like deliberately authored low-poly architecture.
+Prepare the engine for a non-voxel future.
 
 ---
 
-# 60. ERA 2 — ENVIRONMENT
+## Tasks
 
-Improve:
-
-- grass
-- soil
-- rocks
-- mud
-- foliage
-- field edges
-- terrain
-- roads
-- debris
-- environmental transitions
-- distant scenery
-
-The current systems establish the foundation.
-
-Era 2 should dramatically increase visual fidelity.
+- Separate gameplay from rendering
+- Separate progression from rendering
+- Separate AI from rendering
+- Separate terrain generation from rendering
+- Remove cube assumptions
+- Create world abstraction layers
+- Create rendering abstraction layers
+- Future-proof all core systems
 
 ---
 
-# 61. ERA 2 — LIGHTING / ATMOSPHERE
+## Success Criteria
 
-Potential upgrades:
+Nothing changes visually.
 
-- dynamic sky
-- improved fog
-- atmospheric perspective
-- stronger sun direction
-- better ambient lighting
-- localized lighting
-- shadows
-- subtle volumetric effects
-- nighttime atmosphere
+The player should not notice this phase.
 
-Lighting should support horror rather than simply make everything darker.
+This phase exists solely to make every future Rebirth phase possible.
 
 ---
 
-# 62. ERA 2 — CREATURE PRESENTATION
+# Phase 2 — Terrain Rebirth
 
-Improve:
+Goal:
 
-- animation
-- posture
-- silhouettes
-- facial detail
-- materials
-- movement
-- environmental interaction
-
-Stalker should remain frightening.
-
-Behemoth should remain physically massive.
-
-Final creature should remain visually exceptional.
+Destroy the blocky terrain silhouette.
 
 ---
 
-# 63. ERA 2 — UI
+## Tasks
 
-Improve:
-
-- main menu
-- HUD
-- objectives
-- settings
-- inventory
-- transitions
-- fonts
-- icons
-- effects
-- status communication
-
-The UI should feel like one coherent product.
+- Smooth terrain rendering
+- Natural slopes
+- Natural hills
+- Natural valleys
+- Terrain blending
+- Cliff systems
+- Erosion systems
+- Improved river generation
+- Improved coastlines
+- Improved horizons
 
 ---
 
-# 64. ERA 3 — DEEP HORROR / WORLD DEPTH
+## Success Criteria
 
-Once the visual identity is mature, deepen systemic horror.
+The player no longer sees cube-shaped terrain.
 
-Potential concepts:
-
-- recurring anomalies
-- world memory
-- persistent visual changes
-- more sophisticated repetition
-- rare world-state alterations
-- environmental reactions
-- more complex creature behaviors
-- deeper dimension overlap
-- story-driven world changes
-- subtle fourth-wall-adjacent unease where appropriate
-- long-term player memory
-- recurring objects
-- alternate interpretations of previous locations
-
-Do not overwhelm the player.
-
-The strongest anomalies should remain rare.
+The world immediately stops resembling Minecraft.
 
 ---
 
-# 65. ERA 3 — WORLD MEMORY
+# Phase 3 — Vegetation Rebirth
 
-Possible future signature system:
+Goal:
 
-The world can remember that the player has been somewhere.
-
-Examples:
-
-- a chair moves
-- an object disappears
-- a mailbox changes
-- a light is now on
-- a door is now open
-- a room changes
-- a familiar tree is missing
-- a building is subtly different
-
-These changes should be:
-
-- deterministic
-- controlled
-- rare
-- meaningful
-
-The player should begin wondering whether the world remembers them.
+Remove voxel vegetation entirely.
 
 ---
 
-# 66. ERA 3 — DIMENSION INTERACTION
+## Tasks
 
-Potential future developments:
-
-- places bleeding together
-- cross-dimensional objects
-- impossible architecture appearing temporarily
-- one biome briefly showing another biome
-- Rifts changing location
-- environmental memories crossing dimensions
-
-The goal is to reinforce the idea that the worlds are not actually separate.
+- Real grass
+- Real crops
+- Real bushes
+- Real trees
+- Dead tree systems
+- Wind simulation
+- Seasonal support
+- Terrain-specific vegetation
 
 ---
+
+## Horror Objective
+
+The environment should feel alive.
+
+Not safe.
+
+Not comfortable.
+
+Alive.
+
+---
+
+## Success Criteria
+
+Players stop noticing cubes.
+
+Players start noticing silhouettes.
+
+---
+
+# Phase 4 — Lighting Rebirth
+
+Goal:
+
+Create the final atmosphere.
+
+---
+
+## Tasks
+
+- Volumetric fog
+- Dynamic fog density
+- Dynamic shadows
+- Improved darkness
+- Better night rendering
+- Sky overhaul
+- Sunrise overhaul
+- Sunset overhaul
+- Distance haze
+- Atmospheric color grading
+- Weather systems
+
+---
+
+## Horror Objective
+
+Darkness should feel oppressive.
+
+Distance should feel uncertain.
+
+---
+
+## Success Criteria
+
+A screenshot should immediately feel unsettling.
+
+---
+
+# Phase 5 — Overworld Rebirth
+
+Goal:
+
+Transform the weakest visual area of the game.
+
+---
+
+## Problems To Solve
+
+Current Overworld risks:
+
+- Minecraft comparisons
+- Generic survival feeling
+- Familiar terrain language
+- Weak visual identity
+
+---
+
+## Tasks
+
+- Terrain redesign
+- Structure redesign
+- Visual language redesign
+- Environmental storytelling
+- Landmark expansion
+- Horror atmosphere improvements
+
+---
+
+## Preserve
+
+- Blood Nights
+- Stalkers
+- Behemoths
+- Rift progression
+
+---
+
+## Success Criteria
+
+The Overworld becomes uniquely Where It Isn't.
+
+---
+
+# Phase 6 — Landmark Rebirth
+
+Goal:
+
+Turn every major landmark into something unforgettable.
+
+---
+
+## Great Tree
+
+Tasks:
+
+- Massive scale increase
+- Disturbing silhouette
+- Audio presence
+- Visible for extreme distances
+
+---
+
+## Water Towers
+
+Tasks:
+
+- Real industrial design
+- Rust
+- Corrosion
+- Structural decay
+
+---
+
+## Giant Barn
+
+Tasks:
+
+- Real architecture
+- Interior storytelling
+- Environmental clues
+
+---
+
+## Disconnected Home
+
+Tasks:
+
+- Complete visual overhaul
+- Greater mystery
+- Better horror presentation
+
+---
+
+## Success Criteria
+
+Players remember landmarks years later.
+
+---
+
+# Phase 7 — Shattered Farmlands Rebirth
+
+Goal:
+
+Create the game's defining experience.
+
+---
+
+## Philosophy
+
+Farmlands should feel endless.
+
+Farmlands should feel wrong.
+
+Farmlands should feel watched.
+
+---
+
+## Tasks
+
+- Road redesign
+- Field redesign
+- Environmental storytelling
+- Weather systems
+- Distance fog
+- Horizon improvements
+- Landmark upgrades
+
+---
+
+## The Eastward Stalker
+
+Major encounter system.
+
+Stage 1:
+
+Audio behind the player.
+
+Stage 2:
+
+Movement in distant fields.
+
+Stage 3:
+
+Brief sightings.
+
+Stage 4:
+
+Movement behind trees.
+
+Stage 5:
+
+Full reveal.
+
+Stage 6:
+
+Chase sequence.
+
+Stage 7:
+
+Escape sequence.
+
+---
+
+## Success Criteria
+
+Farmlands becomes the most discussed dimension in the game.
+
+---
+
+# Phase 8 — Static Suburbia Rebirth
+
+Goal:
+
+Create one of the strongest liminal horror environments ever built into the project.
+
+---
+
+## Tasks
+
+- Real neighborhoods
+- Better streets
+- Better houses
+- Better interiors
+- Impossible architecture
+- Reality distortion systems
+- Environmental storytelling
+
+---
+
+## The Neighbor
+
+Primary horror encounter.
+
+Stage 1:
+
+Distant observation.
+
+Stage 2:
+
+Window sightings.
+
+Stage 3:
+
+Street sightings.
+
+Stage 4:
+
+Impossible appearances.
+
+Stage 5:
+
+Final confrontation.
+
+---
+
+## Success Criteria
+
+Players become afraid to look behind them.
+
+---
+
+# Phase 9 — Fake Haven Rebirth
+
+Goal:
+
+Perfect false comfort.
+
+---
+
+## Tasks
+
+- Beautiful visuals
+- Warm lighting
+- Safe atmosphere
+- Comfortable architecture
+- Environmental deception
+
+---
+
+## Horror Objective
+
+Players should trust Haven.
+
+Then regret trusting Haven.
+
+---
+
+## Success Criteria
+
+The reveal lands harder than in Era 1.
+
+---
+
+# Phase 10 — Audio Rebirth
+
+Goal:
+
+Create the final audio identity.
+
+---
+
+## Music
+
+- Overworld themes
+- Blood Night themes
+- Farmland themes
+- Suburbia themes
+- Haven themes
+- Ending themes
+
+---
+
+## Horror Audio
+
+- Distant sounds
+- Environmental whispers
+- Dynamic tension systems
+- Chase themes
+- Audio stingers
+
+---
+
+## Success Criteria
+
+Players recognize Where It Isn't from audio alone.
+
+---
+
+# Phase 11 — Cinematics
+
+Goal:
+
+Deliver the final narrative presentation.
+
+---
+
+## Tasks
+
+- Intro film
+- Rift film
+- Farmland film
+- Suburbia film
+- Haven film
+- Ending film
+
+---
+
+## Success Criteria
+
+The story reaches its final presentation quality.
+
+---
+
+# Phase 12 — Horror Expansion
+
+Goal:
+
+Create unforgettable moments.
+
+---
+
+## Rules
+
+No cheap jumpscares.
+
+No constant screaming.
+
+No spam.
+
+Every scare must matter.
+
+---
+
+## Tasks
+
+- Stalker encounters
+- Neighbor encounters
+- Rare events
+- Environmental scares
+- Dynamic horror systems
+
+---
+
+## Success Criteria
+
+Players remember specific moments years later.
+
+---
+
+# Phase 13 — World Polish
+
+Goal:
+
+Turn good areas into great areas.
+
+---
+
+## Tasks
+
+- Environmental storytelling
+- Detail passes
+- Visual cleanup
+- Additional discoveries
+- Hidden lore
+- Secret encounters
+
+---
+
+## Success Criteria
+
+Every dimension feels complete.
+
+---
+
+# Phase 14 — Release Candidate
+
+Goal:
+
+Prepare for commercial launch.
+
+---
+
+## Tasks
+
+- Optimization
+- Bug fixing
+- Performance
+- Achievements
+- Demo
+- Trailer
+- Steam page
+- Final QA
+- Marketing assets
+
+---
+
+# End of Era 2
+
+Players should say:
+
+"The game where you travel east through the broken countryside."
+
+"The game with the impossible neighborhood."
+
+"The game with the giant dead tree."
+
+"The game with the thing following you through the fields."
+
+Not:
+
+"The Minecraft horror game."
+
+The Rebirth is complete when the visual identity of Where It Isn't becomes entirely its own.
 
 # 67. ERA 3 — DEEPER CREATURE HORROR
 
