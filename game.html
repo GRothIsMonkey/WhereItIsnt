@@ -369,8 +369,20 @@
      The scrim is lighter than the crafting overlay's (0.72 against 0.85) so the world
      stays faintly visible behind it. You are pausing, not leaving.
      ================================================================================= */
+  /* PHASE 22 HOTFIX — STACKING ORDER.
+
+     The panel was authored at z-index 45, which sits above the crafting, backpack and
+     storage overlays (all 40) and was correct for the in-game O key. It is BELOW the
+     start screen (50) and the tutorial screen (55), both of which paint an opaque
+     background across the whole viewport — so the start screen's SETTINGS button did
+     fire, and the panel did open, and it opened entirely behind an opaque wall. The
+     button read as dead because nothing appeared, not because the click was lost.
+
+     56 puts it above every screen it can legitimately be opened from and still below the
+     cinematic layers that must never be covered: the opening instruction and win screen
+     (60), the Haven white wash (60), the hard black cut (65) and the credits (70). */
   #settingsOverlay {
-    position: fixed; inset: 0; background: rgba(8, 6, 5, 0.72); z-index: 45;
+    position: fixed; inset: 0; background: rgba(8, 6, 5, 0.72); z-index: 56;
     display: none; align-items: center; justify-content: center; color: #d8cba8;
   }
   #settingsOverlay.active { display: flex; }
