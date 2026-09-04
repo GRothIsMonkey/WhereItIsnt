@@ -298,8 +298,9 @@ const textFor = (over) => { const o = new ObjectiveSystem(null); o.evaluate(snap
 // 9. SAVE / LOAD, AND THE VERSION 1 -> 2 MIGRATION
 // =====================================================================================
 {
-  chk(SAVE_VERSION === 2, `the save schema is at version ${SAVE_VERSION}`);
+  chk(SAVE_VERSION === 3, `the save schema is at version ${SAVE_VERSION}`);
   chk(typeof SAVE_MIGRATIONS[1] === 'function', 'and a real migration from version 1 exists');
+  chk(typeof SAVE_MIGRATIONS[2] === 'function', 'as does the Phase 26 migration from version 2');
 
   const d = defaultSaveState(null);
   chk(d.objectives && OBJECTIVE_CHAIN_IDS.every(k => d.objectives[k] === 0),
@@ -344,10 +345,11 @@ const textFor = (over) => { const o = new ObjectiveSystem(null); o.evaluate(snap
   };
   const migrated = validateSaveState(v1);
   chk(migrated.ok, 'a version 1 Phase 23 save still loads' + (migrated.ok ? '' : ': ' + migrated.error));
-  chk(migrated.state.version === 2 && migrated.state.objectives.overworld === 0,
-      'it is migrated to version 2 with zeroed marks');
-  chk(migrated.repairs.some(r => /migrated from schema 1/.test(r)),
-      'and the migration is reported rather than silent');
+  chk(migrated.state.version === SAVE_VERSION && migrated.state.objectives.overworld === 0,
+      `it is migrated up the whole ladder to version ${SAVE_VERSION} with zeroed marks`);
+  chk(migrated.repairs.some(r => /migrated from schema 1/.test(r)) &&
+      migrated.repairs.some(r => /migrated from schema 2/.test(r)),
+      'and every rung of the migration is reported rather than silent');
   chk(migrated.state.progression.dayCount === 3 && migrated.state.player.hp === 80,
       'while everything the old save DID carry survives untouched');
 

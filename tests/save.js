@@ -79,7 +79,7 @@ function goodSave(over) {
     player: {
       position: { x: 40.5, y: 32, z: 40.5 }, yaw: 1.2, pitch: -0.3,
       hp: 73, maxHp: 145, dead: false,
-      level: 4, attackBonus: 3, miningSpeedBonus: 0.54,
+      attackBonus: 3, miningSpeedBonus: 0.54,
       chestsOpened: 2, selectedSlot: 1, inventory: inv,
     },
     sanity: 61.5,
@@ -87,6 +87,7 @@ function goodSave(over) {
       stage: 2, dayCount: 5, memoryFragments: 1, nightsRequired: 4,
       awaitingAdvance: false, behemothDefeated: true, behemothSpawned: true,
       compassAcquired: true, pendingLevel2Transition: false, fakeHavenTriggered: false,
+      milestones: ['shelter', 'firstNight', 'behemoth'],
       farmCrossroadsRecalled: false, farmJourneyOrd: 7, farmHouseSeen: false,
       killCount: 31, riftDisks: [ITEM.CORE_DISK], dimensionsBreached: [DIMENSION.OVERWORLD],
     },
@@ -116,9 +117,12 @@ function goodSave(over) {
   chk(d.dimension === 'overworld', 'a new game starts in the Overworld');
   chk(d.progression.stage === 1 && d.progression.dayCount === 1 && d.progression.memoryFragments === 0,
       'stage 1, day 1, no memory fragments');
-  chk(d.player.hp === 100 && d.player.maxHp === 100 && d.player.level === 1 &&
+  chk(d.player.hp === 100 && d.player.maxHp === 100 &&
       d.player.attackBonus === 0 && d.player.miningSpeedBonus === 0,
       'full health at the baseline capability set');
+  chk(!('level' in d.player), 'PHASE 26 — and no player level: the field went out with the XP system');
+  chk(Array.isArray(d.progression.milestones) && d.progression.milestones.length === 0,
+      'PHASE 26 — a new game has reached no progression milestones');
   chk(d.player.inventory.every(s => s === null), 'the pack is empty');
   chk(d.player.selectedSlot === 0 && d.sanity === 100, 'first slot selected, sanity full');
   chk(d.anchor === null, 'no anchor');
@@ -135,9 +139,12 @@ function goodSave(over) {
       'a well-formed save validates with zero repairs' + (r.ok ? '' : ': ' + r.error));
   chk(!('xp' in r.state.player), 'and the validated state has no xp field either');
   const s = r.state;
-  chk(s.player.hp === 73 && s.player.maxHp === 145 && s.player.level === 4 &&
+  chk(s.player.hp === 73 && s.player.maxHp === 145 &&
       s.player.attackBonus === 3 && Math.abs(s.player.miningSpeedBonus - 0.54) < 1e-9,
       'health and earned capabilities survive validation exactly');
+  chk(!('level' in s.player), 'PHASE 26 — and the validated state carries no level either');
+  chk(s.progression.milestones.join(',') === 'shelter,firstNight,behemoth',
+      'PHASE 26 — the milestone latch set survives validation, in the table order');
   chk(s.player.inventory[0].item === ITEM.TORCH && s.player.inventory[0].count === 12 &&
       s.player.inventory[1].item === ITEM.IRON_PICKAXE && s.player.inventory[9].count === 3 &&
       s.player.inventory.filter(Boolean).length === 3,
@@ -226,9 +233,9 @@ function goodSave(over) {
   const rm = validateSaveState(missing);
   chk(rm.ok && rm.state.player.selectedSlot === 0 && rm.state.player.chestsOpened === 0 && rm.repairs.length === 0,
       'an absent or null field takes its default silently — a schema may gain fields without every old save reporting damage');
-  const str = goodSave(); str.player.level = '7'; str.player.hp = '55';
+  const str = goodSave(); str.player.maxHp = '160'; str.player.hp = '55';
   const rs = validateSaveState(str);
-  chk(rs.ok && rs.state.player.level === 7 && rs.state.player.hp === 55 && rs.repairs.length === 0,
+  chk(rs.ok && rs.state.player.maxHp === 160 && rs.state.player.hp === 55 && rs.repairs.length === 0,
       'and a numeric string coerces silently, exactly as it does in the Phase 22 settings schema');
 }
 {
@@ -704,7 +711,10 @@ const B = makeWorld();
   ];
   for (const pair of captureWants) chk(pair[1].test(cap), 'the capture records ' + pair[0]);
   chk(!/\bxp\b\s*:/.test(cap), 'and it records NO xp field');
-  chk(/p\.xp = 0;/.test(src), 'while the restore explicitly zeroes the (unsaved) xp counter');
+  chk(!/\blevel\s*:\s*p\.level\b/.test(cap),
+      'PHASE 26 — and no player level: the capture has nothing left to write it from');
+  chk(/milestones: PROGRESSION_MILESTONE_IDS/.test(cap),
+      'PHASE 26 — while it does record the direct-progression milestone set');
 
   // Nothing that belongs to the renderer may be in a save.
   const banned = ['this.scene', 'this.renderer', 'this.camera', 'geometry', 'material',

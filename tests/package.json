@@ -18,7 +18,8 @@
     "save": "node save.js",
     "browser-save": "node browser-save.js",
     "story": "node story.js",
-    "objectives": "node objectives.js"
+    "objectives": "node objectives.js",
+    "progression": "node progression.js"
   },
   "dependencies": {
     "three": "0.128.0"

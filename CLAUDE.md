@@ -565,6 +565,10 @@ Do not replace working systems without explicit justification.
 
 XP has been permanently removed.
 
+PHASE 26 CARRIED THIS OUT. As of Phase 26 the build contains no XP counter, no player
+level, no XP threshold, no XP bar and no grant function of any kind. This section is now a
+statement about the code, not an intention.
+
 There must be NO:
 
 - XP bar
@@ -578,6 +582,26 @@ There must be NO:
 
 Do not reintroduce XP accidentally.
 
+`tests/progression.js` is the guard: it fails if an XP symbol is defined, if a call site
+appears in executable code, if an XP element returns to the document, or if a recipe grows
+a level gate again. Run it before claiming a later phase is complete.
+
+WHAT THE ACTIVE ARCHITECTURE IS NOW (Phase 26):
+
+  ACCESS      the compass, a recipe's materials, a Core Disk, a dimension. Progression is
+              what the player can DO because of something they found or opened.
+
+  ENDURANCE   `PROGRESSION_MILESTONES` — exactly three one-shot survival milestones
+              (first Anchor standing, first night survived, Behemoth felled), granting max
+              health only, ceiling 170. Latched by id in a Set that the save carries;
+              granted through the single path `Game._reachMilestone()`. Nothing counts
+              toward them and none can be repeated.
+
+  LEGACY      `attackBonus` and `miningSpeedBonus` still exist as PLAYER FIELDS with NO
+              runtime source. They are there so a save written while XP was alive keeps
+              what it already bought. Do not add a new source for either — combat
+              progression is the weapon, mining progression is the tool.
+
 Player progression should come from meaningful direct systems such as:
 
 - equipment
@@ -589,6 +613,9 @@ Player progression should come from meaningful direct systems such as:
 - world progression
 
 Do not replace XP with an invisible XP-like number.
+
+Do not add a fourth milestone, or a milestone that grants attack or mining, without a
+deliberate design decision: three is the authored set, and a growing table is a curve.
 
 ---
 
@@ -1570,18 +1597,24 @@ Avoid revealing future dimensions too early.
 
 ---
 
-# 52. PHASE 26 — PROGRESSION
+# 52. PHASE 26 — PROGRESSION — COMPLETE
 
-XP is permanently removed.
+XP is permanently removed, and Phase 26 removed it.
 
-Replace XP progression with:
+Progression was replaced with:
 
-- equipment
-- tools
-- recipes
-- discoveries
-- Rift Core milestones
-- story milestones
+- equipment (weapon damage IS the combat progression)
+- tools (the pickaxe/axe tier tables ARE the mining progression)
+- recipes (gated by materials, which are themselves discoveries — no recipe carries a
+  level requirement any more)
+- discoveries (the compass, earned at the first Overworld Ancient Chest)
+- Rift Core milestones (the Rift opens because a Core Disk was fed to an Anchor)
+- story milestones (three one-shot survival milestones — see section 19)
+
+The save schema went to version 3. Its 2 → 3 migration drops `level` and `xp`, keeps
+`maxHp` / `attackBonus` / `miningSpeedBonus`, and DERIVES which milestones an old save has
+already lived so a returning player is not granted health twice for a night they already
+survived. See `PROGRESS.md` section 0.0000.
 
 Never substitute XP with another meaningless hidden number.
 

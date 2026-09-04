@@ -72,7 +72,12 @@ const SNAPSHOT = `(() => {
     pos: { x: p.position.x, y: p.position.y, z: p.position.z },
     yaw: p.yaw, pitch: p.pitch,
     hp: p.hp, maxHp: p.maxHp, dead: p.dead,
-    level: p.level, attackBonus: p.attackBonus,
+    /* PHASE 26 — p.level is gone with the XP system; what is read here now is the
+       milestone latch set and the bonuses a legacy save may still carry. */
+    milestones: Array.from(g.milestones),
+    attackBonus: p.attackBonus, miningSpeedBonus: p.miningSpeedBonus,
+    xpBar: !!document.getElementById('xpBarInner'),
+    levelLabel: !!document.getElementById('levelLabel'),
     selectedSlot: p.selectedSlot,
     inventory: p.inventory.slots.map(s => (s.item ? [s.item, s.count] : null)),
     sanity: g.sanity.value,
@@ -207,6 +212,46 @@ async function boot(page, { fresh }) {
           return document.querySelectorAll('#journeyStep').length === 1;
         }), 'and there is exactly one objective element in the document');
 
+    // --- PHASE 26: XP is not on the screen, in a real browser ----------------------
+    chk(first.xpBar === false && first.levelLabel === false,
+        'THE XP BAR AND THE LEVEL LABEL ARE NOT IN THE LIVE DOCUMENT AT ALL');
+    chk(await page.evaluate(() => {
+          const hud = document.getElementById('hud');
+          return !/\bLv\.|\bXP\b|LEVEL UP/.test(hud ? hud.innerText : '');
+        }), 'and nothing rendered in the HUD reads Lv., XP or LEVEL UP');
+    chk(first.milestones.length === 0 && first.attackBonus === 0 && first.miningSpeedBonus === 0,
+        'a new game starts with no milestone reached and no earned bonuses');
+    chk(await page.evaluate(() => {
+          const g = window.game, p = g.player;
+          const before = p.maxHp;
+          g._reachMilestone('firstNight');
+          const once = p.maxHp;
+          for (let i = 0; i < 50; i++) g._reachMilestone('firstNight');
+          return before === 100 && once === 120 && p.maxHp === 120 &&
+                 g.milestones.size === 1 && p.hp <= p.maxHp;
+        }), 'reaching a milestone in the live game grants once and only once (100 -> 120 max health)');
+    chk(await page.evaluate(() => {
+          const t = document.getElementById('hudToast');
+          return !!t && t.classList.contains('show') && !/\d/.test(t.textContent);
+        }), 'and the player is told, on the one transient HUD line, with no number in it');
+    chk(await page.evaluate(() => {
+          const g = window.game;
+          g.milestones.delete('firstNight'); g.player.maxHp = 100; g.player.hp = 100;
+          const t = document.getElementById('hudToast');
+          if (t) t.classList.remove('show');
+          return g.milestones.size === 0 && g.player.maxHp === 100;
+        }), 'and the probe undoes itself, so the rest of this file tests an untouched player');
+
+    // Crafting: no level gate in the live menu.
+    chk(await page.evaluate(() => {
+          const g = window.game;
+          g.ui.openCrafting ? g.ui.openCrafting() : g.ui.renderCraftingMenu();
+          const txt = document.getElementById('recipeList').innerText;
+          const gated = /Requires Level|Unlocked at Lv/.test(txt);
+          if (g.ui.craftingOpen) { g.ui.craftingOpen = false; g.ui.craftingOverlay.classList.remove('active'); }
+          return !gated;
+        }), 'and the live crafting menu shows no level requirement on any recipe');
+
     // ---------------------------------------------------------------------------------
     // BUILD A STATE WORTH SAVING — through the game's own methods, not by assignment.
     // ---------------------------------------------------------------------------------
@@ -243,8 +288,19 @@ async function boot(page, { fresh }) {
       /* PHASE 25 — resolve once the state is FINAL, so the snapshot below is the objective
          the player would actually be looking at when they press Save. */
       g._refreshObjective();
-      return { bx, by, bz, dug: dug.length, stone: BLOCK.STONE };
+      return { bx, by, bz, dug: dug.length, stone: BLOCK.STONE, hpSet: p.hp, maxHpSet: p.maxHp };
     });
+
+    /* PHASE 26 — THE ANCHOR IS NOW PROGRESSION, IN THE LIVE GAME. The monument was placed
+       through setBlockWorld above; the milestone latches on the next frame that sees it
+       standing. Waited for explicitly rather than assumed, because everything after this
+       (the save, the reload, the restore) has to carry the health it granted. */
+    await page.waitForFunction("window.game.milestones.has('shelter')", null, { timeout: 5000 });
+    const milestoned = await page.evaluate(() => ({ maxHp: window.game.player.maxHp, hp: window.game.player.hp }));
+    chk(milestoned.maxHp === built.maxHpSet + 20 && milestoned.hp === built.hpSet + 20,
+        `placing the first Anchor granted endurance in the running game ` +
+        `(${built.hpSet}/${built.maxHpSet} -> ${milestoned.hp}/${milestoned.maxHp}) — no XP, no threshold, no bar`);
+
     const before = await page.evaluate(SNAPSHOT);
     chk(before.editCount >= 14, `the session made ${before.editCount} real world edits across ${before.editedChunks} chunks`);
     chk(before.compass === true && before.compassShown === true, 'the compass was earned and is on screen');
@@ -303,6 +359,15 @@ async function boot(page, { fresh }) {
         `facing the saved way the instant the load finishes (yaw ${sp.yaw}, pitch ${sp.pitch})`);
     chk(after.hp === sp.hp && after.maxHp === sp.maxHp && after.dead === false,
         `health is restored exactly (${after.hp}/${after.maxHp}) and the player is alive`);
+    /* PHASE 26 — and the milestone comes back REACHED, not re-granted. The anchor is
+       standing again after the restore, which is exactly the condition that granted it
+       the first time; if the latch had not survived the round trip the player would be
+       paid twice for one monument. */
+    chk(after.milestones.join(',') === 'shelter' && after.maxHp === milestoned.maxHp,
+        `the milestone survived the reload as reached, and granted nothing a second time ` +
+        `(${after.maxHp} max health, unchanged)`);
+    chk(after.attackBonus === 0 && after.miningSpeedBonus === 0,
+        'and no stat bonus appeared from anywhere — nothing in this run could grant one');
     /* Sanity is compared against the value the SAVE FILE actually carries rather than
        against the snapshot taken a second earlier: the player is standing inside their
        own Anchor Monument's safe zone, which regenerates 10/sec, so the live value moves
@@ -325,7 +390,7 @@ async function boot(page, { fresh }) {
         `and the chain mark did not regress (${before.objectiveMarks.overworld} -> ${after.objectiveMarks.overworld})`);
     chk(stored.payload.objectives && typeof stored.payload.objectives.overworld === 'number',
         'the save file carries the objective marks');
-    chk(stored.payload.version === 2, `and it is written at schema version ${stored.payload.version}`);
+    chk(stored.payload.version === 3, `and it is written at schema version ${stored.payload.version}`);
     chk(await page.evaluate(() => typeof ITEM.COMPASS === 'undefined'),
         'and it is still not an inventory item at all — it cannot be dropped or lost');
     chk(after.chestsOpened === before.chestsOpened, 'the chest tally is restored');

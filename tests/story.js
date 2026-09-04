@@ -225,12 +225,14 @@ const SCRIPT = gameScript();
   chk(!/id="(noteOverlay|readable|documentOverlay)/i.test(GAME),
       'no collectible-note or readable-document UI was added');
 
-  /* The number of places the game can put words on the screen must not have grown.
+  /* The number of places the game can put words on the screen must not have grown much.
      Phase 24 is documentation: the only player-facing text changes it made were renames
-     and one removal. 16 is the measured Phase 23 count (verified against the pre-phase
-     build), so this catches a future phase quietly turning the bible into dialogue. */
+     and one removal, at 16 call sites (the measured Phase 23 count, verified against the
+     pre-phase build). Phase 26 added exactly ONE — the progression milestone notice, and
+     it is a HUD status line, not lore. 17 is therefore the ceiling, and this still
+     catches a future phase quietly turning the bible into dialogue. */
   const toasts = (SCRIPT.match(/showToast\(/g) || []).length;
-  chk(toasts <= 16, `showToast call sites: ${toasts} — unchanged from the Phase 23 build, so Phase 24 added no lore`);
+  chk(toasts <= 17, `showToast call sites: ${toasts} — Phase 23's 16 plus Phase 26's one milestone notice, so no phase has turned the bible into dialogue`);
 }
 
 // =====================================================================================
@@ -244,8 +246,12 @@ const SCRIPT = gameScript();
       'and PROGRESS.md records what Phase 24 actually did to the repository');
   chk(/COMPLETE/.test(ROADMAP.slice(ROADMAP.indexOf('# 42. PHASE 24'), ROADMAP.indexOf('# 42. PHASE 24') + 120)),
       'ROADMAP.md marks Phase 24 complete');
-  chk(/Phase 25 — Dynamic Objective System/.test(ROADMAP),
-      'and names Phase 25 as next');
+  /* Phase 24's real invariant is that the roadmap still carries the phase order after it,
+     not that Phase 25 is literally the NEXT one — Phase 25 shipped, and Phase 26 after it.
+     Asserted as "Phase 25 is still in there, marked complete" so this keeps catching a
+     roadmap that loses a delivered phase without failing every time one lands. */
+  chk(/# 43\. PHASE 25 — DYNAMIC OBJECTIVE SYSTEM\s+— \*\*COMPLETE\*\*/.test(ROADMAP),
+      'and still carries Phase 25, marked complete');
 }
 
 // =====================================================================================
