@@ -357,6 +357,85 @@
   }
   .link-btn:hover { color: #ffcf6b; }
 
+  /* =================================================================================
+     PHASE 22 — SETTINGS
+
+     Built from the panel language the game already has — the crafting overlay's dark
+     ground and brass rule, the HUD's parchment text — rather than a new visual idea. It
+     is deliberately narrow and left-aligned rather than a full-screen dashboard: it is a
+     small instrument panel you open, adjust and close, which is the restraint the brief
+     asks for and the opposite of a console options screen.
+
+     The scrim is lighter than the crafting overlay's (0.72 against 0.85) so the world
+     stays faintly visible behind it. You are pausing, not leaving.
+     ================================================================================= */
+  #settingsOverlay {
+    position: fixed; inset: 0; background: rgba(8, 6, 5, 0.72); z-index: 45;
+    display: none; align-items: center; justify-content: center; color: #d8cba8;
+  }
+  #settingsOverlay.active { display: flex; }
+  .settings-panel {
+    background: #171310; border: 2px solid #6b5a3c; border-radius: 4px;
+    width: 420px; padding: 22px 24px 18px;
+    box-shadow: 0 0 34px rgba(0,0,0,0.85);
+  }
+  .settings-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    border-bottom: 1px solid #3a3020; padding-bottom: 10px; margin-bottom: 16px;
+  }
+  .settings-title { font-size: 13px; letter-spacing: 4px; color: #c8a24a; }
+  .settings-hint { font-size: 10px; letter-spacing: 1.5px; color: #6b5a3c; }
+  .settings-group { margin-bottom: 15px; }
+  .settings-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 5px; }
+  .settings-label { font-size: 11px; letter-spacing: 2px; color: #b9ad8c; }
+  .settings-value { font-size: 11px; color: #c8a24a; font-variant-numeric: tabular-nums; }
+
+  /* A flat brass rail with a square handle: an instrument slider, not a web-app pill. */
+  .settings-slider {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 3px;
+    background: #3a3020; outline: none; cursor: pointer; border-radius: 0;
+  }
+  .settings-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 9px; height: 17px;
+    background: #c8a24a; border: none; border-radius: 1px; cursor: pointer;
+  }
+  .settings-slider::-moz-range-thumb {
+    width: 9px; height: 17px; background: #c8a24a; border: none; border-radius: 1px; cursor: pointer;
+  }
+  .settings-slider:hover::-webkit-slider-thumb { background: #e8c874; }
+  .settings-slider:hover::-moz-range-thumb { background: #e8c874; }
+
+  .settings-seg { display: flex; gap: 6px; }
+  .settings-seg button {
+    flex: 1; background: #221b12; color: #8a7a58; border: 1px solid #3a3020;
+    font-family: inherit; font-size: 10px; letter-spacing: 2px; padding: 6px 0;
+    cursor: pointer; border-radius: 2px; transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .settings-seg button:hover { background: #2e2517; color: #b9ad8c; }
+  .settings-seg button.on { background: #3a2e1c; color: #ffcf6b; border-color: #6b5a3c; }
+
+  .settings-toggle {
+    background: #221b12; color: #8a7a58; border: 1px solid #3a3020;
+    font-family: inherit; font-size: 10px; letter-spacing: 2px; padding: 6px 14px;
+    cursor: pointer; border-radius: 2px; min-width: 74px;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .settings-toggle:hover { background: #2e2517; color: #b9ad8c; }
+  .settings-toggle.on { background: #3a2e1c; color: #ffcf6b; border-color: #6b5a3c; }
+  .settings-note { font-size: 10px; color: #5a4e38; letter-spacing: 1px; margin-top: 2px; }
+
+  .settings-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    border-top: 1px solid #3a3020; padding-top: 12px; margin-top: 18px;
+  }
+  .settings-foot .link-btn { margin-top: 0; }
+  .settings-close {
+    background: #2a2114; color: #ffcf6b; border: 1px solid #6b5a3c;
+    font-family: inherit; font-size: 11px; letter-spacing: 3px; padding: 8px 22px;
+    cursor: pointer; border-radius: 2px; transition: background 0.15s, border-color 0.15s;
+  }
+  .settings-close:hover { background: #3a2e1c; border-color: #ffcf6b; }
+
   /* Tutorial Overlay */
   #tutorialScreen {
     position: fixed; inset: 0; background: rgba(4, 3, 2, 0.97); z-index: 55;
@@ -578,6 +657,51 @@
       E CRAFTING &nbsp;&bull;&nbsp; I INVENTORY &nbsp;&bull;&nbsp; Q DROP ITEM
     </div>
     <button id="skipTutorialLink" class="link-btn">SKIP TUTORIAL &amp; DROP IN NOW</button>
+    <button id="startSettingsLink" class="link-btn" style="margin-left:18px;">SETTINGS</button>
+  </div>
+</div>
+
+<div id="settingsOverlay">
+  <div class="settings-panel">
+    <div class="settings-head">
+      <span class="settings-title">SETTINGS</span>
+      <span class="settings-hint">O &nbsp;OR&nbsp; ESC TO CLOSE</span>
+    </div>
+
+    <div class="settings-group">
+      <div class="settings-row"><span class="settings-label">MASTER VOLUME</span><span class="settings-value" id="setMasterVal">100%</span></div>
+      <input class="settings-slider" id="setMaster" type="range" min="0" max="100" step="1">
+    </div>
+    <div class="settings-group">
+      <div class="settings-row"><span class="settings-label">MUSIC</span><span class="settings-value" id="setMusicVal">100%</span></div>
+      <input class="settings-slider" id="setMusic" type="range" min="0" max="100" step="1">
+    </div>
+    <div class="settings-group">
+      <div class="settings-row"><span class="settings-label">SOUND EFFECTS</span><span class="settings-value" id="setSfxVal">100%</span></div>
+      <input class="settings-slider" id="setSfx" type="range" min="0" max="100" step="1">
+    </div>
+    <div class="settings-group">
+      <div class="settings-row"><span class="settings-label">MOUSE SENSITIVITY</span><span class="settings-value" id="setSensVal">1.00&times;</span></div>
+      <input class="settings-slider" id="setSens" type="range" min="25" max="300" step="5">
+    </div>
+    <div class="settings-group">
+      <div class="settings-row"><span class="settings-label">GRAPHICS</span><span class="settings-value" id="setQualityVal">HIGH</span></div>
+      <div class="settings-seg" id="setQuality">
+        <button data-q="low">LOW</button><button data-q="medium">MEDIUM</button><button data-q="high">HIGH</button>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-row" style="align-items:center;">
+        <span class="settings-label">FULLSCREEN</span>
+        <button class="settings-toggle" id="setFullscreen">OFF</button>
+      </div>
+      <div class="settings-note" id="setFullscreenNote"></div>
+    </div>
+
+    <div class="settings-foot">
+      <button class="link-btn" id="setDefaults">RESTORE DEFAULTS</button>
+      <button class="settings-close" id="setClose">CLOSE</button>
+    </div>
   </div>
 </div>
 
@@ -1179,6 +1303,232 @@ class SimplexNoise {
   }
 }
 
+/* =====================================================================================
+   PHASE 22 — SETTINGS
+
+   ONE PLACE THAT OWNS EVERY OPTION. Defaults, validation, persistence and application
+   all live here; nothing else in the game reads localStorage or decides what a legal
+   value is. Phase 23 will want to fold settings into the save file, so the whole state
+   is a flat, JSON-shaped object with an explicit schema — `toJSON()` hands it over and
+   `apply(obj)` takes it back, with the same clamping either way.
+
+   DEFAULTS ARE TODAY'S BEHAVIOUR, EXACTLY. Every volume defaults to 1.0 because the
+   three multipliers scale the mix the game already ships (master 0.55, music 0.82, SFX
+   1.35/1.0); sensitivity defaults to 1.0 against the hard-coded 0.0022 rad/px it has
+   always used; quality defaults to 'high', which is the pixel ratio, render scale and
+   shadow map size the build already had. A player who never opens this menu sees and
+   hears precisely what they saw and heard before it existed.
+
+   NOTHING MALFORMED CAN STOP THE GAME STARTING. Storage is attacker-adjacent in the
+   sense that matters here: a user can edit it, a half-written value can survive a crash,
+   and a future version can change the shape. Every read goes through the schema —
+   missing, NaN, Infinity, wrong type, out of range and unknown enum all fall back to the
+   default rather than propagating; a value that is merely out of range is clamped rather
+   than discarded, so a hand-edited 500% volume becomes 100% instead of silence. The
+   whole load is wrapped, so even a storage accessor that throws (private browsing, or a
+   browser configured to block site data) leaves the game running on defaults. */
+const SETTINGS_STORAGE_KEY = 'whereitisnt.settings.v1';
+const GRAPHICS_QUALITIES = ['low', 'medium', 'high'];
+
+/* The schema IS the validation. Each entry knows its default and its legal range, and
+   `coerce` below is the only path a value can take into the live settings object. */
+const SETTINGS_SCHEMA = {
+  //                      default    min    max
+  masterVolume:     { kind: 'num', def: 1.0, min: 0, max: 1 },
+  musicVolume:      { kind: 'num', def: 1.0, min: 0, max: 1 },
+  sfxVolume:        { kind: 'num', def: 1.0, min: 0, max: 1 },
+  /* A MULTIPLIER, NOT A RAW RATE. 1.0 reproduces the 0.0022 rad/px the game has always
+     used; the bounds are deliberately modest — a quarter speed is still usable and three
+     times is already very fast, and anything wider is a way to make the game unplayable
+     by accident rather than a feature. */
+  mouseSensitivity: { kind: 'num', def: 1.0, min: 0.25, max: 3.0 },
+  graphicsQuality:  { kind: 'enum', def: 'high', values: GRAPHICS_QUALITIES },
+  fullscreen:       { kind: 'bool', def: false },
+};
+
+function coerceSetting(key, raw) {
+  const spec = SETTINGS_SCHEMA[key];
+  if (!spec) return undefined;
+  if (spec.kind === 'num') {
+    const n = typeof raw === 'number' ? raw : parseFloat(raw);
+    if (!Number.isFinite(n)) return spec.def;          // undefined, null, NaN, Infinity, "abc"
+    return Math.min(spec.max, Math.max(spec.min, n));  // out of range clamps, never defaults
+  }
+  if (spec.kind === 'enum') {
+    return spec.values.indexOf(raw) >= 0 ? raw : spec.def;
+  }
+  // bool: only a real boolean counts. "false" and 0 are not booleans and fall back.
+  return typeof raw === 'boolean' ? raw : spec.def;
+}
+
+function defaultSettings() {
+  const o = {};
+  for (const k of Object.keys(SETTINGS_SCHEMA)) o[k] = SETTINGS_SCHEMA[k].def;
+  return o;
+}
+
+/* THE GRAPHICS PRESETS, and why these three knobs.
+
+   These are the rendering costs the build ALREADY has, turned down — not new machinery.
+   The brief is explicit that a quality setting must not become an excuse to rewrite
+   rendering, so nothing here removes a visual: no effect is switched off, no draw call
+   disappears, and every preset renders the same scene with the same shaders.
+
+     renderScale   the size of the PostFX render target. THIS is the real lever: the
+                   scene is drawn once into that target and then blitted through the
+                   grading shader, so target area is very nearly the whole frame cost.
+                   The blit itself is one quad and is effectively free.
+     pixelRatio    caps the final blit's resolution. Cheap by comparison, but on a 3x
+                   phone screen an uncapped blit is still worth capping.
+     shadowMap     the sun's shadow map is 2048 square at High. Halving it is a real
+                   saving and, at this art style's contrast, a small visual change.
+
+   Low is deliberately conservative: 70% render scale still reads clearly and shadows
+   are still on. "Distinguishable but conservative" is the instruction. */
+const GRAPHICS_PRESETS = {
+  low:    { renderScale: 0.70, pixelRatio: 1.0, shadowMap: 1024 },
+  medium: { renderScale: 0.85, pixelRatio: 1.5, shadowMap: 1536 },
+  high:   { renderScale: 1.00, pixelRatio: 2.0, shadowMap: 2048 },
+};
+
+/* PHASE 22 — FULLSCREEN, DEFENSIVELY.
+
+   Three separate hazards, all handled here so nothing else has to think about them:
+
+     NOT EVERY BROWSER HAS IT, and the vendor-prefixed spellings still exist in the wild.
+     fullscreenSupported() reports honestly and the UI disables the control rather than
+     offering a button that does nothing.
+
+     THE REQUEST NEEDS A USER GESTURE. requestFullscreenState is only ever called from
+     inside a click handler; calling it from a settings listener or a deferred apply would
+     be rejected by the browser, which is why fullscreen is the one setting the panel
+     actions directly rather than through the generic apply path.
+
+     IT CAN CHANGE BEHIND OUR BACK. F11 and Escape both toggle fullscreen without going
+     anywhere near this menu, so the document's own fullscreenchange event is the source
+     of truth and the stored value is corrected from it — see Game's listener.
+
+   Every call is wrapped: a rejected promise or a throwing implementation must never take
+   the game down with it. */
+/* PHASE 22 — localStorage, but survivable. Private-browsing modes and "block site data"
+   settings make even TOUCHING window.localStorage throw in some browsers, so the access
+   is probed once behind a try and the game runs on defaults if it fails. */
+function safeLocalStorage() {
+  try {
+    const s = window.localStorage;
+    if (!s) return null;
+    const probe = '__wii_probe__';
+    s.setItem(probe, '1');
+    s.removeItem(probe);
+    return s;
+  } catch (e) { return null; }
+}
+
+function fullscreenSupported() {
+  const d = document.documentElement;
+  return !!(d && (d.requestFullscreen || d.webkitRequestFullscreen || d.msRequestFullscreen));
+}
+function isDocumentFullscreen() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+}
+function requestFullscreenState(on) {
+  try {
+    if (on) {
+      if (isDocumentFullscreen()) return true;
+      const d = document.documentElement;
+      const fn = d.requestFullscreen || d.webkitRequestFullscreen || d.msRequestFullscreen;
+      if (!fn) return false;
+      const r = fn.call(d);
+      if (r && typeof r.catch === 'function') r.catch(() => {});   // denied: not an error
+    } else {
+      if (!isDocumentFullscreen()) return true;
+      const fn = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+      if (!fn) return false;
+      const r = fn.call(document);
+      if (r && typeof r.catch === 'function') r.catch(() => {});
+    }
+    return true;
+  } catch (e) { return false; }
+}
+
+class GameSettings {
+  constructor(storage) {
+    /* The storage handle is injected so the class is testable without a browser and so a
+       throwing accessor is survivable. Anything with getItem/setItem will do. */
+    this.storage = storage || null;
+    this.values = defaultSettings();
+    this._saveTimer = null;
+    this._listeners = [];
+    this.load();
+  }
+
+  get(key) { return this.values[key]; }
+
+  /* The only way a value changes. Returns true if it actually moved, so callers can skip
+     re-applying an unchanged setting — which is what keeps dragging a slider from
+     re-creating renderer state on every input event. */
+  set(key, raw) {
+    if (!SETTINGS_SCHEMA[key]) return false;
+    const v = coerceSetting(key, raw);
+    if (this.values[key] === v) return false;
+    this.values[key] = v;
+    this._emit(key, v);
+    this.saveSoon();
+    return true;
+  }
+
+  onChange(fn) { this._listeners.push(fn); }
+  _emit(key, v) { for (const fn of this._listeners) { try { fn(key, v, this); } catch (e) { /* a listener must never break a setting */ } } }
+
+  /* Every stored key is re-validated on the way in, so a file written by a different
+     version, a hand-edited value or a truncated write all degrade to defaults rather
+     than to a broken game. Unknown keys are ignored rather than kept. */
+  load() {
+    this.values = defaultSettings();
+    let raw = null;
+    try { raw = this.storage && this.storage.getItem(SETTINGS_STORAGE_KEY); }
+    catch (e) { return this.values; }                    // storage blocked entirely
+    if (!raw) return this.values;
+    let parsed = null;
+    try { parsed = JSON.parse(raw); } catch (e) { return this.values; }   // not JSON
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return this.values;
+    for (const k of Object.keys(SETTINGS_SCHEMA)) {
+      if (Object.prototype.hasOwnProperty.call(parsed, k)) this.values[k] = coerceSetting(k, parsed[k]);
+    }
+    return this.values;
+  }
+
+  /* DEBOUNCED, because a slider fires an input event per pixel of travel and localStorage
+     writes are synchronous. The value is live immediately; only the write waits. */
+  saveSoon(delay = 250) {
+    if (this._saveTimer !== null) clearTimeout(this._saveTimer);
+    this._saveTimer = setTimeout(() => { this._saveTimer = null; this.save(); }, delay);
+  }
+
+  save() {
+    if (this._saveTimer !== null) { clearTimeout(this._saveTimer); this._saveTimer = null; }
+    try { if (this.storage) this.storage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(this.values)); }
+    catch (e) { /* quota, private mode, blocked storage: the session still works */ }
+  }
+
+  reset() {
+    this.values = defaultSettings();
+    for (const k of Object.keys(this.values)) this._emit(k, this.values[k]);
+    this.saveSoon();
+  }
+
+  // --- Phase 23 hand-off: a flat snapshot in, a validated snapshot out. -------------
+  toJSON() { return Object.assign({}, this.values); }
+  applyJSON(obj) {
+    if (!obj || typeof obj !== 'object') return;
+    for (const k of Object.keys(SETTINGS_SCHEMA)) {
+      if (Object.prototype.hasOwnProperty.call(obj, k)) this.set(k, obj[k]);
+    }
+  }
+
+  get graphicsPreset() { return GRAPHICS_PRESETS[this.values.graphicsQuality] || GRAPHICS_PRESETS.high; }
+}
+
 class SoundEngine {
   constructor() {
     this.ctx = null;
@@ -1226,7 +1576,19 @@ class SoundEngine {
     this.ctx = new Ctx();
     this.master = this.ctx.createGain();
     this.master.gain.value = 0.55;
-    this.master.connect(this.ctx.destination);
+    /* PHASE 22 — THE USER VOLUME IS A SEPARATE NODE FROM THE ENGINE'S OWN MIX.
+
+       `master.gain` is not free real estate: playDeathCollapse() fades it to zero at the
+       climax and nothing ever restores it, so it doubles as a permanent "silence
+       everything" latch. If the Master Volume slider wrote to it, nudging that slider
+       after the credits would bring the whole soundtrack back from the dead. One extra
+       gain node between master and the destination keeps the two concerns apart: the
+       engine ducks `master`, the player controls `userGain`, and neither can undo the
+       other. */
+    this.userGain = this.ctx.createGain();
+    this.userGain.gain.value = 1.0;
+    this.master.connect(this.userGain);
+    this.userGain.connect(this.ctx.destination);
 
     // Two sub-buses so procedural interaction SFX (footsteps, block hits) can sit
     // clearly on top of the ambient music/night bed instead of getting buried by it.
@@ -1236,6 +1598,20 @@ class SoundEngine {
     this.sfxBus = this.ctx.createGain();
     this.sfxBus.gain.value = 1.35;
     this.sfxBus.connect(this.master);
+    /* PHASE 22 — A SECOND SFX BUS AT UNITY, AND IT EXISTS TO PRESERVE THE MIX.
+
+       Eleven one-shot cues — the whispers, item pickup, chest open, anchor execution,
+       shield zap, stalker screech, torch fizzle, the jumpscare hit, the Sovereign's roar,
+       the void static and the Haven tear — were wired straight to `master`, bypassing
+       sfxBus entirely. They are unambiguously gameplay SFX and the SFX slider has to
+       reach them, but simply re-pointing them at sfxBus would have made every one of
+       them 35% louder, because that bus carries a deliberate +1.35 lift for footsteps and
+       block hits. Routing them through their own bus at unity instead means the mix at
+       default settings is bit-identical to the build before this phase, and both buses
+       answer to the same slider. */
+    this.sfxUnityBus = this.ctx.createGain();
+    this.sfxUnityBus.gain.value = 1.0;
+    this.sfxUnityBus.connect(this.master);
     // PHASE 10 — build the music track registry up front so activeMusicIds always
     // exists once the engine has started, rather than only after the first play call.
     this._ensureMusicRegistry();
@@ -1260,7 +1636,9 @@ class SoundEngine {
     this.stalkerGain = this.ctx.createGain();
     this.stalkerGain.gain.value = 0;
     this.stalkerOsc.connect(this.stalkerGain);
-    this.stalkerGain.connect(this.master);
+    // PHASE 22 — the proximity pulse is a gameplay cue, so it answers to the SFX slider
+    // like every other one. Unity bus, so its level is unchanged at default settings.
+    this.stalkerGain.connect(this.sfxUnityBus);
     this.stalkerOsc.start();
 
     this._buildNightBed();
@@ -1401,6 +1779,31 @@ class SoundEngine {
     const t = this.musicTracks.get(id);
     if (!t) return false;
     t.url = url; t.buffer = null;
+    return true;
+  }
+
+  /* PHASE 22 — THE ONE PLACE SETTINGS TOUCH THE AUDIO GRAPH.
+
+     Three multipliers over the three nodes the mix already had, and nothing else: no new
+     context, no new graph, no nodes created per call. It is safe to call before start()
+     — the engine simply has no context yet and the values are re-applied the moment it
+     does, which is the normal case, because a browser will not give you an AudioContext
+     until the player has interacted with the page.
+
+     setTargetAtTime rather than a direct assignment so dragging a slider ramps instead of
+     stepping; a hard write to an AudioParam mid-drag is audible as a click. */
+  applyVolumes(master, music, sfx) {
+    if (!this.ctx) return false;
+    const now = this.ctx.currentTime;
+    const ramp = (node, target) => {
+      if (!node) return;
+      node.gain.cancelScheduledValues(now);
+      node.gain.setTargetAtTime(target, now, 0.02);
+    };
+    ramp(this.userGain, master);                     // the player's master, not the engine's
+    ramp(this.musicBus, 0.82 * music);               // 0.82 is the shipped music mix
+    ramp(this.sfxBus, 1.35 * sfx);                   // 1.35 is the shipped SFX lift
+    ramp(this.sfxUnityBus, 1.0 * sfx);               // ...and the cues that had no bus
     return true;
   }
 
@@ -1713,7 +2116,7 @@ class SoundEngine {
     tearGain.gain.setValueAtTime(0.0, now + 1.2);
     tearGain.gain.linearRampToValueAtTime(0.32, now + 1.32);
     tearGain.gain.exponentialRampToValueAtTime(0.01, now + 2.0);
-    tear.connect(tearShaper); tearShaper.connect(tearGain); tearGain.connect(this.master);
+    tear.connect(tearShaper); tearShaper.connect(tearGain); tearGain.connect(this.sfxUnityBus || this.master);
     tear.start(now + 1.2); tear.stop(now + 2.1);
 
     // --- 3. STATIC: the permanent harsh bed. ----------------------------------------
@@ -1766,7 +2169,7 @@ class SoundEngine {
     src.connect(shaper);
     shaper.connect(hp); hp.connect(gain);
     shaper.connect(rumble); rumble.connect(rumbleGain); rumbleGain.connect(gain);
-    gain.connect(this.master);
+    gain.connect(this.sfxUnityBus || this.master);
     src.start(now);
 
     this.voidStatic = { src, gain, shaper };
@@ -1795,7 +2198,7 @@ class SoundEngine {
     out.gain.linearRampToValueAtTime(0.85, now + 0.25);
     out.gain.linearRampToValueAtTime(0.55, now + dur * 0.6);
     out.gain.linearRampToValueAtTime(0.0, now + dur);
-    shaper.connect(out); out.connect(this.master);
+    shaper.connect(out); out.connect(this.sfxUnityBus || this.master);
 
     // Sub-bass fundamental: 58Hz down to 17Hz — the tail is felt more than heard.
     const sub = this.ctx.createOscillator();
@@ -2147,14 +2550,14 @@ class SoundEngine {
           panner.setPosition(px, 0, pz);
         }
       }
-      g.connect(panner); panner.connect(this.master);
+      g.connect(panner); panner.connect(this.sfxUnityBus || this.master);
     } else if (this.ctx.createStereoPanner) {
       const sp = this.ctx.createStereoPanner();
       sp.pan.setValueAtTime(-1 + Math.random() * 2, now);
       sp.pan.linearRampToValueAtTime(-1 + Math.random() * 2, now + dur);
-      g.connect(sp); sp.connect(this.master);
+      g.connect(sp); sp.connect(this.sfxUnityBus || this.master);
     } else {
-      g.connect(this.master);
+      g.connect(this.sfxUnityBus || this.master);
     }
     src.start(now); src.stop(now + dur + 0.05);
   }
@@ -2199,8 +2602,8 @@ class SoundEngine {
     g.gain.linearRampToValueAtTime(0, now + 1.8);
     const panner = this.ctx.createStereoPanner ? this.ctx.createStereoPanner() : null;
     osc.connect(g);
-    if (panner) { panner.pan.value = Math.random() * 2 - 1; g.connect(panner); panner.connect(this.master); }
-    else g.connect(this.master);
+    if (panner) { panner.pan.value = Math.random() * 2 - 1; g.connect(panner); panner.connect(this.sfxUnityBus || this.master); }
+    else g.connect(this.sfxUnityBus || this.master);
     osc.start(now); osc.stop(now + 1.9);
   }
 
@@ -2408,7 +2811,7 @@ class SoundEngine {
     g.gain.linearRampToValueAtTime(0.22, now + 0.06);
     g.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
 
-    carrier.connect(shaper); shaper.connect(g); g.connect(this.master);
+    carrier.connect(shaper); shaper.connect(g); g.connect(this.sfxUnityBus || this.master);
     carrier.start(now); modulator.start(now);
     carrier.stop(now + 0.9); modulator.stop(now + 0.9);
   }
@@ -2423,7 +2826,7 @@ class SoundEngine {
     const g = this.ctx.createGain();
     g.gain.setValueAtTime(0.15, now);
     g.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-    osc.connect(g); g.connect(this.master);
+    osc.connect(g); g.connect(this.sfxUnityBus || this.master);
     osc.start(now); osc.stop(now + 0.09);
   }
 
@@ -2437,7 +2840,7 @@ class SoundEngine {
     const g = this.ctx.createGain();
     g.gain.setValueAtTime(0.16, now);
     g.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
-    osc.connect(g); g.connect(this.master);
+    osc.connect(g); g.connect(this.sfxUnityBus || this.master);
     osc.start(now); osc.stop(now + 0.15);
 
     const src = this.ctx.createBufferSource();
@@ -2447,7 +2850,7 @@ class SoundEngine {
     const ng = this.ctx.createGain();
     ng.gain.setValueAtTime(0.12, now);
     ng.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-    src.connect(nf); nf.connect(ng); ng.connect(this.master);
+    src.connect(nf); nf.connect(ng); ng.connect(this.sfxUnityBus || this.master);
     src.start(now);
   }
 
@@ -2465,7 +2868,7 @@ class SoundEngine {
       g.gain.setValueAtTime(0.0001, t);
       g.gain.exponentialRampToValueAtTime(0.18, t + 0.03);
       g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
-      osc.connect(g); g.connect(this.master);
+      osc.connect(g); g.connect(this.sfxUnityBus || this.master);
       osc.start(t); osc.stop(t + 0.36);
     });
     const creak = this.ctx.createOscillator();
@@ -2475,7 +2878,7 @@ class SoundEngine {
     const cg = this.ctx.createGain();
     cg.gain.setValueAtTime(0.06, now);
     cg.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-    creak.connect(cg); cg.connect(this.master);
+    creak.connect(cg); cg.connect(this.sfxUnityBus || this.master);
     creak.start(now); creak.stop(now + 0.41);
   }
 
@@ -2509,7 +2912,7 @@ class SoundEngine {
     const g = this.ctx.createGain();
     g.gain.setValueAtTime(0.18, now);
     g.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
-    osc.connect(g); g.connect(this.master);
+    osc.connect(g); g.connect(this.sfxUnityBus || this.master);
     osc.start(now); osc.stop(now + 1.0);
   }
 
@@ -2630,7 +3033,7 @@ class SoundEngine {
     const g = this.ctx.createGain();
     g.gain.setValueAtTime(0.22, now);
     g.gain.exponentialRampToValueAtTime(0.001, now + dur);
-    src.connect(hp); hp.connect(g); g.connect(this.master);
+    src.connect(hp); hp.connect(g); g.connect(this.sfxUnityBus || this.master);
     src.start(now); src.stop(now + dur + 0.02);
   }
 
@@ -2642,14 +3045,14 @@ class SoundEngine {
     const g = this.ctx.createGain();
     g.gain.setValueAtTime(0.5, now);
     g.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-    src.connect(g); g.connect(this.master); src.start(now);
+    src.connect(g); g.connect(this.sfxUnityBus || this.master); src.start(now);
     const osc = this.ctx.createOscillator();
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(70, now);
     const g2 = this.ctx.createGain();
     g2.gain.setValueAtTime(0.3, now);
     g2.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-    osc.connect(g2); g2.connect(this.master);
+    osc.connect(g2); g2.connect(this.sfxUnityBus || this.master);
     osc.start(now); osc.stop(now + 0.5);
   }
 }
@@ -22693,6 +23096,7 @@ class PlayerController {
     this.dom = domElement;
     this.sound = soundEngine;
     this.ui = uiManager;
+    this.settings = null;   // PHASE 22 — injected by the Game; mouse look reads it live
 
     this.position = new THREE.Vector3(WORLD_CHUNKS_X * CHUNK_SX / 2, 40, WORLD_CHUNKS_Z * CHUNK_SZ / 2);
     this.spawnPosition = this.position.clone();
@@ -22860,18 +23264,37 @@ class PlayerController {
 
   _bindEvents() {
     document.addEventListener('keydown', (e) => {
+      /* PHASE 22 — SETTINGS IS MODAL, so nothing may open on top of it. Without this
+         guard, E opened the crafting bench and I opened the backpack over a panel that
+         had already released pointer lock and paused the world — two overlays, one of
+         them orphaned the moment the other closed. The inventory keys are simply inert
+         while settings are up, which is what a paused game should do with them. */
       if (e.code === 'KeyE') {
-        this.ui.toggleCrafting();
+        if (!this.ui.settingsOpen) this.ui.toggleCrafting();
         return;
       }
       if (e.code === 'KeyI' || e.code === 'Tab') {
         e.preventDefault();
+        if (this.ui.settingsOpen) return;
         // LEVEL 4 — if the cabin storage chest is open, [I] closes it rather than
         // stacking the backpack overlay on top of it.
         if (this.ui.storageOpen) { this.ui.closeStorage(); return; }
         this.ui.toggleBackpack();
         return;
       }
+      /* PHASE 22 — SETTINGS ACCESS. O toggles; Escape closes.
+
+         Escape is deliberately close-only. While the pointer is locked the browser
+         consumes Escape to release the lock, and whether the keydown also reaches the
+         page varies between browsers — so a game that only opened its menu on Escape
+         would be unreliable. O is the dependable path in and Escape does the thing
+         players reflexively expect on the way out. */
+      if (e.code === 'KeyO' && !e.repeat && !this.ui.craftingOpen && !this.ui.backpackOpen &&
+          !this.ui.storageOpen) {
+        this.ui.toggleSettings();
+        return;
+      }
+      if (e.code === 'Escape' && this.ui.settingsOpen) { this.ui.closeSettings(); return; }
       if (e.code === 'KeyQ' && !e.repeat && this.locked && !this.ui.menuOpen && !this.movementLocked) {
         this._dropSelected(e.shiftKey);
         return;
@@ -22896,7 +23319,12 @@ class PlayerController {
     });
     document.addEventListener('mousemove', (e) => {
       if (!this.locked || this.ui.menuOpen) return;
-      const sens = 0.0022;
+      /* PHASE 22 — the base rate is unchanged; the setting is a multiplier over it, so a
+         sensitivity of 1.00 is exactly the 0.0022 rad/px this has always used. Read live
+         rather than cached, so moving the slider is felt on the very next mouse event
+         with no re-binding and no restart. Look only: nothing here touches movement
+         speed, physics or reach. */
+      const sens = 0.0022 * (this.settings ? this.settings.get('mouseSensitivity') : 1);
       this.yaw -= e.movementX * sens;
       this.pitch -= e.movementY * sens;
       const limit = Math.PI / 2 - 0.05;
@@ -28075,6 +28503,15 @@ class UIManager {
       if (e.target === this.storageOverlay) this.closeStorage();
     });
 
+    /* PHASE 22 — SETTINGS. Every handle is grabbed once and every listener is bound
+       once, here, in the constructor. Binding on open is the classic way this kind of
+       panel accumulates duplicate listeners until one slider drag fires forty times. */
+    this.settingsOverlay = document.getElementById('settingsOverlay');
+    this.settingsOpen = false;
+    this.settings = null;          // the GameSettings instance, injected by the Game
+    this._onSettingsClose = null;  // what to do when it closes (restore pointer lock)
+    this._settingsBound = false;
+
     // PHASE 20.2 — the compass tape. Hidden until the player has actually earned it.
     this.compassWrap = document.getElementById('compassWrap');
     this.compassTape = document.getElementById('compassTape');
@@ -28113,7 +28550,11 @@ class UIManager {
     this.nextLevelBtn = document.getElementById('nextLevelBtn');
   }
 
-  get menuOpen() { return this.craftingOpen || this.backpackOpen || this.storageOpen; }
+  /* PHASE 22 — settings joins the existing input gate rather than inventing a second
+     one. Every gameplay input path in PlayerController already tests `ui.menuOpen`:
+     mouse look, mining, placing, dropping, the hotbar wheel and the click-to-relock. One
+     line here is what stops all of them while the panel is up. */
+  get menuOpen() { return this.craftingOpen || this.backpackOpen || this.storageOpen || this.settingsOpen; }
 
   /* ---------------------------------------------------------------------------------
      LEVEL 4 — FADE-TO-WHITE TRANSITION (PHASE 5A PART 3).
@@ -28756,6 +29197,123 @@ class UIManager {
     ctx.stroke();
   }
 
+  /* ===================================================================================
+     PHASE 22 — THE SETTINGS PANEL
+
+     Three responsibilities and no more: reflect the live values, push edits into
+     GameSettings, and take the pointer lock away while it is open.
+
+     LISTENERS ARE BOUND EXACTLY ONCE (see _bindSettings, called from the constructor).
+     `input` drives the live value so audio and sensitivity follow the handle as it moves;
+     GameSettings debounces the write to storage, so dragging does not hammer localStorage.
+
+     IT DOES NOT OWN PAUSE. `settingsOpen` feeds the existing `menuOpen` getter, which
+     every gameplay input path already consults — so mining, placing, looking, dropping
+     and the hotbar all stop for exactly the same reason they stop for the inventory. */
+  attachSettings(settings, onClose) {
+    this.settings = settings;
+    this._onSettingsClose = onClose || null;
+    this._bindSettings();
+    this.syncSettingsUI();
+  }
+
+  _bindSettings() {
+    if (this._settingsBound || !this.settingsOverlay || !this.settings) return;
+    this._settingsBound = true;
+    const S = this.settings;
+    const el = (id) => document.getElementById(id);
+
+    const slider = (id, key, scale) => {
+      const node = el(id);
+      if (!node) return;
+      node.addEventListener('input', () => {
+        S.set(key, parseFloat(node.value) / scale);
+        this.syncSettingsUI();
+      });
+    };
+    slider('setMaster', 'masterVolume', 100);
+    slider('setMusic', 'musicVolume', 100);
+    slider('setSfx', 'sfxVolume', 100);
+    slider('setSens', 'mouseSensitivity', 100);
+
+    const seg = el('setQuality');
+    if (seg) seg.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-q]');
+      if (!btn) return;
+      S.set('graphicsQuality', btn.getAttribute('data-q'));
+      this.syncSettingsUI();
+    });
+
+    const fs = el('setFullscreen');
+    /* FULLSCREEN IS REQUESTED FROM THE CLICK ITSELF. Browsers only honour a fullscreen
+       request inside a user gesture, so this must not be routed through a settings
+       listener or a deferred apply — the call has to happen in this handler. */
+    if (fs) fs.addEventListener('click', () => {
+      S.set('fullscreen', !isDocumentFullscreen());
+      requestFullscreenState(S.get('fullscreen'));
+      this.syncSettingsUI();
+    });
+
+    const def = el('setDefaults');
+    if (def) def.addEventListener('click', () => { S.reset(); this.syncSettingsUI(); });
+    const close = el('setClose');
+    if (close) close.addEventListener('click', () => this.closeSettings());
+  }
+
+  /* Reflects state into the DOM. Written so it can be called at any time — on open, after
+     any edit, and from the document's own fullscreenchange event when the player leaves
+     fullscreen with F11 or Escape rather than through this panel. */
+  syncSettingsUI() {
+    if (!this.settings || !this.settingsOverlay) return;
+    const S = this.settings, el = (id) => document.getElementById(id);
+    const put = (id, v) => { const n = el(id); if (n && n.value !== String(v)) n.value = String(v); };
+    const txt = (id, v) => { const n = el(id); if (n) n.textContent = v; };
+    const pct = (v) => Math.round(v * 100) + '%';
+
+    put('setMaster', Math.round(S.get('masterVolume') * 100));
+    txt('setMasterVal', pct(S.get('masterVolume')));
+    put('setMusic', Math.round(S.get('musicVolume') * 100));
+    txt('setMusicVal', pct(S.get('musicVolume')));
+    put('setSfx', Math.round(S.get('sfxVolume') * 100));
+    txt('setSfxVal', pct(S.get('sfxVolume')));
+    put('setSens', Math.round(S.get('mouseSensitivity') * 100));
+    txt('setSensVal', S.get('mouseSensitivity').toFixed(2) + '×');
+
+    const q = S.get('graphicsQuality');
+    txt('setQualityVal', q.toUpperCase());
+    const seg = el('setQuality');
+    if (seg) for (const b of seg.querySelectorAll('button'))
+      b.classList.toggle('on', b.getAttribute('data-q') === q);
+
+    const fsBtn = el('setFullscreen');
+    if (fsBtn) {
+      const on = S.get('fullscreen');
+      fsBtn.textContent = on ? 'ON' : 'OFF';
+      fsBtn.classList.toggle('on', on);
+      fsBtn.disabled = !fullscreenSupported();
+    }
+    txt('setFullscreenNote', fullscreenSupported() ? '' : 'Not available in this browser.');
+  }
+
+  openSettings() {
+    if (!this.settingsOverlay || this.settingsOpen) return;
+    this.settingsOpen = true;
+    this.settingsOverlay.classList.add('active');
+    this.syncSettingsUI();
+    // Same pattern the crafting and inventory overlays use.
+    document.exitPointerLock();
+  }
+
+  closeSettings() {
+    if (!this.settingsOverlay || !this.settingsOpen) return;
+    this.settingsOpen = false;
+    this.settingsOverlay.classList.remove('active');
+    if (this.settings) this.settings.save();      // flush the debounce on the way out
+    if (this._onSettingsClose) this._onSettingsClose();
+  }
+
+  toggleSettings() { if (this.settingsOpen) this.closeSettings(); else this.openSettings(); }
+
   triggerWinScreen(stage) {
     document.exitPointerLock();
     if (this.winTitle) this.winTitle.textContent = 'PURGE COMPLETE';
@@ -29069,9 +29627,16 @@ class Game {
     this.canvas = document.getElementById('gameCanvas');
     this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    /* PHASE 22 — settings are constructed FIRST, before anything reads a quality knob, so
+       the very first frame is already drawn at the player's chosen quality rather than at
+       High and then corrected. Storage is passed in rather than reached for, so a browser
+       that blocks site data degrades to defaults instead of throwing during boot. */
+    this.settings = new GameSettings(safeLocalStorage());
+    this.settings.onChange((key) => this._onSettingChanged(key));
+    this.running = false;    // PHASE 22 — true once _beginPlay has entered the frame loop
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 400);
@@ -29111,6 +29676,14 @@ class Game {
     this.world.farmAnimals = this.farmAnimals;
     this.arrows = new ArrowManager(this.scene, this.world);
     this.postfx = new PostFX(this.renderer, this.scene, this.camera);
+
+    /* PHASE 22 — everything the settings touch now exists, so apply them for real. The
+       player, the UI panel and the fullscreen watcher are wired here too. */
+    this.player.settings = this.settings;
+    this.ui.attachSettings(this.settings, () => this._resumeFromSettings());
+    this._applyGraphicsQuality();
+    this._applyAudioSettings();
+    this._watchFullscreen();
 
     this.ui.updateVitals(this.player);
 
@@ -29166,6 +29739,8 @@ class Game {
     window.addEventListener('resize', () => this._onResize());
     document.getElementById('clickPlay').addEventListener('click', () => this._openTutorial());
     document.getElementById('skipTutorialLink').addEventListener('click', () => this._start());
+    // PHASE 22 — settings are reachable before the game begins as well as during it.
+    document.getElementById('startSettingsLink').addEventListener('click', () => this.ui.toggleSettings());
     document.getElementById('nextLevelBtn').addEventListener('click', () => {
       if (this.pendingLevel2Transition) this._transitionToLevel2();
       else this._advanceStage();
@@ -29186,11 +29761,87 @@ class Game {
     this.tutorial.open();
   }
 
+  /* ===================================================================================
+     PHASE 22 — APPLYING SETTINGS
+
+     One dispatch point, and each applier is idempotent and cheap. `set()` only fires a
+     change when the value genuinely moved, so dragging a slider across a hundred pixels
+     re-applies audio a hundred times (three AudioParam ramps — trivial) and re-applies
+     graphics zero times, because the quality string did not change.
+     =================================================================================== */
+  _onSettingChanged(key) {
+    if (key === 'masterVolume' || key === 'musicVolume' || key === 'sfxVolume') this._applyAudioSettings();
+    else if (key === 'graphicsQuality') this._applyGraphicsQuality();
+    // mouseSensitivity is read live by the mousemove handler; nothing to push.
+    // fullscreen is actioned from the click that set it — see UIManager._bindSettings.
+  }
+
+  /* Safe before the AudioContext exists, which is the normal case at boot: a browser
+     will not hand one over until the player has interacted with the page, so start() has
+     not run yet. applyVolumes reports that it did nothing and _start() calls this again
+     once the engine is live. */
+  _applyAudioSettings() {
+    if (!this.sound) return;
+    this.sound.applyVolumes(this.settings.get('masterVolume'),
+                            this.settings.get('musicVolume'),
+                            this.settings.get('sfxVolume'));
+  }
+
+  /* THE THREE KNOBS, and nothing else. No effect is disabled, no geometry is dropped and
+     no generation parameter moves — see GRAPHICS_PRESETS for why these three are the ones
+     that matter. Applied only when the preset actually changes. */
+  _applyGraphicsQuality() {
+    const p = this.settings.graphicsPreset;
+    if (this._appliedPreset === this.settings.get('graphicsQuality')) return;
+    this._appliedPreset = this.settings.get('graphicsQuality');
+    const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
+    this.renderer.setPixelRatio(Math.min(dpr, p.pixelRatio));
+    /* The scene is drawn into the PostFX target, so THAT is what render scale means.
+       Never smaller than 1px, and rounded, because a fractional or zero-sized render
+       target is an immediate WebGL error. */
+    if (this.postfx) {
+      this.postfx.resize(Math.max(1, Math.round(window.innerWidth * p.renderScale)),
+                         Math.max(1, Math.round(window.innerHeight * p.renderScale)));
+    }
+    /* Resizing a shadow map needs the old one disposed and nulled, or three.js keeps
+       rendering into the map at its original size. */
+    const sun = this.env && this.env.sun;
+    if (sun && sun.shadow) {
+      if (sun.shadow.mapSize.width !== p.shadowMap) {
+        sun.shadow.mapSize.set(p.shadowMap, p.shadowMap);
+        if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+      }
+    }
+  }
+
+  /* Fullscreen can be changed by F11 or Escape without this menu ever being opened, so
+     the document is the source of truth and the stored value is corrected from it. */
+  _watchFullscreen() {
+    const sync = () => {
+      const real = isDocumentFullscreen();
+      if (this.settings.get('fullscreen') !== real) this.settings.set('fullscreen', real);
+      this.ui.syncSettingsUI();
+    };
+    for (const ev of ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange']) {
+      document.addEventListener(ev, sync);
+    }
+  }
+
+  /* Closing the panel hands control back. Pointer lock is only re-taken if the player was
+     actually in gameplay — re-locking from the start screen would trap the cursor before
+     the game has begun. */
+  _resumeFromSettings() {
+    if (this.running && !this.player.dead) this.canvas.requestPointerLock();
+  }
+
   _onResize() {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.postfx.resize(window.innerWidth, window.innerHeight);
+    // PHASE 22 — the render target follows the quality preset's scale, not the window.
+    const rs = this.settings ? this.settings.graphicsPreset.renderScale : 1;
+    this.postfx.resize(Math.max(1, Math.round(window.innerWidth * rs)),
+                       Math.max(1, Math.round(window.innerHeight * rs)));
   }
 
   /* PHASE 20.2 — _start() now ends on the opening instruction rather than on the world.
@@ -29203,10 +29854,14 @@ class Game {
     document.getElementById('tutorialScreen').classList.remove('active');
     if (this.stopEmbers) { this.stopEmbers(); this.stopEmbers = null; }
     this.sound.start();
+    // PHASE 22 — the AudioContext exists only now, so this is where the stored volumes
+    // first reach real gain nodes. Before this the call is a no-op by design.
+    this._applyAudioSettings();
     this.openingInstruction.play(() => this._beginPlay());
   }
 
   _beginPlay() {
+    this.running = true;                 // PHASE 22 — settings only re-lock during play
     this.canvas.requestPointerLock();
     this.clock.start();
     requestAnimationFrame(this._animate);
@@ -29666,6 +30321,22 @@ class Game {
     // Nothing behind the black screen should keep ticking while the credits roll.
     if (this.climaxTriggered) {
       this.postfx.render(dt, 1.0);
+      return;
+    }
+
+    /* PHASE 22 — SETTINGS GENUINELY PAUSE THE WORLD, they do not merely mute input.
+
+       The existing overlays (crafting, inventory) only gate input, which is right for
+       them: they are part of play and the world carrying on is the tension. Settings is
+       not part of play. Adjusting a volume slider while a Stalker closes on you is not a
+       design decision anybody made, so the simulation stops here — the same shape the
+       climax freeze above already uses.
+
+       The frame is still RENDERED, so the panel sits over the world rather than over
+       black, and getDelta() is still consumed every frame, so resuming cannot deliver one
+       enormous dt that teleports the player or advances the clock in a jump. */
+    if (this.ui.settingsOpen) {
+      this.postfx.render(dt, this.sanity ? this.sanity.fraction : 1.0);
       return;
     }
 

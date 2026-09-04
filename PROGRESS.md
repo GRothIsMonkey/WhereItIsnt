@@ -1,13 +1,14 @@
 # WHERE IT ISN'T — PROJECT STATE
 
 ```
-Current phase              21 — DROPPED ITEM GROUND CONTACT (complete)
-Next phase                 22 — SETTINGS + GAME OPTIONS
+Current phase              22 — SETTINGS + GAME OPTIONS (complete)
+Next phase                 23 — SAVE / LOAD
 Phase 19                   COMPLETE
 Phase 20                   COMPLETE
 Phase 20 journey revision  COMPLETE           (20.1 — see section 0)
 Phase 20.2 guidance        COMPLETE           (see section 0.5)
 Phase 21                   COMPLETE           (see section 0.2)
+Phase 22                   COMPLETE           (see section 0.1)
 Authoritative build        game.html          (there is no other game file)
 Offline validation suite   tests/             (see tests/README.md)
 ```
@@ -21,6 +22,68 @@ journey revision that followed a human playtest and supersedes them wherever the
 disagree** — principally the beat table, the landmark set, the distances, and the
 performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
 instruction and the compass and changed no world generation at all.
+
+---
+
+## 0.1. PHASE 22 — SETTINGS MENU + GAME OPTIONS
+
+Six settings, one state object, and no new frameworks.
+
+| setting | default | range | notes |
+|---|---|---|---|
+| Master volume | 100% | 0–100% | multiplies a **new** `userGain` node, not `master.gain` |
+| Music volume | 100% | 0–100% | multiplies the shipped `musicBus` gain of 0.82 |
+| SFX volume | 100% | 0–100% | multiplies **both** SFX buses (1.35 and 1.0) |
+| Mouse sensitivity | 1.00× | 0.25–3.00× | multiplies the unchanged 0.0022 rad/px base |
+| Graphics | High | Low / Medium / High | High **is** the configuration the build already shipped |
+| Fullscreen | off | — | browser Fullscreen API, prefixed spellings handled |
+
+**Every default reproduces the previous build exactly.** A player who never opens the
+menu sees and hears precisely what they did before it existed — asserted, not assumed.
+
+### Audit findings, fixed as part of the work
+
+**`sfxBus` existed but eleven cues bypassed it.** The whispers, item pickup, chest open,
+anchor execution, shield zap, stalker screech, torch fizzle, jumpscare hit, the Sovereign's
+roar, the void static and the Haven tear were wired straight to `master`. They are
+unambiguously gameplay SFX and the SFX slider has to reach them — but re-pointing them at
+`sfxBus` would have made all eleven **35% louder**, because that bus carries a deliberate
++1.35 lift for footsteps and block hits. They now go through a second bus at unity, so both
+answer the slider and the mix is bit-identical at defaults.
+
+**`master.gain` is not free real estate.** `playDeathCollapse()` fades it to zero at the
+climax and nothing restores it — it doubles as a permanent "silence everything" latch. Had
+the Master slider written there, nudging it after the credits would have brought the whole
+soundtrack back from the dead. One `userGain` node between master and the destination keeps
+the engine's ducking and the player's volume from being able to undo each other.
+
+**The render target is the real graphics lever, not the pixel ratio.** The scene is drawn
+once into the PostFX target at 1× CSS pixels and then blitted through the grading shader,
+so `setPixelRatio` only ever affected one fullscreen quad. Quality scales the *target*.
+
+### Defect found by inspection and fixed
+
+**Overlays could stack on the settings panel.** With settings open — pointer lock already
+released, world already paused — pressing **E** opened the crafting bench and **I**/**Tab**
+opened the backpack on top of it, leaving one overlay orphaned the moment the other closed.
+Both are now inert while settings are up, and settings cannot open on top of them either.
+
+### How it integrates
+
+Settings joins the **existing** `menuOpen` getter, which every gameplay input path already
+consults — mouse look, mining, placing, dropping, the hotbar wheel and click-to-relock all
+stop for exactly the same reason they stop for the inventory. On top of that the frame loop
+*genuinely pauses* the simulation (the same shape the climax freeze already uses) while
+still rendering, so the panel sits over a live world rather than over black, and the frame
+delta is still consumed each frame so resuming cannot deliver one huge `dt`.
+
+Persistence is `localStorage` behind a probe, debounced 250 ms — 101 slider steps produce
+zero writes while dragging and one on flush. The whole state is a flat JSON object with
+`toJSON()` / `applyJSON()`, so **Phase 23 can fold it into the save file without touching
+this code**.
+
+Access: **O** toggles in gameplay, **Escape** closes, and a SETTINGS link sits on the start
+screen next to the existing skip link.
 
 ---
 

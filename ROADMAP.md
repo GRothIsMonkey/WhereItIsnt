@@ -1465,6 +1465,48 @@ Requirements:
 
 # 40. PHASE 22 — SETTINGS + GAME OPTIONS
 
+STATUS:
+COMPLETE
+
+Six settings, no more: master volume, music volume, SFX volume, mouse
+sensitivity, graphics quality (Low / Medium / High) and fullscreen.
+
+The panel is built from the game's own visual language — desaturated bands, a
+thin rule, restrained type — rather than a generic web settings page. It opens
+with O or from the start screen, closes with Escape, pauses simulation while
+leaving the last rendered frame on screen, releases pointer lock on open and
+restores it on close, and gates every gameplay input through the existing
+UIManager.menuOpen path rather than a second, parallel gate.
+
+Three things the audit found before any code was written, each of which would
+have made a naive implementation wrong:
+
+  THE SFX BUS WAS BYPASSED.  Eighteen sound sites connected straight to the
+  master gain rather than to sfxBus, so an "SFX volume" slider wired to sfxBus
+  would have silently missed most of the game's sounds. They were re-routed.
+
+  MASTER GAIN WAS ALREADY OWNED.  The death sequence ramps master.gain down and
+  latches it, so a user volume control writing the same node would fight it. A
+  separate userGain node was inserted between master and the destination, which
+  leaves every existing cinematic audio behaviour untouched.
+
+  PIXEL RATIO IS NOT THE COST LEVER.  PostFX renders into a WebGLRenderTarget
+  sized in CSS pixels and blits, so setPixelRatio alone changes almost nothing.
+  The graphics presets drive the render target scale (0.70 / 0.85 / 1.00)
+  alongside pixel ratio and shadow map size.
+
+One real defect was found by inspection and fixed: with the settings panel open,
+E still opened the crafting bench and I/Tab still opened the backpack on top of
+it, orphaning one overlay. Both are now guarded.
+
+Settings persist to localStorage under a versioned key with a schema, per-field
+coercion and clamping, so Phase 23 can adopt them without a migration. The full
+save system was deliberately NOT built here.
+
+See PROGRESS.md section 0.1.
+
+Purpose:
+
 Create cohesive settings.
 
 Options:
@@ -2821,13 +2863,13 @@ Claude Code should inspect the repository before making assumptions.
 
 Current completed milestone:
 
-Phase 21 — Dropped Item Ground Contact
-(Phase 20 including the 20.1 journey revision and the 20.2 guidance pass —
-see PROGRESS.md)
+Phase 22 — Settings + Game Options
+(Phase 20 including the 20.1 journey revision and the 20.2 guidance pass, and
+Phase 21 dropped item ground contact — see PROGRESS.md)
 
 Current next major phase:
 
-Phase 22 — Settings + Game Options
+Phase 23 — Save / Load
 
 Current game build baseline:
 
