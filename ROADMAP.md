@@ -1736,34 +1736,35 @@ the tutorial; neither may bring back a level, a bar, a threshold or a grant func
 
 ---
 
-# 45. PHASE 27 — HEALTH / SANITY / HUD REBIRTH
+# 45. PHASE 27 — HEALTH / SANITY / HUD REBIRTH  — **COMPLETE**
 
-Completely redesign the HUD.
+Delivered. See `PROGRESS.md` section 0.00000 for the full record: what each element is
+made of, why health and perception are kept apart on four axes at once, the presentation
+cache and why it owns nothing, the two defects the phase found, what the browser proved
+and what only a person can.
 
-The HUD must not look like Minecraft.
+The end state, in one line: **the heart, the brain, both vital bars and the bordered
+objective panel are gone from the document.** Health is a row of ticks (ten health each,
+so an endurance milestone visibly lengthens it); perception is a signal traced on a
+canvas that loses pieces of itself as it fails; the objective is one line against a
+hairline; the hotbar is one continuous strip; the interaction prompt is a key chip and a
+verb above it. Every element is built from one set of tokens in a single `:root` block.
 
-Health should represent:
+Gameplay was not touched: health values, damage, sanity values, decay, thresholds,
+combat, movement, inventory, objectives, crafting, mining and generation are all
+unchanged, and `tests/regression.js` proves the world is byte-identical.
 
-physical condition
-survival
+What it must keep being:
 
-Sanity should represent:
+- Health = physical condition. Perception = perception. Never the same instrument twice.
+- No hearts, no vital bar, no quest panel, no nine-box hotbar, no XP or level anything.
+- The HUD renders; it does not own. `tests/hud.js` fails if `UIManager` reads an
+  objective table, writes a gameplay value, or reaches a block id, chunk or mesh.
+- Objectives, hotbar, prompts and status share one visual language, and new elements
+  use the existing tokens rather than inventing a colour.
 
-perception
-reality instability
-
-Do NOT simply recolor hearts.
-
-Health and sanity should feel visually different.
-
-Integrate:
-
-- objectives
-- hotbar
-- interaction prompts
-- status information
-
-The entire HUD should share one Where It Isn't visual language.
+**Phase 28 is next** and removes the tutorial. It may not bring the HUD's retired
+vocabulary back, and it may not turn the interaction prompt into a tutorial layer.
 
 ---
 
@@ -3321,15 +3322,15 @@ Claude Code should inspect the repository before making assumptions.
 
 Current completed milestone:
 
-Phase 26 — Remove XP / Rebuild Progression
-(Phase 25 dynamic objectives, Phase 24 canonical story foundation, Phase 23
-save/load, Phase 22 settings, Phase 21 dropped item ground contact, and Phase 20
-including the 20.1 journey revision and the 20.2 guidance pass — see PROGRESS.md,
-and STORY.md for the canon)
+Phase 27 — Health / Sanity / HUD Rebirth
+(Phase 26 XP removal, Phase 25 dynamic objectives, Phase 24 canonical story
+foundation, Phase 23 save/load, Phase 22 settings, Phase 21 dropped item ground
+contact, and Phase 20 including the 20.1 journey revision and the 20.2 guidance
+pass — see PROGRESS.md, and STORY.md for the canon)
 
 Current next major phase:
 
-Phase 27 — Health / Sanity / HUD Rebirth
+Phase 28 — Remove Tutorial / Organic Onboarding
 
 Current game build baseline:
 

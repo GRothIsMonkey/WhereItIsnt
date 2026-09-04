@@ -427,8 +427,15 @@ const textFor = (over) => { const o = new ObjectiveSystem(null); o.evaluate(snap
   // The old second authority is gone.
   chk(!/updateObjectiveHUD\(hasTorches/.test(SRC),
       'the six-line MISSION DIRECTIVES checklist no longer drives anything');
-  chk(/retireDirectives\(\)/.test(SRC) && /obj-step retired/.test(SRC),
-      'it is hidden once at boot, with the markup left for Phase 27');
+  /* PHASE 25 hid the checklist behind `retireDirectives` and left the markup in the
+     document for Phase 27 to decide about. Phase 27 decided: the six steps, the panel
+     they sat in and the function that hid them are all gone. This assertion is the same
+     requirement, now asserted at its stronger end — not hidden, absent. */
+  const LIVE = SRC.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
+  chk(!/retireDirectives/.test(LIVE) && !/obj-step/.test(LIVE) &&
+      !/MISSION DIRECTIVES/.test(LIVE) && !/id="step[1-6]"/.test(LIVE),
+      'and Phase 27 removed the markup outright rather than leaving it hidden ' +
+      '(the only mentions left are the gravestone comments saying so)');
   chk(count(/setObjective\(/g) >= 2, 'the objective system is the only writer of the line');
 
   // No markers, no minimap, no waypoints — the brief forbids all of it.

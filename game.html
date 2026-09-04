@@ -8,6 +8,31 @@
   html, body { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; background: #000; font-family: 'Courier New', monospace; }
   #gameCanvas { display: block; width: 100vw; height: 100vh; }
 
+  /* =================================================================================
+     PHASE 27 — HUD REBIRTH. ONE SET OF TOKENS FOR THE WHOLE INTERFACE.
+
+     Before this phase the HUD was five unrelated widgets: a red bar, a green-to-red
+     bar with an emoji beside it, a bordered quest panel, nine bordered slots and a
+     brass instrument cluster. Only the last of those looked like this game. The tokens
+     below are that cluster's palette — the settings panel's dark ground, the compass's
+     brass, the parchment ink the HUD already read in — promoted to the whole interface
+     so every element is made of the same material.
+
+     Colour is spent, not sprinkled. Parchment carries everything ordinary; brass marks
+     the one thing selected; the single warning colour is reserved for a body that is
+     nearly finished. Perception is deliberately given NO hue of its own — see #vitals.
+     ================================================================================= */
+  :root {
+    --hud-ink:       #cdc0a4;   /* parchment: anything the player reads */
+    --hud-ink-dim:   #8d8168;   /* secondary readouts */
+    --hud-ink-faint: #5e5442;   /* captions and rules — present, not addressed */
+    --hud-rule:      #453b2a;   /* hairlines */
+    --hud-ground:    rgba(12, 10, 7, 0.42);
+    --hud-brass:     #c8a24a;   /* selection, and nothing else */
+    --hud-warn:      #bf5a4a;   /* a failing body, and nothing else */
+    --hud-shadow:    0 1px 2px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.7);
+  }
+
   #crosshair {
     position: fixed; top: 50%; left: 50%; width: 6px; height: 6px;
     transform: translate(-50%, -50%);
@@ -19,23 +44,24 @@
 
   #hud { position: fixed; inset: 0; pointer-events: none; z-index: 15; }
 
-  /* PHASE 2 — mining readout: wider bar, hard-edged retro fill, segment ticks that
-     let you judge progress at a glance, plus a label naming the block and warning
-     when the held tool will yield nothing. */
+  /* PHASE 2 — mining readout: a bar, segment ticks matching the six crack stages, and
+     a label naming the block and warning when the held tool will yield nothing.
+     PHASE 27 — the same readout, rebuilt in the HUD's material: a 3px rule rather than
+     a bordered arcade bar, brass rather than a glowing yellow, and the label in the
+     interface's own type scale. Nothing about what it reports changed. */
   #miningReadout {
-    position: fixed; top: calc(50% + 20px); left: 50%; transform: translateX(-50%);
+    position: fixed; top: calc(50% + 22px); left: 50%; transform: translateX(-50%);
     z-index: 19; pointer-events: none; opacity: 0; transition: opacity 0.08s linear;
-    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    display: flex; flex-direction: column; align-items: center; gap: 7px;
   }
   #miningReadout.visible { opacity: 1; }
   #miningBarOuter {
-    position: relative; width: 148px; height: 10px;
-    background: rgba(10,8,6,0.78); border: 1px solid rgba(255,255,255,0.4);
-    border-radius: 2px; overflow: hidden;
+    position: relative; width: 118px; height: 3px;
+    background: rgba(10,8,6,0.72); overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.65);
   }
   #miningBarInner {
-    height: 100%; width: 0%; background: #ffcf6b;
-    box-shadow: 0 0 5px #ffcf6b88;
+    height: 100%; width: 0%; background: var(--hud-brass);
     transition: none;
   }
   /* Six ticks = the six crack stages, so bar and block agree on how far along you are. */
@@ -43,85 +69,169 @@
     position: absolute; inset: 0;
     background-image: repeating-linear-gradient(
       90deg, transparent 0, transparent calc(100%/6 - 1px),
-      rgba(0,0,0,0.55) calc(100%/6 - 1px), rgba(0,0,0,0.55) calc(100%/6));
+      rgba(0,0,0,0.7) calc(100%/6 - 1px), rgba(0,0,0,0.7) calc(100%/6));
   }
-  #miningReadout.blocked #miningBarInner { background: #d8483f; box-shadow: 0 0 5px #d8483f88; }
+  #miningReadout.blocked #miningBarInner { background: var(--hud-warn); }
   #miningLabel {
-    font-size: 10px; letter-spacing: 0.09em; text-transform: uppercase;
-    color: #e8dcc4; text-shadow: 0 1px 3px #000, 0 0 6px #000;
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--hud-ink-dim); text-shadow: var(--hud-shadow);
     white-space: nowrap;
   }
-  #miningLabel .warn { color: #ff8a7a; }
-  #miningLabel .tool { color: #9fd8a0; }
+  #miningLabel .warn { color: var(--hud-warn); }
+  #miningLabel .tool { color: var(--hud-ink-faint); }
 
+  /* PHASE 27 — THE HOTBAR IS A STRIP, NOT NINE BOXES.
+
+     Nine separated bordered squares with a glowing gold selection box is the single
+     most recognisable piece of survival-game furniture there is, and it was the loudest
+     thing on this screen. What replaces it is one continuous strip divided by hairlines:
+     no per-cell border, no gap, no glow. Selection is carried by three quiet cues that
+     agree with each other — a faintly lit cell, a 2px brass rule beneath it, and the
+     item itself drawn slightly larger — which reads instantly without shouting.
+
+     .slot stays the shared inventory cell (the backpack and storage grids build from
+     it); #hotbar .slot is the strip's own treatment on top of it. */
   #hotbar {
     position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
-    display: flex; gap: 6px; z-index: 20; pointer-events: none;
+    display: flex; gap: 0; z-index: 20; pointer-events: none;
+    border-top: 1px solid rgba(120,104,72,0.30);
+    background: linear-gradient(180deg, rgba(10,8,6,0.26), rgba(10,8,6,0.52));
   }
   .slot {
-    width: 48px; height: 48px; background: rgba(20,16,12,0.75);
-    border: 2px solid #6b5a3c; border-radius: 4px;
+    width: 48px; height: 48px; background: rgba(18,15,11,0.72);
+    border: 1px solid var(--hud-rule); border-radius: 2px;
     display: flex; align-items: center; justify-content: center;
-    position: relative; box-shadow: inset 0 0 6px rgba(0,0,0,0.6);
+    position: relative; box-shadow: inset 0 0 8px rgba(0,0,0,0.55);
   }
-  .slot.active { border-color: #ffcf6b; box-shadow: 0 0 8px #ffcf6b88, inset 0 0 6px rgba(0,0,0,0.6); }
-  .slot .swatch { width: 28px; height: 28px; border-radius: 2px; image-rendering: pixelated; display: block; }
-  .slot .num { position: absolute; top: 2px; left: 4px; font-size: 10px; color: #d8cba8; text-shadow: 1px 1px 1px #000; }
-  .slot .count { position: absolute; bottom: 2px; right: 4px; font-size: 11px; color: #ffffff; font-weight: bold; text-shadow: 1px 1px 2px #000; }
+  .slot.active { border-color: var(--hud-brass); box-shadow: inset 0 0 8px rgba(0,0,0,0.55), 0 0 0 1px rgba(200,162,74,0.30); }
+  .slot .swatch { width: 28px; height: 28px; border-radius: 0; image-rendering: pixelated; display: block; }
+  .slot .num { position: absolute; top: 2px; left: 4px; font-size: 9px; color: var(--hud-ink-faint); text-shadow: 0 1px 2px #000; }
+  .slot .count { position: absolute; bottom: 1px; right: 4px; font-size: 10px; color: var(--hud-ink); font-variant-numeric: tabular-nums; text-shadow: 0 1px 2px #000, 0 0 5px #000; }
 
-  #topContainer {
-    position: fixed; top: 16px; left: 16px; z-index: 20;
-    display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+  #hotbar .slot {
+    width: 40px; height: 40px; background: transparent; border: none; border-radius: 0;
+    border-left: 1px solid rgba(120,104,72,0.16); box-shadow: none;
+  }
+  #hotbar .slot:first-child { border-left: none; }
+  #hotbar .slot .swatch { width: 24px; height: 24px; opacity: 0.82; transition: transform 130ms ease-out, opacity 130ms linear; }
+  #hotbar .slot .num { top: 2px; left: 3px; font-size: 8px; color: rgba(180,164,128,0.26); }
+  #hotbar .slot .count { color: var(--hud-ink-dim); }
+  #hotbar .slot.active { background: rgba(200,162,74,0.09); box-shadow: none; border-color: rgba(120,104,72,0.16); }
+  #hotbar .slot.active::after {
+    content: ''; position: absolute; left: 5px; right: 5px; bottom: -1px; height: 2px;
+    background: var(--hud-brass); box-shadow: 0 0 6px rgba(200,162,74,0.40);
+  }
+  #hotbar .slot.active .swatch { transform: scale(1.14); opacity: 1; }
+  #hotbar .slot.active .num { color: rgba(200,162,74,0.72); }
+  #hotbar .slot.active .count { color: var(--hud-ink); }
+
+  /* The held item names itself for a moment when the selection changes, then gets out
+     of the way. A permanent label would be one more thing always on screen; a label
+     that appears exactly when the answer changed is the same information for free. */
+  #heldName {
+    position: fixed; left: 50%; bottom: 66px; transform: translateX(-50%);
+    z-index: 20; pointer-events: none; opacity: 0;
+    transition: opacity 420ms ease-out;
+    font-size: 10px; letter-spacing: 2.6px; text-transform: uppercase;
+    color: var(--hud-ink-dim); text-shadow: var(--hud-shadow); white-space: nowrap;
+  }
+  #heldName.show { opacity: 1; }
+
+  /* =================================================================================
+     PHASE 27 — THE VITALS. TWO READINGS THAT DO NOT LOOK ALIKE.
+
+     What stood here was a green-to-red bar with a brain emoji beside it and a red bar
+     with a heart beside it: two identical instruments in different colours, which is
+     exactly the generic RPG design the phase exists to remove. The replacement keeps
+     them apart on four axes at once, so they can never be mistaken for two readings of
+     the same kind of thing:
+
+       CONDITION   is DISCRETE, drawn in DOM, WARM, and still.
+                   Ticks you can count. Ten health per tick, so the endurance milestones
+                   add ticks rather than silently rescaling a bar — the body gets
+                   measurably longer, which is what those milestones actually did. It
+                   only moves when the player is hurt or healed.
+
+       PERCEPTION  is CONTINUOUS, drawn on a CANVAS, COOL, and alive.
+                   A signal traced against a rule. It carries no hue of its own and no
+                   number: what it reports is how steady the line is, and at the worst
+                   states the line starts losing pieces of itself and showing up where
+                   it is not. See UIManager._drawPerception.
+
+     They sit bottom-left, away from the objective, because instrumentation belongs at
+     the edge of the frame and the middle of the screen belongs to the world.
+     ================================================================================= */
+  #vitals {
+    position: fixed; left: 20px; bottom: 20px; z-index: 20; pointer-events: none;
+    display: flex; flex-direction: column; gap: 9px;
+  }
+  .vital { display: flex; align-items: center; gap: 10px; }
+  /* The captions are the smallest type on the screen and they sit over whatever the
+     world happens to be. At --hud-ink-faint they read fine at night and disappeared
+     entirely against sunlit grass in a real 1280x720 capture, so they carry the dim ink
+     and a doubled shadow instead. */
+  .vital-cap {
+    width: 76px; text-align: right; flex: none;
+    font-size: 9px; letter-spacing: 1.8px; color: var(--hud-ink-dim);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.98), 0 0 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.7);
+    transition: color 400ms linear, letter-spacing 400ms linear;
   }
 
-  #sanityWrap {
-    display: flex; align-items: center; gap: 8px; color: #d8cba8;
+  /* --- CONDITION ---------------------------------------------------------------- */
+  #conditionTicks { display: flex; align-items: flex-end; height: 14px; }
+  .tick {
+    --f: 0;
+    --tick-lit: var(--hud-ink);
+    --tick-off: rgba(128,118,96,0.30);
+    width: 4px; height: 13px; margin-right: 3px; flex: none;
+    background: linear-gradient(to top,
+      var(--tick-lit) 0 calc(var(--f) * 100%),
+      var(--tick-off) calc(var(--f) * 100%) 100%);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.85);
   }
-  #sanityBrain { font-size: 20px; filter: drop-shadow(0 0 3px #000); }
-  #sanityBarOuter {
-    width: 180px; height: 14px; border: 2px solid #6b5a3c; background: rgba(20,16,12,0.75);
-    border-radius: 3px; overflow: hidden;
-  }
-  #sanityBarInner {
-    height: 100%; width: 100%;
-    background: linear-gradient(90deg, #b23a3a, #d8a13a, #6bbf59);
-    transition: width 0.25s linear;
-  }
-  #sanityBrain.pulse { animation: pulseBrain 0.6s infinite ease-in-out; }
-  @keyframes pulseBrain { 0%,100% { transform: scale(1); } 50% { transform: scale(1.3); } }
+  /* Every fifth tick opens a small gap, so the count reads at a glance instead of
+     having to be counted. */
+  .tick.g { margin-left: 5px; }
 
-  /* PHASE 26 — the XP bar and its level label stood here. Both are gone with the
-     system they displayed; health is now the only bar on this row. */
-  #healthWrap {
-    display: flex; align-items: center; gap: 8px; color: #d8cba8;
+  #vitals.hp-steady   .tick { --tick-lit: #cdc0a4; }
+  #vitals.hp-worn     .tick { --tick-lit: #c7a877; }
+  #vitals.hp-failing  .tick { --tick-lit: #c58a5c; }
+  #vitals.hp-critical .tick { --tick-lit: var(--hud-warn); }
+  #vitals.hp-critical .cap-cond { color: #a8604f; }
+  /* The warning is a slow breath on the few ticks that are left, not a flash on the
+     screen: readable in peripheral vision, and not tiring to play under. */
+  #vitals.hp-critical .tick.lit { animation: vitalBreath 1.7s ease-in-out infinite; }
+  @keyframes vitalBreath { 0%,100% { opacity: 1; } 50% { opacity: 0.42; } }
+  #vitals.hp-gone .tick { --tick-lit: #4a3a34; --tick-off: rgba(74,58,52,0.16); }
+  #vitals.hp-gone .vital-cap { color: #4a3a34; }
+
+  /* --- PERCEPTION --------------------------------------------------------------- */
+  #perceptionTrace {
+    display: block; width: 176px; height: 18px; flex: none;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.9));
   }
-  #healthIcon { font-size: 18px; filter: drop-shadow(0 0 3px #000); }
-  #healthBarOuter {
-    width: 180px; height: 12px; border: 2px solid #6b5a3c; background: rgba(20,16,12,0.75);
-    border-radius: 3px; overflow: hidden;
-  }
-  #healthBarInner {
-    height: 100%; width: 100%; background: linear-gradient(90deg, #7a1414, #d8434a);
-    transition: width 0.2s linear;
-  }
+  /* The caption itself comes loose at the last state. One property, no animation. */
+  #vitals.p-breaking .cap-perc { color: #7f7d6d; }
+  #vitals.p-lost     .cap-perc { color: #98988d; letter-spacing: 3px; }
 
   #damageFlash {
     position: fixed; inset: 0; background: radial-gradient(circle, transparent 40%, #7a0000 130%);
     opacity: 0; pointer-events: none; z-index: 13; transition: opacity 0.08s linear;
   }
 
+  /* PHASE 27 — the dimension label loses its red-bordered plaque and becomes a quiet
+     letterspaced line under the compass. It is a place name, not an alarm. */
   #dimensionBanner {
-    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
-    color: #ff6a3d; font-size: 13px; letter-spacing: 3px; z-index: 20;
-    background: rgba(20,4,4,0.7); border: 2px solid #6b1c1c; border-radius: 4px;
-    padding: 5px 14px; display: none; pointer-events: none; text-shadow: 0 0 6px #ff3d1a;
+    position: fixed; top: 56px; left: 50%; transform: translateX(-50%);
+    color: var(--hud-ink-dim); font-size: 10px; letter-spacing: 6px; z-index: 20;
+    background: none; border: none; padding: 0;
+    display: none; pointer-events: none; text-shadow: var(--hud-shadow);
   }
   #dimensionBanner.active { display: block; }
-  /* LEVEL 4 — THE FAKE HAVEN: the banner drops its horror palette entirely for a
-     warm, safe, sunlit gold-on-cream read. */
+  /* LEVEL 4 — THE FAKE HAVEN: the label drops the horror palette entirely for a warm,
+     safe, sunlit read. */
   #dimensionBanner.haven {
-    color: #6b4a1c; background: rgba(255,247,225,0.88); border-color: #d9b877;
-    text-shadow: 0 0 6px rgba(255,214,140,0.9);
+    color: #e8d3a4; text-shadow: 0 0 10px rgba(255,214,140,0.55), 0 1px 2px rgba(0,0,0,0.8);
   }
 
   /* LEVEL 4 — FAKE HAVEN ILLUSION SEQUENCE: full-screen white wash used for the
@@ -193,62 +303,71 @@
   }
   .storage-label { font-size: 11px; color: #a89a78; letter-spacing: 1.5px; margin: 12px 0 6px; }
 
+  /* PHASE 27 — the one transient line. It used to arrive as glowing orange 16px; it
+     now arrives as parchment, in the HUD's own type, and fades rather than pops. */
   #hudToast {
-    position: fixed; top: 90px; left: 50%; transform: translateX(-50%);
-    color: #ffcf6b; font-size: 16px; letter-spacing: 2px; z-index: 25;
-    text-shadow: 0 0 8px #ff8a3d; opacity: 0; pointer-events: none;
-    transition: opacity 0.4s ease, transform 0.4s ease;
+    position: fixed; top: 84px; left: 50%; transform: translateX(-50%);
+    color: var(--hud-ink); font-size: 12px; letter-spacing: 2.4px; z-index: 25;
+    text-align: center; max-width: 66vw;
+    text-shadow: var(--hud-shadow); opacity: 0; pointer-events: none;
+    transition: opacity 0.55s ease, transform 0.55s ease;
   }
-  #hudToast.show { opacity: 1; transform: translateX(-50%) translateY(10px); }
+  #hudToast.show { opacity: 1; transform: translateX(-50%) translateY(8px); }
 
-  /* Vintage Objective Tracker HUD */
-  #objectiveHUD {
-    background: rgba(20, 16, 12, 0.85); border: 2px solid #6b5a3c;
-    border-radius: 4px; padding: 10px 12px; width: 260px; color: #d8cba8;
-    box-shadow: 0 0 10px rgba(0,0,0,0.8);
+  /* =================================================================================
+     PHASE 27 — THE OBJECTIVE. A LINE, NOT A PANEL.
+
+     Phase 25 already reduced the objective to one line; it was still sitting inside a
+     bordered box with a heading, under which Phase 25's retired MISSION DIRECTIVES
+     checklist was hidden rather than removed. This phase removes the checklist markup
+     for good and removes the box around what is left. What remains is text against a
+     hairline: no panel, no fill, no title, nothing that reads as a quest tracker.
+
+     The status line beneath it is not an objective and does not pretend to be one. It
+     is the two or three facts the player would otherwise have to guess at — how long the
+     Anchor will burn, how far into the stage they are — set small, dim and separated by
+     middots, and each part disappears entirely when it has nothing to say.
+     ================================================================================= */
+  #objectivePanel {
+    position: fixed; top: 18px; left: 20px; z-index: 20; pointer-events: none;
+    width: clamp(190px, 22vw, 280px);
   }
-  #objectiveHUD .title {
-    font-size: 11px; font-weight: bold; letter-spacing: 1.5px; color: #ffcf6b;
-    border-bottom: 1px dashed #6b5a3c; padding-bottom: 4px; margin-bottom: 8px;
-  }
-  .obj-step { font-size: 11px; margin-bottom: 6px; line-height: 1.3; color: #8a7a58; display: flex; gap: 6px; }
-  .obj-step.active { color: #ffcf6b; font-weight: bold; }
-  .obj-step.completed { color: #6bbf59; text-decoration: line-through; }
-  .obj-status { font-size: 10px; color: #a89a78; margin-top: 4px; border-top: 1px dotted #3a2e1c; padding-top: 4px; }
-  /* PHASE 20 — the Farmland journey line. ONE line, shown only in the Farmlands, and
-     deliberately styled apart from the numbered directives above it: paler, unnumbered,
-     lower case-weight. It is meant to read as a note to yourself about where you were
-     going, not as a quest step, because the moment it reads as a quest step the player
-     starts looking for the marker that is never coming. */
-  /* PHASE 25 — this is now THE objective line, in every dimension rather than only the
-     Farmlands, and the numbered directives above it are gone. It moves to the top of the
-     panel and gains a little weight, because it is the only thing in the panel the player
-     is being asked to act on — but it stays one italic line rather than becoming a quest
-     tracker. Phase 27 owns the presentation after this. */
   #journeyStep {
-    display: none; font-size: 12px; line-height: 1.35; color: #d8cba8;
-    margin-bottom: 8px; border-bottom: 1px dashed #4a3d26; padding-bottom: 8px;
-    font-style: italic; letter-spacing: 0.3px;
+    display: none; font-size: 12.5px; line-height: 1.5;
+    color: var(--hud-ink); text-shadow: var(--hud-shadow);
+    padding-left: 11px; border-left: 1px solid var(--hud-rule);
+    letter-spacing: 0.3px;
   }
-  /* The whole notification: two seconds of the line sitting a shade brighter. No banner,
-     no animation across the screen, no sound. */
-  #journeyStep.changed { animation: objChange 2s ease-out 1; }
-  @keyframes objChange {
-    0%   { color: #ffcf6b; text-shadow: 0 0 6px rgba(255, 207, 107, 0.5); }
-    100% { color: #d8cba8; text-shadow: none; }
-  }
-  /* PHASE 25 — the retired MISSION DIRECTIVES checklist. Hidden, not deleted: Phase 27's
-     HUD rebirth should decide what replaces this panel, and it needs the markup. */
-  .obj-step.retired { display: none; }
   #journeyStep.show { display: block; }
-  #journeyStep.done { color: #6bbf59; text-decoration: line-through; font-style: normal; }
-
-  #clockWrap {
-    position: fixed; top: 16px; right: 16px; z-index: 20;
-    display: flex; align-items: center; gap: 8px; color: #d8cba8;
-    background: rgba(20,16,12,0.6); padding: 6px 10px; border: 2px solid #6b5a3c; border-radius: 4px;
+  #journeyStep.done { color: var(--hud-ink-faint); text-decoration: line-through; }
+  /* The whole notification: the line arrives, lifting a few pixels while its rule holds
+     brass for a moment. No banner, no sound, no pause, nothing across the screen. */
+  #journeyStep.changed { animation: objArrive 1100ms ease-out 1; }
+  @keyframes objArrive {
+    0%   { opacity: 0; transform: translateY(-4px); border-left-color: var(--hud-brass); }
+    30%  { opacity: 1; border-left-color: var(--hud-brass); }
+    100% { opacity: 1; transform: none; border-left-color: var(--hud-rule); }
   }
-  #phaseLabel { font-size: 12px; letter-spacing: 1px; }
+  #hudStatus {
+    margin-top: 9px; padding-left: 11px;
+    font-size: 9px; letter-spacing: 1.8px;
+    color: var(--hud-ink-dim);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.98), 0 0 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.7);
+  }
+  /* A middot only ever appears BETWEEN two parts that both have something to say. */
+  #hudStatus span:not(:empty) ~ span:not(:empty)::before { content: '\00a0\00b7\00a0'; }
+
+  /* PHASE 27 — the clock loses its plaque for the same reason everything else did. It
+     is the same reading, set in the HUD's own type at the top-right corner. */
+  #clockWrap {
+    position: fixed; top: 18px; right: 20px; z-index: 20; pointer-events: none;
+    display: flex; align-items: center; gap: 7px; color: var(--hud-ink-dim);
+    background: none; padding: 0; border: none;
+    font-size: 10px; letter-spacing: 2.2px; text-transform: uppercase;
+    text-shadow: var(--hud-shadow);
+  }
+  #clockIcon { color: var(--hud-ink-dim); font-size: 14px; letter-spacing: 0; }
+  #phaseLabel { font-size: 10px; letter-spacing: 2.2px; }
 
   /* PHASE 20.2 — THE COMPASS. Deliberately the same material as #clockWrap: the same
      panel fill, the same 2px border in the same brass, the same 4px radius, the same
@@ -258,13 +377,66 @@
      fixed centre mark — because a tape answers "which way am I facing" in one glance
      and, unlike a rotating needle, cannot be mistaken for something that POINTS AT a
      destination. Requirement 8 turns on exactly that distinction. */
+  /* PHASE 27 — THE TAPE ITSELF IS UNTOUCHED. The instrument is not being redesigned;
+     only the frame around it is thinned to the hairline every other panel now uses, so
+     it stops being the heaviest object on the screen while remaining the same reading
+     in the same place. */
   #compassWrap {
     position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 20;
-    display: none; padding: 5px 8px 4px; color: #d8cba8;
-    background: rgba(20,16,12,0.6); border: 2px solid #6b5a3c; border-radius: 4px;
+    display: none; padding: 4px 7px 3px; color: var(--hud-ink);
+    background: rgba(12,10,7,0.34); border: 1px solid var(--hud-rule); border-radius: 2px;
   }
   #compassWrap.show { display: block; }
   #compassTape { display: block; }
+
+  /* =================================================================================
+     PHASE 27 — THE INTERACTION PROMPT.
+
+     What the world offered used to arrive as a toast at the top of the screen reading
+     "Right-click to open", which put an instruction where announcements go and read as
+     sentence-case prose. This is the same information as an instrument label: a key
+     chip and a verb, sitting just above the hotbar where the hands are, appearing only
+     while something under the crosshair can actually be acted on.
+     ================================================================================= */
+  #interactPrompt {
+    position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%);
+    z-index: 20; pointer-events: none; opacity: 0;
+    transition: opacity 140ms linear;
+    display: flex; align-items: center; gap: 8px; white-space: nowrap;
+    font-size: 10.5px; letter-spacing: 2.4px;
+    color: var(--hud-ink-dim); text-shadow: var(--hud-shadow);
+  }
+  #interactPrompt.show { opacity: 1; }
+  #interactPrompt .key {
+    font-size: 9px; letter-spacing: 1.4px; color: var(--hud-ink);
+    border: 1px solid var(--hud-rule); border-radius: 2px; padding: 2px 5px;
+    background: var(--hud-ground);
+  }
+
+  /* =================================================================================
+     PHASE 27 — SMALL VIEWPORTS.
+
+     The HUD is laid out in relative and clamped units so it holds its shape as the
+     window changes; below these thresholds it also gives up the things that are nice
+     rather than necessary — the slot numbers, some caption width, some trace width —
+     rather than letting the strip and the objective collide.
+     ================================================================================= */
+  @media (max-width: 860px), (max-height: 620px) {
+    #objectivePanel { top: 14px; left: 14px; width: clamp(150px, 34vw, 240px); }
+    #journeyStep { font-size: 11.5px; }
+    #vitals { left: 14px; bottom: 14px; gap: 7px; }
+    .vital-cap { width: 58px; font-size: 8px; letter-spacing: 1.1px; }
+    #perceptionTrace { width: 132px; height: 16px; }
+    .tick { width: 3px; margin-right: 2px; height: 12px; }
+    .tick.g { margin-left: 4px; }
+    #hotbar { bottom: 12px; }
+    #hotbar .slot { width: 34px; height: 34px; }
+    #hotbar .slot .swatch { width: 20px; height: 20px; }
+    #hotbar .slot .num { display: none; }
+    #heldName { bottom: 54px; }
+    #interactPrompt { bottom: 76px; }
+    #clockWrap { top: 14px; right: 14px; }
+  }
 
   /* PHASE 20.2 — THE OPENING INSTRUCTION.
 
@@ -507,10 +679,10 @@
   .tutorial-btn.secondary:hover { color: #d8cba8; border-color: #6b5a3c; }
   .tutorial-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-  #loseCrosshairMsg {
-    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-    color: #d8a13a; font-size: 12px; z-index: 20; text-shadow: 1px 1px 1px #000; pointer-events: none;
-  }
+  /* PHASE 27 — #loseCrosshairMsg stood here. It was a fixed, always-visible line
+     reading "Look at it and hold your torch to banish it." — no rule ever hid it and no
+     code ever wrote to it, and the mechanic it described does not exist in this build.
+     It has been permanently on screen over gameplay for several phases. Removed. */
 
   /* Crafting Overlay Styles */
   #craftingOverlay {
@@ -562,40 +734,53 @@
   <div id="miningLabel"></div>
 </div>
 
+<!-- PHASE 27 — THE HUD.
+
+     Everything the player reads during gameplay lives inside this one element, mounted
+     once at load and never rebuilt, so a dimension crossing or a load cannot leave a
+     second copy of anything behind. It sits at z-index 15 and creates its own stacking
+     context, which is what keeps the whole interface underneath the start screen, the
+     settings panel, the cinematic layers and the credits without any of them having to
+     know it exists.
+
+     The hierarchy, in the order a player needs it:
+       top-left      what you are doing            (#objectivePanel)
+       top-centre    which way you are facing      (#compassWrap, earned)
+       top-right     what time it is               (#clockWrap)
+       bottom-left   what state you are in         (#vitals)
+       bottom-centre what you are holding, and what is in front of you
+     The middle of the screen is left to the world. -->
 <div id="hud">
   <div id="hotbar"></div>
-  <div id="topContainer">
-    <div id="healthWrap">
-      <div id="healthIcon">&#10084;</div>
-      <div id="healthBarOuter"><div id="healthBarInner"></div></div>
+  <div id="heldName"></div>
+
+  <!-- PHASE 27 — the two readings. See the stylesheet for why they look nothing alike. -->
+  <div id="vitals">
+    <div class="vital">
+      <div class="vital-cap cap-cond">CONDITION</div>
+      <div id="conditionTicks"></div>
     </div>
-    <div id="sanityWrap">
-      <div id="sanityBrain">&#129504;</div>
-      <div id="sanityBarOuter"><div id="sanityBarInner"></div></div>
-    </div>
-    <div id="objectiveHUD">
-      <div class="title">MISSION DIRECTIVES</div>
-      <!-- PHASE 25 — the one objective line. First in the panel because it is the only
-           line the player is being asked to act on. -->
-      <div id="journeyStep"></div>
-      <div id="step1" class="obj-step active"><span>[1]</span> Harvest Wood &amp; Mine Coal to Craft Torches before Nightfall.</div>
-      <div id="step2" class="obj-step"><span>[2]</span> Build an Anchor Monument to shield your base.</div>
-      <div id="step3" class="obj-step"><span>[3]</span> Survive the Blood Night inside your Anchor Zone.</div>
-      <div id="step4" class="obj-step"><span>[4]</span> Crack an Ancient Chest for rare supplies.</div>
-      <div id="step5" class="obj-step"><span>[5]</span> Forge Iron Gear to endure deeper Stages.</div>
-      <div id="step6" class="obj-step"><span>[6]</span> Defeat the Hollowed Behemoth &amp; Activate the Rift Core.</div>
-      <div id="objStatus" class="obj-status">Anchor Status: Unplaced | Fuel: 0s</div>
-      <div id="memStatus" class="obj-status">Memory Fragments: 0 / 3</div>
-      <div id="stageStatus" class="obj-status">Stage 1 &bull; Day 1</div>
+    <div class="vital">
+      <div class="vital-cap cap-perc">PERCEPTION</div>
+      <canvas id="perceptionTrace" width="176" height="18"></canvas>
     </div>
   </div>
+
+  <!-- PHASE 27 — the objective, and the quiet status line under it. The six-step
+       MISSION DIRECTIVES checklist Phase 25 retired and left hidden here is gone. -->
+  <div id="objectivePanel">
+    <div id="journeyStep"></div>
+    <div id="hudStatus"><span id="objStatus"></span><span id="memStatus"></span><span id="stageStatus"></span></div>
+  </div>
+
   <div id="compassWrap"><canvas id="compassTape" width="252" height="26"></canvas></div>
   <div id="clockWrap">
     <span id="clockIcon">&#9788;</span>
     <span id="phaseLabel">DAY</span>
-    <span id="dayLabel">&nbsp;&bull; Day 1</span>
+    <span id="dayLabel">1</span>
   </div>
-  <div id="loseCrosshairMsg">Look at it and hold your torch to banish it.</div>
+
+  <div id="interactPrompt"><span class="key" id="interactKey">RMB</span><span id="interactVerb"></span></div>
 </div>
 
 <div id="dimensionBanner"></div>
@@ -23497,25 +23682,24 @@ class PlayerController {
      player is mining, so the world always tells you what you're pointing at. */
   _updateTargetHighlight() {
     if (!this.highlight) return;
-    if (this.dead || !this.locked) { this.highlight.hide(); return; }
+    if (this.dead || !this.locked) { this.highlight.hide(); this._setPrompt(null); return; }
 
     const hit = this.mining && this.miningTarget ? this.miningTarget : this._getLookTarget();
-    if (!hit) { this.highlight.hide(); return; }
+    if (!hit) { this.highlight.hide(); this._setPrompt(this._havenPropPrompt()); return; }
 
     const id = this.world.getBlockWorld(hit.bx, hit.by, hit.bz);
-    if (id === BLOCK.AIR || NO_HIGHLIGHT_BLOCKS.has(id)) { this.highlight.hide(); return; }
+    if (id === BLOCK.AIR || NO_HIGHLIGHT_BLOCKS.has(id)) {
+      this.highlight.hide(); this._setPrompt(this._havenPropPrompt()); return;
+    }
 
     /* PHASE 14 — interaction feedback. Looking at a door tells you what it will do, so
-       entering a house never feels like guessing at a trigger. */
-    if (DOOR_LOOKUP.has(id) && this.ui) {
-      const st = DOOR_LOOKUP.get(id).state;
-      if (this._doorHintId !== id) {
-        this._doorHintId = id;
-        this.ui.showToast(st === 'closed' ? 'Right-click to open' : 'Right-click to close', 1100);
-      }
-    } else if (this._doorHintId !== undefined && !DOOR_LOOKUP.has(id)) {
-      this._doorHintId = undefined;
-    }
+       entering a house never feels like guessing at a trigger.
+       PHASE 27 — the same feedback, moved off the announcement toast at the top of the
+       screen and onto the interaction prompt above the hotbar, where it can stay up for
+       as long as the door is under the crosshair instead of timing out after 1.1s. The
+       Anchor and Ancient Chests, which had no affordance at all, are answered from the
+       same table. */
+    this._setPrompt(this._promptForBlock(id) || this._havenPropPrompt());
 
     const heldMeta = ITEM_DATA[this.inventory.slots[this.selectedSlot].item];
     const info = computeBreakTime(id, heldMeta, this.miningSpeedBonus);
@@ -23523,6 +23707,46 @@ class PlayerController {
     this.highlight.setTarget(hit.bx, hit.by, hit.bz, state, id);
     this.highlight.setProgress(this.mining ? Math.min(1, this.breakProgress / info.time) : 0);
   }
+
+  /* PHASE 27 — WHAT THE BLOCK UNDER THE CROSSHAIR OFFERS, if anything.
+
+     One Map lookup and two comparisons against a block id the caller already has: no
+     raycast of its own, no world scan, nothing computed per frame that was not already
+     being computed for the highlight. The PROMPT lives here rather than in the HUD
+     because what is interactable is a property of the world, not of the interface. */
+  _promptForBlock(id) {
+    if (DOOR_LOOKUP.has(id)) {
+      return { key: 'RMB', verb: DOOR_LOOKUP.get(id).state === 'closed' ? 'OPEN' : 'CLOSE' };
+    }
+    if (id === BLOCK.SAFEHOUSE_ANCHOR) return { key: 'RMB', verb: 'FEED THE ANCHOR' };
+    if (id === BLOCK.TREASURE_CHEST) return { key: 'RMB', verb: 'OPEN' };
+    return null;
+  }
+
+  /* The Haven's bed and chest are prop meshes rather than voxels, so the voxel raycast
+     cannot see them and they have never had an affordance. Answered with the same
+     raycast the right-click path already uses, against the same two groups — and only
+     inside the Haven, which is a single small cabin. Everywhere else this is one
+     boolean. */
+  _havenPropPrompt() {
+    if (!this.inFakeHaven) return null;
+    const targets = [];
+    if (this.world.havenBedGroup) targets.push(this.world.havenBedGroup);
+    if (this.world.havenChestGroup) targets.push(this.world.havenChestGroup);
+    if (!targets.length) return null;
+    this.raycaster.set(this._eyePosition(), this._forwardVector());
+    this.raycaster.far = this.reach;
+    const hits = this.raycaster.intersectObjects(targets, true);
+    if (!hits.length) return null;
+    let node = hits[0].object;
+    while (node && !(node.userData && node.userData.havenInteract)) node = node.parent;
+    const kind = node && node.userData ? node.userData.havenInteract : null;
+    if (kind === 'bed') return { key: 'RMB', verb: 'REST' };
+    if (kind === 'storage') return { key: 'RMB', verb: 'OPEN' };
+    return null;
+  }
+
+  _setPrompt(spec) { if (this.ui) this.ui.setInteractPrompt(spec); }
 
   _tickMining(dt) {
     if (!this.mining) return;
@@ -23829,7 +24053,13 @@ class PlayerController {
       if (this.mining) this._cancelMining();
       return;
     }
-    if (!this.locked || this.ui.menuOpen || this.dead) return;
+    /* PHASE 27 — the interaction prompt is cleared HERE as well as inside
+       _updateTargetHighlight, because this return is above that call: without it, losing
+       pointer lock, opening a menu or dying while a door was under the crosshair would
+       leave the prompt on screen for as long as that lasted, offering an interaction the
+       player cannot perform. Found by the browser test, which could not make the prompt
+       go away again. */
+    if (!this.locked || this.ui.menuOpen || this.dead) { this._setPrompt(null); return; }
     this.camera.rotation.order = 'YXZ';
     this.camera.rotation.y = this.yaw;
     this.camera.rotation.x = this.pitch;
@@ -28546,12 +28776,36 @@ class ArrowManager {
   }
 }
 
+/* =====================================================================================
+   PHASE 27 — HUD CONSTANTS.
+
+   HUD_HP_PER_TICK is the only place the condition readout's granularity is decided. Ten
+   health per tick means a fresh player reads as ten ticks and a player who has lived all
+   three endurance milestones reads as seventeen: the instrument grows with the body
+   instead of quietly rescaling, which is the whole reason those milestones grant max
+   health rather than a number.
+
+   The trace constants bound what the perception readout is allowed to cost. Above
+   HUD_TRACE_CALM the line is drawn once when the value moves and then left alone —
+   a steady mind is a still instrument, and a still instrument is free. Below it the
+   redraw is capped to one every HUD_TRACE_INTERVAL_MS regardless of frame rate, so the
+   HUD's cost does not rise with the renderer's. */
+const HUD_HP_PER_TICK = 10;
+const HUD_TRACE_INTERVAL_MS = 70;   // ~14 repaints a second at worst
+const HUD_TRACE_CALM = 85;          // at or above this the trace holds still
+
+/* Cheap deterministic hash, 0..1. The perception trace has to LOOK unstable without
+   BEING nondeterministic: same inputs, same picture, no allocation, no Math.random. */
+function hudNoise(i) {
+  let x = (i | 0) * 374761393 + 668265263;
+  x = (x ^ (x >>> 13)) * 1274126177;
+  return ((x ^ (x >>> 16)) >>> 0) / 4294967296;
+}
+
 class UIManager {
   constructor() {
     this.player = null;
     this.hotbarEl = document.getElementById('hotbar');
-    this.sanityBar = document.getElementById('sanityBarInner');
-    this.sanityBrain = document.getElementById('sanityBrain');
     this.phaseLabel = document.getElementById('phaseLabel');
     this.clockIcon = document.getElementById('clockIcon');
     this.jumpscareFlash = document.getElementById('jumpscareFlash');
@@ -28610,8 +28864,42 @@ class UIManager {
     this._miningLabelKey = null;
     this.miningBarOuter = document.getElementById('miningBarOuter');
     this.miningBarInner = document.getElementById('miningBarInner');
-    this.healthBar = document.getElementById('healthBarInner');
     this.dimensionBanner = document.getElementById('dimensionBanner');
+
+    /* =================================================================================
+       PHASE 27 — THE HUD VIEW STATE.
+
+       THIS IS A PRESENTATION CACHE AND NOTHING ELSE. Every field is a copy of what was
+       last PAINTED, held for one purpose: so a setter called from the frame loop can
+       compare and return without touching the DOM. Nothing in the game reads it, nothing
+       decides anything from it, and no value in it is authoritative — health lives on
+       the player, sanity on SanitySystem, the objective on the objective system, the
+       selected slot on the player. If this object were deleted mid-frame the HUD would
+       repaint itself from those owners on the next call and the game would not notice.
+       ================================================================================= */
+    this.view = {
+      hp: null, maxHp: null, hpState: null, dead: null,
+      sanity: null, sanityState: null, slot: null,
+    };
+
+    // PHASE 27 — CONDITION: a row of ticks, rebuilt only when max health changes.
+    this.vitalsEl = document.getElementById('vitals');
+    this.conditionTicksEl = document.getElementById('conditionTicks');
+    this.conditionTicks = [];
+
+    // PHASE 27 — PERCEPTION: one small canvas, drawn the same way the compass is.
+    this.perceptionCanvas = document.getElementById('perceptionTrace');
+    this.perceptionCtx = this.perceptionCanvas ? this.perceptionCanvas.getContext('2d') : null;
+    this._traceAt = 0;      // when the trace was last repainted
+    this._traceT = 0;       // the trace's own clock, advanced per repaint
+
+    // PHASE 27 — the interaction prompt, and the held item's name.
+    this.interactPrompt = document.getElementById('interactPrompt');
+    this.interactKeyEl = document.getElementById('interactKey');
+    this.interactVerbEl = document.getElementById('interactVerb');
+    this._promptKey = null;
+    this.heldName = document.getElementById('heldName');
+    this._heldTimer = null;
     /* PHASE 26 — #xpBarInner and #levelLabel are gone with the XP system. The toast is
        the same element it always was, renamed off its level-up heritage: it is the one
        transient HUD line the game has, and Core Disk pickups and progression milestones
@@ -28619,13 +28907,9 @@ class UIManager {
     this.hudToast = document.getElementById('hudToast');
     this.damageFlash = document.getElementById('damageFlash');
 
-    // HUD Directives UI
-    this.step1 = document.getElementById('step1');
-    this.step2 = document.getElementById('step2');
-    this.step3 = document.getElementById('step3');
-    this.step4 = document.getElementById('step4');
-    this.step5 = document.getElementById('step5');
-    this.step6 = document.getElementById('step6');
+    /* PHASE 27 — the six #step1..#step6 handles stood here, for the MISSION DIRECTIVES
+       checklist Phase 25 retired and left hidden in the document. The markup is gone and
+       so are they; what is left is the objective line and the status parts under it. */
     this.objStatus = document.getElementById('objStatus');
     this.memStatus = document.getElementById('memStatus');
     this.stageStatus = document.getElementById('stageStatus');
@@ -28842,31 +29126,57 @@ class UIManager {
       slot.appendChild(count);
       this.hotbarEl.appendChild(slot);
 
-      this.slots.push({ slotEl: slot, swatchEl: swatch, countEl: count });
+      // `key` is what the cell last painted; see updateHotbarSelection.
+      this.slots.push({ slotEl: slot, swatchEl: swatch, countEl: count, key: null });
     }
+    this.view.slot = null;
     this.updateHotbarSelection();
   }
 
+  /* =================================================================================
+     PHASE 27 — THE HOTBAR STRIP.
+
+     This is called from the frame loop, and it used to redraw all nine item icons into
+     all nine canvases on every one of them — nine clears and nine drawImages a frame to
+     produce, almost always, the identical picture. Each cell now carries a key of what
+     it last painted (item, count, selected) and is skipped when that has not moved, so a
+     frame where nothing changed does nine string comparisons and stops.
+
+     The same key is what lets the crafting and backpack grids refresh only when the
+     inventory actually changed, rather than being rebuilt from scratch every frame while
+     they happen to be open.
+     ================================================================================= */
   updateHotbarSelection() {
     if (!this.player) return;
-    this.slots.forEach((s, i) => {
+    const sel = this.player.selectedSlot;
+    let changed = false;
+    for (let i = 0; i < this.slots.length; i++) {
+      const s = this.slots[i];
       const invSlot = this.player.inventory.slots[i];
-      s.slotEl.classList.toggle('active', i === this.player.selectedSlot);
-      if (invSlot.item !== ITEM.NONE && invSlot.count > 0) {
+      const has = invSlot.item !== ITEM.NONE && invSlot.count > 0;
+      const key = (has ? invSlot.item + ':' + invSlot.count : '-') + (i === sel ? '*' : '');
+      if (s.key === key) continue;
+      s.key = key;
+      changed = true;
+      s.slotEl.classList.toggle('active', i === sel);
+      if (has) {
         s.swatchEl.style.display = 'block';
         const ctx = s.swatchEl.getContext('2d');
         ctx.imageSmoothingEnabled = false;
         ctx.clearRect(0, 0, s.swatchEl.width, s.swatchEl.height);
         const icon = getItemIconCanvas(invSlot.item);
         ctx.drawImage(icon, 0, 0, s.swatchEl.width, s.swatchEl.height);
-        s.countEl.textContent = invSlot.count;
+        /* PHASE 27 — a count of one is not information. The stack size is printed when
+           there is a stack; a single item is just the item. */
+        s.countEl.textContent = invSlot.count > 1 ? invSlot.count : '';
       } else {
         s.swatchEl.style.display = 'none';
         s.countEl.textContent = '';
       }
-    });
-    if (this.craftingOpen) this.renderCraftingMenu();
-    if (this.backpackOpen) this._refreshBackpackGrid();
+    }
+    if (this.view.slot !== sel) { this.view.slot = sel; this._flashHeldName(); }
+    if (changed && this.craftingOpen) this.renderCraftingMenu();
+    if (changed && this.backpackOpen) this._refreshBackpackGrid();
   }
 
   _makeInvCell(i) {
@@ -29009,22 +29319,44 @@ class UIManager {
     });
   }
 
+  /* =================================================================================
+     PHASE 27 — CONDITION.
+
+     Called from the frame loop, so the first thing it does is decide whether anything
+     has actually moved. Health is event-driven — damage, healing, a milestone, a load —
+     and on the overwhelming majority of frames this is three comparisons and a return.
+     ================================================================================= */
   updateVitals(player) {
-    const hpPct = Math.max(0, Math.min(100, (player.hp / player.maxHp) * 100));
-    this.healthBar.style.width = hpPct + '%';
-    /* PHASE 26 — the XP bar and the level label were written from here. Health is the
-       only vital this row carries now. */
+    const maxHp = Math.max(1, Number(player.maxHp) || 1);
+    const hp = Math.max(0, Math.min(maxHp, Number(player.hp) || 0));
+    const dead = !!player.dead;
+
+    // Max health only changes when an endurance milestone lands or a save is restored.
+    if (this.view.maxHp !== maxHp) {
+      this.view.maxHp = maxHp;
+      this._buildConditionTicks(maxHp);
+      this.view.hp = null;                 // force a repaint against the new ladder
+    }
+    if (this.view.hp !== hp || this.view.dead !== dead) {
+      const wasDead = this.view.dead;
+      this.view.hp = hp; this.view.dead = dead;
+      this._paintCondition(hp, maxHp, dead);
+      /* Dying and coming back are the two moments the perception trace has to be
+         redrawn without the sanity value having moved: a dead body reports nothing. */
+      if (wasDead !== dead) { this._traceAt = 0; this._drawPerception(); }
+    }
+
     if (player.inFakeHaven) {
       // LEVEL 4 — warm, unthreatening banner: no skulls, no red, no horror styling.
-      this.dimensionBanner.textContent = '\u2600 THE HAVEN \u2600';
+      this.dimensionBanner.textContent = 'THE HAVEN';
       this.dimensionBanner.classList.add('active', 'haven');
     } else if (player.inFarmlands) {
       this.dimensionBanner.classList.remove('haven');
-      this.dimensionBanner.textContent = '\u2620 THE SHATTERED FARMLANDS \u2620';
+      this.dimensionBanner.textContent = 'THE SHATTERED FARMLANDS';
       this.dimensionBanner.classList.add('active');
     } else if (player.inSuburbia) {
       this.dimensionBanner.classList.remove('haven');
-      this.dimensionBanner.textContent = '\u2620 STATIC SUBURBIA \u2620';
+      this.dimensionBanner.textContent = 'STATIC SUBURBIA';
       this.dimensionBanner.classList.add('active');
     } else {
       this.dimensionBanner.classList.remove('active', 'haven');
@@ -29051,9 +29383,219 @@ class UIManager {
     this._toastTimer = setTimeout(() => this.hudToast.classList.remove('show'), duration);
   }
 
+  /* Ten health per tick, so the ladder is as long as the body is durable. Rebuilt only
+     when max health changes, which is at most three times in a run. */
+  _buildConditionTicks(maxHp) {
+    if (!this.conditionTicksEl) return;
+    const n = Math.max(1, Math.round(maxHp / HUD_HP_PER_TICK));
+    this.conditionTicksEl.innerHTML = '';
+    this.conditionTicks = [];
+    for (let i = 0; i < n; i++) {
+      const t = document.createElement('div');
+      // Every fifth tick opens a gap: the count reads at a glance rather than being counted.
+      t.className = (i > 0 && i % 5 === 0) ? 'tick g' : 'tick';
+      t.style.setProperty('--f', '0');
+      t._f = 0; t._lit = false;
+      this.conditionTicksEl.appendChild(t);
+      this.conditionTicks.push(t);
+    }
+  }
+
+  /* The whole readout is one custom property per tick and one class on the row. No node
+     is created, destroyed or measured here. */
+  _paintCondition(hp, maxHp, dead) {
+    const ticks = this.conditionTicks;
+    const litCount = dead ? 0 : Math.floor(hp / HUD_HP_PER_TICK);
+    const partial = dead ? 0 : (hp - litCount * HUD_HP_PER_TICK) / HUD_HP_PER_TICK;
+    for (let i = 0; i < ticks.length; i++) {
+      const el = ticks[i];
+      const f = i < litCount ? 1 : (i === litCount ? partial : 0);
+      if (el._f !== f) { el._f = f; el.style.setProperty('--f', String(f)); }
+      const lit = f > 0.001;
+      if (el._lit !== lit) { el._lit = lit; el.classList.toggle('lit', lit); }
+    }
+    /* Four states, and the thresholds are proportions rather than absolutes so a player
+       who has earned 170 max health reads CRITICAL at the same fraction of themselves. */
+    const frac = hp / maxHp;
+    const state = dead ? 'hp-gone'
+                : frac > 0.6  ? 'hp-steady'
+                : frac > 0.35 ? 'hp-worn'
+                : frac > 0.15 ? 'hp-failing'
+                : 'hp-critical';
+    this._setVitalState('hpState', state);
+  }
+
+  /* One class swap on #vitals, tracked so the same class is never re-added. */
+  _setVitalState(key, state) {
+    if (this.view[key] === state) return;
+    if (this.vitalsEl) {
+      if (this.view[key]) this.vitalsEl.classList.remove(this.view[key]);
+      this.vitalsEl.classList.add(state);
+    }
+    this.view[key] = state;
+  }
+
+  /* =================================================================================
+     PHASE 27 — PERCEPTION.
+
+     Called every frame by SanitySystem (it used to write a bar width every frame from
+     here, which is a layout-affecting DOM write per tick for a value that barely moves).
+     Now it decides three things and usually returns:
+
+       the STATE, which only touches the DOM when it crosses a threshold;
+       whether the VALUE moved enough to be worth a repaint at all;
+       and, when the mind is not steady, whether the frame budget allows one yet.
+
+     At full sanity the trace is drawn once and then holds — no timer, no animation
+     frame, nothing running. It costs what a float comparison costs.
+     ================================================================================= */
   setSanity(value) {
-    this.sanityBar.style.width = value + '%';
-    this.sanityBrain.classList.toggle('pulse', value < 30);
+    const v = Math.max(0, Math.min(100, Number(value) || 0));
+    const prev = this.view.sanity;
+    this.view.sanity = v;
+
+    const state = v >= 70 ? 'p-calm'
+                : v >= 45 ? 'p-drifting'
+                : v >= 20 ? 'p-breaking'
+                : 'p-lost';
+    this._setVitalState('sanityState', state);
+
+    const moved = prev === null || Math.abs(v - prev) >= 0.4;
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    if (!moved && (v >= HUD_TRACE_CALM || now - this._traceAt < HUD_TRACE_INTERVAL_MS)) return;
+    this._traceAt = now;
+    this._traceT += 0.16;
+    this._drawPerception();
+  }
+
+  /* The signal itself. A rule the line is measured against — which stays visible even
+     where the line is not — plus one stroked path of 89 points. At the worst states the
+     line starts dropping segments and pieces of it turn up displaced above and below,
+     which is the reading: not a quantity, a steadiness. No hue, no number, no label that
+     could be read as a diagnostic. */
+  _drawPerception() {
+    const ctx = this.perceptionCtx;
+    if (!ctx || !this.perceptionCanvas) return;
+    const W = this.perceptionCanvas.width || 176;
+    const H = this.perceptionCanvas.height || 18;
+    const mid = H / 2;
+    ctx.clearRect(0, 0, W, H);
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(128,120,98,0.34)';
+    ctx.beginPath(); ctx.moveTo(0, mid + 0.5); ctx.lineTo(W, mid + 0.5); ctx.stroke();
+
+    if (this.view.dead === true) return;   // nothing to report
+
+    const v = this.view.sanity === null ? 100 : this.view.sanity;
+    const instab = 1 - v / 100;
+    const amp = 0.35 + instab * instab * (H * 0.40);
+    const t = this._traceT;
+    // Below halfway the signal begins losing pieces of itself.
+    const gapChance = instab > 0.5 ? (instab - 0.5) * 1.5 : 0;
+    const seed = Math.floor(t * 4) * 1013;
+
+    /* The path is built once and stroked twice: a dark underlay, then the ink. A one
+       pixel ash line over sunlit grass was invisible in a real capture, and a shadow on
+       the element cannot help a line that thin. Two strokes of one 89-point path. */
+    ctx.beginPath();
+    let pen = false;
+    for (let x = 0; x <= W; x += 2) {
+      if (gapChance > 0 && hudNoise(x * 13 + seed) < gapChance) { pen = false; continue; }
+      const u = x / W;
+      const n = Math.sin(u * 21.7 + t * 1.9) * 0.55
+              + Math.sin(u * 47.3 - t * 3.1) * 0.30
+              + Math.sin(u * 8.1 + t * 0.9) * 0.15;
+      const y = mid + n * amp;
+      if (pen) ctx.lineTo(x, y); else { ctx.moveTo(x, y); pen = true; }
+    }
+    ctx.lineWidth = 2.6;
+    ctx.strokeStyle = 'rgba(0,0,0,0.60)';
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(206,214,202,' + (0.62 + instab * 0.30).toFixed(3) + ')';
+    ctx.stroke();
+
+    // Displaced fragments — bounded to three, and only at the last state.
+    if (instab > 0.7) {
+      for (let k = 0; k < 3; k++) {
+        const fx = Math.floor(hudNoise(k * 97 + seed) * (W - 12));
+        const fy = Math.round(mid + (hudNoise(k * 31 + seed + 7) - 0.5) * H * 0.85) + 0.5;
+        ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx + 6 + k * 3, fy);
+        ctx.lineWidth = 2.6; ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.stroke();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(222,228,218,' + (0.45 + (instab - 0.7) * 0.9).toFixed(3) + ')';
+        ctx.stroke();
+      }
+    }
+  }
+
+  /* =================================================================================
+     PHASE 27 — THE INTERACTION PROMPT.
+
+     `spec` is { key, verb } or null. The caller may hand it the same thing every frame;
+     this writes only when the answer changes. The HUD never decides WHAT is
+     interactable — PlayerController does, from the block already under the crosshair —
+     so this stays a renderer.
+     ================================================================================= */
+  setInteractPrompt(spec) {
+    if (!this.interactPrompt) return;
+    const key = spec ? (spec.key + '|' + spec.verb) : '';
+    if (key === this._promptKey) return;
+    this._promptKey = key;
+    if (!spec) { this.interactPrompt.classList.remove('show'); return; }
+    if (this.interactKeyEl) this.interactKeyEl.textContent = spec.key;
+    if (this.interactVerbEl) this.interactVerbEl.textContent = spec.verb;
+    this.interactPrompt.classList.add('show');
+  }
+
+  /* The held item names itself for a moment, then gets out of the way. Fired from the
+     selection change, never from the frame loop. */
+  _flashHeldName() {
+    if (!this.heldName || !this.player) return;
+    const inv = this.player.inventory.slots[this.player.selectedSlot];
+    const meta = (inv && inv.item !== ITEM.NONE && inv.count > 0) ? ITEM_DATA[inv.item] : null;
+    const name = meta ? meta.name : '';
+    this.heldName.textContent = name;
+    this.heldName.classList.toggle('show', !!name);
+    clearTimeout(this._heldTimer);
+    if (name) this._heldTimer = setTimeout(() => this.heldName.classList.remove('show'), 1500);
+  }
+
+  /* =================================================================================
+     PHASE 27 — CLEARING THE HUD BETWEEN RUNS.
+
+     Called from Game._teardownForRestore, which is the single path a New Game and a
+     Load both go through. Everything here is either a transient element that must not
+     outlive the run that raised it, or a line of the presentation cache that would
+     otherwise let a stale value pass the "has this changed" test and skip its repaint.
+     No gameplay state is touched: the callers re-push health, sanity, the objective and
+     the selected slot immediately afterwards, from the state they just restored.
+     ================================================================================= */
+  resetPresentation() {
+    this.view.hp = null; this.view.maxHp = null; this.view.hpState = null;
+    this.view.dead = null; this.view.sanity = null; this.view.sanityState = null;
+    this.view.slot = null;
+    if (this.vitalsEl) {
+      for (const c of ['hp-steady','hp-worn','hp-failing','hp-critical','hp-gone',
+                       'p-calm','p-drifting','p-breaking','p-lost']) {
+        this.vitalsEl.classList.remove(c);
+      }
+    }
+    this._journeyText = null; this._journeyDone = undefined;
+    if (this.journeyStep) { this.journeyStep.className = ''; this.journeyStep.textContent = ''; }
+    this._objStatusText = null; this._memStatusText = null; this._stageStatusText = null;
+    if (this.objStatus) this.objStatus.textContent = '';
+    if (this.memStatus) this.memStatus.textContent = '';
+    if (this.stageStatus) this.stageStatus.textContent = '';
+    clearTimeout(this._toastTimer);
+    if (this.hudToast) { this.hudToast.classList.remove('show'); this.hudToast.textContent = ''; }
+    clearTimeout(this._heldTimer);
+    if (this.heldName) { this.heldName.classList.remove('show'); this.heldName.textContent = ''; }
+    this._promptKey = null;
+    if (this.interactPrompt) this.interactPrompt.classList.remove('show');
+    this._traceAt = 0;
+    if (this.slots) for (const s of this.slots) s.key = null;
   }
 
   /* PHASE 2 — `info` (optional) describes the block being mined and how the held tool
@@ -29096,46 +29638,43 @@ class UIManager {
   }
 
   setDay(day) {
-    if (this.dayLabel) this.dayLabel.textContent = `\u00A0\u2022 Day ${day}`;
+    /* PHASE 27 — the count no longer repeats the word the phase label just said: the
+       clock read "DAY  \u2022  Day 1" in daylight. It now reads "\u2600 DAY 1", and at
+       night "\u263D NIGHT 4" — the phase, and the day it belongs to. */
+    if (this.dayLabel) this.dayLabel.textContent = String(day);
   }
 
-  /* PHASE 25 — WHAT IS LEFT OF THIS.
+  /* =================================================================================
+     PHASE 25 / 27 — THE STATUS LINE.
 
-     It used to drive a six-line numbered checklist of MISSION DIRECTIVES, which was a
-     second objective authority sitting directly above the first and, in three of the four
-     dimensions, describing a game the player was no longer playing. The objective system
-     replaced it: the directives are hidden once (see `retireDirectives`) and the panel now
-     carries only STATUS — things the player needs to read rather than be told to do.
+     Phase 25 reduced this from a six-step checklist to status only. Phase 27 removes the
+     panel it sat in and rewrites what is left as instrument labels rather than sentences:
+     `ANCHOR 42S`, not `Anchor Status: Active | Fuel: 42s`.
 
-     The DOM is deliberately left in place for Phase 27's HUD rebirth to remove or reuse.
-     Nothing else in the game writes to it. */
+     THE ANCHOR PART GOES SILENT WHEN THERE IS NO ANCHOR. "Unplaced | Fuel: 0s" is a
+     reading of nothing, printed permanently; the objective line above is already the
+     thing telling a player without an Anchor to go and build one. The day was dropped
+     because the clock in the opposite corner has carried it the whole time.
+
+     `day` is kept in the signature — the frame loop passes it, and it costs nothing to
+     accept the argument the caller has always sent.
+     ================================================================================= */
   updateObjectiveHUD(hasAnchor, anchorFuel, memoryFragments, stage, nightsRequired, day) {
-    const fuelSec = Math.ceil(anchorFuel || 0);
-    const anchorText = hasAnchor ? `Active | Fuel: ${fuelSec}s` : 'Unplaced | Fuel: 0s';
+    const anchorText = hasAnchor ? `ANCHOR ${Math.ceil(anchorFuel || 0)}S` : '';
     if (this._objStatusText !== anchorText) {
       this._objStatusText = anchorText;
-      this.objStatus.textContent = `Anchor Status: ${anchorText}`;
+      this.objStatus.textContent = anchorText;
     }
-    const mem = `${memoryFragments} / ${nightsRequired}`;
+    const mem = `FRAGMENTS ${memoryFragments}/${nightsRequired}`;
     if (this._memStatusText !== mem) {
       this._memStatusText = mem;
-      this.memStatus.textContent = `Memory Fragments: ${mem}`;
+      this.memStatus.textContent = mem;
     }
-    const st = `Stage ${stage} \u2022 Day ${day}`;
+    const st = `STAGE ${stage}`;
     if (this.stageStatus && this._stageStatusText !== st) {
       this._stageStatusText = st;
       this.stageStatus.textContent = st;
     }
-  }
-
-  /* Hides the legacy numbered directives exactly once, at boot. A class rather than a
-     removal, so Phase 27 still has the markup to work with. */
-  retireDirectives() {
-    for (const el of [this.step1, this.step2, this.step3, this.step4, this.step5, this.step6]) {
-      if (el) el.className = 'obj-step retired';
-    }
-    const title = document.querySelector('#objectiveHUD .title');
-    if (title) title.textContent = 'STATUS';
   }
 
   /* PHASE 20 — THE FARMLAND JOURNEY LINE.
@@ -29164,8 +29703,12 @@ class UIManager {
     this._journeyText = text; this._journeyDone = done;
     if (!text) { this.journeyStep.className = ''; this.journeyStep.textContent = ''; return; }
     this.journeyStep.textContent = text;
-    /* PHASE 25 — the notification IS the line, brightening for two seconds. Only when it
-       replaces something: the first objective of a run appears rather than changes. */
+    /* PHASE 25 — the notification IS the line. Only when it replaces something: the
+       first objective of a run appears rather than changes.
+       PHASE 27 — what `changed` now animates is a one-second arrival — the line lifting
+       into place with its rule briefly in brass — instead of two seconds of the text
+       sitting a shade brighter. Still no banner, no sound, no pause, and nothing that
+       moves across the screen. */
     const pulse = hadText ? ' changed' : '';
     this.journeyStep.className = (done ? 'show done' : 'show') + pulse;
   }
@@ -30999,7 +31542,6 @@ class Game {
        progression of its own beyond one integer per chain; everything else it derives. */
     this.objectives = new ObjectiveSystem(this.ui);
     this._objectiveSnapshotFn = () => this._objectiveSnapshot();
-    this.ui.retireDirectives();
 
     this.tutorial = new TutorialController(() => this._start());
     // PHASE 20.2 — the closing beat of the (Phase 30) opening film, authored early
@@ -31157,6 +31699,11 @@ class Game {
     if (this.ui.craftingOpen) this.ui.toggleCrafting();
     if (this.ui.backpackOpen) this.ui.toggleBackpack();
     this.ui.hideWinScreen();
+    /* PHASE 27 — and nothing PAINTED may survive one either. This clears the HUD's
+       presentation cache and every transient element, so the restore that follows
+       repaints from the state it just applied rather than skipping a write because the
+       cache still holds the previous run's value. See UIManager.resetPresentation. */
+    this.ui.resetPresentation();
 
     // Player body: no residual motion, mining, lock or death.
     const p = this.player;

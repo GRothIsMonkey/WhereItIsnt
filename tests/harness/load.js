@@ -33,7 +33,7 @@ function stubCanvas(w, h) {
     },
   };
   const c = {
-    width: w || 300, height: h || 150, style: {},
+    width: w || 300, height: h || 150, style: stubStyle(),
     getContext(kind) { if (kind === '2d') return ctx; return null; },
     toDataURL() { return 'data:,'; },
     addEventListener(){}, removeEventListener(){},
@@ -42,15 +42,62 @@ function stubCanvas(w, h) {
     offsetWidth: w || 300, offsetHeight: h || 150,
   };
   ctx.canvas = c;
+  attachClassList(c);
   return c;
+}
+
+/* A style object that RECORDS. The HUD sets custom properties (--f on a condition
+   tick), so setProperty/getPropertyValue have to exist and have to remember; a plain
+   {} would throw on the first call and a no-op would make every HUD assertion vacuous. */
+function stubStyle() {
+  const props = Object.create(null);
+  return {
+    _props: props,
+    setProperty(k, v) { props[k] = String(v); this[k.replace(/^--/, '')] = String(v); },
+    getPropertyValue(k) { return props[k] === undefined ? '' : props[k]; },
+    removeProperty(k) { const v = props[k]; delete props[k]; return v === undefined ? '' : v; },
+  };
+}
+
+/* A REAL classList, backed by a Set, kept in sync with .className both ways.
+
+   The game never READS classList (checked: there is no classList.contains anywhere in
+   game.html), so making this faithful cannot change what the game does — it only makes
+   what the game WROTE observable, which is the difference between a HUD test that
+   proves something and one that asserts against a no-op. */
+function attachClassList(el) {
+  const set = new Set();
+  let raw = '';
+  const sync = () => { raw = Array.from(set).join(' '); };
+  el.classList = {
+    add(...cs) { for (const c of cs) if (c) set.add(c); sync(); },
+    remove(...cs) { for (const c of cs) set.delete(c); sync(); },
+    toggle(c, force) {
+      const on = force === undefined ? !set.has(c) : !!force;
+      if (on) set.add(c); else set.delete(c);
+      sync(); return on;
+    },
+    contains(c) { return set.has(c); },
+    get length() { return set.size; },
+    item(i) { return Array.from(set)[i] || null; },
+    toString() { return raw; },
+  };
+  Object.defineProperty(el, 'className', {
+    get() { return raw; },
+    set(v) {
+      set.clear();
+      for (const c of String(v == null ? '' : v).split(/\s+/)) if (c) set.add(c);
+      sync();
+    },
+    enumerable: true, configurable: true,
+  });
 }
 
 function stubElement(tag) {
   if (tag === 'canvas') return stubCanvas(300, 150);
   const el = {
-    tagName: String(tag).toUpperCase(), style: {}, dataset: {}, children: [],
-    className: '', id: '', textContent: '', innerHTML: '', value: '',
-    classList: { add(){}, remove(){}, toggle(){}, contains(){ return false; } },
+    tagName: String(tag).toUpperCase(), style: stubStyle(), dataset: {}, children: [],
+    id: '', textContent: '', innerHTML: '', value: '',
     appendChild(c){ this.children.push(c); return c; },
     removeChild(c){ return c; }, insertBefore(c){ this.children.push(c); return c; },
     setAttribute(){}, getAttribute(){ return null; }, removeAttribute(){},
@@ -60,6 +107,16 @@ function stubElement(tag) {
     getContext(){ return null; },
     remove(){},
   };
+  attachClassList(el);
+  /* innerHTML = '' is the only assignment the game makes to it, and it means "empty
+     this element" — a plain string property would leave the children in place and every
+     rebuild (the hotbar, the condition ticks, the recipe list) would double. */
+  let html = '';
+  Object.defineProperty(el, 'innerHTML', {
+    get() { return html; },
+    set(v) { html = String(v == null ? '' : v); if (html === '') this.children.length = 0; },
+    enumerable: true, configurable: true,
+  });
   return el;
 }
 
@@ -72,6 +129,7 @@ const CANVAS_ELEMENT_IDS = new Map([
   ['gameCanvas', [1280, 720]],
   ['startEmbers', [1280, 720]],
   ['compassTape', [252, 26]],      // matches <canvas id="compassTape" width height>
+  ['perceptionTrace', [176, 18]],  // PHASE 27 — the perception trace
 ]);
 
 function load(htmlPath) {

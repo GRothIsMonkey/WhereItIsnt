@@ -103,6 +103,17 @@ const SNAPSHOT = `(() => {
     objectiveText: (() => { const n = document.getElementById('journeyStep');
       return n && n.className.indexOf('show') >= 0 ? n.textContent : null; })(),
     objectiveMarks: g.objectives ? Object.assign({}, g.objectives.progress) : null,
+    /* PHASE 27 — the HUD as the player sees it, read from the live document. Layout
+       numbers come from getBoundingClientRect, so an element that exists but is not on
+       the screen cannot pass as one that is. */
+    hudLit: (() => { const t = document.getElementById('conditionTicks');
+      return t ? Array.from(t.children).filter(c => c.classList.contains('lit')).length : -1; })(),
+    hudTicks: (() => { const t = document.getElementById('conditionTicks');
+      return t ? t.children.length : -1; })(),
+    hudVitalState: (() => { const v = document.getElementById('vitals');
+      return v ? Array.from(v.classList).sort().join(' ') : null; })(),
+    hudSlot: (() => { const h = document.getElementById('hotbar');
+      return h ? Array.from(h.children).findIndex(c => c.classList.contains('active')) : -1; })(),
     hasSave: g.hasSave(),
     continueVisible: (() => { const b = document.getElementById('continuePlay');
       return !!b && b.style.display !== 'none' && b.offsetParent !== null; })(),
@@ -205,9 +216,8 @@ async function boot(page, { fresh }) {
         }), 'and it is actually visible — laid out, non-zero, not display:none');
     chk(await page.evaluate(() => {
           const steps = ['step1','step2','step3','step4','step5','step6'];
-          return steps.every(id => { const e = document.getElementById(id);
-            return !e || getComputedStyle(e).display === 'none'; });
-        }), 'while the old six-line MISSION DIRECTIVES checklist is gone from the screen');
+          return steps.every(id => !document.getElementById(id));
+        }), 'while the old six-line MISSION DIRECTIVES checklist is not in the live document at all');
     chk(await page.evaluate(() => {
           return document.querySelectorAll('#journeyStep').length === 1;
         }), 'and there is exactly one objective element in the document');
@@ -241,6 +251,179 @@ async function boot(page, { fresh }) {
           if (t) t.classList.remove('show');
           return g.milestones.size === 0 && g.player.maxHp === 100;
         }), 'and the probe undoes itself, so the rest of this file tests an untouched player');
+
+    /* =================================================================================
+       PHASE 27 — THE HUD, IN A REAL BROWSER.
+
+       Everything here is read from the LAID-OUT document: computed styles and rects, not
+       the presence of a node. That is the part the offline suite cannot do — a HUD
+       element can exist, carry the right class and still be zero pixels tall, behind
+       something, or off the edge of the screen.
+       ================================================================================= */
+    chk(first.hudTicks === 10 && first.hudLit === 10,
+        `the condition readout is on screen: ${first.hudTicks} ticks, all lit, at a fresh 100 health`);
+    chk(await page.evaluate(() => {
+          const t = document.getElementById('conditionTicks');
+          const r = t.getBoundingClientRect();
+          const one = t.children[0].getBoundingClientRect();
+          return r.width > 50 && r.height > 6 && one.width > 1 && one.height > 6 &&
+                 r.left >= 0 && r.bottom <= innerHeight + 1;
+        }), 'and it is really laid out inside the viewport — not a zero-height row of nothing');
+    chk(await page.evaluate(() => {
+          const c = document.getElementById('perceptionTrace');
+          const r = c.getBoundingClientRect();
+          const px = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+          let ink = 0; for (let i = 3; i < px.length; i += 4) if (px[i] > 8) ink++;
+          return r.width > 80 && r.height > 8 && ink > 100;
+        }), 'the perception trace is laid out AND has actually been drawn into — real pixels, not an empty canvas');
+    chk(await page.evaluate(() => {
+          const v = document.getElementById('vitals');
+          const c = document.getElementById('conditionTicks').getBoundingClientRect();
+          const p = document.getElementById('perceptionTrace').getBoundingClientRect();
+          const hb = document.getElementById('hotbar').getBoundingClientRect();
+          const ob = document.getElementById('objectivePanel').getBoundingClientRect();
+          const overlaps = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+          return getComputedStyle(v).position === 'fixed' &&
+                 !overlaps(c, hb) && !overlaps(p, hb) && !overlaps(c, ob) && !overlaps(p, ob) &&
+                 Math.abs(c.left - p.left) < 2;
+        }), 'the two readings are aligned with each other and clear of the hotbar and the objective');
+    chk(await page.evaluate(() => {
+          // The heart, the brain and both vital bars are not in the live document.
+          return !document.getElementById('healthBarInner') && !document.getElementById('sanityBarInner') &&
+                 !document.getElementById('healthIcon') && !document.getElementById('sanityBrain') &&
+                 !/[❤♥]|🧠/.test(document.getElementById('hud').innerText);
+        }), 'NO HEART, NO BRAIN AND NO VITAL BAR IS ON THE SCREEN');
+    chk(await page.evaluate(() => {
+          const g = window.game, p = g.player;
+          p.hp = 8; g.ui.updateVitals(p);
+          const v = document.getElementById('vitals');
+          const crit = v.classList.contains('hp-critical');
+          const lit = Array.from(document.getElementById('conditionTicks').children)
+                        .filter(c => c.classList.contains('lit')).length;
+          p.hp = p.maxHp; g.ui.updateVitals(p);
+          // 8/100 is no whole tick and four fifths of the first: exactly one tick lit.
+          return crit && lit === 1;
+        }), 'damage down to 8 health puts the live readout into its critical state, on one part-lit tick');
+    chk(await page.evaluate(() => {
+          const g = window.game;
+          g.ui.setSanity(12);
+          const lost = document.getElementById('vitals').classList.contains('p-lost');
+          const c = document.getElementById('perceptionTrace');
+          const px = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+          let rows = new Set();
+          for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++)
+            if (px[(y * c.width + x) * 4 + 3] > 8) { rows.add(y); break; }
+          g.ui.setSanity(g.sanity.value);
+          return lost && rows.size > 4;   // a calm trace occupies one or two rows
+        }), 'and a low perception value visibly breaks the trace up across the canvas');
+    chk(await page.evaluate(() => {
+          const hb = document.getElementById('hotbar');
+          const cells = Array.from(hb.children);
+          const cs = getComputedStyle(cells[1]);
+          const r0 = cells[0].getBoundingClientRect(), r1 = cells[1].getBoundingClientRect();
+          // A continuous strip: cell 1 starts where cell 0 ends, and no cell is boxed.
+          return Math.abs(r1.left - r0.right) < 1.5 &&
+                 cs.borderTopWidth === '0px' && cs.borderRightWidth === '0px';
+        }), 'the hotbar renders as one continuous strip, not nine separated boxes');
+    chk(await page.evaluate(() => {
+          const g = window.game;
+          g.player.selectedSlot = 2; g.ui.updateHotbarSelection();
+          const cells = Array.from(document.getElementById('hotbar').children);
+          const on = cells.filter(c => c.classList.contains('active'));
+          /* getComputedStyle returns a LIVE declaration — read the value out before
+             putting the selection back, or this measures the unselected cell. */
+          const rule = getComputedStyle(cells[2], '::after').height;
+          const bg = getComputedStyle(cells[2], '::after').backgroundColor;
+          g.player.selectedSlot = 0; g.ui.updateHotbarSelection();
+          return on.length === 1 && on[0] === cells[2] && rule === '2px' && bg === 'rgb(200, 162, 74)';
+        }), 'and the selected cell is marked exactly once, by a 2px rule underneath it');
+    /* THE PROMPT IS DRIVEN THE WAY THE GAME DRIVES IT, not by calling the setter: an
+       Ancient Chest is put under the player's crosshair and the FRAME LOOP is left to
+       notice it. Calling ui.setInteractPrompt directly would prove nothing here — the
+       loop clears the prompt on every frame the crosshair is on nothing, and would have
+       erased it again before the fade finished. The prompt also fades over 140ms, so the
+       transition is given time rather than being read mid-flight.
+
+       Headless Chromium may not grant pointer lock, and the look-target path is gated on
+       it, so `locked` is set explicitly for the length of this check and put back.
+
+       THE 140ms FADE IS SUPPRESSED FOR THE MEASUREMENT. Under SwiftShader the animated
+       opacity value read back on the main thread lagged the class by seconds, at random,
+       which made "did it become visible" unanswerable from a poll. With the transition
+       off, the computed opacity IS the rule's value the moment the class lands, so this
+       measures whether the prompt becomes visible rather than how fast it got there.
+       That the fade exists at all is asserted in the offline stylesheet audit. */
+    const chestPlaced = await page.evaluate(() => {
+      const g = window.game, p = g.player;
+      document.getElementById('interactPrompt').style.transition = 'none';
+      p.locked = true;
+      /* Ask the game where the crosshair actually is rather than guessing a block: the
+         answer depends on the player's yaw, pitch and reach, and guessing put the chest
+         somewhere the ray never went. */
+      let hit = p._getLookTarget();
+      if (!hit) for (const pitch of [-0.3, -0.6, -0.9, 0.3]) { p.pitch = pitch; hit = p._getLookTarget(); if (hit) break; }
+      if (!hit) return false;
+      const was = g.world.getBlockWorld(hit.bx, hit.by, hit.bz);
+      g.world.setBlockWorld(hit.bx, hit.by, hit.bz, BLOCK.TREASURE_CHEST);
+      window.__chestProbe = { bx: hit.bx, by: hit.by, bz: hit.bz, was };
+      return g.world.getBlockWorld(hit.bx, hit.by, hit.bz) === BLOCK.TREASURE_CHEST;
+    });
+    chk(chestPlaced, 'an Ancient Chest is put under the crosshair to drive the prompt through the real look-target path');
+    /* WAITED FOR, NOT SAMPLED. The look-target ray is re-cast every frame from a live
+       eye position, so a single sample 350ms later can land on a frame where the ray
+       happens to be off the chest — which says nothing about whether the prompt works.
+       This waits for the prompt to be RAISED, which is the actual claim, and still fails
+       (after six seconds) if the loop never raises it at all. */
+    const promptShown = await page.waitForFunction(() => {
+      const p = document.getElementById('interactPrompt');
+      if (!p.classList.contains('show') || getComputedStyle(p).opacity !== '1') return null;
+      const r = p.getBoundingClientRect();
+      const hb = document.getElementById('hotbar').getBoundingClientRect();
+      return { w: r.width, h: r.height, clear: r.bottom <= hb.top + 1,
+               text: p.innerText.replace(/\s+/g, ' ').trim() };
+    }, null, { timeout: 6000, polling: 100 }).then(h => h.jsonValue()).catch(() => null);
+    chk(!!promptShown && promptShown.w > 20 && promptShown.h > 6 && promptShown.clear &&
+        /RMB/.test(promptShown.text) && /OPEN/.test(promptShown.text),
+        promptShown
+          ? `the frame loop raised the prompt above the hotbar, reading "${promptShown.text}"`
+          : 'the frame loop raised the prompt above the hotbar — IT NEVER DID');
+    await page.evaluate(() => {
+      const g = window.game, c = window.__chestProbe;
+      g.world.setBlockWorld(c.bx, c.by, c.bz, c.was);
+      g.player.locked = false;
+    });
+    const promptGone = await page.waitForFunction(() => {
+      const e = document.getElementById('interactPrompt');
+      return !e.classList.contains('show') && getComputedStyle(e).opacity === '0';
+    }, null, { timeout: 6000, polling: 100 }).then(() => true).catch(() => false);
+    await page.evaluate(() => { document.getElementById('interactPrompt').style.transition = ''; });
+    chk(promptGone, 'and it goes away again once there is nothing under the crosshair to act on');
+    chk(await page.evaluate(() => {
+          // Nothing in the gameplay HUD may paint over the pause panel.
+          const ids = ['hud','hotbar','vitals','objectivePanel','compassWrap','clockWrap','interactPrompt','heldName'];
+          const hudMax = Math.max(...ids.map(i => {
+            const e = document.getElementById(i); if (!e) return 0;
+            const z = getComputedStyle(e).zIndex; return z === 'auto' ? 0 : Number(z);
+          }));
+          return hudMax < Number(getComputedStyle(document.getElementById('settingsOverlay')).zIndex);
+        }), 'and every gameplay HUD layer computes below the settings panel');
+    chk(await page.evaluate(() => {
+          document.getElementById('settingsOverlay').classList.add('active');
+          const panel = document.querySelector('.settings-panel').getBoundingClientRect();
+          const hit = document.elementFromPoint(panel.left + panel.width / 2, panel.top + 20);
+          const covered = !panel.width || !hit || !hit.closest('#settingsOverlay');
+          document.getElementById('settingsOverlay').classList.remove('active');
+          return !covered;
+        }), 'proved by hit test: with the panel open, the point at the top of the panel belongs to the panel');
+    chk(await page.evaluate(() => {
+          // Narrow window: the HUD must not collide with itself.
+          const overlaps = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+          const r = (id) => document.getElementById(id).getBoundingClientRect();
+          const boxes = ['objectivePanel','vitals','hotbar','clockWrap'].map(r);
+          for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++)
+            if (overlaps(boxes[i], boxes[j])) return false;
+          return boxes.every(b => b.left >= -1 && b.right <= innerWidth + 1 && b.top >= -1 && b.bottom <= innerHeight + 1);
+        }), 'no two HUD clusters overlap, and all of them are inside the viewport');
 
     // Crafting: no level gate in the live menu.
     chk(await page.evaluate(() => {
@@ -295,7 +478,11 @@ async function boot(page, { fresh }) {
        through setBlockWorld above; the milestone latches on the next frame that sees it
        standing. Waited for explicitly rather than assumed, because everything after this
        (the save, the reload, the restore) has to carry the health it granted. */
-    await page.waitForFunction("window.game.milestones.has('shelter')", null, { timeout: 5000 });
+    /* 5s was not enough on a cold SwiftShader boot: the Anchor latches on the first frame
+       that SEES it standing, and the first frames after a fresh boot are slow enough that
+       this raced about half the time. Fifteen seconds is still a failure if the latch is
+       genuinely broken, and stops being a coin toss if it is not. */
+    await page.waitForFunction("window.game.milestones.has('shelter')", null, { timeout: 15000 });
     const milestoned = await page.evaluate(() => ({ maxHp: window.game.player.maxHp, hp: window.game.player.hp }));
     chk(milestoned.maxHp === built.maxHpSet + 20 && milestoned.hp === built.hpSet + 20,
         `placing the first Anchor granted endurance in the running game ` +
@@ -378,6 +565,25 @@ async function boot(page, { fresh }) {
     chk(JSON.stringify(after.inventory) === JSON.stringify(before.inventory),
         'the inventory is identical — every stack, every count, in its own slot');
     chk(after.selectedSlot === before.selectedSlot, 'the selected hotbar slot is restored');
+    /* PHASE 27 — and the HUD is SHOWING the restored state, not merely holding it. */
+    /* A part-filled tick still counts as lit, so the expected number is the ceiling —
+       and the body is regenerating inside the Anchor zone while this runs, so one tick
+       of tolerance is allowed between the value read and the value last painted. */
+    chk(after.hudTicks === Math.round(after.maxHp / 10) &&
+        Math.abs(after.hudLit - Math.ceil(after.hp / 10)) <= 1,
+        `THE CONDITION READOUT MATCHES THE RESTORED BODY: ${after.hp}/${after.maxHp} draws ` +
+        `${after.hudLit} of ${after.hudTicks} ticks lit`);
+    chk(after.hudSlot === after.selectedSlot,
+        `and the hotbar is marking the restored slot (${after.hudSlot})`);
+    chk(/p-(calm|drifting|breaking|lost)/.test(after.hudVitalState) &&
+        /hp-(steady|worn|failing|critical|gone)/.test(after.hudVitalState),
+        `and both readings came back in a real state after the reload (${after.hudVitalState})`);
+    chk(await page.evaluate(() => {
+          const one = (s) => document.querySelectorAll(s).length === 1;
+          return ['#hud','#vitals','#conditionTicks','#perceptionTrace','#objectivePanel',
+                  '#hotbar','#interactPrompt','#hudToast'].every(one) &&
+                 document.getElementById('conditionTicks').children.length === Math.round(window.game.player.maxHp / 10);
+        }), 'and a load left exactly one of every HUD element — no duplicate ticks, no second panel');
     chk(after.stage === before.stage && after.dayCount === before.dayCount &&
         after.memoryFragments === before.memoryFragments, 'stage, day count and memory fragments are restored');
     chk(Math.abs(after.cycleSeconds - before.cycleSeconds) < 30,
