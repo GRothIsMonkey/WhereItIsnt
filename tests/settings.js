@@ -469,5 +469,85 @@ const throwingStore = { getItem() { throw new Error('blocked'); }, setItem() { t
     chk((SRC.match(new RegExp(`id="${id}"`, 'g')) || []).length === 1, `exactly one #${id} control`);
 }
 
+// =====================================================================================
+// 9. STACKING ORDER — THE PANEL MUST BE VISIBLE FROM EVERYWHERE IT CAN BE OPENED
+//
+// PHASE 22 HOTFIX. The start screen's SETTINGS button appeared dead. The click was never
+// the problem: the listener fired, openSettings() ran, the overlay got .active — and it
+// rendered underneath #startScreen, which paints an opaque background across the whole
+// viewport at a higher z-index. A "does the listener exist" check cannot catch that, so
+// this section reads the real stylesheet and compares the layers themselves.
+// =====================================================================================
+{
+  /* Parse z-index out of the game's own <style>. Comments are stripped first — this file
+     has already been bitten once by a regex matching prose inside a comment. */
+  const styleBody = (SRC.match(/<style>([\s\S]*?)<\/style>/) || [null, ''])[1]
+    .replace(/\/\*[\s\S]*?\*\//g, '');
+  const zIndex = new Map();
+  const rule = /([^{}]+)\{([^{}]*)\}/g;
+  let m;
+  while ((m = rule.exec(styleBody)) !== null) {
+    const z = /(?:^|[;\s])z-index:\s*(-?\d+)/.exec(m[2]);
+    if (!z) continue;
+    for (const sel of m[1].split(',')) {
+      const name = sel.trim();
+      if (name) zIndex.set(name, parseInt(z[1], 10)); // later rules win, as the cascade does
+    }
+  }
+
+  const panel = zIndex.get('#settingsOverlay');
+  chk(typeof panel === 'number', `#settingsOverlay declares a z-index (${panel})`);
+
+  /* Every screen the panel can legitimately be opened from. The start screen is the
+     reported bug; the tutorial screen is the same defect one layer up, since the O key
+     listener is live from Game construction onward. */
+  for (const under of ['#startScreen', '#tutorialScreen', '#craftingOverlay',
+                       '#backpackOverlay', '#storageOverlay']) {
+    const z = zIndex.get(under);
+    chk(typeof z === 'number' && panel > z,
+        `settings (${panel}) renders above ${under} (${z}) — it cannot open behind an opaque screen`);
+  }
+
+  /* And the cinematic layers it must never cover. A settings panel drawn over the hard
+     black cut or the credits would be worse than one drawn under the start screen. */
+  for (const over of ['#fadeWhite', '#blackCut', '#creditsScreen', '#openingInstruction']) {
+    const z = zIndex.get(over);
+    chk(typeof z === 'number' && panel < z,
+        `and below ${over} (${z}) — cinematic layers stay on top`);
+  }
+
+  /* The overlay covers the whole viewport and paints a scrim, so it swallows the clicks
+     that would otherwise reach the start screen's buttons or the canvas beneath it. */
+  const overlayRule = /#settingsOverlay\s*\{([^}]*)\}/.exec(styleBody);
+  chk(!!overlayRule && /position:\s*fixed/.test(overlayRule[1]) && /inset:\s*0/.test(overlayRule[1]),
+      'the overlay is fixed and full-viewport, so nothing underneath it receives the click');
+  chk(!!overlayRule && !/pointer-events:\s*none/.test(overlayRule[1]),
+      'and it does not disable its own pointer events');
+}
+{
+  /* ONE SETTINGS SYSTEM. The start screen entry must route into the same toggle the O key
+     uses — not a parallel opener with its own state. */
+  chk(/getElementById\('startSettingsLink'\)\.addEventListener\('click', \(\) => this\.ui\.toggleSettings\(\)\)/.test(SRC),
+      'the start-screen button calls the same UIManager.toggleSettings() the O key calls');
+  chk((SRC.match(/toggleSettings\(\)\s*\{/g) || []).length === 1,
+      'exactly one toggleSettings() implementation exists');
+  chk((SRC.match(/\bopenSettings\(\)\s*\{/g) || []).length === 1 &&
+      (SRC.match(/\bcloseSettings\(\)\s*\{/g) || []).length === 1,
+      'and one openSettings() / closeSettings() pair — no second settings system');
+  chk((SRC.match(/this\.settingsOpen = /g) || []).length === 3,
+      'settingsOpen is written in exactly three places: the constructor, open and close');
+
+  /* CLICKS MUST NOT LEAK INTO GAMEPLAY while the panel is up. Both gameplay pointer paths
+     already consult menuOpen, which settingsOpen feeds. */
+  chk(/this\.dom\.addEventListener\('click', \(\) => \{\s*\n\s*if \(!this\.locked && !this\.ui\.menuOpen\) \{ this\.dom\.requestPointerLock\(\); return; \}/.test(SRC),
+      'a click on the canvas cannot re-take pointer lock while a menu — settings included — is open');
+  chk(/document\.addEventListener\('mousedown', \(e\) => \{\s*\n\s*if \(!this\.locked \|\| this\.ui\.menuOpen \|\| this\.dead/.test(SRC),
+      'and mousedown cannot break, place or attack through the panel');
+
+  /* Closing from the start screen must not grab the cursor for a game that has not begun. */
+  chk(/_resumeFromSettings\(\) \{\s*\n\s*if \(this\.running && !this\.player\.dead\) this\.canvas\.requestPointerLock\(\);/.test(SRC),
+      'closing the panel only re-locks the pointer if gameplay is actually running');
+}
+
 console.log(`\n${fail === 0 ? 'ALL SETTINGS CHECKS PASS' : fail + ' FAILURES'}`);
 process.exit(fail ? 1 : 0);

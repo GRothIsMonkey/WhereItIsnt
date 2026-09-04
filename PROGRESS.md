@@ -85,6 +85,26 @@ this code**.
 Access: **O** toggles in gameplay, **Escape** closes, and a SETTINGS link sits on the start
 screen next to the existing skip link.
 
+### Hotfix — the start-screen SETTINGS button appeared dead
+
+Reported after the phase shipped, and worth recording because the symptom pointed away from
+the cause. The button was not unclickable: the listener fired, `openSettings()` ran and the
+overlay got its `.active` class every time. The panel was authored at **z-index 45** — above
+the crafting, backpack and storage overlays (all 40), which is all the in-game **O** key
+needs — while `#startScreen` sits at **50** and paints an opaque background across the whole
+viewport. The panel opened correctly and opened *behind an opaque wall*.
+
+Fixed by moving the overlay to **z-index 56**: above every screen it can legitimately be
+opened from (the start screen, and the tutorial screen at 55, where the same defect existed
+because the O key listener is live from `Game` construction onward), and still below the
+layers that must never be covered — the opening instruction and win screen (60), the Haven
+white wash (60), the hard black cut (65) and the credits (70).
+
+One declaration changed. No settings logic, persistence, audio routing, graphics preset,
+fullscreen or sensitivity code was touched. `tests/settings.js` now parses the game's own
+stylesheet and compares the layers directly rather than only asserting that a listener
+exists; those checks fail on the old value and pass on the new one.
+
 ---
 
 ## 0.2. PHASE 21 — DROPPED ITEM GROUND CONTACT
