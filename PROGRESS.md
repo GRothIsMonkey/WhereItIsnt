@@ -1,8 +1,8 @@
 # WHERE IT ISN'T — PROJECT STATE
 
 ```
-Current phase              24 — CANONICAL STORY FOUNDATION (complete)
-Next phase                 25 — DYNAMIC OBJECTIVE SYSTEM
+Current phase              25 — DYNAMIC OBJECTIVE SYSTEM (complete)
+Next phase                 26 — REMOVE XP / REBUILD PROGRESSION
 Phase 19                   COMPLETE
 Phase 20                   COMPLETE
 Phase 20 journey revision  COMPLETE           (20.1 — see section 0)
@@ -11,6 +11,7 @@ Phase 21                   COMPLETE           (see section 0.2)
 Phase 22                   COMPLETE           (see section 0.1)
 Phase 23                   COMPLETE           (see section 0.0)
 Phase 24                   COMPLETE           (the canon lives in STORY.md)
+Phase 25                   COMPLETE           (see section 0.000)
 Authoritative build        game.html          (there is no other game file)
 Canonical story            STORY.md           (read before writing ANY player text)
 Validation suite           tests/             (see tests/README.md)
@@ -25,6 +26,113 @@ describe Phase 20 as it was first delivered, and Section 0 describes the 20.1 jo
 revision that followed a human playtest and supersedes them wherever they disagree** — principally the beat table, the landmark set, the distances, and the
 performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
 instruction and the compass and changed no world generation at all.
+
+---
+
+## 0.000. PHASE 25 — DYNAMIC OBJECTIVE SYSTEM
+
+One line on screen, and it is **derived, not driven**.
+
+### ARCHITECTURE
+
+Three pieces, and the first two are plain data:
+
+| piece | what it is |
+|---|---|
+| `OBJECTIVE_OVERRIDES` | situational objectives, priority-ordered. Night, an open Rift, the Haven, the climax. **First match wins**, which makes "two contradictory objectives" structurally impossible rather than a thing to remember. |
+| `OBJECTIVE_CHAINS` | one ordered list per dimension — `overworld`, `farmlands`, `suburbia`, `haven`. The slow spine. |
+| `ObjectiveSystem` | holds one integer per chain, resolves overrides then chain, writes the line only when the text changes. |
+
+`Game._objectiveSnapshot()` gathers everything the tables may look at into one small plain
+object: inventory predicates, the Anchor, the clock, the journey ordinal, the chest
+ledger, the dimension flags. **It never touches a mesh, a chunk, a coordinate or the
+camera** — `tests/objectives.js` asserts that, because Era 2 replaces the renderer and
+this phase must survive it.
+
+### THE PROGRESSION
+
+| chain | lines, in order |
+|---|---|
+| **Overworld** | Gather wood. → Craft a basic tool. → Find coal. → Craft torches. → Prepare for night. → Endure the nights. → Investigate the Rift. |
+| **Farmlands** | the eleven Phase 20 journey lines, **unchanged** — Explore the Shattered Farmlands. → Follow the old farm road. → Follow the road east. → Investigate the water tower. → Continue beyond the tower. → Keep to the road. → Something here feels familiar. → Follow the old route. → The fields are dying. → Investigate the property. → Investigate the farmhouse. |
+| **Suburbia** | Explore the neighbourhood. → Investigate the houses. → Find what doesn't belong. → Keep going. |
+| **Haven** | Rest. — and then nothing at all |
+| **Situational** | Enter the Rift. / Bring it to the Anchor. / Return to the Anchor. / Survive until dawn. |
+
+Twenty-one lines. The longest is 33 characters. None of them names a destination the
+player has not reached, and `tests/objectives.js` audits every one against STORY.md §24's
+internal-only vocabulary — no "record", "reconstruct", "copy", "Stalker", "Behemoth".
+
+### WHY A HIGH-WATER MARK IS THE ONLY NEW STATE
+
+Almost every step is derivable from live state, but **live state is consumable**. A player
+who spends their last plank on an Anchor has no wood, and a purely derived system would
+cheerfully tell them to go and gather some. So each chain keeps one integer: how far it
+has ever got. Four integers, 52 bytes, monotonic, bounded by the chain length.
+
+It advances to the **furthest** step whose completion test passes, not merely the next one,
+so a player who comes back from a cave with a stone pickaxe and coal before anyone
+suggested either is credited with both. Exploring ahead is free rather than punished.
+
+The Farmlands need no mark at all: the journey ordinal is already monotonic and already
+saved, so that chain is a threshold table read straight off it.
+
+### SAVE / LOAD
+
+**Schema version 1 → 2, with a real migration.** A version 1 (Phase 23) save has no
+objectives block; the migration inserts zeroed marks, and zeroing is *lossless* rather than
+merely safe because the marks re-derive on the first evaluation after the load. A Phase 23
+save of a player who already had torches, an Anchor and a Core Disk is credited with all
+three the moment the world comes back. `tests/objectives.js` loads a real version 1 payload
+and proves it.
+
+### WHAT WAS REMOVED
+
+The six-line **MISSION DIRECTIVES** checklist. It was a second objective authority sitting
+directly above the first and, in three of the four dimensions, describing a game the player
+was no longer playing. It is hidden once at boot (`retireDirectives`), its markup left in
+place for Phase 27's HUD rebirth. The panel now carries **status** — Anchor fuel, fragments,
+stage and day — and the one objective line above it.
+
+### DEFECT FOUND AND FIXED
+
+**"The fields are dying." could never appear.** `FARM_J_TREE - 3` and `FARM_J_ECHO0 + 2`
+are both parcel 22, and the route line was tested first, so an authored Phase 20 objective
+was unreachable at every ordinal in the game. The dead land belongs to the great tree, so
+it moved to `FARM_J_TREE - 1`. Both lines are now reachable and the test walks the ordinal
+to prove it.
+
+**A dangling `hasAnchor` reference** in `updateObjectiveHUD` after its signature changed —
+caught by the browser suite's page-error assertion, which is exactly the class of bug the
+offline harness cannot see because it cannot construct `Game`.
+
+### COST
+
+Evaluated on a 0.25s accumulator, and the snapshot is passed as a **thunk** — on the
+fifty-nine frames out of sixty that return early, nothing is built and nothing is
+allocated. 600 frames build ~37 snapshots. 20,000 forced resolutions run in 17ms
+(0.8µs each). The DOM is written only when the text actually changes.
+
+### VALIDATION
+
+`tests/objectives.js` (new, 73 checks) drives the **real tables** with synthetic states:
+every step of every chain in order, early completion, the monotonic guarantee across 50
+empty-inventory evaluations, override priority over 256 combinations of live state, the
+Farmland ordinal walk, Suburbia's freedom from coordinates, the save round trip, eight
+kinds of corrupt mark, and the version 1 migration.
+
+`tests/browser-save.js` grew **7 objective checks** in a real Chromium: the line is visible
+and laid out on a new game, the retired checklist is gone from the screen, the objective
+advances with real progress, **survives a page reload and Continue**, resets on New Game,
+and is replaced — not left stale — by a real dimension crossing.
+
+### INTENTIONALLY DEFERRED
+
+- **No hint system.** The brief allows a restrained one; the objective lines plus the world
+  are doing the job, and a hint layer is easier to add later than to remove.
+- **The `#objectiveHUD` panel styling** is Phase 27's. The objective line is functional and
+  restrained on purpose: one italic line that brightens for two seconds when it changes.
+- **No fail states, no timers, no markers, no minimap, no quest log.** None were built.
 
 ---
 

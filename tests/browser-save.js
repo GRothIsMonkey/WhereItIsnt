@@ -92,6 +92,12 @@ const SNAPSHOT = `(() => {
     mobs: g.mobs.mobs.length,
     items: g.itemManager.entities.length,
     torchLights: g.world.torchLights.size,
+    /* PHASE 25 — what the objective line is ACTUALLY showing on screen, read from the
+       DOM rather than from the system, so this is the player's view and not the model's. */
+    objectiveId: g.objectives ? g.objectives.currentId : null,
+    objectiveText: (() => { const n = document.getElementById('journeyStep');
+      return n && n.className.indexOf('show') >= 0 ? n.textContent : null; })(),
+    objectiveMarks: g.objectives ? Object.assign({}, g.objectives.progress) : null,
     hasSave: g.hasSave(),
     continueVisible: (() => { const b = document.getElementById('continuePlay');
       return !!b && b.style.display !== 'none' && b.offsetParent !== null; })(),
@@ -184,6 +190,23 @@ async function boot(page, { fresh }) {
     chk(first.continueVisible === false, 'with no CONTINUE button, because there is no save yet');
     chk(first.hasSave === false, 'and hasSave() agrees');
 
+    // --- PHASE 25: the objective line, in a real browser --------------------------
+    chk(first.objectiveText === 'Gather wood.',
+        `a new game shows one objective on screen: "${first.objectiveText}"`);
+    chk(await page.evaluate(() => {
+          const n = document.getElementById('journeyStep');
+          const r = n.getBoundingClientRect();
+          return r.width > 40 && r.height > 6 && getComputedStyle(n).display !== 'none';
+        }), 'and it is actually visible — laid out, non-zero, not display:none');
+    chk(await page.evaluate(() => {
+          const steps = ['step1','step2','step3','step4','step5','step6'];
+          return steps.every(id => { const e = document.getElementById(id);
+            return !e || getComputedStyle(e).display === 'none'; });
+        }), 'while the old six-line MISSION DIRECTIVES checklist is gone from the screen');
+    chk(await page.evaluate(() => {
+          return document.querySelectorAll('#journeyStep').length === 1;
+        }), 'and there is exactly one objective element in the document');
+
     // ---------------------------------------------------------------------------------
     // BUILD A STATE WORTH SAVING — through the game's own methods, not by assignment.
     // ---------------------------------------------------------------------------------
@@ -217,11 +240,18 @@ async function boot(page, { fresh }) {
       // A placed Anchor Monument, exactly as placing the block does it: setBlockWorld is
       // the path that registers the monument and pins its chunk.
       w.setBlockWorld(bx + 4, by, bz + 4, BLOCK.SAFEHOUSE_ANCHOR);
+      /* PHASE 25 — resolve once the state is FINAL, so the snapshot below is the objective
+         the player would actually be looking at when they press Save. */
+      g._refreshObjective();
       return { bx, by, bz, dug: dug.length, stone: BLOCK.STONE };
     });
     const before = await page.evaluate(SNAPSHOT);
     chk(before.editCount >= 14, `the session made ${before.editCount} real world edits across ${before.editedChunks} chunks`);
     chk(before.compass === true && before.compassShown === true, 'the compass was earned and is on screen');
+    chk(before.objectiveText && before.objectiveText !== 'Gather wood.',
+        `the objective advanced as the player actually progressed: "${before.objectiveText}"`);
+    chk(before.objectiveMarks.overworld > 0,
+        `and the chain mark moved with it (${before.objectiveMarks.overworld})`);
 
     // ---------------------------------------------------------------------------------
     // SAVE — by clicking the button, in the panel, like a player.
@@ -289,6 +319,13 @@ async function boot(page, { fresh }) {
         `the day/night clock resumes where it stopped (${before.cycleSeconds.toFixed(0)}s -> ${after.cycleSeconds.toFixed(0)}s)`);
     chk(after.compass === true && after.compassShown === true,
         'THE COMPASS SURVIVES THE RELOAD, and is back on screen');
+    chk(after.objectiveText === before.objectiveText,
+        `THE OBJECTIVE SURVIVES THE RELOAD: "${after.objectiveText}"`);
+    chk(after.objectiveMarks.overworld >= before.objectiveMarks.overworld,
+        `and the chain mark did not regress (${before.objectiveMarks.overworld} -> ${after.objectiveMarks.overworld})`);
+    chk(stored.payload.objectives && typeof stored.payload.objectives.overworld === 'number',
+        'the save file carries the objective marks');
+    chk(stored.payload.version === 2, `and it is written at schema version ${stored.payload.version}`);
     chk(await page.evaluate(() => typeof ITEM.COMPASS === 'undefined'),
         'and it is still not an inventory item at all — it cannot be dropped or lost');
     chk(after.chestsOpened === before.chestsOpened, 'the chest tally is restored');
@@ -350,6 +387,10 @@ async function boot(page, { fresh }) {
     chk(fresh.openedChests.length === 0, 'no opened-chest ledger');
     chk(fresh.anchor === null, 'no anchor');
     chk(fresh.dimension === 'overworld', 'and it starts in the Overworld');
+    chk(fresh.objectiveText === 'Gather wood.',
+        'a new game is back on the first objective, with no memory of the last run');
+    chk(fresh.objectiveMarks.overworld === 0 && fresh.objectiveMarks.suburbia === 0,
+        'and every chain mark was reset');
     chk(fresh.editCount <= 1, `with a clean world (${fresh.editCount} edit — the starter torch)`);
     chk(fresh.hasSave === true, 'the stored save is NOT destroyed by starting a new game');
     const blocksAfterNew = await page.evaluate((b) => {
@@ -366,6 +407,26 @@ async function boot(page, { fresh }) {
     const reloaded = await page.evaluate(SNAPSHOT);
     chk(reloaded.dayCount === 4 && reloaded.compass === true && reloaded.editCount === after.editCount,
         'and the saved run can still be loaded back afterwards');
+
+    // ---------------------------------------------------------------------------------
+    // PHASE 25 — CROSSING A DIMENSION MUST REPLACE THE OBJECTIVE, NOT LEAVE A STALE ONE
+    // ---------------------------------------------------------------------------------
+    const crossed = await page.evaluate(async () => {
+      const g = window.game;
+      const before = g.objectives.currentText;
+      g._transitionToLevel2();                    // the real Farmlands transition
+      await new Promise(r => setTimeout(r, 600));
+      const n = document.getElementById('journeyStep');
+      return { before, after: g.objectives.currentText,
+               shown: n && n.className.indexOf('show') >= 0 ? n.textContent : null,
+               farmlands: g.player.inFarmlands };
+    });
+    chk(crossed.farmlands === true, 'the player crosses into the Farmlands');
+    chk(crossed.after !== crossed.before,
+        `and the objective changes with the dimension ("${crossed.before}" -> "${crossed.after}")`);
+    chk(crossed.after === 'Explore the Shattered Farmlands.',
+        'to the first line of the Farmland journey, not a leftover Overworld step');
+    chk(crossed.shown === crossed.after, 'and the screen agrees with the system');
 
     // ---------------------------------------------------------------------------------
     // A CORRUPT SAVE MUST NOT STOP THE GAME STARTING
