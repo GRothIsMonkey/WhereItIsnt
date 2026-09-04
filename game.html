@@ -223,11 +223,26 @@
      lower case-weight. It is meant to read as a note to yourself about where you were
      going, not as a quest step, because the moment it reads as a quest step the player
      starts looking for the marker that is never coming. */
+  /* PHASE 25 — this is now THE objective line, in every dimension rather than only the
+     Farmlands, and the numbered directives above it are gone. It moves to the top of the
+     panel and gains a little weight, because it is the only thing in the panel the player
+     is being asked to act on — but it stays one italic line rather than becoming a quest
+     tracker. Phase 27 owns the presentation after this. */
   #journeyStep {
-    display: none; font-size: 11px; line-height: 1.35; color: #b9ad8c;
-    margin-top: 6px; border-top: 1px dashed #4a3d26; padding-top: 6px;
+    display: none; font-size: 12px; line-height: 1.35; color: #d8cba8;
+    margin-bottom: 8px; border-bottom: 1px dashed #4a3d26; padding-bottom: 8px;
     font-style: italic; letter-spacing: 0.3px;
   }
+  /* The whole notification: two seconds of the line sitting a shade brighter. No banner,
+     no animation across the screen, no sound. */
+  #journeyStep.changed { animation: objChange 2s ease-out 1; }
+  @keyframes objChange {
+    0%   { color: #ffcf6b; text-shadow: 0 0 6px rgba(255, 207, 107, 0.5); }
+    100% { color: #d8cba8; text-shadow: none; }
+  }
+  /* PHASE 25 — the retired MISSION DIRECTIVES checklist. Hidden, not deleted: Phase 27's
+     HUD rebirth should decide what replaces this panel, and it needs the markup. */
+  .obj-step.retired { display: none; }
   #journeyStep.show { display: block; }
   #journeyStep.done { color: #6bbf59; text-decoration: line-through; font-style: normal; }
 
@@ -568,6 +583,9 @@
     </div>
     <div id="objectiveHUD">
       <div class="title">MISSION DIRECTIVES</div>
+      <!-- PHASE 25 — the one objective line. First in the panel because it is the only
+           line the player is being asked to act on. -->
+      <div id="journeyStep"></div>
       <div id="step1" class="obj-step active"><span>[1]</span> Harvest Wood &amp; Mine Coal to Craft Torches before Nightfall.</div>
       <div id="step2" class="obj-step"><span>[2]</span> Build an Anchor Monument to shield your base.</div>
       <div id="step3" class="obj-step"><span>[3]</span> Survive the Blood Night inside your Anchor Zone.</div>
@@ -577,7 +595,6 @@
       <div id="objStatus" class="obj-status">Anchor Status: Unplaced | Fuel: 0s</div>
       <div id="memStatus" class="obj-status">Memory Fragments: 0 / 3</div>
       <div id="stageStatus" class="obj-status">Stage 1 &bull; Day 1</div>
-      <div id="journeyStep"></div>
     </div>
   </div>
   <div id="compassWrap"><canvas id="compassTape" width="252" height="26"></canvas></div>
@@ -29066,40 +29083,43 @@ class UIManager {
     if (this.dayLabel) this.dayLabel.textContent = `\u00A0\u2022 Day ${day}`;
   }
 
-  updateObjectiveHUD(hasTorches, hasAnchor, survivedNight, anchorFuel, memoryFragments, stage, nightsRequired, day, chestsOpened, hasIronGear, behemothDefeated) {
-    // Step 1: Harvest & Craft
-    if (hasTorches) {
-      this.step1.className = 'obj-step completed';
-      if (!hasAnchor) this.step2.className = 'obj-step active';
-    } else {
-      this.step1.className = 'obj-step active';
-    }
+  /* PHASE 25 — WHAT IS LEFT OF THIS.
 
-    // Step 2: Build Anchor
-    if (hasAnchor) {
-      this.step2.className = 'obj-step completed';
-      this.step3.className = 'obj-step active';
-    }
+     It used to drive a six-line numbered checklist of MISSION DIRECTIVES, which was a
+     second objective authority sitting directly above the first and, in three of the four
+     dimensions, describing a game the player was no longer playing. The objective system
+     replaced it: the directives are hidden once (see `retireDirectives`) and the panel now
+     carries only STATUS — things the player needs to read rather than be told to do.
 
-    // Step 3: Survive Blood Night
-    if (survivedNight) {
-      this.step3.className = 'obj-step completed';
-    }
-
-    // Step 4: Loot an Ancient Chest (bonus directive, tracked independently)
-    if (this.step4) this.step4.className = chestsOpened > 0 ? 'obj-step completed' : 'obj-step active';
-
-    // Step 5: Forge Iron Gear (bonus directive)
-    if (this.step5) this.step5.className = hasIronGear ? 'obj-step completed' : 'obj-step active';
-
-    // Step 6: Defeat the Hollowed Behemoth & Activate the Rift Core (bonus directive)
-    if (this.step6) this.step6.className = behemothDefeated ? 'obj-step completed' : 'obj-step active';
-
+     The DOM is deliberately left in place for Phase 27's HUD rebirth to remove or reuse.
+     Nothing else in the game writes to it. */
+  updateObjectiveHUD(hasAnchor, anchorFuel, memoryFragments, stage, nightsRequired, day) {
     const fuelSec = Math.ceil(anchorFuel || 0);
     const anchorText = hasAnchor ? `Active | Fuel: ${fuelSec}s` : 'Unplaced | Fuel: 0s';
-    this.objStatus.textContent = `Anchor Status: ${anchorText}`;
-    this.memStatus.textContent = `Memory Fragments: ${memoryFragments} / ${nightsRequired}`;
-    if (this.stageStatus) this.stageStatus.textContent = `Stage ${stage} \u2022 Day ${day}`;
+    if (this._objStatusText !== anchorText) {
+      this._objStatusText = anchorText;
+      this.objStatus.textContent = `Anchor Status: ${anchorText}`;
+    }
+    const mem = `${memoryFragments} / ${nightsRequired}`;
+    if (this._memStatusText !== mem) {
+      this._memStatusText = mem;
+      this.memStatus.textContent = `Memory Fragments: ${mem}`;
+    }
+    const st = `Stage ${stage} \u2022 Day ${day}`;
+    if (this.stageStatus && this._stageStatusText !== st) {
+      this._stageStatusText = st;
+      this.stageStatus.textContent = st;
+    }
+  }
+
+  /* Hides the legacy numbered directives exactly once, at boot. A class rather than a
+     removal, so Phase 27 still has the markup to work with. */
+  retireDirectives() {
+    for (const el of [this.step1, this.step2, this.step3, this.step4, this.step5, this.step6]) {
+      if (el) el.className = 'obj-step retired';
+    }
+    const title = document.querySelector('#objectiveHUD .title');
+    if (title) title.textContent = 'STATUS';
   }
 
   /* PHASE 20 — THE FARMLAND JOURNEY LINE.
@@ -29113,13 +29133,25 @@ class UIManager {
      Passing `null` hides it, which is what every dimension other than the Farmlands does.
      The DOM write is guarded on the text actually changing, because this is called from
      the frame loop. */
+  /* PHASE 25 — THE ONE OBJECTIVE LINE.
+
+     The objective system is the only thing that calls this, and it calls it only when the
+     text has actually changed. `setJourneyStep` below remains the DOM writer it always
+     was — the Phase 20 line and the Phase 25 objective are the same single line on
+     screen, which is the point: there is one place the game tells you what to do. */
+  setObjective(text, struck) { this.setJourneyStep(text, !!struck); }
+
   setJourneyStep(text, done) {
     if (!this.journeyStep) return;
     if (text === this._journeyText && this._journeyDone === done) return;
+    const hadText = !!this._journeyText;
     this._journeyText = text; this._journeyDone = done;
     if (!text) { this.journeyStep.className = ''; this.journeyStep.textContent = ''; return; }
     this.journeyStep.textContent = text;
-    this.journeyStep.className = done ? 'show done' : 'show';
+    /* PHASE 25 — the notification IS the line, brightening for two seconds. Only when it
+       replaces something: the first objective of a run appears rather than changes. */
+    const pulse = hadText ? ' changed' : '';
+    this.journeyStep.className = (done ? 'show done' : 'show') + pulse;
   }
 
   /* ===================================================================================
@@ -29785,7 +29817,7 @@ class TutorialController {
    entirely when Phase 26 removes the system.
    ===================================================================================== */
 
-const SAVE_VERSION = 1;
+const SAVE_VERSION = 2;
 const SAVE_STORAGE_KEY = 'whereitisnt.save.v1';
 const SAVE_BACKUP_KEY = 'whereitisnt.save.v1.backup';
 
@@ -29805,10 +29837,23 @@ const SAVE_CHUNK_VOXELS = CHUNK_SX * CHUNK_SY * CHUNK_SZ;
 const SAVE_MAX_EDITS = 400000;
 
 /* MIGRATION HOOKS. Keyed by the version being migrated FROM; each returns the state one
-   version newer. Empty because version 1 is the first schema — the architecture exists
-   so a future version can be added without touching the loader, and inventing fake
-   entries now would only be inventing untested code. */
-const SAVE_MIGRATIONS = {};
+   version newer. The ladder is run by validateSaveState before anything is validated, so
+   a migration only has to produce the SHAPE of the newer schema — the validator still
+   checks every field afterwards.
+
+   1 -> 2 (PHASE 25). Version 2 adds the objective chains' high-water marks. A version 1
+   save has none, and zeroing them is lossless rather than merely safe: the objective
+   system re-derives its position on the first evaluation after the load, so a Phase 23
+   save of a player who already has torches, an Anchor and a Core Disk is credited with
+   all three the moment the world comes back. Nothing regresses and nothing is lost. */
+const SAVE_MIGRATIONS = {
+  1: (state) => {
+    const out = Object.assign({}, state);
+    out.version = 2;
+    out.objectives = { overworld: 0, farmlands: 0, suburbia: 0, haven: 0 };
+    return out;
+  },
+};
 
 /* ---------------------------------------------------------------------------------
    VALIDATION PRIMITIVES
@@ -30120,6 +30165,19 @@ function validateSaveState(input) {
     mailboxGone: _svBool(rep, 'world.mailboxGone', rawW.mailboxGone, false),
   };
 
+  /* --- OBJECTIVES ------------------------------------------------------------------
+     Four small integers, each clamped to the length of the chain it indexes. A mark that
+     is too large would silently skip the player past guidance they never received; one
+     that is too small is harmless, because the system re-derives upward. Both are
+     repaired rather than rejected — a broken objective mark is never worth refusing a
+     save over. */
+  const objectives = {};
+  const rawO = _svPlainObject(src.objectives) || {};
+  for (const k of OBJECTIVE_CHAIN_IDS) {
+    const chain = OBJECTIVE_CHAINS[k] || [];
+    objectives[k] = _svInt(rep, 'objectives.' + k, rawO[k], 0, 0, chain.length);
+  }
+
   // --- SETTINGS (a snapshot; the browser-global settings remain the authority) ------
   const settings = {};
   const rawS = _svPlainObject(src.settings);
@@ -30143,6 +30201,7 @@ function validateSaveState(input) {
       time: time,
       anchor: anchor,
       world: world,
+      objectives: objectives,
       settings: settings,
     },
   };
@@ -30450,8 +30509,264 @@ function defaultSaveState(settings) {
     time: { cycleSeconds: 60, wasNight: false },
     anchor: null,
     world: {},
+    objectives: { overworld: 0, farmlands: 0, suburbia: 0, haven: 0 },
     settings: settings ? settings.toJSON() : {},
   }).state;
+}
+
+/* =====================================================================================
+   PHASE 25 — THE DYNAMIC OBJECTIVE SYSTEM
+
+   ONE LINE ON SCREEN, AND IT IS DERIVED, NOT DRIVEN.
+
+   The system owns no progression of its own. It reads a small snapshot of state the game
+   already keeps — inventory, the Anchor, the clock, the journey ordinal, the chest
+   ledger, the dimension flags — and answers one question:
+
+       "What should the player probably do next?"
+
+   It never answers "what is going on here", and STORY.md section 22 is the list of things
+   it is forbidden from ever hinting at. Every line below is an OBSERVATION or an ACTION.
+   None of them names a destination the player has not reached, explains an anomaly, or
+   uses a single word from the canon's internal vocabulary.
+
+   THE SHAPE, and why it is two lists rather than one.
+
+     OBJECTIVE_OVERRIDES   situational, priority-ordered, evaluated first. These are the
+                           things that are true RIGHT NOW and outrank whatever step of the
+                           journey the player was on — night falling, a rift standing open,
+                           the Haven. First match wins, which makes the choice
+                           deterministic and makes "two contradictory objectives" a
+                           structural impossibility rather than a thing to remember.
+
+     OBJECTIVE_CHAINS      per dimension, ordered, monotonic. The slow spine of the game.
+
+   WHY A HIGH-WATER MARK. Almost every chain step can be derived from live state — but
+   live state is CONSUMABLE. A player who spends their last plank on an Anchor has no wood,
+   and a purely derived system would cheerfully tell them to go and gather some. So each
+   chain keeps one integer: how far it has ever got. It only ever increases, it is bounded
+   by the length of the chain, and it is the only new state this phase persists.
+
+   WHY IT STILL EVALUATES EVERY STEP. The mark advances to the FURTHEST step whose
+   completion test currently passes, not merely the next one. A player who wanders into a
+   cave and comes back with coal and a stone pickaxe before anyone suggested either is
+   credited with both. The brief calls this state-aware; in practice it is the difference
+   between guidance and homework.
+
+   COST. Evaluated on a 0.25s accumulator and on explicit events (load, new game,
+   dimension change) — not per frame. One small snapshot object per tick, a handful of
+   inventory scans, and a DOM write only when the text actually changes.
+   ===================================================================================== */
+
+/* Which chain is running. Deliberately the same vocabulary the save file uses. */
+const OBJECTIVE_CHAIN_IDS = ['overworld', 'farmlands', 'suburbia', 'haven'];
+
+/* Seconds between evaluations. Objectives move on the scale of minutes; four times a
+   second is already far more responsive than the thing being described. */
+const OBJECTIVE_TICK = 0.25;
+
+/* ---------------------------------------------------------------------------------
+   SITUATIONAL OBJECTIVES — evaluated in this order, first match wins.
+
+   `text: null` is a real answer and means "show nothing": the Haven after it turns, and
+   the climax, are both places where an objective on screen would be an intrusion.
+   --------------------------------------------------------------------------------- */
+const OBJECTIVE_OVERRIDES = [
+  /* The finale takes the screen. Nothing is asked of the player here, and Phase 33/34
+     own everything past this point. */
+  { id: 'climax', text: null, when: (s) => s.climax },
+
+  /* THE HAVEN. One word while it is intact, and nothing at all once it turns. STORY.md
+     section 18: the safety must be real, so the objective must not hedge. */
+  { id: 'haven_rest', text: 'Rest.', when: (s) => s.haven && !s.havenShifted },
+  { id: 'haven_after', text: null, when: (s) => s.haven },
+
+  /* A POWERED RIFT OUTRANKS EVERYTHING. It is the one thing in the game that is both
+     unmistakable and time-insensitive, and a player who has opened one and wandered off
+     should be told what is waiting, not what they were doing an hour ago. */
+  { id: 'enter_rift', text: 'Enter the Rift.', when: (s) => s.riftActive },
+
+  /* Carrying a Core Disk with no rift open. The Anchor is where it goes; the line says
+     where, and nothing about why. */
+  { id: 'bring_disk', text: 'Bring it to the Anchor.',
+    when: (s) => s.hasDisk && !s.riftActive && (s.overworld || s.farmlands) },
+
+  /* NIGHT. Two lines, and which one shows depends on where the player is standing: if
+     they have an Anchor and are outside its glow, the useful sentence is where to go. */
+  { id: 'return_anchor', text: 'Return to the Anchor.',
+    when: (s) => s.night && s.hasAnchor && !s.inAnchorZone && !s.farmlands && !s.suburbia },
+  { id: 'survive_night', text: 'Survive until dawn.',
+    when: (s) => s.night && !s.farmlands && !s.suburbia },
+];
+
+/* ---------------------------------------------------------------------------------
+   THE CHAINS.
+
+   `done(s)` is a completion test, not an event. It is asked repeatedly and may become
+   true at any time, including before the step was ever shown — which is exactly how a
+   player who did things out of order gets credited for them.
+   --------------------------------------------------------------------------------- */
+const OBJECTIVE_CHAINS = {
+  /* THE OVERWORLD — the survival spine. Deliberately the shortest useful set of words at
+     each step: the tutorial explains crafting, the world explains everything else. */
+  overworld: [
+    { id: 'gather_wood',  text: 'Gather wood.',            done: (s) => s.hasWood || s.hasTool },
+    { id: 'craft_tool',   text: 'Craft a basic tool.',     done: (s) => s.hasTool },
+    { id: 'find_coal',    text: 'Find coal.',              done: (s) => s.hasCoal || s.hasTorch },
+    { id: 'craft_torch',  text: 'Craft torches.',          done: (s) => s.hasTorch },
+    { id: 'prepare',      text: 'Prepare for night.',      done: (s) => s.hasAnchor },
+    /* One line covering the long middle of the Overworld: survive, build, and be there
+       when the thing that carries the first Core Disk turns up. It never mentions the
+       Behemoth, because the player has not met it yet. */
+    { id: 'endure',       text: 'Endure the nights.',      done: (s) => s.hasDisk || s.riftActive || !s.overworld },
+    { id: 'rift',         text: 'Investigate the Rift.',   done: (s) => !s.overworld },
+  ],
+
+  /* THE SHATTERED FARMLANDS — the Phase 20 journey lines, unchanged.
+
+     These were written against requirement 74 and re-endorsed by STORY.md section 21 as
+     the model every objective in the game should follow: each one describes something the
+     player can already see, the property is never called a house until they are close
+     enough to recognise one, and nothing points anywhere. They are thresholds on the
+     journey ordinal, which is monotonic and already saved, so this chain needs no
+     high-water mark of its own. */
+  farmlands: [
+    { id: 'farm_core',    text: 'Investigate the farmhouse.', when: (s) => s.farmCoreTaken, struck: true },
+    { id: 'farm_house',   text: 'Investigate the farmhouse.', when: (s) => s.farmHouseSeen },
+    { id: 'farm_home',    text: 'Investigate the property.',  when: (s) => s.farmOrd >= FARM_J_HOME },
+    /* PHASE 25 DEFECT FIX. These two thresholds were both 22 (FARM_J_TREE - 3 and
+       FARM_J_ECHO0 + 2 are the same parcel), and because the route line was tested first,
+       "The fields are dying." could never appear at any ordinal — an authored Phase 20
+       line the player could not reach. The dead land belongs to the great tree at
+       FARM_J_TREE, so it moves to just before it and both lines are now reachable. */
+    { id: 'farm_dying',   text: 'The fields are dying.',      when: (s) => s.farmOrd >= FARM_J_TREE - 1 },
+    { id: 'farm_route',   text: 'Follow the old route.',      when: (s) => s.farmOrd >= FARM_J_ECHO0 + 2 },
+    { id: 'farm_echo',    text: 'Something here feels familiar.', when: (s) => s.farmOrd >= FARM_J_ECHO0 },
+    { id: 'farm_barn',    text: 'Keep to the road.',          when: (s) => s.farmOrd >= FARM_J_BARN - 2 },
+    { id: 'farm_beyond',  text: 'Continue beyond the tower.', when: (s) => s.farmOrd > FARM_J_TOWER + 1 },
+    { id: 'farm_tower',   text: 'Investigate the water tower.', when: (s) => s.farmOrd >= FARM_J_TOWER - 3 && s.farmTower },
+    { id: 'farm_east',    text: 'Follow the road east.',      when: (s) => s.farmOrd >= FARM_J_FALLEN - 1 },
+    { id: 'farm_road',    text: 'Follow the old farm road.',  when: (s) => s.farmOrd >= 1 },
+    { id: 'farm_arrive',  text: 'Explore the Shattered Farmlands.', when: () => true },
+  ],
+
+  /* STATIC SUBURBIA — the guidance gets less certain as the place does.
+
+     Nothing here is bound to a room, a house index or a generated coordinate: the suburb
+     rearranges itself when nobody is looking, so anything positional would be a bug
+     waiting for a player to stand still. The tests are a count of houses entered and the
+     one stable chest key. */
+  suburbia: [
+    { id: 'sub_explore',  text: 'Explore the neighbourhood.', done: (s) => s.subVisits >= 1 },
+    { id: 'sub_houses',   text: 'Investigate the houses.',    done: (s) => s.subVisits >= 4 },
+    /* Deliberately vague, and deliberately NOT a mechanic. Nothing is highlighted,
+       outlined or marked. The player's own attention is the instrument. */
+    { id: 'sub_wrong',    text: "Find what doesn't belong.",  done: (s) => s.subCoreTaken },
+    { id: 'sub_keep',     text: 'Keep going.',                done: () => false },
+  ],
+
+  haven: [],
+};
+
+/* ---------------------------------------------------------------------------------
+   THE SYSTEM
+
+   Holds one integer per chain and the resolved line. Everything else is a pure function
+   of the snapshot it is handed.
+   --------------------------------------------------------------------------------- */
+class ObjectiveSystem {
+  constructor(ui) {
+    this.ui = ui;
+    /* HOW FAR EACH CHAIN HAS EVER GOT. The only state this phase invents, and the only
+       state it persists. Monotonic, bounded by the chain length, four integers. */
+    this.progress = { overworld: 0, farmlands: 0, suburbia: 0, haven: 0 };
+    this.currentId = null;
+    this.currentText = null;
+    this._acc = 0;
+  }
+
+  reset() {
+    for (const k of OBJECTIVE_CHAIN_IDS) this.progress[k] = 0;
+    this.currentId = null;
+    this.currentText = null;
+    this._acc = 0;
+  }
+
+  /* Save shape: one small object of integers. Nothing else needs to survive a reload,
+     because everything else is derived from state the save already carries. */
+  toJSON() { return Object.assign({}, this.progress); }
+
+  applyJSON(obj) {
+    this.reset();
+    if (!obj || typeof obj !== 'object') return;
+    for (const k of OBJECTIVE_CHAIN_IDS) {
+      const chain = OBJECTIVE_CHAINS[k] || [];
+      const n = obj[k];
+      if (typeof n !== 'number' || !Number.isFinite(n)) continue;
+      this.progress[k] = Math.max(0, Math.min(chain.length, Math.floor(n)));
+    }
+  }
+
+  /* THE PER-FRAME ENTRY POINT, and it is a comparison and a return in the common case.
+     Objectives change on the scale of minutes; re-resolving them sixty times a second
+     would be sixty times the work for the same answer. */
+  update(dt, makeSnapshot) {
+    this._acc += dt;
+    if (this._acc < OBJECTIVE_TICK) return;
+    this._acc = 0;
+    /* The snapshot is a THUNK, not a value: on the fifty-nine frames out of sixty that
+       return above, nothing is built and nothing is allocated. */
+    this.evaluate(makeSnapshot());
+  }
+
+  /* Forced evaluation — used on load, on New Game and on every dimension crossing, so the
+     line is never a frame behind a transition the player just watched. */
+  evaluate(snapshot) {
+    this._advance(snapshot);
+    const next = this._resolve(snapshot);
+    if (next.id === this.currentId && next.text === this.currentText) return;
+    this.currentId = next.id;
+    this.currentText = next.text;
+    if (this.ui) this.ui.setObjective(next.text, !!next.struck);
+  }
+
+  /* Credit the player for everything they have actually done, including things they did
+     before anyone suggested them. Scans the whole remaining chain rather than only the
+     next step, which is what makes exploring ahead free rather than punished. */
+  _advance(s) {
+    const chain = OBJECTIVE_CHAINS[s.chain];
+    if (!chain || !chain.length) return;
+    let mark = this.progress[s.chain] || 0;
+    for (let i = chain.length - 1; i >= mark; i--) {
+      const step = chain[i];
+      if (step.done && step.done(s)) { mark = i + 1; break; }
+    }
+    this.progress[s.chain] = Math.min(chain.length, mark);
+  }
+
+  /* Overrides first, then the chain. Returns { id, text }; a text of null is a valid
+     answer meaning "show nothing". */
+  _resolve(s) {
+    for (const o of OBJECTIVE_OVERRIDES) {
+      if (o.when(s)) return { id: o.id, text: o.text, struck: false };
+    }
+    const chain = OBJECTIVE_CHAINS[s.chain];
+    if (!chain || !chain.length) return { id: null, text: null };
+
+    /* A chain entry may carry `when` instead of relying on the mark — the Farmlands do,
+       because the journey ordinal is already monotonic and already saved. First match in
+       declaration order wins, so those lists read from the furthest beat backwards. */
+    if (chain[0] && chain[0].when) {
+      for (const step of chain) if (step.when(s)) {
+        return { id: step.id, text: step.text, struck: !!step.struck };
+      }
+      return { id: null, text: null };
+    }
+
+    const mark = Math.min(this.progress[s.chain] || 0, chain.length - 1);
+    const step = chain[mark];
+    return step ? { id: step.id, text: step.text, struck: !!step.struck } : { id: null, text: null };
+  }
 }
 
 class Game {
@@ -30591,6 +30906,13 @@ class Game {
       else this._advanceStage();
     });
 
+    /* PHASE 25 — THE OBJECTIVE SYSTEM. Constructed after the UI and every system its
+       snapshot reads, and given the UI so it can write the one line it owns. It holds no
+       progression of its own beyond one integer per chain; everything else it derives. */
+    this.objectives = new ObjectiveSystem(this.ui);
+    this._objectiveSnapshotFn = () => this._objectiveSnapshot();
+    this.ui.retireDirectives();
+
     this.tutorial = new TutorialController(() => this._start());
     // PHASE 20.2 — the closing beat of the (Phase 30) opening film, authored early
     // because the whole Farmland journey depends on the player having heard it.
@@ -30685,6 +31007,9 @@ class Game {
       },
       anchor: anchor,
       world: captureWorldState(w),
+      /* PHASE 25 — one integer per objective chain, and nothing else. Everything the
+         objective system shows is otherwise derived from state already in this file. */
+      objectives: this.objectives.toJSON(),
       settings: this.settings.toJSON(),
     };
   }
@@ -30767,6 +31092,7 @@ class Game {
     this.ui.setMiningProgress(0);
 
     // Game-level cinematic latches that are not progression.
+    if (this.objectives) { this.objectives.currentId = null; this.objectives.currentText = null; }
     this.havenTimer = 0;
     this.havenShiftTriggered = false;
     this.havenShiftElapsed = 0;
@@ -30889,10 +31215,16 @@ class Game {
     //     re-fired, because nothing here calls a threshold handler.
     this.sanity.value = state.sanity;
 
-    // 11. AUDIO / POST-FX / SKY, applied now rather than a frame later.
+    /* 11. OBJECTIVES. Restored, then immediately re-evaluated against the world that has
+       just been rebuilt — so a mark that is behind the player's actual state catches up
+       on the same frame, and a version 1 save that carries no marks at all is credited
+       with everything the player had already done. */
+    this.objectives.applyJSON(state.objectives);
+
+    // 12. AUDIO / POST-FX / SKY, applied now rather than a frame later.
     this._applyRestoredPresentation(state);
 
-    /* 12. The win screen is modal state, not progression: if the save was taken with it
+    /* 13. The win screen is modal state, not progression: if the save was taken with it
        up, put it back up, or the stage the player had already cleared could never be
        advanced past. */
     if (this.awaitingAdvance) {
@@ -30921,13 +31253,17 @@ class Game {
     this.ashParticles.setActive(false);
 
     this._syncProgressionHUD();
+    /* PHASE 25 — resolve the line against the world that now exists, not the one that
+       did. This is also what re-derives a chain mark that a migrated Phase 23 save
+       could not carry. */
+    this._refreshObjective();
     this.ui.setSanity(this.sanity.value);
     this.ui.updateVitals(this.player);
     this.ui.updateHotbarSelection();
     this.ui.setDay(this.dayCount);
     this.ui.setPhase(this.env.isNight, this.env.dayFraction);
     if (this.compassAcquired) this.ui.updateCompass(this.player.yaw);
-    this.ui.setJourneyStep(null, false);
+
   }
 
   /* --- THE VERBS ------------------------------------------------------------------ */
@@ -31145,6 +31481,11 @@ class Game {
 
   _beginPlay() {
     this.running = true;                 // PHASE 22 — settings only re-lock during play
+    /* PHASE 25 — resolve the first objective BEFORE the first frame rather than up to a
+       tick into it. On a fast machine the difference is a quarter of a second; on a slow
+       one it is however long the first frames take, and an empty objective line is
+       exactly the wrong first impression for a system whose job is to say what to do. */
+    this._refreshObjective();
     this.canvas.requestPointerLock();
     this.clock.start();
     requestAnimationFrame(this._animate);
@@ -31260,6 +31601,7 @@ class Game {
     }
     this.ui.updateVitals(this.player);
     this.canvas.requestPointerLock();
+    this._refreshObjective();   // PHASE 25 — never show the previous dimension's line
     /* PHASE 23 — AUTOSAVE, and only here. A dimension crossing is the one event in the
        game that is both irreversible and expensive to redo, so it is the one event worth
        a write. There is no timer, no per-frame write and no write on an ordinary edit. */
@@ -31296,6 +31638,7 @@ class Game {
     this._syncProgressionHUD();
     this.ui.updateVitals(this.player);
     this.canvas.requestPointerLock();
+    this._refreshObjective();   // PHASE 25 — never show the previous dimension's line
     this.autosave();   // PHASE 23 — see _transitionToLevel2
   }
 
@@ -31390,6 +31733,7 @@ class Game {
       this.player.movementLocked = false;
       this.canvas.requestPointerLock();
       this.ui.showToast('Somewhere safe. Somewhere warm.', 3200);
+      this._refreshObjective();   // PHASE 25 — the Haven asks for one word, and only one
     }, 400);
   }
 
@@ -31424,6 +31768,8 @@ class Game {
     if (this.havenTimer >= HAVEN_SHIFT_SECONDS) this._triggerHavenShift('time');
   }
 
+  /* PHASE 25 — the Haven turning and the climax both take the screen; the objective line
+     goes silent for both. See OBJECTIVE_OVERRIDES. */
   _triggerHavenShift(cause) {
     if (this.havenShiftTriggered) return;
     this.havenShiftTriggered = true;
@@ -31454,6 +31800,7 @@ class Game {
     this.ui.showToast(cause === 'bed'
       ? 'You close your eyes \u2014 and it is already here.'
       : 'The warmth was never yours.', 2600);
+    this._refreshObjective();
   }
 
   /* Camera shake. Amplitude decays linearly over the duration; applied after
@@ -31497,6 +31844,7 @@ class Game {
   _triggerClimax() {
     if (this.climaxTriggered) return;
     this.climaxTriggered = true;
+    this._refreshObjective();   // PHASE 25 — the ending is not a checklist; the line clears
 
     // Freeze the player and cut everything, instantly.
     this.player.movementLocked = true;
@@ -31541,26 +31889,86 @@ class Game {
   }
 
   /* ===================================================================================
-     PHASE 20 — THE FARMLAND JOURNEY OBJECTIVE
+     PHASE 25 — THE OBJECTIVE SNAPSHOT
 
-     ONE LINE, AND IT IS ALWAYS BEHIND THE PLAYER RATHER THAN AHEAD OF THEM. Every string
-     below describes something the player has already been given a reason to do by the
-     world itself — a road they are standing on, a tower they can see, a route that
-     continued, a property whose fences they have been following. None of them names the
-     Disconnected Home, and the word "farmhouse" does not appear until the player is close
-     enough to be looking at it.
+     Everything the objective table is allowed to look at, gathered once per evaluation
+     into one small plain object. Nothing here reaches into geometry, chunks, meshes or
+     coordinates: it is all semantic state the game already keeps, which is what lets the
+     objective definitions stay readable and lets Era 2 replace the renderer underneath
+     them without touching a line of this phase.
 
-     PROGRESS IS MONOTONIC AND POSITIONAL. It is the furthest journey row the player has
-     ever reached, so wandering off the route, doubling back to look at something, or
-     leaving the corridor entirely never rewinds the line — which matters because the
-     brief's whole freedom requirement is that leaving the route must not break anything.
-     Nothing here is a trigger volume: it is a comparison against a parcel index.
+     Built four times a second, not sixty. See ObjectiveSystem.update.
      =================================================================================== */
+  _objectiveSnapshot() {
+    const p = this.player, inv = p.inventory, w = this.world, a = this.anchorManager;
+    const farmlands = !!p.inFarmlands, suburbia = !!p.inSuburbia, haven = !!p.inFakeHaven;
+    const chain = haven ? 'haven' : (farmlands ? 'farmlands' : (suburbia ? 'suburbia' : 'overworld'));
+
+    /* "Has ever been able to make something of it" rather than "is holding a log": planks
+       and sticks are wood the player already processed, and a tool is proof of all three. */
+    const hasTool = inv.hasItem(ITEM.WOODEN_PICKAXE) || inv.hasItem(ITEM.STONE_PICKAXE) ||
+                    inv.hasItem(ITEM.IRON_PICKAXE) || inv.hasItem(ITEM.WOODEN_AXE) ||
+                    inv.hasItem(ITEM.STONE_AXE) || inv.hasItem(ITEM.IRON_AXE);
+
+    return {
+      chain: chain,
+      overworld: chain === 'overworld', farmlands: farmlands,
+      suburbia: suburbia, haven: haven,
+
+      // --- survival -------------------------------------------------------------------
+      hasWood: inv.hasItem(ITEM.OAK_LOG) || inv.hasItem(ITEM.WOOD_PLANK) || inv.hasItem(ITEM.STICK),
+      hasTool: hasTool,
+      hasCoal: inv.hasItem(ITEM.COAL),
+      hasTorch: inv.hasItem(ITEM.TORCH),
+      hasAnchor: !!a.activeAnchor,
+      inAnchorZone: !!a.activeAnchor && a.isInsideSafeZone(p.position),
+      night: !!this.env.isNight,
+
+      // --- progression ----------------------------------------------------------------
+      hasDisk: inv.hasItem(ITEM.CORE_DISK) || inv.hasItem(ITEM.CORE_DISK_L2) ||
+               inv.hasItem(ITEM.CORE_DISK_L3),
+      riftActive: !!a.riftActive && !!a.activeAnchor,
+
+      // --- the Farmland journey, which already keeps its own monotonic ordinal ---------
+      farmOrd: this.farmJourneyOrd || 0,
+      farmHouseSeen: !!this.farmHouseSeen,
+      farmTower: !!w.farmTower,
+      farmCoreTaken: !!(w.openedChests && w.homeChestKey && w.openedChests.has(w.homeChestKey)),
+
+      // --- Suburbia. A COUNT and a CHEST KEY, never a room or a coordinate: the suburb
+      //     rearranges itself when nobody is looking, so anything positional would be a
+      //     bug waiting for a player to stand still. ---------------------------------
+      subVisits: w.suburbiaVisits ? w.suburbiaVisits.size : 0,
+      subCoreTaken: !!(w.openedChests && w.level3HomeChestKey &&
+                       w.openedChests.has(w.level3HomeChestKey)),
+
+      // --- the end ---------------------------------------------------------------------
+      havenShifted: !!this.havenShiftTriggered,
+      climax: !!this.climaxTriggered,
+    };
+  }
+
+  /* Re-resolve the line NOW rather than up to a quarter-second from now. Called from the
+     three moments where a stale objective would be visible and wrong: a dimension
+     crossing, a load, and a New Game. */
+  _refreshObjective() {
+    if (!this.objectives) return;
+    this.objectives.evaluate(this._objectiveSnapshot());
+  }
+
+  /* PHASE 20 — THE FARMLAND JOURNEY ORDINAL.
+
+     PHASE 25 NOTE: this function used to choose the Farmland objective text as well as
+     advance the ordinal. The text moved into OBJECTIVE_CHAINS.farmlands — unchanged,
+     line for line — so that one table holds every objective in the game. What is left
+     here is the state it was always really about: how far along the journey the player
+     has been, and whether they have been close enough to the property to call it a house.
+     Both are monotonic, both are saved, and both are read by the objective snapshot. */
   _updateFarmJourneyObjective() {
-    if (!this.player.inFarmlands) { this.ui.setJourneyStep(null, false); return; }
+    if (!this.player.inFarmlands) return;
     const w = this.world;
-    const H = w.farmHome, T = w.farmTower;
-    if (!H) { this.ui.setJourneyStep(null, false); return; }
+    const H = w.farmHome;
+    if (!H) return;
 
     const px = this.player.position.x, pz = this.player.position.z;
     const ord = farmJourneyOrd(Math.floor(px / FARM_P), Math.floor(pz / FARM_P));
@@ -31571,33 +31979,9 @@ class Game {
     if (Math.abs(Math.floor(pz / FARM_P) - FARM_J_LINE) <= 16 && ord > this.farmJourneyOrd) {
       this.farmJourneyOrd = ord;
     }
-    const j = this.farmJourneyOrd;
-
     // Has the player got close enough to the house for it to be named?
     const dHouse = Math.hypot(px - (H.hx + 6), pz - (H.hz + 5));
     if (dHouse < 26) this.farmHouseSeen = true;
-    const gotCore = w.openedChests && w.homeChestKey && w.openedChests.has(w.homeChestKey);
-
-    let text, done = false;
-    if (gotCore) { text = 'Investigate the farmhouse.'; done = true; }
-    else if (this.farmHouseSeen) text = 'Investigate the farmhouse.';
-    /* PHASE 20 REVISION — one line per beat of a much longer journey, and every one of
-       them is an OBSERVATION rather than a destination. Requirement 74 of the project
-       brief is that objective text must not spoil a discovery, so nothing here ever names
-       something the player has not already seen: the tree is "the fields are dying"
-       because that is what they can see, and the property is never called a house until
-       they are standing close enough to recognise one. */
-    else if (j >= FARM_J_HOME) text = 'Investigate the property.';
-    else if (j >= FARM_J_ECHO0 + 2) text = 'Follow the old route.';
-    else if (j >= FARM_J_TREE - 3) text = 'The fields are dying.';
-    else if (j >= FARM_J_ECHO0) text = 'Something here feels familiar.';
-    else if (j >= FARM_J_BARN - 2) text = 'Keep to the road.';
-    else if (j > FARM_J_TOWER + 1) text = 'Continue beyond the tower.';
-    else if (j >= FARM_J_TOWER - 3 && T) text = 'Investigate the water tower.';
-    else if (j >= FARM_J_FALLEN - 1) text = 'Follow the road east.';
-    else if (j >= 1) text = 'Follow the old farm road.';
-    else text = 'Explore the Shattered Farmlands.';
-    this.ui.setJourneyStep(text, done);
   }
 
   _animate() {
@@ -31847,13 +32231,13 @@ class Game {
     }
 
     // HUD Directives Update
-    const hasTorches = this.player.inventory.hasItem(ITEM.TORCH);
-    const hasAnchor = !!this.anchorManager.activeAnchor;
     const fuel = this.anchorManager.activeAnchor ? this.anchorManager.activeAnchor.fuel : 0;
-    const hasIronGear = this.player.inventory.hasItem(ITEM.IRON_PICKAXE) || this.player.inventory.hasItem(ITEM.IRON_SWORD);
-    this.ui.updateObjectiveHUD(hasTorches, hasAnchor, this.memoryFragments > 0, fuel, this.memoryFragments, this.stage, this.nightsRequired, this.dayCount,
-      this.player.chestsOpened || 0, hasIronGear, this.behemothDefeated);
+    this.ui.updateObjectiveHUD(!!this.anchorManager.activeAnchor, fuel,
+                               this.memoryFragments, this.stage, this.nightsRequired, this.dayCount);
+    /* PHASE 25 — the journey ordinal advances every frame (it is two floors and a
+       comparison); the OBJECTIVE re-resolves four times a second. */
     this._updateFarmJourneyObjective();
+    this.objectives.update(dt, this._objectiveSnapshotFn);
 
     this.ui.updateHotbarSelection();
     this.ui.updateVitals(this.player);

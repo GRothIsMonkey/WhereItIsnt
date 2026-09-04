@@ -1625,7 +1625,11 @@ Do NOT expose the complete truth to the player.
 
 ---
 
-# 43. PHASE 25 — DYNAMIC OBJECTIVE SYSTEM
+# 43. PHASE 25 — DYNAMIC OBJECTIVE SYSTEM  — **COMPLETE**
+
+Delivered. See `PROGRESS.md` section 0.000 for the architecture, the exact lines, the
+save migration and what was removed. `STORY.md` section 25 states the rule the wording
+follows: observations, never destinations.
 
 Create a persistent player-facing objective system.
 
@@ -3300,14 +3304,14 @@ Claude Code should inspect the repository before making assumptions.
 
 Current completed milestone:
 
-Phase 24 — Canonical Story Foundation
-(Phase 23 save/load, Phase 22 settings, Phase 21 dropped item ground contact, and
-Phase 20 including the 20.1 journey revision and the 20.2 guidance pass —
-see PROGRESS.md, and STORY.md for the canon)
+Phase 25 — Dynamic Objective System
+(Phase 24 canonical story foundation, Phase 23 save/load, Phase 22 settings,
+Phase 21 dropped item ground contact, and Phase 20 including the 20.1 journey
+revision and the 20.2 guidance pass — see PROGRESS.md, and STORY.md for the canon)
 
 Current next major phase:
 
-Phase 25 — Dynamic Objective System
+Phase 26 — Remove XP / Rebuild Progression
 
 Current game build baseline:
 

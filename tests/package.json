@@ -17,7 +17,8 @@
     "chain": "node chain.js",
     "save": "node save.js",
     "browser-save": "node browser-save.js",
-    "story": "node story.js"
+    "story": "node story.js",
+    "objectives": "node objectives.js"
   },
   "dependencies": {
     "three": "0.128.0"
