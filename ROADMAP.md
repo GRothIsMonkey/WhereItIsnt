@@ -1730,9 +1730,9 @@ Replace progression with:
 
 Do not replace XP with another invisible number.
 
-**None of the above may be reintroduced.** Phase 27 rebuilds the HUD and Phase 28 removes
-the tutorial; neither may bring back a level, a bar, a threshold or a grant function, and
-`tests/progression.js` fails if any of them does.
+**None of the above may be reintroduced.** Phase 27 rebuilt the HUD and Phase 28 removed
+the tutorial; neither brought back a level, a bar, a threshold or a grant function, and
+`tests/progression.js` fails if a later phase does.
 
 ---
 
@@ -1763,25 +1763,54 @@ What it must keep being:
 - Objectives, hotbar, prompts and status share one visual language, and new elements
   use the existing tokens rather than inventing a colour.
 
-**Phase 28 is next** and removes the tutorial. It may not bring the HUD's retired
-vocabulary back, and it may not turn the interaction prompt into a tutorial layer.
+**Phase 28 delivered** and did neither of the things this section warned it against: the
+HUD's retired vocabulary did not come back, and the interaction prompt did not become a
+tutorial layer — it renders three two-word cues that retire permanently, behind every
+real affordance, and `UIManager` still cannot tell a cue from a door.
 
 ---
 
-# 46. PHASE 28 — REMOVE TUTORIAL / ORGANIC ONBOARDING
+# 46. PHASE 28 — REMOVE TUTORIAL / ORGANIC ONBOARDING  — **COMPLETE**
 
-Delete the old multi-page tutorial.
+Delivered. See `PROGRESS.md` section 0.000000 for the full record: what each of the six
+tutorial cards explained and where that fact went, the onboarding flow as it now runs, why
+there are exactly three contextual cues, the schema 4 migration and the reasoning behind
+it, what was deleted layer by layer, the measured cost, the three defects the phase found,
+and — plainly — that no human has played the result.
 
-Do NOT replace it with another giant tutorial.
+The end state, in one line: **BEGIN EXPEDITION goes straight to the game.** The six-page
+card, its stylesheet, its markup, its page table, its controller and its z-index layer are
+deleted; the objective chain is the primary onboarding; and exactly three contextual cues
+— `LMB · CHOP/MINE/BREAK`, `E · CRAFT`, `RMB · PLACE` — name the three keys that have no
+visible surface to click on, each once, each retiring the first time it is pressed.
 
-Instead:
+Gameplay was not touched: crafting, mining, resources, night, the Anchor, the Rift, the
+compass, the objective tables and the HUD are all unchanged, and `tests/regression.js`
+proves the world is byte-identical.
 
-- objectives
-- contextual prompts
-- environmental guidance
-- player experimentation
+What it must keep being:
 
-The player should learn by interacting with the world.
+- No tutorial, and no tutorial in another shape. No control screen, no keyboard
+  reference, no "how to play", no hint popups, no tooltips, no arrows, no highlighting,
+  no quest log, no minimap, no waypoints. `tests/onboarding.js` fails if any string
+  literal longer than 140 characters appears in the build.
+- **One prompt system.** A cue is the last fallback in the look-target path, so a door,
+  the Anchor, an Ancient Chest or a Haven prop always takes the line first. A second
+  prompt layer is the failure mode, not a feature.
+- **Three cues, and a reason for each.** The test is "can a player who has been told
+  'Gather wood.' find this on their own, from the world, in under a minute?" A fourth cue
+  needs a candidate that genuinely fails it.
+- A cue teaches a **verb**, in one upper-case word. The moment it needs a clause it has
+  become the tutorial again.
+- **Nothing is said twice.** The verbs the world teaches were taken off the start
+  screen's legend; putting them back is duplicate onboarding.
+- The opening instruction ("At the crossroads, go east.") is **not** tutorial content and
+  stays. Phase 30 absorbs it as the closing beat of the opening film.
+- A pre-Phase-28 save loads fully onboarded. Never re-teach a returning player.
+
+**Phase 29 is next** and redesigns the main menu. It owns the start screen this phase
+deliberately left alone apart from the two legend lines; it may not put a tutorial, a
+control screen or a "how to play" panel back on it.
 
 ---
 
@@ -2271,7 +2300,9 @@ XP:
 must remain completely absent.
 
 OLD TUTORIAL:
-must remain completely absent.
+must remain completely absent. Phase 28 deleted it — markup, stylesheet, page table and
+controller. Onboarding is the objective chain plus three contextual cues, and a fourth
+cue is a design decision, not a convenience.
 
 FULL-CUBE DEPENDENCY:
 must not be required for newer architectural content.
@@ -3322,15 +3353,15 @@ Claude Code should inspect the repository before making assumptions.
 
 Current completed milestone:
 
-Phase 27 — Health / Sanity / HUD Rebirth
-(Phase 26 XP removal, Phase 25 dynamic objectives, Phase 24 canonical story
-foundation, Phase 23 save/load, Phase 22 settings, Phase 21 dropped item ground
-contact, and Phase 20 including the 20.1 journey revision and the 20.2 guidance
-pass — see PROGRESS.md, and STORY.md for the canon)
+Phase 28 — Remove Tutorial / Organic Onboarding
+(Phase 27 HUD rebirth, Phase 26 XP removal, Phase 25 dynamic objectives, Phase 24
+canonical story foundation, Phase 23 save/load, Phase 22 settings, Phase 21 dropped
+item ground contact, and Phase 20 including the 20.1 journey revision and the 20.2
+guidance pass — see PROGRESS.md, and STORY.md for the canon)
 
 Current next major phase:
 
-Phase 28 — Remove Tutorial / Organic Onboarding
+Phase 29 — Main Menu Rebirth
 
 Current game build baseline:
 

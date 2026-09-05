@@ -1,8 +1,8 @@
 # WHERE IT ISN'T — PROJECT STATE
 
 ```
-Current phase              27 — HEALTH / SANITY / HUD REBIRTH (complete)
-Next phase                 28 — REMOVE TUTORIAL / ORGANIC ONBOARDING
+Current phase              28 — REMOVE TUTORIAL / ORGANIC ONBOARDING (complete)
+Next phase                 29 — MAIN MENU REBIRTH
 Phase 19                   COMPLETE
 Phase 20                   COMPLETE
 Phase 20 journey revision  COMPLETE           (20.1 — see section 0)
@@ -14,8 +14,11 @@ Phase 24                   COMPLETE           (the canon lives in STORY.md)
 Phase 25                   COMPLETE           (see section 0.000)
 Phase 26                   COMPLETE           (see section 0.0000)
 Phase 27                   COMPLETE           (see section 0.00000)
+Phase 28                   COMPLETE           (see section 0.000000)
 XP                         REMOVED            (no runtime XP exists; see section 0.0000)
 Hearts / vital bars        REMOVED            (no runtime HUD bar exists; see section 0.00000)
+Tutorial                   REMOVED            (no tutorial exists; see section 0.000000)
+Save schema                VERSION 4          (3 -> 4 adds progression.onboarding)
 Authoritative build        game.html          (there is no other game file)
 Canonical story            STORY.md           (read before writing ANY player text)
 Validation suite           tests/             (see tests/README.md)
@@ -25,11 +28,257 @@ Phases 1–19 are as their sections in `ROADMAP.md` describe them. This file rec
 state of Phase 20 specifically: what was built, what was measured, what was found and
 fixed along the way, and what is honestly not verified.
 
-**Sections 0.00000–0.5 describe the phases that followed (27, 26, 25, 23, 22, 21, 20.2). Sections 1–5
+**Sections 0.000000–0.5 describe the phases that followed (28, 27, 26, 25, 23, 22, 21, 20.2). Sections 1–5
 describe Phase 20 as it was first delivered, and Section 0 describes the 20.1 journey
 revision that followed a human playtest and supersedes them wherever they disagree** — principally the beat table, the landmark set, the distances, and the
 performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
 instruction and the compass and changed no world generation at all.
+
+---
+
+## 0.000000. PHASE 28 — REMOVE TUTORIAL / ORGANIC ONBOARDING
+
+**The tutorial is gone.** Not disabled, not skipped by default, not hidden behind a flag:
+the six-page card, its stylesheet, its markup, its page table, its controller and its
+z-index layer are deleted, and BEGIN EXPEDITION now goes straight to the game. What
+teaches the player instead is the objective line that was already on screen, the
+interaction prompt that was already above the hotbar, and the world.
+
+### WHAT THE TUTORIAL WAS, AND WHERE EACH FACT WENT
+
+`TUTORIAL_PAGES` was six authored cards and twenty-one instructional sentences, shown
+before the player had seen a single frame of the world. Every fact it stated is still in
+the game. None of them is a sentence any more.
+
+| the card | what it explained | what says it now |
+|---|---|---|
+| Welcome, Wanderer | "a survival horror expedition: gather by day, defend by night"; Stages get harder; "this quick walkthrough covers everything" | nothing. It was a description of the game, delivered to somebody who had not played it |
+| Move & Look | WASD, mouse, SPACE, SHIFT | the start screen's control legend — no crosshair target exists for a cue to attach to |
+| Mine & Gather | the white outline, hold Left Click, the crack animation, the progress bar, drops falling to the ground, Right Click places, 1-9 and scroll | the outline, the cracks and the bar are all visible; the drop lands at your feet; the cue **LMB · CHOP / MINE / BREAK** names the button once; **RMB · PLACE** names the other; the slot keys stay on the legend |
+| Tools Change Everything | fists work on wood; stone needs a pickaxe; the outline turns red and reads NEEDS A PICKAXE; better tools bite faster | **the game already did all of this on screen.** The highlight really does turn red and the readout really does say NEEDS A PICKAXE. The card was narrating a thing the player was about to be shown |
+| Craft & Carry | E opens the bench; Log → Planks → Sticks → Pickaxe; I / Tab for the backpack; Q drops | the cue **E · CRAFT**, raised the moment the player is holding a log. The recipe order is the bench's own list, with its own materials and results. I stays on the legend; Q is not essential to a first night |
+| Survive the Night | fell trees, craft torches, place an Anchor, feed it, stay in the glow, Ancient Chests are worth a detour | the objective chain — *Craft torches.* → *Prepare for night.* → *Endure the nights.* — and the Anchor's own permanent affordance, **RMB · FEED THE ANCHOR**, which Phase 27 gave it |
+
+### THE ONBOARDING FLOW, EXACTLY AS IT NOW RUNS
+
+```
+START SCREEN            title, CONTINUE (if a save validates), BEGIN EXPEDITION,
+                        a two-line control legend, SETTINGS
+   |  click BEGIN EXPEDITION
+OPENING INSTRUCTION     black, ~9s, "At the crossroads, go east." / "Go east."
+                        (Phase 20.2's, unchanged, skippable by any key or click)
+   |
+FIRST GAMEPLAY FRAME    the objective is already resolved and painted — see _beginPlay
+                        HUD: CONDITION, PERCEPTION, the objective line, the hotbar
+   |
+"Gather wood."          player looks at a tree     -> LMB · CHOP
+   |                    ...fells it                -> the cue is answered, forever
+"Craft a basic tool."   player is holding a log    -> E · CRAFT
+   |                    ...presses E               -> the bench, listing its own recipes
+"Find coal."            the pickaxe gate teaches itself: red highlight, NEEDS A PICKAXE
+"Craft torches."        the bench again; no cue, because E has already been learned
+"Prepare for night."    the Anchor is crafted, then placed  -> RMB · PLACE (first time only)
+   |                    looking at it              -> RMB · FEED THE ANCHOR (permanent)
+"Endure the nights."    night, the dark, and the Anchor's glow explain themselves
+"Enter the Rift."       a powered Anchor is unmistakable; walking into it is the interaction
+```
+
+The player may do any of this in any order. The objective chain credits the furthest step
+whose completion test passes, which is Phase 25's behaviour and is untouched here.
+
+### THE THREE CONTEXTUAL CUES, AND WHY THERE ARE ONLY THREE
+
+The test applied to every candidate was: **can a player who has been told "Gather wood."
+find this on their own, from the world, in under a minute?** Almost everything passes.
+Three things fail, and all three fail for the same reason — a key with no visible surface
+to click on.
+
+| cue | key | verb | appears when | retired by |
+|---|---|---|---|---|
+| `break` | LMB | CHOP / MINE / BREAK | any solid block under the crosshair | breaking one block |
+| `craft` | E | CRAFT | holding a log or planks | pressing E once, ever |
+| `place` | RMB | PLACE | holding a placeable block, ground ahead | placing one block |
+
+The verb of the first is chosen from the block: `CHOP` for the wood family, `MINE` for
+anything the pickaxe gate covers, `BREAK` otherwise — so the first word the player reads is
+about the world, not about the input device.
+
+**They are drawn in the Phase 27 interaction prompt** — the same element, the same
+renderer, the same two-word grammar, the same 140ms fade. There is no second prompt
+system, no popup, no timer and no dismiss button. A cue is the **last** fallback in the
+look-target path:
+
+```js
+this._setPrompt(this._promptForBlock(id) || this._havenPropPrompt() || this._onboardingCue(id));
+```
+
+so a door, the Anchor, an Ancient Chest or a Haven prop always takes the line first. The
+world wins; the cue only ever fills space nothing else wanted. `UIManager` cannot tell the
+difference between the two and never hears the word "onboarding" — it is still a renderer.
+
+### WHAT IS *NOT* IN THIS PHASE
+
+- No control screen, no keyboard reference, no "how to play", no hint popups, no tooltips,
+  no arrows, no highlighting, no glowing objects, no quest log, no minimap, no waypoints.
+- No new prompt system, no second onboarding layer, no tutorial-shaped state machine.
+- No change to crafting, mining, resources, night, the Anchor, the Rift, the compass or
+  the HUD. The objective tables are byte-identical apart from one comment.
+- No wall of text anywhere: `tests/onboarding.js` fails if any string literal longer than
+  140 characters appears in the build.
+
+### THE START SCREEN'S CONTROL LEGEND
+
+The legend was three lines and read as a keyboard reference:
+
+```
+WASD MOVE • MOUSE LOOK • SPACE JUMP/SWIM • SHIFT SPRINT
+LEFT CLICK BREAK / ATTACK • RIGHT CLICK PLACE / FEED ANCHOR / SHOOT BOW • 1-9 / SCROLL SELECT SLOT
+E CRAFTING • I INVENTORY • Q DROP ITEM
+```
+
+Every verb on the second and third lines is now taught in the world, at the moment it is
+useful. Saying it twice would be exactly the duplicate onboarding the brief forbids, so
+those lines were cut down to what no contextual prompt can reach — nothing on them has a
+target under the crosshair:
+
+```
+WASD MOVE • MOUSE LOOK • SPACE JUMP/SWIM • SHIFT SPRINT
+1-9 / SCROLL SELECT SLOT • I INVENTORY • O SETTINGS
+```
+
+`O SETTINGS` is the one addition. With the tutorial gone nothing else named the key that
+opens the panel the game is saved from, and Escape alone is unreliable while the pointer
+is locked (Phase 22 documented why).
+
+**Phase 29 owns the main menu.** Nothing else about the start screen was touched: no art,
+no layout, no copy, no button order.
+
+### THE OPENING INSTRUCTION STAYED
+
+Phase 20.2's *"At the crossroads, go east." / "Go east."* is **not tutorial content** and
+was audited rather than assumed. It names a bearing and nothing else; it explains no
+mechanic, no key and no system; the objective system never repeats it; and Phase 30 will
+absorb it as the closing beat of the opening film. It already lived in `_start()` — the
+funnel every route into gameplay passes through — specifically so that a player who
+skipped the tutorial would still hear it. Removing the tutorial made that funnel narrower,
+not different: `_start()` is now the **only** route in.
+
+### SAVE / LOAD — SCHEMA 4, AND THE ONE THING IT COULD HAVE GOT WRONG
+
+`progression.onboarding` is a list of the cues a run has answered. A new game has none.
+Validated against the authored table exactly the way `milestones` is: an unknown id is
+dropped, a duplicate collapses, the order is the table's, a field of the wrong type is
+repaired to "none" rather than thrown over.
+
+**A schema-3 save is not a new game.** It was written by somebody who reached the start
+screen while the tutorial was still in front of it, and who has been playing long enough to
+have a save. Defaulting them to "has learned nothing" would greet a returning player with
+`LMB · CHOP` over the first tree they looked at — the exact patronising beat this phase
+exists to delete. So the **3 → 4 migration marks every cue answered**, by the same
+reasoning Phase 26's 2 → 3 migration used to derive milestones: work out what the old save
+has already lived rather than letting a new field default to a lie.
+
+Nothing else in the schema moved. Every version-3 field is carried across untouched, a
+version-3 file remains fully loadable, and a version-1 file still climbs the whole ladder.
+Verified against a **real stored file in a real browser**: `browser-onboarding.js` rewrites
+`localStorage` to schema 3, reloads the page, clicks CONTINUE and asserts the run comes
+back fully onboarded with no cue over a tree.
+
+### WHAT WAS ACTUALLY DELETED
+
+| layer | what went |
+|---|---|
+| markup | `#tutorialScreen` and its nine children; `#skipTutorialLink`; two lines of the control legend |
+| stylesheet | `#tutorialScreen`, `#tutorialScreen.active` and ten `.tutorial-*` rule groups — 43 declarations, and the z-index 55 layer with them |
+| script | `TUTORIAL_PAGES` (6 cards, 21 sentences), `class TutorialController` (75 lines), `Game._openTutorial()`, `this.tutorial = new TutorialController(...)`, the `#skipTutorialLink` listener, and two `tutorialScreen.classList.remove('active')` calls in `_start()` and `continueFromSave()` |
+| tests | `tests/settings.js` no longer requires the skip link or the 55 layer; `tests/compass.js` asserts one route in instead of two; `tests/preview-settings.js` slices to `#winScreen`; the two browser files click `#clickPlay` |
+
+Every remaining occurrence of the word "tutorial" in `game.html` is a **comment**
+recording what stood where — five of them — plus this phase's own reasoning. There is no
+executable reference and no element left to reach for. `tests/onboarding.js` asserts that
+against the stripped source and the stripped body, not against a grep.
+
+### WHAT WAS ADDED
+
+| | |
+|---|---|
+| `ONBOARDING_CUES` / `ONBOARDING_CUE_IDS` | the frozen three-entry table, beside the objective system |
+| `PlayerController._onboardingCue(targetId)` | resolves a cue, returns the same `{key, verb}` shape as `_promptForBlock` |
+| `PlayerController._learn(id)` | the latch, called from three places |
+| `Game.onboarding` / `Game.learnOnboarding(id)` | the Set, and its only writer outside a restore |
+| `_svOnboarding` + `SAVE_MIGRATIONS[3]` | validation and the 3 → 4 migration |
+| `tests/onboarding.js` | 116 offline checks |
+| `tests/browser-onboarding.js` | 48 checks in a real Chromium |
+
+### COST
+
+Measured in the browser, under SwiftShader, over 4,000 calls each way:
+
+| state | per resolve | share of a 60fps frame |
+|---|---|---|
+| all three cues answered (every run, after the first few minutes) | **0.08 µs** | 0.0004% |
+| all three still owed (the worst case, and only at the very start) | **0.22 µs** | 0.0013% |
+
+The first line of `_onboardingCue` is a `size >= 3` comparison against a frozen table, so a
+fully-onboarded save pays that and nothing else — no ray, no world scan, no DOM, no
+allocation. Removing the tutorial also removed a controller, six page objects, thirty DOM
+writes at open time and forty-three CSS declarations from the document.
+
+`tests/performance.js` and `tests/regression.js` both pass unchanged: this phase generates
+no world and touches no generator, and Suburbia, the Overworld and the whole journey are
+byte-identical.
+
+### DEFECTS FOUND AND FIXED DURING THE PHASE
+
+1. **`preview-settings.js` sliced the settings panel using `#tutorialScreen` as its end
+   marker.** Deleting the element made the slice run to the end of the body. Re-pointed at
+   `#winScreen`, with the intervening comment stripped.
+2. **`tests/settings.js` required the skip link to exist** and required the settings panel
+   to out-rank a z-index 55 layer that no longer exists. Both were correct assertions about
+   Phase 22's world and are wrong about this one; updated, not deleted — the property they
+   protect (the panel can never open behind an opaque screen) is still asserted against
+   every screen that remains.
+3. **The `RMB · PLACE` cue was initially unreachable in the browser test** at two blocks'
+   range: placement goes on the face the ray entered, which for a target that close is
+   inside the player's own bounding box, so `world.placeBlock` correctly refused. A test
+   defect, not a game defect — the aiming helper now takes a distance.
+4. **`tests/browser-save.js` asserted the schema was written at version 3.** Correct for
+   Phase 23–27, wrong from this phase on; updated to 4, and it now also asserts the
+   onboarding set is in the file, which is what stops a load re-teaching the keys.
+5. **`tests/browser-save.js`'s live prompt check waited for the prompt to be shown AT
+   ALL.** That was a sound proxy while the prompt was raised by affordances only: on a
+   frame where the ray was off the chest, nothing was shown and the poll waited for the
+   next frame. With the cues in, a brand new game owes `break`, which reads `LMB · BREAK`
+   over ordinary ground — so the poll could return on a frame the ray had missed the chest
+   on, and the check failed reading "LMB BREAK" while the chest prompt was working
+   perfectly. **Confirmed as a test defect, not a game defect**: `browser-onboarding.js`
+   drives the same path deliberately and gets `RMB · OPEN` from a chest every time. The
+   predicate now waits for the chest's own text, which is what the check always claimed.
+
+### KNOWN LIMITATION — `preview-hud.js` does not run in this container
+
+`tests/preview-hud.js` (the Phase 27 screenshot generator) fails on its first full-page
+`page.screenshot`, timing out after 30s under SwiftShader. **This is not caused by this
+phase**: the identical failure was reproduced on the unmodified Phase 27 build at commit
+`e027719`, at the same call, in the same container. It asserts nothing and gates nothing —
+it exists to produce PNGs for a person to look at — so no claim in this report depends on
+it. The two files that DO assert in a browser, `browser-save.js` and
+`browser-onboarding.js`, both run to completion here and both pass.
+
+### HONEST STATUS
+
+| | |
+|---|---|
+| the tutorial is removed | **COMPLETE** — markup, CSS, script, state and tests |
+| organic onboarding | **COMPLETE** — objective chain primary, three contextual cues |
+| save / load compatibility | **COMPLETE** — schema 4, real 3 → 4 migration, old saves load |
+| offline validation | **COMPLETE** — 116 checks in `tests/onboarding.js`, all pass |
+| full regression suite | **COMPLETE** — 17 offline suites, 935 checks, 0 failures, **0 skipped** (the optional Phase 20 corridor baseline was supplied so `performance.js` skips nothing either) |
+| browser validation | **COMPLETE** — `browser-onboarding.js`, 48 checks in a real Chromium with a real WebGL context and real `localStorage`, all pass; `browser-save.js` re-run and passing at 102 checks |
+| **human playtest** | **NOT DONE.** No person has played this build. Nobody has answered "did I know what to do?", "did I learn without being lectured?" or "was anything frustratingly unclear?" — the eight questions the brief asks are all questions for a person, and this report claims none of them |
+
+The single most valuable thing that could happen to this phase now is somebody who has
+never played it starting a new game and trying to reach a torch before dark.
 
 ---
 

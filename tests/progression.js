@@ -331,8 +331,12 @@ function xpEraSave(over) {
 }
 {
   // The whole ladder, from the oldest schema the game ever wrote.
-  chk(typeof SAVE_MIGRATIONS[1] === 'function' && typeof SAVE_MIGRATIONS[2] === 'function',
-      'both rungs of the migration ladder exist');
+  /* PHASE 28 added a third rung (3 -> 4, progression.onboarding). This file is about the
+     XP removal, so what it needs from the ladder is that the rung BELOW its own still
+     exists and that a version 1 save still climbs past it intact. */
+  chk(typeof SAVE_MIGRATIONS[1] === 'function' && typeof SAVE_MIGRATIONS[2] === 'function' &&
+      typeof SAVE_MIGRATIONS[3] === 'function',
+      `all ${SAVE_VERSION - 1} rungs of the migration ladder exist`);
   const v1 = xpEraSave({ version: 1 });
   delete v1.objectives;
   const r = validateSaveState(v1);

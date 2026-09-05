@@ -147,7 +147,8 @@ async function clickPanel(page, sel) {
 async function boot(page, { fresh }) {
   await page.waitForFunction('!!window.game', null, { timeout: 90000 });
   if (fresh) {
-    await page.click('#skipTutorialLink');
+    // PHASE 28 — BEGIN EXPEDITION goes straight into the game; there is no skip link.
+    await page.click('#clickPlay');
     await page.keyboard.press('Space');            // skip the opening instruction
   } else {
     /* Record the orientation at the instant the restore finishes — BEFORE the frame loop
@@ -373,20 +374,30 @@ async function boot(page, { fresh }) {
        eye position, so a single sample 350ms later can land on a frame where the ray
        happens to be off the chest — which says nothing about whether the prompt works.
        This waits for the prompt to be RAISED, which is the actual claim, and still fails
-       (after six seconds) if the loop never raises it at all. */
+       (after six seconds) if the loop never raises it at all.
+
+       PHASE 28 NARROWED WHAT IT WAITS FOR, and had to. This used to wait for the prompt
+       to be shown AT ALL, which was a sound proxy while the prompt was raised by
+       affordances only: on a frame where the ray was off the chest, nothing was shown and
+       the poll simply waited for the next one. Phase 28 added the onboarding cues, and on
+       a brand new game the `break` cue is owed and reads `LMB · BREAK` over ordinary
+       ground — so "something is shown" can now be satisfied by a frame the ray missed the
+       chest on, and this check failed reading "LMB BREAK" while the chest prompt was
+       working perfectly. It now waits for the CHEST's prompt, which is what it was always
+       claiming, and a loop that never raises it still fails after six seconds. */
     const promptShown = await page.waitForFunction(() => {
       const p = document.getElementById('interactPrompt');
       if (!p.classList.contains('show') || getComputedStyle(p).opacity !== '1') return null;
+      const text = p.innerText.replace(/\s+/g, ' ').trim();
+      if (!/RMB/.test(text) || !/OPEN/.test(text)) return null;
       const r = p.getBoundingClientRect();
       const hb = document.getElementById('hotbar').getBoundingClientRect();
-      return { w: r.width, h: r.height, clear: r.bottom <= hb.top + 1,
-               text: p.innerText.replace(/\s+/g, ' ').trim() };
+      return { w: r.width, h: r.height, clear: r.bottom <= hb.top + 1, text: text };
     }, null, { timeout: 6000, polling: 100 }).then(h => h.jsonValue()).catch(() => null);
-    chk(!!promptShown && promptShown.w > 20 && promptShown.h > 6 && promptShown.clear &&
-        /RMB/.test(promptShown.text) && /OPEN/.test(promptShown.text),
+    chk(!!promptShown && promptShown.w > 20 && promptShown.h > 6 && promptShown.clear,
         promptShown
           ? `the frame loop raised the prompt above the hotbar, reading "${promptShown.text}"`
-          : 'the frame loop raised the prompt above the hotbar — IT NEVER DID');
+          : 'the frame loop raised the CHEST prompt above the hotbar — IT NEVER DID');
     await page.evaluate(() => {
       const g = window.game, c = window.__chestProbe;
       g.world.setBlockWorld(c.bx, c.by, c.bz, c.was);
@@ -596,7 +607,11 @@ async function boot(page, { fresh }) {
         `and the chain mark did not regress (${before.objectiveMarks.overworld} -> ${after.objectiveMarks.overworld})`);
     chk(stored.payload.objectives && typeof stored.payload.objectives.overworld === 'number',
         'the save file carries the objective marks');
-    chk(stored.payload.version === 3, `and it is written at schema version ${stored.payload.version}`);
+    /* PHASE 28 took the schema to 4 (progression.onboarding). The objective marks this
+       block is about were added at 2 and have not moved since. */
+    chk(stored.payload.version === 4, `and it is written at schema version ${stored.payload.version}`);
+    chk(Array.isArray(stored.payload.progression.onboarding),
+        'alongside the Phase 28 onboarding set, which is what stops a load re-teaching the keys');
     chk(await page.evaluate(() => typeof ITEM.COMPASS === 'undefined'),
         'and it is still not an inventory item at all — it cannot be dropped or lost');
     chk(after.chestsOpened === before.chestsOpened, 'the chest tally is restored');

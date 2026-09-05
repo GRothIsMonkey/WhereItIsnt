@@ -21,6 +21,8 @@
     "objectives": "node objectives.js",
     "progression": "node progression.js",
     "hud": "node hud.js",
+    "onboarding": "node onboarding.js",
+    "browser-onboarding": "node browser-onboarding.js",
     "preview-hud": "node preview-hud.js"
   },
   "dependencies": {

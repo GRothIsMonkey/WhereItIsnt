@@ -68,7 +68,7 @@ function serve() {
   }
   await page.goto(`http://127.0.0.1:${PORT}/game.html`, { waitUntil: 'load', timeout: 90000 });
   await page.waitForFunction('!!window.game', null, { timeout: 90000 });
-  await page.click('#skipTutorialLink');
+  await page.click('#clickPlay');                 // PHASE 28 — the only route in
   await page.keyboard.press('Space');
   await page.waitForFunction('window.game && window.game.running === true', null, { timeout: 60000 });
   await page.waitForTimeout(1500);
