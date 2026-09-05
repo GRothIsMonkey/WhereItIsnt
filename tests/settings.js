@@ -452,15 +452,21 @@ const throwingStore = { getItem() { throw new Error('blocked'); }, setItem() { t
      E opened the crafting bench and I opened the backpack on top of a panel that had
      already released pointer lock and paused the world, leaving one overlay orphaned the
      moment the other closed. */
-  chk(/if \(e\.code === 'KeyE'\) \{\s*\n\s*if \(!this\.ui\.settingsOpen\) this\.ui\.toggleCrafting\(\);/.test(SRC),
+  /* PHASE 28 added the onboarding latch inside this branch; the settingsOpen guard in
+     front of it is what this check is about and it is unchanged. */
+  chk(/if \(e\.code === 'KeyE'\) \{[\s\S]{0,120}?if \(!this\.ui\.settingsOpen\) \{ this\.ui\.toggleCrafting\(\);/.test(SRC),
       'E cannot open the crafting bench on top of the settings panel');
   chk(/if \(e\.code === 'KeyI' \|\| e\.code === 'Tab'\) \{[\s\S]{0,90}if \(this\.ui\.settingsOpen\) return;/.test(SRC),
       'and I / Tab cannot open the backpack on top of it');
   chk(/e\.code === 'KeyO' && !e\.repeat && !this\.ui\.craftingOpen && !this\.ui\.backpackOpen &&\s*\n\s*!this\.ui\.storageOpen/.test(SRC),
       'nor can settings open on top of the crafting bench, the backpack or the storage chest');
   chk(/getElementById\('startSettingsLink'\)/.test(SRC), 'and the start screen has a Settings entry');
-  chk(/id="startSettingsLink"/.test(SRC) && /id="skipTutorialLink"/.test(SRC),
-      'alongside the existing skip link, which still exists');
+  /* PHASE 28 deleted the tutorial and the "SKIP TUTORIAL & DROP IN NOW" link beside it;
+     BEGIN EXPEDITION goes straight into the game, so SETTINGS is now the only other
+     button on the start screen. What Phase 22 needs from this is unchanged: there is a
+     way into the panel before the game begins. */
+  chk(/id="startSettingsLink"/.test(SRC) && !/id="skipTutorialLink"/.test(SRC),
+      'and it is the only link beside BEGIN EXPEDITION — the tutorial skip is gone');
 }
 {
   // No duplicate UI: exactly one settings overlay in the document.
@@ -499,9 +505,10 @@ const throwingStore = { getItem() { throw new Error('blocked'); }, setItem() { t
   chk(typeof panel === 'number', `#settingsOverlay declares a z-index (${panel})`);
 
   /* Every screen the panel can legitimately be opened from. The start screen is the
-     reported bug; the tutorial screen is the same defect one layer up, since the O key
-     listener is live from Game construction onward. */
-  for (const under of ['#startScreen', '#tutorialScreen', '#craftingOverlay',
+     reported bug, and the O key listener is live from Game construction onward. */
+  /* PHASE 28 removed #tutorialScreen (z-index 55) from this list by deleting the screen
+     itself. The rest are unchanged, and the panel still has to clear every one of them. */
+  for (const under of ['#startScreen', '#craftingOverlay',
                        '#backpackOverlay', '#storageOverlay']) {
     const z = zIndex.get(under);
     chk(typeof z === 'number' && panel > z,

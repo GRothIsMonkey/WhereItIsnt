@@ -1412,7 +1412,7 @@ Phase 24 — Canonical Story Foundation
 Phase 25 — Dynamic Objective System
 Phase 26 — Remove XP / Rebuild Progression
 Phase 27 — Health / Sanity / HUD Rebirth
-Phase 28 — Remove Tutorial / Organic Onboarding
+Phase 28 — Remove Tutorial / Organic Onboarding   (COMPLETE — see section 54)
 Phase 29 — Main Menu Rebirth
 Phase 30 — Opening Lore Film
 Phase 31 — Environmental Storytelling
@@ -1666,15 +1666,61 @@ RULES THAT NOW HOLD:
 
 ---
 
-# 54. PHASE 28 — ORGANIC ONBOARDING
+# 54. PHASE 28 — ORGANIC ONBOARDING — COMPLETE
 
-Remove the legacy multi-page tutorial.
+PHASE 28 CARRIED THIS OUT. There is no tutorial in this build: the six-page card, its
+stylesheet, its markup, its page table, its controller and its z-index layer are deleted,
+and BEGIN EXPEDITION goes straight to the game. This section is now a statement about the
+code, not an intention. See `PROGRESS.md` section 0.000000 for the full record.
 
-Do NOT replace it with another giant tutorial.
+WHAT THE ONBOARDING IS NOW:
 
-Use objectives and contextual prompts.
+  OBJECTIVES   the Phase 25 chain is the PRIMARY onboarding and owns broad direction.
+               "Gather wood." → "Craft a basic tool." → "Find coal." → "Craft torches."
+               → "Prepare for night." → "Endure the nights." → "Investigate the Rift."
+               No objective line names a key, a mouse button or a UI element; direction
+               is the chain's job and keys are the cue's.
 
-The player should learn by interacting with the world.
+  CUES         `ONBOARDING_CUES` — exactly THREE contextual prompts, each naming one key,
+               each retired permanently the first time that key does its work:
+
+                   break   LMB · CHOP / MINE / BREAK   any solid block under the crosshair
+                   craft   E · CRAFT                   holding a log or planks
+                   place   RMB · PLACE                 a placeable block, ground ahead
+
+               They are drawn in the Phase 27 interaction prompt — the same element, the
+               same renderer, the same two-word grammar — and they are the LAST fallback
+               in the look-target path, so a door, the Anchor, an Ancient Chest or a Haven
+               prop always takes the line first.
+
+  THE WORLD    everything else. The white outline, the crack animation, the progress bar,
+               the red highlight reading NEEDS A PICKAXE, the drop landing at your feet,
+               the bench's own recipe list, the Anchor's glow, the dark.
+
+  LEGEND       two lines on the start screen, and only what has no crosshair target for a
+               cue to attach to: WASD / mouse / space / shift, the slot keys, I, and O.
+
+RULES THAT NOW HOLD:
+
+- No tutorial, and no tutorial in another shape. No control screen, no keyboard
+  reference, no "how to play", no hint popups, no tooltips, no arrows, no highlighting,
+  no quest log, no minimap, no waypoints. `tests/onboarding.js` fails if any string
+  literal longer than 140 characters appears in the build.
+- ONE prompt system. Do not build a second. A cue and an affordance are the same
+  `{ key, verb }` spec and `UIManager` cannot tell them apart — that is deliberate.
+- A cue teaches a VERB, in one upper-case word. The moment it needs a clause it has
+  become the tutorial again.
+- A FOURTH CUE IS A DESIGN DECISION, not a convenience. The test every candidate must
+  fail before it earns one: "can a player who has been told 'Gather wood.' find this on
+  their own, from the world, in under a minute?" Three things fail it, all for the same
+  reason — a key with no visible surface to click on.
+- NOTHING IS SAID TWICE. The verbs the world teaches were removed from the start screen's
+  legend. Putting them back is duplicate onboarding.
+- The opening instruction ("At the crossroads, go east.") is NOT tutorial content. It
+  names a bearing and explains no mechanic. Phase 30 absorbs it as the closing beat of
+  the opening film; do not delete it.
+- A pre-Phase-28 save loads FULLY ONBOARDED (save schema 4, the 3 → 4 migration). Never
+  re-teach a returning player.
 
 ---
 
@@ -1705,6 +1751,10 @@ Menu options:
 - New Game
 - Continue
 - Settings
+
+Phase 28 left the start screen otherwise untouched, apart from cutting its control legend
+down to the keys no contextual prompt can reach. The menu rebirth owns that screen now,
+and it may not put a tutorial, a control screen or a "how to play" panel back on it.
 
 The official title is:
 

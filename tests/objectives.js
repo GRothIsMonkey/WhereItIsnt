@@ -298,7 +298,10 @@ const textFor = (over) => { const o = new ObjectiveSystem(null); o.evaluate(snap
 // 9. SAVE / LOAD, AND THE VERSION 1 -> 2 MIGRATION
 // =====================================================================================
 {
-  chk(SAVE_VERSION === 3, `the save schema is at version ${SAVE_VERSION}`);
+  /* PHASE 28 took the schema to 4 (progression.onboarding). The objective marks were
+     added at 2 and have not moved since; what this asserts is that the ladder this file
+     walks below really does end where the build says it ends. */
+  chk(SAVE_VERSION === 4, `the save schema is at version ${SAVE_VERSION}`);
   chk(typeof SAVE_MIGRATIONS[1] === 'function', 'and a real migration from version 1 exists');
   chk(typeof SAVE_MIGRATIONS[2] === 'function', 'as does the Phase 26 migration from version 2');
 

@@ -443,13 +443,13 @@
      THIS IS NOT THE PHASE 30 LORE FILM AND DOES NOT PRETEND TO BE. That film does not
      exist yet; the roadmap builds it in Phase 30. What this is, is the film's FINAL
      BEAT, authored now and deliberately self-contained, so Phase 30 can absorb it by
-     calling the same controller at the end of its own sequence rather than having to
-     unpick a tutorial card.
+     calling the same controller at the end of its own sequence.
 
      Restraint is the whole treatment: black, near-silence, one line, a pause, one
      shorter line, then gameplay. No panel, no border, no button, no icon, no "OBJECTIVE"
-     label — none of the tutorial screen's vocabulary. It should read as something
-     remembered rather than something displayed. */
+     label. It should read as something remembered rather than something displayed.
+     PHASE 28 kept it exactly as authored: it is the opening's closing beat, not tutorial
+     content, and it says nothing about how to play. */
   #openingInstruction {
     position: fixed; inset: 0; z-index: 60; display: none;
     align-items: center; justify-content: center;
@@ -557,10 +557,11 @@
 
      The panel was authored at z-index 45, which sits above the crafting, backpack and
      storage overlays (all 40) and was correct for the in-game O key. It is BELOW the
-     start screen (50) and the tutorial screen (55), both of which paint an opaque
-     background across the whole viewport — so the start screen's SETTINGS button did
-     fire, and the panel did open, and it opened entirely behind an opaque wall. The
-     button read as dead because nothing appeared, not because the click was lost.
+     start screen (50), which paints an opaque background across the whole viewport — so
+     the start screen's SETTINGS button did fire, and the panel did open, and it opened
+     entirely behind an opaque wall. The button read as dead because nothing appeared,
+     not because the click was lost. (Phase 22 named a tutorial screen at 55 here as
+     well; Phase 28 deleted it, and 55 is now an empty layer.)
 
      56 puts it above every screen it can legitimately be opened from and still below the
      cinematic layers that must never be covered: the opening instruction and win screen
@@ -637,47 +638,11 @@
   }
   .settings-close:hover { background: #3a2e1c; border-color: #ffcf6b; }
 
-  /* Tutorial Overlay */
-  #tutorialScreen {
-    position: fixed; inset: 0; background: rgba(4, 3, 2, 0.97); z-index: 55;
-    display: none; align-items: center; justify-content: center; color: #e8d9b0;
-  }
-  #tutorialScreen.active { display: flex; }
-  .tutorial-panel {
-    width: 560px; max-width: 90vw; background: #14100a; border: 1px solid #4a3a24;
-    border-radius: 3px; padding: 40px 46px 32px; position: relative;
-    box-shadow: 0 0 0 1px rgba(255,207,107,0.06), 0 20px 60px rgba(0,0,0,0.7);
-  }
-  .tutorial-skip {
-    position: absolute; top: 16px; right: 20px; background: none; border: none;
-    color: #6b5a3c; font-family: inherit; font-size: 10px; letter-spacing: 2px;
-    cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
-  }
-  .tutorial-skip:hover { color: #ffcf6b; }
-  .tutorial-eyebrow { font-size: 10px; letter-spacing: 4px; color: #a8622f; margin-bottom: 10px; }
-  .tutorial-icon { font-size: 40px; margin-bottom: 14px; filter: drop-shadow(0 0 10px rgba(255,138,61,0.4)); }
-  .tutorial-title {
-    font-size: 24px; letter-spacing: 2px; color: #ffcf6b; margin-bottom: 18px; font-weight: bold;
-  }
-  .tutorial-lines { list-style: none; padding: 0; margin: 0 0 30px 0; text-align: left; }
-  .tutorial-lines li {
-    font-size: 13px; line-height: 1.7; color: #d8cba8; padding-left: 20px; position: relative; margin-bottom: 8px;
-  }
-  .tutorial-lines li::before { content: '\25B8'; position: absolute; left: 0; color: #ffcf6b; }
-  .tutorial-lines b { color: #ffcf6b; }
-  .tutorial-nav { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
-  .tutorial-dots { display: flex; gap: 7px; }
-  .tutorial-dot { width: 7px; height: 7px; border-radius: 50%; background: #3a3020; transition: background 0.2s, transform 0.2s; }
-  .tutorial-dot.active { background: #ffcf6b; transform: scale(1.3); }
-  .tutorial-btn {
-    font-size: 13px; padding: 10px 22px; letter-spacing: 2px; font-family: inherit; cursor: pointer;
-    background: #2a2114; color: #ffcf6b; border: 2px solid #6b5a3c; border-radius: 2px;
-    transition: background 0.2s, border-color 0.2s;
-  }
-  .tutorial-btn:hover { background: #3a2e1c; border-color: #ffcf6b; }
-  .tutorial-btn.secondary { background: transparent; color: #8a7a58; border-color: #3a3020; }
-  .tutorial-btn.secondary:hover { color: #d8cba8; border-color: #6b5a3c; }
-  .tutorial-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  /* PHASE 28 — the tutorial overlay stood here: a 560px card with an eyebrow, an emoji,
+     a title, a bulleted paragraph list, six paged dots, BACK / NEXT / SKIP and its own
+     z-index layer at 55. Forty-three rules for a screen whose entire job was to say what
+     the world can say for itself. It is gone, along with the layer: nothing in the build
+     paints at 55 any more, and the interaction prompt teaches the verbs instead. */
 
   /* PHASE 27 — #loseCrosshairMsg stood here. It was a fixed, always-visible line
      reading "Look at it and hold your torch to banish it." — no rule ever hid it and no
@@ -862,13 +827,20 @@
     <div class="divider"></div>
     <button id="continuePlay" class="action-btn" style="display:none;">CONTINUE</button>
     <button id="clickPlay" class="action-btn">BEGIN EXPEDITION</button>
+    <!-- PHASE 28 — WHAT IS LEFT OF THE CONTROL LIST, AND WHY.
+
+         This used to be three lines and it read as a keyboard reference: break, place,
+         feed the anchor, shoot, craft, drop. Every verb on those two deleted lines is
+         now taught in the world, at the moment it is useful, by the interaction prompt —
+         which is the whole point of removing the tutorial. What survives is the set no
+         contextual prompt can reach, because none of it has a target under the
+         crosshair: how to move the body, how to change what is in the hand, and how to
+         get back out to the menu that saves. -->
     <div class="controls">
       WASD MOVE &nbsp;&bull;&nbsp; MOUSE LOOK &nbsp;&bull;&nbsp; SPACE JUMP/SWIM &nbsp;&bull;&nbsp; SHIFT SPRINT<br>
-      LEFT CLICK BREAK / ATTACK &nbsp;&bull;&nbsp; RIGHT CLICK PLACE / FEED ANCHOR / SHOOT BOW &nbsp;&bull;&nbsp; 1-9 / SCROLL SELECT SLOT<br>
-      E CRAFTING &nbsp;&bull;&nbsp; I INVENTORY &nbsp;&bull;&nbsp; Q DROP ITEM
+      1-9 / SCROLL SELECT SLOT &nbsp;&bull;&nbsp; I INVENTORY &nbsp;&bull;&nbsp; O SETTINGS
     </div>
-    <button id="skipTutorialLink" class="link-btn">SKIP TUTORIAL &amp; DROP IN NOW</button>
-    <button id="startSettingsLink" class="link-btn" style="margin-left:18px;">SETTINGS</button>
+    <button id="startSettingsLink" class="link-btn">SETTINGS</button>
   </div>
 </div>
 
@@ -929,20 +901,11 @@
   </div>
 </div>
 
-<div id="tutorialScreen">
-  <div class="tutorial-panel">
-    <button id="tutorialSkip" class="tutorial-skip">SKIP &#10005;</button>
-    <div class="tutorial-eyebrow" id="tutorialEyebrow">HOW TO SURVIVE &bull; 1 / 6</div>
-    <div class="tutorial-icon" id="tutorialIcon">&#127961;</div>
-    <div class="tutorial-title" id="tutorialTitle">Welcome, Wanderer</div>
-    <ul class="tutorial-lines" id="tutorialLines"></ul>
-    <div class="tutorial-nav">
-      <button id="tutorialBack" class="tutorial-btn secondary">&#9664; BACK</button>
-      <div class="tutorial-dots" id="tutorialDots"></div>
-      <button id="tutorialNext" class="tutorial-btn">NEXT &#9654;</button>
-    </div>
-  </div>
-</div>
+<!-- PHASE 28 — #tutorialScreen stood here. Six pages of instructions, a page counter
+     and three navigation buttons, shown before the first drop-in. The markup, the CSS,
+     the page table and the controller that drove them are all deleted; BEGIN EXPEDITION
+     now goes straight to _start(). Nothing replaced this element — the objective line
+     and the interaction prompt were already on screen, and they are the onboarding. -->
 
 <div id="winScreen">
   <h1 id="winTitle">PURGE COMPLETE</h1>
@@ -23533,7 +23496,8 @@ class PlayerController {
          them orphaned the moment the other closed. The inventory keys are simply inert
          while settings are up, which is what a paused game should do with them. */
       if (e.code === 'KeyE') {
-        if (!this.ui.settingsOpen) this.ui.toggleCrafting();
+        // PHASE 28 — pressing it once is the whole lesson; the cue never returns.
+        if (!this.ui.settingsOpen) { this.ui.toggleCrafting(); this._learn('craft'); }
         return;
       }
       if (e.code === 'KeyI' || e.code === 'Tab') {
@@ -23685,11 +23649,15 @@ class PlayerController {
     if (this.dead || !this.locked) { this.highlight.hide(); this._setPrompt(null); return; }
 
     const hit = this.mining && this.miningTarget ? this.miningTarget : this._getLookTarget();
-    if (!hit) { this.highlight.hide(); this._setPrompt(this._havenPropPrompt()); return; }
+    /* PHASE 28 — with nothing under the crosshair there is no affordance to show, but a
+       cue that needs no target (CRAFT) may still be the useful thing to say. */
+    if (!hit) {
+      this.highlight.hide(); this._setPrompt(this._havenPropPrompt() || this._onboardingCue(null)); return;
+    }
 
     const id = this.world.getBlockWorld(hit.bx, hit.by, hit.bz);
     if (id === BLOCK.AIR || NO_HIGHLIGHT_BLOCKS.has(id)) {
-      this.highlight.hide(); this._setPrompt(this._havenPropPrompt()); return;
+      this.highlight.hide(); this._setPrompt(this._havenPropPrompt() || this._onboardingCue(null)); return;
     }
 
     /* PHASE 14 — interaction feedback. Looking at a door tells you what it will do, so
@@ -23699,7 +23667,10 @@ class PlayerController {
        as long as the door is under the crosshair instead of timing out after 1.1s. The
        Anchor and Ancient Chests, which had no affordance at all, are answered from the
        same table. */
-    this._setPrompt(this._promptForBlock(id) || this._havenPropPrompt());
+    /* PHASE 28 — the ORDER IS THE POLICY. A real affordance (a door, the Anchor, a
+       chest, a Haven prop) always wins the line; an onboarding cue only ever fills space
+       nothing else wanted, which is what keeps it from reading as a tutorial layer. */
+    this._setPrompt(this._promptForBlock(id) || this._havenPropPrompt() || this._onboardingCue(id));
 
     const heldMeta = ITEM_DATA[this.inventory.slots[this.selectedSlot].item];
     const info = computeBreakTime(id, heldMeta, this.miningSpeedBonus);
@@ -23745,6 +23716,41 @@ class PlayerController {
     if (kind === 'storage') return { key: 'RMB', verb: 'OPEN' };
     return null;
   }
+
+  /* PHASE 28 — THE ONBOARDING CUE, if any is still owed and any still applies.
+
+     Returns the same { key, verb } shape as _promptForBlock, so the HUD cannot tell the
+     difference and does not need to: from the renderer's side a cue IS an interaction
+     prompt. See ONBOARDING_CUES for why there are three of them and no more.
+
+     THE FIRST LINE IS THE COST STORY. Once the player has broken a block, opened the
+     bench and placed something — three actions, all of them in the first few minutes —
+     the set is full and this returns on a `>=` against a frozen three-element table for
+     the rest of that save's life. Nothing is scanned, nothing is allocated. */
+  _onboardingCue(targetId) {
+    const learned = this.progression && this.progression.onboarding;
+    if (!learned || learned.size >= ONBOARDING_CUES.length) return null;
+    const slot = this.inventory.slots[this.selectedSlot];
+    const meta = (slot.item !== ITEM.NONE && slot.count > 0) ? ITEM_DATA[slot.item] : null;
+    const ctx = {
+      target: (typeof targetId === 'number' && targetId !== BLOCK.AIR) ? targetId : null,
+      holdingBlock: !!(meta && meta.isBlock),
+      /* Handed the inventory rather than a precomputed answer, so the scan only happens
+         if a cue that is still owed actually asks — which, after the first bench opening,
+         is never. */
+      inv: this.inventory,
+    };
+    for (const cue of ONBOARDING_CUES) {
+      if (learned.has(cue.id) || !cue.when(ctx)) continue;
+      return { key: cue.key, verb: cue.verb(ctx) };
+    }
+    return null;
+  }
+
+  /* The latch. Called from the three places the keys actually do their work, never from
+     the frame loop, and never from the HUD — what has been learned is gameplay state and
+     is saved as such. */
+  _learn(id) { if (this.progression) this.progression.learnOnboarding(id); }
 
   _setPrompt(spec) { if (this.ui) this.ui.setInteractPrompt(spec); }
 
@@ -23808,6 +23814,8 @@ class PlayerController {
       // PHASE 2 — the break itself gets a distinct, heavier chip burst on top of the
       // existing playBlockBreak() crunch fired inside destroyBlock().
       spawnBlockChips(this.world.scene, center, brokenId, MINING_CHIP_COUNT, 1.0);
+      // PHASE 28 — the cue that named this button has now been answered by the player.
+      this._learn('break');
     }
     this._cancelMining();
   }
@@ -23942,6 +23950,7 @@ class PlayerController {
 
     if (this.world.placeBlock(px, py, pz, itemMeta.blockId, aabb, this.sound)) {
       this.inventory.consumeItemInSlot(this.selectedSlot, 1);
+      this._learn('place');   // PHASE 28
     }
   }
 
@@ -30109,66 +30118,22 @@ function startEmbers(canvas) {
 }
 
 /* ---------------------------------------------------------------------------------
-   TUTORIAL — a short paged walkthrough shown before the first drop-in.
+   PHASE 28 — WHAT WAS DELETED HERE.
+
+   TUTORIAL_PAGES stood at this point: six authored cards — Welcome, Move & Look, Mine &
+   Gather, Tools Change Everything, Craft & Carry, Survive the Night — twenty-one
+   sentences of instruction shown before the player had seen a single frame of the world.
+   It explained the outline colour, the crack animation, the pickaxe gate, the drop
+   behaviour, the crafting order, the anchor's fuel and the Blood Night, and it did all of
+   it in advance, out of context, to somebody who had not yet asked.
+
+   Every one of those facts is still in the game. None of them is a sentence any more:
+   the outline is a colour the player sees, the pickaxe gate is a red highlight and a
+   readout that names it, the drop is an item on the ground, the crafting order is the
+   bench's own list, the anchor's fuel is a dome that dims. What the world could not say
+   by itself was the KEY — and that is now three cue lines in ONBOARDING_CUES, each shown
+   once, in the moment the key becomes useful, and never again after it is pressed.
    --------------------------------------------------------------------------------- */
-const TUTORIAL_PAGES = [
-  {
-    icon: '&#127961;',
-    title: 'Welcome, Wanderer',
-    lines: [
-      '<b>Where It Isn&rsquo;t</b> is a survival horror expedition: gather by day, defend by night.',
-      'Each <b>Stage</b> gets harder — tougher mobs, longer sieges, richer rewards.',
-      'This quick walkthrough covers everything you need for your first night.',
-    ],
-  },
-  {
-    icon: '&#128694;',
-    title: 'Move & Look',
-    lines: [
-      '<b>WASD</b> to move, <b>Mouse</b> to look around.',
-      '<b>SPACE</b> to jump or swim upward in water.',
-      '<b>SHIFT</b> to sprint when you need to close distance fast.',
-    ],
-  },
-  {
-    icon: '&#9935;',
-    title: 'Mine & Gather',
-    lines: [
-      'Point at a block — a <b>white outline</b> marks exactly what you\'re aiming at.',
-      '<b>Hold Left Click</b> to break it. Cracks spread across the block and the bar under your crosshair fills; let go and the damage resets.',
-      'Broken blocks <b>drop as items that fall to the ground</b>. Walk over them to pick them up automatically.',
-      '<b>Right Click</b> places the held block. <b>1-9</b> or the <b>Scroll Wheel</b> picks your hotbar slot.',
-    ],
-  },
-  {
-    icon: '&#128296;',
-    title: 'Tools Change Everything',
-    lines: [
-      'Start with your fists — good enough for <b>trees, dirt and grass</b>.',
-      'Stone and ore need a <b>Pickaxe</b>. Without one the outline turns <b>red</b> and reads <b>NEEDS A PICKAXE</b>: you can still smash the block, but it drops <b>nothing</b>.',
-      'Better tools bite faster — a Stone Pickaxe breaks stone in a fraction of the time a Wooden one takes. An <b>Axe</b> does the same for wood.',
-    ],
-  },
-  {
-    icon: '&#127890;',
-    title: 'Craft & Carry',
-    lines: [
-      '<b>E</b> opens the Crafting Bench. Your first night runs through it: <b>Log &rarr; Planks &rarr; Sticks &rarr; Wooden Pickaxe</b>.',
-      'That pickaxe unlocks <b>Stone</b> and <b>Coal</b> — and coal is what turns sticks into <b>Torches</b>.',
-      '<b>I</b> or <b>Tab</b> opens your full 36-slot Inventory. <b>Q</b> drops one item, <b>Shift+Q</b> the whole stack.',
-    ],
-  },
-  {
-    icon: '&#128293;',
-    title: 'Survive the Night',
-    lines: [
-      'Fell a couple of trees early — you need roughly <b>three logs</b> for a pickaxe and an Anchor.',
-      'Craft <b>Torches</b> before dark, then place a <b>Safehouse Anchor</b> and right-click it with wood, planks, or torches to <b>feed its fuel</b>.',
-      'Stay inside its glow through the <b>Blood Night</b> — step outside and you\'re exposed.',
-      '<b>Ancient Chests</b> out in the world hold rare one-time loot worth detouring for.',
-    ],
-  },
-];
 
 /* =====================================================================================
    PHASE 20.2 — THE OPENING INSTRUCTION
@@ -30186,11 +30151,13 @@ const TUTORIAL_PAGES = [
    authored as the beat that film will END on, kept behind one entry point so Phase 30
    can call `play()` as its last cue and delete nothing.
 
-   WHY IT SITS IN _start() RATHER THAN IN THE TUTORIAL. The tutorial is skippable and
-   Phase 28 removes it outright; an instruction living inside it would be lost by both.
-   _start() is the single funnel every path to gameplay passes through — finishing the
-   tutorial and skipping it both land here — so the phrase is the last thing before the
-   world appears, on every route, which is what requirement 12 asks for.
+   WHY IT SITS IN _start() RATHER THAN IN THE TUTORIAL. Phase 20.2 put it here because
+   the tutorial was skippable and an instruction living inside it would have been lost by
+   anyone who skipped. PHASE 28 VINDICATED THAT: the tutorial is deleted and this beat did
+   not move, because _start() is still the single funnel every path to gameplay passes
+   through. It is an opening instruction, not tutorial content — it names a bearing and
+   nothing else, it says nothing about how to play, and the objective system never repeats
+   it — so removing the tutorial had no claim on it.
 
    SKIPPABLE, DELIBERATELY. A player on their fifth run should not be held for nine
    seconds. Any key or click ends it early; the words have already been said once and the
@@ -30278,58 +30245,6 @@ class OpeningInstruction {
   }
 }
 
-class TutorialController {
-  constructor(onComplete) {
-    this.onComplete = onComplete;
-    this.index = 0;
-    this.eyebrowEl = document.getElementById('tutorialEyebrow');
-    this.iconEl = document.getElementById('tutorialIcon');
-    this.titleEl = document.getElementById('tutorialTitle');
-    this.linesEl = document.getElementById('tutorialLines');
-    this.dotsEl = document.getElementById('tutorialDots');
-    this.backBtn = document.getElementById('tutorialBack');
-    this.nextBtn = document.getElementById('tutorialNext');
-    this.screenEl = document.getElementById('tutorialScreen');
-
-    this.dotsEl.innerHTML = '';
-    this.dots = TUTORIAL_PAGES.map(() => {
-      const d = document.createElement('div');
-      d.className = 'tutorial-dot';
-      this.dotsEl.appendChild(d);
-      return d;
-    });
-
-    this.backBtn.addEventListener('click', () => this._go(this.index - 1));
-    this.nextBtn.addEventListener('click', () => {
-      if (this.index >= TUTORIAL_PAGES.length - 1) this._complete();
-      else this._go(this.index + 1);
-    });
-    document.getElementById('tutorialSkip').addEventListener('click', () => this._complete());
-  }
-
-  open() {
-    this.screenEl.classList.add('active');
-    this._go(0);
-  }
-
-  _go(i) {
-    this.index = Math.max(0, Math.min(TUTORIAL_PAGES.length - 1, i));
-    const page = TUTORIAL_PAGES[this.index];
-    this.eyebrowEl.innerHTML = `HOW TO SURVIVE &bull; ${this.index + 1} / ${TUTORIAL_PAGES.length}`;
-    this.iconEl.innerHTML = page.icon;
-    this.titleEl.textContent = page.title;
-    this.linesEl.innerHTML = page.lines.map(l => `<li>${l}</li>`).join('');
-    this.dots.forEach((d, di) => d.classList.toggle('active', di === this.index));
-    this.backBtn.disabled = this.index === 0;
-    this.nextBtn.textContent = this.index === TUTORIAL_PAGES.length - 1 ? 'START EXPEDITION' : 'NEXT \u25B6';
-  }
-
-  _complete() {
-    this.screenEl.classList.remove('active');
-    this.onComplete();
-  }
-}
-
 /* =====================================================================================
    PHASE 23 — SAVE / LOAD
 
@@ -30375,7 +30290,7 @@ class TutorialController {
    PROGRESSION_MILESTONES, and its migration is the interesting one: see SAVE_MIGRATIONS.
    ===================================================================================== */
 
-const SAVE_VERSION = 3;
+const SAVE_VERSION = 4;
 const SAVE_STORAGE_KEY = 'whereitisnt.save.v1';
 const SAVE_BACKUP_KEY = 'whereitisnt.save.v1.backup';
 
@@ -30422,12 +30337,39 @@ const SAVE_MAX_EDITS = 400000;
 
    This consumes old XP-era data (`dayCount`, `behemothDefeated`, the anchor) exactly once,
    at migration, to preserve progression. It does not keep XP alive: nothing it writes is a
-   currency, and the runtime it hands the save to has no XP in it. */
+   currency, and the runtime it hands the save to has no XP in it.
+
+   3 -> 4 (PHASE 28). TUTORIAL REMOVAL, AND THE ONE THING IT COULD HAVE GOT WRONG.
+   Version 4 adds `progression.onboarding`: which of the three contextual cues the player
+   has already answered. A new game starts with none, which is correct — nobody has
+   pressed anything yet.
+
+   A SCHEMA-3 SAVE IS NOT A NEW GAME. It was written by somebody who reached the start
+   screen when the six-page tutorial was still in front of it, who therefore either read
+   it or deliberately skipped it, and who has in any case been playing long enough to have
+   a save. Defaulting them to "has learned nothing" would greet a returning player with
+   LMB · CHOP over the first tree they looked at — the exact patronising beat this phase
+   exists to delete. So the migration marks every cue answered. This is the same shape of
+   reasoning as 2 -> 3 above: derive what the old save has already lived rather than
+   letting a new field default to a lie.
+
+   Nothing else in the schema moved. Every version-3 field is carried across untouched,
+   and a version-3 file remains fully loadable. */
 const SAVE_MIGRATIONS = {
   1: (state) => {
     const out = Object.assign({}, state);
     out.version = 2;
     out.objectives = { overworld: 0, farmlands: 0, suburbia: 0, haven: 0 };
+    return out;
+  },
+  3: (state) => {
+    const out = Object.assign({}, state);
+    out.version = 4;
+    const rawG3 = _svPlainObject(out.progression) || {};
+    const progression3 = Object.assign({}, rawG3);
+    /* Everything, because this player was shown the tutorial. See the note above. */
+    if (!Array.isArray(progression3.onboarding)) progression3.onboarding = ONBOARDING_CUE_IDS.slice();
+    out.progression = progression3;
     return out;
   },
   2: (state) => {
@@ -30502,6 +30444,21 @@ function _svMilestones(rep, raw) {
   for (const v of raw) { if (typeof v === 'string') seen.add(v); }
   const out = PROGRESSION_MILESTONE_IDS.filter(id => seen.has(id));
   if (out.length !== raw.length) rep.push('progression.milestones contained entries this build does not know; they were dropped');
+  return out;
+}
+
+/* PHASE 28 — which onboarding cues have been answered, filtered against the authored
+   table exactly the way the milestone set is. A save cannot invent a cue, cannot list one
+   twice and cannot control the order. Absent means "none answered", which is correct for
+   a new game and is never what a migrated schema-3 save gets (see the 3 -> 4 migration,
+   which marks all of them, because that player was shown the tutorial). */
+function _svOnboarding(rep, raw) {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) { rep.push('progression.onboarding was not a list; using none'); return []; }
+  const seen = new Set();
+  for (const v of raw) { if (typeof v === 'string') seen.add(v); }
+  const out = ONBOARDING_CUE_IDS.filter(id => seen.has(id));
+  if (out.length !== raw.length) rep.push('progression.onboarding contained entries this build does not know; they were dropped');
   return out;
 }
 
@@ -30681,6 +30638,9 @@ function validateSaveState(input) {
        rather than trusted: an unknown id in the file is dropped, a duplicate collapses,
        and the order is the table's, so what comes out is always a legal set. */
     milestones: _svMilestones(rep, rawG.milestones),
+    /* PHASE 28 — the onboarding cue latch set, validated the same way and for the same
+       reason. It gates nothing but three two-word lines above the hotbar. */
+    onboarding: _svOnboarding(rep, rawG.onboarding),
     farmJourneyOrd: _svInt(rep, 'progression.farmJourneyOrd', rawG.farmJourneyOrd, 0, -1e6, 1e6),
     farmHouseSeen: _svBool(rep, 'progression.farmHouseSeen', rawG.farmHouseSeen, false),
     killCount: _svInt(rep, 'progression.killCount', rawG.killCount, 0, 0, 1e9),
@@ -31128,6 +31088,9 @@ function defaultSaveState(settings) {
       awaitingAdvance: false, behemothDefeated: false, behemothSpawned: false,
       compassAcquired: false, pendingLevel2Transition: false, fakeHavenTriggered: false,
       milestones: [],
+      /* PHASE 28 — a new game has answered no cues. This is the field a New Game resets,
+         and it is why a New Game gets the cues back while a Load does not. */
+      onboarding: [],
       farmCrossroadsRecalled: false, farmJourneyOrd: 0, farmHouseSeen: false,
       killCount: 0, riftDisks: [], dimensionsBreached: [DIMENSION.OVERWORLD],
     },
@@ -31233,7 +31196,9 @@ const OBJECTIVE_OVERRIDES = [
    --------------------------------------------------------------------------------- */
 const OBJECTIVE_CHAINS = {
   /* THE OVERWORLD — the survival spine. Deliberately the shortest useful set of words at
-     each step: the tutorial explains crafting, the world explains everything else. */
+     each step. PHASE 28: these lines are now the PRIMARY onboarding. Nothing explains
+     crafting in advance any more — this chain asks for a tool, the cue above the hotbar
+     names the key once, and the world explains everything else. */
   overworld: [
     { id: 'gather_wood',  text: 'Gather wood.',            done: (s) => s.hasWood || s.hasTool },
     { id: 'craft_tool',   text: 'Craft a basic tool.',     done: (s) => s.hasTool },
@@ -31292,6 +31257,82 @@ const OBJECTIVE_CHAINS = {
 
   haven: [],
 };
+
+
+/* =====================================================================================
+   PHASE 28 — ORGANIC ONBOARDING: THE CONTEXTUAL CUES
+
+   THE TUTORIAL IS GONE AND NOTHING TOOK ITS SHAPE. What replaced twenty-one sentences of
+   advance instruction is three lines of two words each, and the rule that decides when
+   they are allowed to exist is the only interesting thing here:
+
+       A CUE MAY ONLY NAME A KEY, IT MAY ONLY APPEAR WHERE THAT KEY IS USEFUL, AND IT
+       DIES THE FIRST TIME THE KEY IS PRESSED.
+
+   WHY THESE THREE AND NOT THIRTY. The test applied to every candidate was: can a player
+   who has been told "Gather wood." find this on their own, from the world, in under a
+   minute? Almost everything passes. Walking, looking, jumping, sprinting and choosing a
+   hotbar slot are on the start screen because they have no target under the crosshair
+   for a cue to attach to. The pickaxe gate teaches itself — the highlight turns red and
+   the readout says NEEDS A PICKAXE. Drops are visible on the ground. The bench lists its
+   own recipes and their materials. The Anchor, doors and chests already carry permanent
+   affordances (see PlayerController._promptForBlock) because what they offer is a
+   property of the world rather than a lesson.
+
+   What FAILS the test is exactly three things, and all three fail it for the same
+   reason — a key with no visible surface to click on:
+
+       break   Nothing on a tree says which button fells it, and a player who tries the
+               place button on a trunk gets no feedback at all. The verb changes with
+               what is under the crosshair (CHOP a log, MINE what needs the pickaxe,
+               BREAK anything else) so the first word is about the world, not the input.
+       craft   The bench has no physical existence. There is no workbench block to walk
+               up to, no icon, and no menu bar: without one word naming the key, "Craft
+               a basic tool." is an instruction with no door.
+       place   Building — and therefore the Anchor, and therefore surviving the first
+               night — needs a button the player has no reason to have pressed yet.
+
+   THE ORDER IS THE PRIORITY, and it is also the order a first night happens in.
+
+   WHERE THEY ARE DRAWN. In the Phase 27 interaction prompt, the same element, the same
+   renderer, the same two-word grammar. There is deliberately NO second prompt system,
+   no popup, no timer and no dismiss button — a cue is outranked by any real affordance
+   under the crosshair, so the world always wins the space.
+
+   WHAT PERSISTS. One set of at most three strings, in the save's progression block,
+   latched by PlayerController the moment the key does its work. A New Game clears it,
+   because a new player may be a different person. A save written before this phase is
+   migrated to "knows all three" — that player was shown the tutorial.
+
+   COST. Nothing is scanned per frame once the set is full: the first line of
+   _onboardingCue is a size comparison against a three-element table, and after the first
+   night of any run it returns null from there forever.
+   ===================================================================================== */
+const ONBOARDING_CUES = Object.freeze([
+  {
+    id: 'break',
+    key: 'LMB',
+    when: (c) => c.target !== null,
+    verb: (c) => (WOOD_BLOCKS.has(c.target) ? 'CHOP'
+                : REQUIRES_PICKAXE.has(c.target) ? 'MINE' : 'BREAK'),
+  },
+  {
+    /* Only once there is something to make. Offering the bench to a player with empty
+       hands would be a menu advertisement; offering it to one holding a log is the next
+       thing they were going to want. */
+    id: 'craft',
+    key: 'E',
+    when: (c) => c.inv.hasItem(ITEM.OAK_LOG) || c.inv.hasItem(ITEM.WOOD_PLANK),
+    verb: () => 'CRAFT',
+  },
+  {
+    id: 'place',
+    key: 'RMB',
+    when: (c) => c.target !== null && c.holdingBlock,
+    verb: () => 'PLACE',
+  },
+]);
+const ONBOARDING_CUE_IDS = Object.freeze(ONBOARDING_CUES.map(c => c.id));
 
 /* ---------------------------------------------------------------------------------
    THE SYSTEM
@@ -31479,6 +31520,12 @@ class Game {
        block beside compassAcquired and behemothDefeated because it is the same kind of
        thing they are — a record of something that happened, which the save carries. */
     this.milestones = new Set();
+    /* PHASE 28 — WHICH ONBOARDING CUES HAVE BEEN ANSWERED, and it is the same kind of
+       thing for the same reason: a Set of ids recording something that happened, sitting
+       in the progression block so the save carries it. It gates nothing but whether three
+       two-word lines are still owed above the hotbar; see ONBOARDING_CUES. A New Game
+       clears it, which is why a new player gets the cues and a returning one does not. */
+    this.onboarding = new Set();
     /* PHASE 20.2 — THE COMPASS, and it lives HERE on purpose.
 
        Requirement 10 asks that it go into the canonical progression rather than an
@@ -31517,8 +31564,11 @@ class Game {
     this.player.progression = this;
 
     window.addEventListener('resize', () => this._onResize());
-    document.getElementById('clickPlay').addEventListener('click', () => this._openTutorial());
-    document.getElementById('skipTutorialLink').addEventListener('click', () => this._start());
+    /* PHASE 28 — BEGIN EXPEDITION IS NOW THE ONLY DOOR, and it opens onto the game.
+       It used to open the tutorial, with a second "SKIP TUTORIAL & DROP IN NOW" link
+       beside it going straight to _start(). Two buttons, one of which existed to undo
+       the other. There is one now, and it is the one that was already correct. */
+    document.getElementById('clickPlay').addEventListener('click', () => this._start());
     // PHASE 22 — settings are reachable before the game begins as well as during it.
     document.getElementById('startSettingsLink').addEventListener('click', () => this.ui.toggleSettings());
     /* PHASE 23 — CONTINUE. Hidden unless a save that actually validates exists, so the
@@ -31543,7 +31593,6 @@ class Game {
     this.objectives = new ObjectiveSystem(this.ui);
     this._objectiveSnapshotFn = () => this._objectiveSnapshot();
 
-    this.tutorial = new TutorialController(() => this._start());
     // PHASE 20.2 — the closing beat of the (Phase 30) opening film, authored early
     // because the whole Farmland journey depends on the player having heard it.
     this.openingInstruction = new OpeningInstruction(this.sound);
@@ -31627,6 +31676,8 @@ class Game {
         farmCrossroadsRecalled: !!this.farmCrossroadsRecalled,
         // PHASE 26 — the direct-progression latch set, in the table's own order.
         milestones: PROGRESSION_MILESTONE_IDS.filter(id => this.milestones.has(id)),
+        // PHASE 28 — the onboarding cue latch set, in the table's own order.
+        onboarding: ONBOARDING_CUE_IDS.filter(id => this.onboarding.has(id)),
         farmJourneyOrd: this.farmJourneyOrd || 0,
         farmHouseSeen: !!this.farmHouseSeen,
         killCount: this.mobs.killCount || 0,
@@ -31832,6 +31883,11 @@ class Game {
        paid out is already in state.player.maxHp, which was applied above. Re-running the
        grants here would pay a returning player twice for the same night. */
     this.milestones = new Set(g.milestones);
+    /* PHASE 28 — restored, not re-derived. A New Game arrives here with an empty list
+       (defaultSaveState) and gets its cues; a Load arrives with whatever the player had
+       already answered, and a pre-Phase-28 save arrives with all three (the 3 -> 4
+       migration), so a returning player is never told how to hold a pickaxe again. */
+    this.onboarding = new Set(g.onboarding);
     this.compassAcquired = g.compassAcquired;
     this.pendingLevel2Transition = g.pendingLevel2Transition;
     this.fakeHavenTriggered = g.fakeHavenTriggered;
@@ -31972,7 +32028,6 @@ class Game {
     const read = this.saves.read();
     if (!read.ok) return { ok: false, error: read.error };
     document.getElementById('startScreen').style.display = 'none';
-    document.getElementById('tutorialScreen').classList.remove('active');
     if (this.stopEmbers) { this.stopEmbers(); this.stopEmbers = null; }
     this.sound.start();
     this._applyAudioSettings();
@@ -32012,11 +32067,6 @@ class Game {
     const sx = Math.floor(this.player.position.x) + 2, sz = Math.floor(this.player.position.z) + 2;
     const sy = this.world.findSpawnHeight(sx, sz);
     this.world.setBlockWorld(sx, sy, sz, BLOCK.TORCH);
-  }
-
-  _openTutorial() {
-    document.getElementById('startScreen').style.display = 'none';
-    this.tutorial.open();
   }
 
   /* ===================================================================================
@@ -32102,14 +32152,17 @@ class Game {
                        Math.max(1, Math.round(window.innerHeight * rs)));
   }
 
-  /* PHASE 20.2 — _start() now ends on the opening instruction rather than on the world.
-     Both routes into gameplay (finishing the tutorial, and skipping it) funnel through
-     here, so the phrase is the last thing the player sees before the world appears no
-     matter how they got in. The world does not begin simulating until it is done: the
-     clock is only started, and the frame loop only entered, from _beginPlay(). */
+  /* PHASE 20.2 — _start() ends on the opening instruction rather than on the world, so
+     the phrase is the last thing the player sees before the world appears. The world does
+     not begin simulating until it is done: the clock is only started, and the frame loop
+     only entered, from _beginPlay().
+
+     PHASE 28 — and this is now the ONLY route in from BEGIN EXPEDITION. There is no
+     tutorial screen to finish or skip, and nothing is shown between the click and the
+     instruction: the next thing after these eight seconds is gameplay, with the first
+     objective already resolved (see _beginPlay) and the HUD already painted. */
   _start() {
     document.getElementById('startScreen').style.display = 'none';
-    document.getElementById('tutorialScreen').classList.remove('active');
     if (this.stopEmbers) { this.stopEmbers(); this.stopEmbers = null; }
     this.sound.start();
     // PHASE 22 — the AudioContext exists only now, so this is where the stored volumes
@@ -32528,6 +32581,19 @@ class Game {
       p.hp = Math.min(p.maxHp, p.hp + m.maxHp);
     }
     if (this.ui) { this.ui.showToast(m.toast); this.ui.updateVitals(p); }
+    return true;
+  }
+
+  /* PHASE 28 — ANSWERING A CUE.
+
+     The only writer of the onboarding set outside a restore, and it is deliberately as
+     dull as it looks: no capability is granted, no toast is raised, nothing is unlocked.
+     A cue being answered means one line stops being drawn. Idempotent, and the id is
+     checked against the authored table so a caller cannot invent one. */
+  learnOnboarding(id) {
+    if (!this.onboarding || this.onboarding.has(id)) return false;
+    if (ONBOARDING_CUE_IDS.indexOf(id) < 0) return false;
+    this.onboarding.add(id);
     return true;
   }
 

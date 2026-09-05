@@ -191,9 +191,16 @@ function fakeGame() {
       'the last thing _start() does is play the instruction');
   chk(!/requestAnimationFrame\(this\._animate\)/.test(start),
       'and gameplay does not begin until it is finished — the frame loop moved to _beginPlay');
-  chk(/skipTutorialLink[\s\S]{0,140}_start\(\)/.test(SRC) &&
-      /new TutorialController\(\(\) => this\._start\(\)\)/.test(SRC),
-      'both routes in — finishing the tutorial and skipping it — pass through _start()');
+  /* PHASE 28. There used to be two routes into gameplay — finishing the tutorial and
+     skipping it — and this asserted that both funnelled through _start() so the opening
+     instruction could not be lost by either. The tutorial is deleted, so the property is
+     now stronger and simpler: BEGIN EXPEDITION is the only route in, and it IS _start().
+     (CONTINUE is deliberately not one: a returning player has already heard the line, and
+     continueFromSave goes straight to _beginPlay.) */
+  chk(/clickPlay'\)\.addEventListener\('click', \(\) => this\._start\(\)\)/.test(SRC),
+      'the one route in — BEGIN EXPEDITION — is _start(), so the instruction cannot be skipped past');
+  chk(!/TutorialController|skipTutorialLink|_openTutorial/.test(SRC),
+      'and there is no second route: the tutorial screen and its skip link are gone');
 }
 {
   /* The sequence runs to completion with audio unavailable, calls back exactly once,

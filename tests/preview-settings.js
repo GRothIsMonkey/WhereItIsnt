@@ -16,8 +16,11 @@ const SRC = fs.readFileSync(path.join(__dirname, '..', 'game.html'), 'utf8');
 // The real stylesheet and the real panel markup, lifted verbatim.
 const css = SRC.slice(SRC.indexOf('<style>') + 7, SRC.indexOf('</style>'));
 const start = SRC.indexOf('<div id="settingsOverlay">');
-const end = SRC.indexOf('<div id="tutorialScreen">');
-let panel = SRC.slice(start, end).trim();
+/* PHASE 28 deleted #tutorialScreen, which used to be the element immediately after the
+   settings overlay and therefore this slice's end marker. #winScreen is what follows it
+   now; the HTML comment left in the tutorial's place renders nothing. */
+const end = SRC.indexOf('<div id="winScreen">');
+let panel = SRC.slice(start, end).replace(/<!--[\s\S]*?-->/g, '').trim();
 panel = panel.replace('<div id="settingsOverlay">', '<div id="settingsOverlay" class="active">');
 
 // Populate it from the real defaults, the same way syncSettingsUI would.
