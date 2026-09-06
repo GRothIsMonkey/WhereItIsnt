@@ -176,7 +176,11 @@ head('2. THE VOCABULARY THAT IS GONE');
 head('3. PERCEPTION');
 {
   const cv = el('perceptionTrace');
-  chk(cv && cv.width === 176 && cv.height === 18, 'the perception trace is a canvas, drawn like the compass');
+  /* PHASE 29 — 200x22 rather than 176x18, and the harness now reads that size out of
+     game.html rather than keeping its own copy of it (see harness/load.js canvasSizes).
+     The old copy was stale for the length of this phase and the check passed anyway,
+     which is the failure mode a duplicated constant always has. */
+  chk(cv && cv.width === 200 && cv.height === 22, `the perception trace is a canvas, drawn like the compass (${cv.width}x${cv.height})`);
 
   const seen = [];
   for (const v of [100, 80, 60, 30, 8]) { ui.setSanity(v); seen.push(vitalClass('p')); }

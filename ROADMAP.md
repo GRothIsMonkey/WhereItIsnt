@@ -1808,49 +1808,61 @@ What it must keep being:
   stays. Phase 30 absorbs it as the closing beat of the opening film.
 - A pre-Phase-28 save loads fully onboarded. Never re-teach a returning player.
 
-**Phase 29 is next** and redesigns the main menu. It owns the start screen this phase
-deliberately left alone apart from the two legend lines; it may not put a tutorial, a
-control screen or a "how to play" panel back on it.
+**Phase 29 delivered** and kept that rule: the start screen was rebuilt around a
+landscape, and the legend is still two lines of keys that have no crosshair target — no
+tutorial, no control screen, no "how to play" panel came back onto it.
 
 ---
 
-# 47. PHASE 29 — MAIN MENU REBIRTH
+# 47. PHASE 29 — MAIN MENU REBIRTH + UI TYPOGRAPHY  — **COMPLETE**
 
-Completely redesign the main menu.
+Delivered. See `PROGRESS.md` section 0.0000000 for the full record: every element that was
+removed and what replaced it, the scene's architecture and why it is a 2D canvas, the three
+anomalies and their schedules, the audio lifecycle, the type scale with its measured
+values, the five defects the phase found, and — plainly — that no human has looked at any
+of it.
 
-The menu itself should feel like part of the horror experience.
+The end state, in one line: **the menu is a place, not a card.** A cold horizon with a tree
+line, a water tower, a barn and a wire, drifting fog and low mist; the title in its sky in
+the HUD's own parchment ink with one letter a third of a pixel out of line; NEW GAME,
+CONTINUE and SETTINGS as words with hairlines under them. The ember particles, the brass
+corner brackets, the bordered card, the eyebrow reading A SURVIVAL HORROR EXPEDITION, the
+gradient title bloom and BEGIN EXPEDITION are all gone.
 
-Desired qualities:
+And the HUD is readable: **the blur was Courier New**, whose hairline stems cannot survive
+9px, behind a 12px halo that made it worse. The face is now a real monospace stack with a
+per-platform fallback, the shadow is a hard 1px contour rather than a glow, and nine
+measured readings sit on a four-step scale with a 10px floor.
 
-- quiet
-- dark
-- atmospheric
-- subtle
-- unsettling
+Gameplay was not touched: health, sanity, damage, objectives, progression, inventory,
+crafting, mining, combat, save/load and generation are all unchanged, and
+`tests/regression.js` proves the world is byte-identical.
 
-Possible elements:
+What it must keep being:
 
-- barely visible environment
-- slow camera
-- subtle static
-- distant movement
-- environmental sound
-- rare anomalies
-- imperfect title treatment
+- **ONE menu.** One `#startScreen`, one of each control, and the three buttons stay bound
+  in `Game`. `MainMenu` owns the scene, the ambience and the CONTINUE label and binds none
+  of them — the split is by KIND, not by control, because a menu split across two
+  controllers becomes two menus.
+- **The menu is presentation.** It generates no terrain, ticks no clock, spawns nothing,
+  advances no objective and writes no save. `tests/menu.js` asserts that against the source
+  and `browser-menu.js` proves it live.
+- **Nothing announces itself.** The earliest anomaly is 14s in, the figure not before 34s,
+  the tower light is lit under 1% of the time, and the figure is two pixels wide. A menu
+  anomaly a player cannot doubt is a menu anomaly that has failed.
+- **No creature and no answer.** No Stalker, no Behemoth, no Neighbour, no final entity,
+  and no menu text may use the canon's internal vocabulary.
+- **Minimal is not tiny.** Nothing in the HUD goes below 10px, including in the
+  small-viewport media query, and nothing goes above 16px either.
+- **No artificial blur.** Atmosphere comes from restraint, spacing, colour and composition.
+  Text stays sharp.
+- Health and perception stay apart on Phase 27's four axes. Neither instrument may be
+  redesigned here; they were only made bigger and given readable captions.
+- The legend stays a footnote of keys with no crosshair target — Phase 28's rule.
 
-Official title:
-
-WHERE IT ISN'T
-
-Menu:
-
-- New Game
-- Continue
-- Settings
-
-The title should visually feel like a horror game title.
-
-Do not reveal major story information in the menu.
+**Phase 30 is next** and builds the opening lore film. It absorbs the Phase 20.2 opening
+instruction as its closing beat, and it may not put a tutorial or a control screen in front
+of the player on the way through.
 
 ---
 
@@ -3353,15 +3365,16 @@ Claude Code should inspect the repository before making assumptions.
 
 Current completed milestone:
 
-Phase 28 — Remove Tutorial / Organic Onboarding
-(Phase 27 HUD rebirth, Phase 26 XP removal, Phase 25 dynamic objectives, Phase 24
-canonical story foundation, Phase 23 save/load, Phase 22 settings, Phase 21 dropped
-item ground contact, and Phase 20 including the 20.1 journey revision and the 20.2
-guidance pass — see PROGRESS.md, and STORY.md for the canon)
+Phase 29 — Main Menu Rebirth + UI Typography
+(Phase 28 tutorial removal, Phase 27 HUD rebirth, Phase 26 XP removal, Phase 25
+dynamic objectives, Phase 24 canonical story foundation, Phase 23 save/load, Phase 22
+settings, Phase 21 dropped item ground contact, and Phase 20 including the 20.1
+journey revision and the 20.2 guidance pass — see PROGRESS.md, and STORY.md for the
+canon)
 
 Current next major phase:
 
-Phase 29 — Main Menu Rebirth
+Phase 30 — Opening Lore Film
 
 Current game build baseline:
 

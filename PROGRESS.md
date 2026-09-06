@@ -1,8 +1,8 @@
 # WHERE IT ISN'T — PROJECT STATE
 
 ```
-Current phase              28 — REMOVE TUTORIAL / ORGANIC ONBOARDING (complete)
-Next phase                 29 — MAIN MENU REBIRTH
+Current phase              29 — MAIN MENU REBIRTH + UI TYPOGRAPHY (complete)
+Next phase                 30 — OPENING LORE FILM
 Phase 19                   COMPLETE
 Phase 20                   COMPLETE
 Phase 20 journey revision  COMPLETE           (20.1 — see section 0)
@@ -15,9 +15,11 @@ Phase 25                   COMPLETE           (see section 0.000)
 Phase 26                   COMPLETE           (see section 0.0000)
 Phase 27                   COMPLETE           (see section 0.00000)
 Phase 28                   COMPLETE           (see section 0.000000)
+Phase 29                   COMPLETE           (see section 0.0000000)
 XP                         REMOVED            (no runtime XP exists; see section 0.0000)
 Hearts / vital bars        REMOVED            (no runtime HUD bar exists; see section 0.00000)
 Tutorial                   REMOVED            (no tutorial exists; see section 0.000000)
+Courier New                REMOVED            (the HUD's blur was the typeface; section 0.0000000)
 Save schema                VERSION 4          (3 -> 4 adds progression.onboarding)
 Authoritative build        game.html          (there is no other game file)
 Canonical story            STORY.md           (read before writing ANY player text)
@@ -28,11 +30,279 @@ Phases 1–19 are as their sections in `ROADMAP.md` describe them. This file rec
 state of Phase 20 specifically: what was built, what was measured, what was found and
 fixed along the way, and what is honestly not verified.
 
-**Sections 0.000000–0.5 describe the phases that followed (28, 27, 26, 25, 23, 22, 21, 20.2). Sections 1–5
+**Sections 0.0000000–0.5 describe the phases that followed (29, 28, 27, 26, 25, 23, 22, 21, 20.2). Sections 1–5
 describe Phase 20 as it was first delivered, and Section 0 describes the 20.1 journey
 revision that followed a human playtest and supersedes them wherever they disagree** — principally the beat table, the landmark set, the distances, and the
 performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
 instruction and the compass and changed no world generation at all.
+
+---
+
+## 0.0000000. PHASE 29 — MAIN MENU REBIRTH + UI TYPOGRAPHY
+
+Two connected jobs: the first screen of the game stopped promising a different game, and
+the HUD stopped being hard to read.
+
+# PART ONE — THE MAIN MENU
+
+### WHAT STOOD THERE, AND WHY EACH PIECE WENT
+
+| the element | what it was | now |
+|---|---|---|
+| background | 55 orange ember particles drifting up a red/amber radial glow, at 60fps | a cold landscape: horizon, two tree ridges, a water tower, a barn and silo, three poles and a wire, drifting fog, low mist |
+| frame | a bordered card with four brass corner brackets and a drop shadow | **deleted.** The composition is the landscape; the words sit in its sky |
+| eyebrow | `A SURVIVAL HORROR EXPEDITION`, pulsing | **deleted.** It was a genre label, and the wrong genre |
+| title | 56px, gradient-filled amber, animated orange bloom | one weight of parchment ink with a hard contour, `clamp(30px, 6.4vw, 62px)`, and one letter a third of a pixel out of line |
+| tagline | `A COZY WORLD. AN UNKIND NIGHT.` | `SOME OF IT IS STILL HERE` |
+| divider | a 120px gradient rule | **deleted** |
+| primary button | `BEGIN EXPEDITION`, 20px on a 3px brass border, flickering on a 2s loop | `NEW GAME` — a word, a hairline, and space |
+| continue | `CONTINUE — THE OVERWORLD • DAY 4` on the same bordered button | `CONTINUE` with the run named quietly beneath it |
+| settings | a small underlined link below the control legend | a third menu entry in the same material as the other two |
+| legend | three lines (cut to two in Phase 28) inside the card | two lines pinned to the bottom edge, the quietest text on the page |
+
+### THE SCENE, AND WHY IT IS A 2D CANVAS
+
+One `<canvas>`, no Three.js. A menu that boots a renderer, a camera and a chunk streamer
+to show a silhouette is a second world to keep alive, and the brief is explicit that it
+must not become one. **Nothing on this screen generates terrain, ticks a clock, spawns a
+mob, advances an objective or touches a save** — `tests/menu.js` asserts each of those
+against the source of both classes, and `browser-menu.js` proves it live by leaning on the
+keyboard and clicking the background and then comparing chunk count, clock, objective,
+chain marks and the save slot before and after.
+
+The landscape is drawn **once** into an offscreen canvas and blitted. It is about four
+hundred strokes; per frame would have been the most expensive thing in the build for the
+least reason. It is rebuilt on a resize and on one anomaly, and 200 frames rebuild it
+exactly once (measured).
+
+It runs at **~30fps on purpose.** The slowest visible motion takes eleven seconds to cross
+the screen. Per frame after the blit: two fog bands, one lamp, at most one walker.
+
+### THE THREE ANOMALIES
+
+| | what happens | not before | roughly every | visible for |
+|---|---|---|---|---|
+| `lamp` | the water tower's red light shows once | 14s | 22–48s | 0.22s |
+| `walker` | a 2px silhouette crosses a gap in the tree line | 34s | 52–122s | 11s |
+| `shift` | the far tree line is redrawn a few pixels along | 76s | 96–216s | permanent |
+
+Every schedule is a **pure function of the seed**, so a test can construct the same menu
+the player gets and assert exactly when things happen; the runtime seed is the wall clock,
+so no two launches are identical. Over five minutes — far longer than a menu is normally
+looked at — the three together produce 15 events, and the tower light is lit for **0.63%**
+of that time. The walker is two pixels wide and fades in and out, so it is never seen to
+arrive or leave: the reaction being designed for is *"was that there before?"*, not a
+reveal. No creature appears, nothing is named, and `tests/menu.js` audits every word on
+the screen against STORY.md's internal-only vocabulary.
+
+### THE TITLE'S IMPERFECTION
+
+One letter — the T before the apostrophe — sits `0.035em` low and half a shade darker, and
+once every 23 seconds it very nearly joins the rest of the word and then does not. No
+scramble, no glitch, no distortion. The title is always readable; the wrongness is
+something a player finds rather than something they are shown.
+
+### AUDIO
+
+`SoundEngine.startMenuAmbience()` / `stopMenuAmbience()`. Two nodes: brown noise rolled
+off at 210Hz, and a 47Hz sine underneath it, both coming up from silence over ~4 seconds,
+both on **`musicBus`** — so the Music slider moves them, the Master slider moves them, and
+a player who has turned music off gets a silent menu, none of it re-implemented.
+
+`startMenuAmbience` returns early if the ambience exists and `stopMenuAmbience` ramps to
+zero, stops the sources and nulls the handle: **one place a node can be created and one
+place it can be destroyed**, so no number of menu cycles can leave a second oscillator
+under the first.
+
+A browser will not open an AudioContext before a gesture, so the menu is **silent at first
+paint** and arms on the first pointerdown, pointermove or keydown over the screen. That is
+the earliest any browser permits, and silence is a state this design is happy in anyway.
+
+### NEW GAME, CONTINUE, SETTINGS
+
+All three keep their element ids and all three keep their existing handlers in `Game` —
+`MainMenu` owns the scene, the ambience and the CONTINUE label, and binds none of the
+buttons. Splitting a menu across two controllers is how a codebase ends up with two menus,
+so the split is by KIND, not by control.
+
+- **NEW GAME** → `_start()`, unchanged, which is still the single funnel through the Phase
+  20.2 opening instruction into `_beginPlay()`. No tutorial, no second init path.
+- **CONTINUE** → `continueFromSave()`, unchanged. Shown only when a save actually
+  validates; **hidden** otherwise, which is the Phase 23 behaviour and the option the
+  brief explicitly allows. A disabled-looking entry that can never be enabled would be
+  dead styling, so the disabled state exists in CSS for the attribute but nothing at boot
+  wears it. A corrupt slot still hides it rather than offering a broken run.
+- **SETTINGS** → the Phase 22 panel, untouched, at z-index 56 over the menu's 50.
+
+Four states, none of them colour alone: hover and focus brighten the word AND grow the
+rule from 26px to 84px AND shift the entry two pixels right; **keyboard focus additionally
+draws a brass bracket the pointer never gets**, so focus and hover are distinguishable;
+pressed drops it back; disabled loses the rule and `pointer-events`.
+
+# PART TWO — TYPOGRAPHY, AND THE ACTUAL CAUSE OF THE BLUR
+
+**The HUD was not blurred. It was set in Courier New.** Courier New is a typewriter face:
+hairline stems by design, small x-height, wide sidebearings. At the 8–10px the HUD used, a
+hairline stem lands on a fraction of a pixel, the rasteriser spreads it across two, and the
+letter arrives grey instead of light. The 12px glow behind it made that worse — a halo
+behind small text is a grey cloud the shape of the letters, which reads as softness.
+
+Three changes, in the order they matter:
+
+1. **The face.** The identity was never Courier New, it was *monospace*. The stack keeps
+   the monospace and drops the one face that cannot hold a stem at this size:
+   `ui-monospace, SF Mono, Cascadia Mono, Segoe UI Mono, Roboto Mono, Menlo, Consolas,
+   DejaVu Sans Mono, Liberation Mono, monospace` — a real face for every platform, with
+   `font-synthesis: none` so a missing bold cut is never smeared into a fake one.
+2. **The shadow.** `--hud-shadow` went from a 2px drop plus a 10px halo to **four
+   one-pixel shadows** — a genuine 1px contour that stays one pixel wide however bright
+   the terrain is — plus one short drop. `--hud-shadow-hard` is the full-strength version
+   for the two captions and the status line, which sit lowest and therefore over the most
+   terrain.
+3. **The scale.** Four declared steps, strictly descending, with a 10px floor the
+   small-viewport media query also obeys.
+
+| | was | now | measured in Chromium |
+|---|---|---|---|
+| CONDITION / PERCEPTION | 9px, regular, dim ink, 12px halo | **11px / 700**, full ink, hard contour | 11px, weight 700 |
+| the objective | 12.5px regular | **15px / 600** | 15px, weight 600 |
+| interaction prompt | 10.5px, dim ink | **12px / 600**, full ink | 12px, weight 600 |
+| its key chip | 9px | **11px / 700** | 11px |
+| held item name | 10px, dim | **12px / 600**, full ink | 12px |
+| hotbar count | 10px regular | **11.5px / 700**, tabular | 11.5px |
+| hotbar slot numeral | 8px at 26% opacity | **9.5px at 50%** | 9.5px |
+| status line | 9px | **10px** | 10px |
+| clock | 10px | **11px / 600** | 11px |
+
+Nothing in the HUD is above 16px: *minimal is not tiny, and it is not loud either.*
+
+**Two things only a bright capture could find.** `preview-hud-type.js` renders the real
+HUD over sunlit grass, and it caught both immediately:
+
+- The first attempt at a tick contour was a full `0 0 0 1px` ring. On a 5px tick that
+  leaves a 3px interior, and over grass the row stopped reading as ten filled bars and
+  started reading as ten empty boxes. The contour is now on the SIDES only — where a tick
+  actually meets the world — and the tick is 6px rather than 5.
+- The unlit tick was `rgba(150,140,116,0.42)`. A translucent value composites with what is
+  behind it: over a dark interior that reads correctly as an empty socket, and over grass
+  it composites toward the grass and lands at almost the same value as a lit tick — so in
+  daylight the ladder had no reading at all, which is the one question it exists to
+  answer. It is now opaque `#494334`: darker than parchment against grass, lighter than
+  the HUD's ground against night.
+
+**Both looked completely correct on a dark background**, which is why neither was caught
+by anything until a bright one was rendered.
+
+**The instruments grew with their captions.** Condition ticks went 4×13 → 5×16 (a dotted
+line at a glance became something countable, which is the whole reason Phase 27 chose ticks
+over a bar) and the unlit value came up so the ladder's LENGTH — the thing the endurance
+milestones change — is visible. The perception trace went 176×18 → 200×22. Neither
+instrument was redesigned: health is still discrete DOM ticks, perception is still a
+continuous canvas trace, and `tests/hud.js` still fails if one stylesheet rule reaches both.
+
+**The one thing that really was blurry: the canvases.** `#perceptionTrace` and
+`#compassTape` had backing stores at 1:1 with their CSS boxes, so on any HiDPI display they
+were small images stretched over more physical pixels. `UIManager._fitCanvas` now scales
+the backing store by the device pixel ratio (capped at 3) and scales the context to match,
+so every drawing routine keeps working in logical units. It no-ops at ratio 1 — which is
+what this container runs at, so **that fix is verified structurally and at ratio 1, not
+visually on a HiDPI screen.**
+
+### DEFECTS FOUND AND FIXED
+
+1. **`inset: 0` never stretched the start-screen canvas.** `<canvas>` is a *replaced*
+   element: absolutely positioned with `width: auto` it resolves to its intrinsic size and
+   honours one offset rather than stretching between them. Measured in Chromium on the
+   **unmodified Phase 28 build**, `#startEmbers` was **300×150** — the ember particles only
+   ever drifted inside a small box in the top-left corner for the whole life of that
+   screen, and nobody noticed because they were faint over a gradient. A scene that IS the
+   background cannot survive that, so `#menuScene` states `width: 100%; height: 100%`
+   explicitly. Found by `browser-menu.js` measuring the canvas against the window.
+2. **E and I on the main menu opened the crafting bench and the backpack behind it.** Both
+   overlays sit at z-index 40, under the start screen's 50 — invisible, unclosable without
+   pressing the key again, and E **latched the Phase 28 `craft` cue on the way past**, so a
+   player who leaned on the keyboard at the title screen was silently robbed of the one
+   prompt that teaches crafting. Every gameplay input path is now gated on
+   `PlayerController._playing()` (the Game's `running` flag): E, I/Tab, movement keys, slot
+   keys, the wheel, and the canvas click that requests pointer lock. **O and Escape are
+   deliberately not gated** — they are menu keys, the start screen's own legend names O,
+   and they answer everywhere as they always did.
+3. **The offline HUD harness kept its own copy of the canvas sizes.** `harness/load.js`
+   hardcoded `perceptionTrace: [176, 18]`, so when the markup grew to 200×22 the HUD test
+   went on asserting the old instrument **and passed**. The harness now reads every
+   `<canvas>` size out of `game.html`, which is the only place it should ever have come
+   from.
+4. **`tests/menu.js` was reading the small-viewport type scale as the default.** Its rule
+   parser took the last matching declaration, and the `@media` overrides are declared last
+   — so "how big is the objective" answered 13.5px. Media blocks are now lifted out and
+   checked separately, for their own property (that they never go below the floor).
+5. **`browser-menu.js` clicked the middle of the screen to test "the background" and hit
+   NEW GAME.** Every check below it still passed, because they sampled 400ms into the
+   nine-second opening instruction when `running` is legitimately still false. It now
+   clicks an empty corner, and asserts the menu is still up — which is what makes that
+   mistake impossible to repeat silently.
+6. **`browser-save.js`'s interaction-prompt checks were intermittent, in both
+   directions.** They required `.show` AND a computed opacity of exactly `1` (or `0`) in
+   the same poll. Under SwiftShader the animated opacity read back on the main thread lags
+   the class — which that file's own comment already documented — and disabling the
+   transition does not help when the compositor is starved of frames. Observed failing on
+   the raise in one run and on the clear in another, on the same code. The predicates now
+   wait on the CLASS, which is what `UIManager` sets synchronously and is the thing the
+   claim is actually about; the opacity is read afterwards and a lagging value is reported
+   rather than failing the check. Three consecutive clean runs afterwards.
+7. **A resize is silently ignored once the WebGL loop is running**, in this container. The
+   first `setViewportSize` after the game starts applies; later ones do not, and the page
+   goes on reporting the earlier size. `browser-menu.js` was measuring a "640x480 menu"
+   that was really still 900x600. The resize-sensitive menu checks moved to before the
+   game starts (where resizing demonstrably works), the save/reload/CONTINUE section opens
+   a fresh page in the same context rather than reloading a page whose viewport is stuck,
+   and `setSize()` now waits for the page to agree about its own size and reports what it
+   actually saw if it never does.
+
+### COST
+
+| | |
+|---|---|
+| menu frame (scene work, stub canvas) | **~7 µs** |
+| landscape rebuilds over 200 frames | **1** |
+| window listeners after 40 open/close cycles | **0** |
+| start screens / scene canvases after 25 show-hide cycles | **1 / 1** |
+| menu frame loops running once the game starts | **0** (`_start()` calls `menu.hide()` before `_beginPlay()`) |
+| animation loops in the build | **2**, and they cannot overlap |
+
+`tests/regression.js` proves the world is byte-identical: this phase generates no terrain
+and touches no generator.
+
+**`tests/performance.js` fails one gate in this container, on both builds.** The Phase 20
+corridor comparison is gated at 12% and this build reads **+14.4%**; the **unmodified
+`origin/main` build measured +14.1% in the same container minutes later** — a difference of
+0.3 points, which is Phase 29's entire measurable contribution to world generation, and
+well inside the ~9% run-to-run drift that test's own header documents. A later run under
+heavier load read +18.8% on this build, and every absolute figure moved with it: the number
+tracks machine contention, not the diff.
+
+That is what it should be. **This phase generates no terrain and touches no generator**,
+and `tests/regression.js` proves the world is byte-identical — so any movement in a chunk
+timing is measurement, by construction. The gate is left failing rather than widened:
+widening a threshold to accommodate a noisy container is how a real regression gets waved
+through later.
+
+### HONEST STATUS
+
+| | |
+|---|---|
+| main menu rebirth | **COMPLETE** — scene, anomalies, ambience, controls, lifecycle |
+| HUD typography | **COMPLETE** — nine readings measured in a real browser at two viewport sizes |
+| Phase 22 / 23 / 25 / 26 / 27 / 28 compatibility | **COMPLETE** — all suites pass unchanged except where an assertion was about something this phase deliberately moved |
+| offline validation | **COMPLETE** — 124 checks in `tests/menu.js` |
+| full regression suite | **COMPLETE** — 18 offline suites, 1061 checks, **1 failure**, and that failure reproduces on the untouched pre-phase build (see COST) |
+| browser validation | **COMPLETE** — `browser-menu.js`, 68 checks in a real Chromium with real computed styles and real canvas pixels |
+| screenshots | **PARTIAL, and worked around.** In-game captures time out under SwiftShader (the limitation Phase 28 recorded) and the one that does return is a stale frame. So `preview-hud-type.js` was added: it lifts the real HUD markup and the real stylesheet into a static page with no WebGL and captures it over sunlit ground and over a dark interior, which is the only way this phase's central question could actually be looked at. Menu captures (no frame loop) write normally. No assertion anywhere depends on a screenshot |
+| HiDPI canvas fix | **UNVERIFIED VISUALLY** — correct by construction and exercised at ratio 1; no HiDPI display was available |
+| **human playtest** | **NOT DONE.** Nobody has opened this menu and said whether it feels like horror, whether they wanted to click NEW GAME, or whether they can read CONDITION without squinting. Every one of the brief's fourteen playtest questions is a question for a person and this report answers none of them |
+
+The single most valuable thing that could happen now is somebody launching the build,
+sitting on the menu for a minute without clicking anything, and then playing for five.
 
 ---
 

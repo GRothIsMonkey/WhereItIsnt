@@ -136,7 +136,14 @@ const SCRIPT = gameScript();
       'the retired project name appears NOWHERE in game.html' +
       (found.length ? ` — still present: ${found.join(', ')}` : ''));
   chk(/<title>Where It Isn/.test(GAME), 'the browser tab reads Where It Isn’t');
-  chk(/<h1>WHERE IT ISN/.test(GAME), 'the start screen reads WHERE IT ISN’T');
+  /* PHASE 29 — the title carries one deliberately misaligned letter in a <span>, so the
+     markup no longer contains the words as a contiguous run. What matters is what the
+     player READS, so the tags are stripped and the text asserted — which is a better
+     check than the one it replaces, and would have caught a title broken by a typo in
+     the span as well. */
+  const h1 = (GAME.match(/<h1>([\s\S]*?)<\/h1>/) || [null, ''])[1]
+    .replace(/<[^>]+>/g, '').replace(/&rsquo;/g, '\u2019').trim();
+  chk(h1 === 'WHERE IT ISN\u2019T', `the start screen reads "${h1}"`);
   chk(/class="credits-title">WHERE IT ISN/.test(GAME), 'and so do the credits');
   chk(/CLAUDE\.md/.test(CLAUDEMD) || /WHERE IT ISN'T/.test(CLAUDEMD),
       'CLAUDE.md still declares the official title');

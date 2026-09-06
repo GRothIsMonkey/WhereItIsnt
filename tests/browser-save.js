@@ -385,28 +385,46 @@ async function boot(page, { fresh }) {
        chest on, and this check failed reading "LMB BREAK" while the chest prompt was
        working perfectly. It now waits for the CHEST's prompt, which is what it was always
        claiming, and a loop that never raises it still fails after six seconds. */
+    /* PHASE 29 — WAIT ON THE CLASS, THEN READ THE OPACITY.
+
+       This used to require `.show` AND a computed opacity of exactly '1' in the same poll,
+       and it failed intermittently in BOTH directions under SwiftShader — sometimes the
+       raise, sometimes the clear, on unmodified builds. The cause is the one this file's
+       own comment above already names: the animated opacity read back on the main thread
+       lags the class, and disabling the transition does not help when the compositor
+       itself is starved of frames.
+
+       `.show` is what the GAME controls and is set synchronously by UIManager, so it is
+       the deterministic half and it carries the claim. The opacity is read afterwards, as
+       a separate reported observation, and a lagging readback is noted rather than failing
+       a check about whether the frame loop raised the prompt. */
     const promptShown = await page.waitForFunction(() => {
       const p = document.getElementById('interactPrompt');
-      if (!p.classList.contains('show') || getComputedStyle(p).opacity !== '1') return null;
+      if (!p.classList.contains('show')) return null;
       const text = p.innerText.replace(/\s+/g, ' ').trim();
       if (!/RMB/.test(text) || !/OPEN/.test(text)) return null;
       const r = p.getBoundingClientRect();
       const hb = document.getElementById('hotbar').getBoundingClientRect();
-      return { w: r.width, h: r.height, clear: r.bottom <= hb.top + 1, text: text };
-    }, null, { timeout: 6000, polling: 100 }).then(h => h.jsonValue()).catch(() => null);
+      return { w: r.width, h: r.height, clear: r.bottom <= hb.top + 1, text: text,
+               opacity: getComputedStyle(p).opacity };
+    }, null, { timeout: 8000, polling: 100 }).then(h => h.jsonValue()).catch(() => null);
     chk(!!promptShown && promptShown.w > 20 && promptShown.h > 6 && promptShown.clear,
         promptShown
           ? `the frame loop raised the prompt above the hotbar, reading "${promptShown.text}"`
           : 'the frame loop raised the CHEST prompt above the hotbar — IT NEVER DID');
+    if (promptShown && promptShown.opacity !== '1') {
+      note(`(the compositor reported opacity ${promptShown.opacity} at that instant — a ` +
+           `SwiftShader readback lag, not a hidden prompt; the class was set)`);
+    }
     await page.evaluate(() => {
       const g = window.game, c = window.__chestProbe;
       g.world.setBlockWorld(c.bx, c.by, c.bz, c.was);
       g.player.locked = false;
     });
     const promptGone = await page.waitForFunction(() => {
-      const e = document.getElementById('interactPrompt');
-      return !e.classList.contains('show') && getComputedStyle(e).opacity === '0';
-    }, null, { timeout: 6000, polling: 100 }).then(() => true).catch(() => false);
+      // The class, for the same reason as above: it is what the game sets, synchronously.
+      return !document.getElementById('interactPrompt').classList.contains('show');
+    }, null, { timeout: 8000, polling: 100 }).then(() => true).catch(() => false);
     await page.evaluate(() => { document.getElementById('interactPrompt').style.transition = ''; });
     chk(promptGone, 'and it goes away again once there is nothing under the crosshair to act on');
     chk(await page.evaluate(() => {

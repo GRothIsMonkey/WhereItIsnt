@@ -5,7 +5,40 @@
 <title>Where It Isn’t</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  html, body { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; background: #000; font-family: 'Courier New', monospace; }
+  /* =================================================================================
+     PHASE 29 — THE FACE, AND WHY IT CHANGED.
+
+     Everything in this game was set in Courier New. The Phase 28 capture showed the
+     result at gameplay size: CONDITION and PERCEPTION were legible only on purpose, and
+     the whole interface read as slightly out of focus. It was not a blur — nothing here
+     is blurred — it was the typeface. Courier New is a TYPEWRITER face: its stems are
+     hairlines by design, its x-height is small, and its sidebearings are wide. At the
+     8-10px the HUD was using, a hairline stem lands on a fraction of a pixel, the
+     rasteriser spreads it across two, and the letter arrives grey instead of light.
+     Putting a glow behind it (which the HUD did) makes that worse, not better.
+
+     The identity was never Courier New, it was MONOSPACE — an instrument face, a
+     typewritten record. So the stack keeps the monospace and drops the one face in it
+     that cannot hold a stem at this size. Every platform's own UI mono comes first
+     (SF Mono, Cascadia Mono, Segoe UI Mono), then the ones that are actually installed
+     everywhere (Menlo, Consolas, DejaVu Sans Mono, Liberation Mono). All of them have
+     real stem weight at 10px. `monospace` is last and Courier New is not in the list.
+
+     `font-synthesis: none` matters more than it looks: without it a browser with no bold
+     cut of the chosen face SMEARS the regular one to fake bold, which is exactly the
+     softness this phase exists to remove. If a real bold is unavailable the text stays
+     regular and sharp instead. */
+  :root {
+    --ui-face: ui-monospace, 'SF Mono', SFMono-Regular, 'Cascadia Mono', 'Segoe UI Mono',
+               'Roboto Mono', Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace;
+  }
+  html, body {
+    margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; background: #000;
+    font-family: var(--ui-face);
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
   #gameCanvas { display: block; width: 100vw; height: 100vh; }
 
   /* =================================================================================
@@ -30,7 +63,34 @@
     --hud-ground:    rgba(12, 10, 7, 0.42);
     --hud-brass:     #c8a24a;   /* selection, and nothing else */
     --hud-warn:      #bf5a4a;   /* a failing body, and nothing else */
-    --hud-shadow:    0 1px 2px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.7);
+    /* PHASE 29 — A HARD OUTLINE, NOT A GLOW.
+
+       This used to be a 2px drop and a 10px halo. A halo behind small text does not add
+       contrast, it adds a grey cloud the same shape as the letters, which the eye reads
+       as softness — the second half of why the Phase 28 capture looked out of focus.
+       What replaces it is four one-pixel shadows: a genuine 1px dark contour that stays
+       exactly one pixel wide however bright the terrain behind it is, plus one short
+       drop for depth. Sharp over sunlit grass, sharp over a night interior. */
+    --hud-shadow:    0 1px 0 rgba(0,0,0,0.92), 0 -1px 0 rgba(0,0,0,0.82),
+                     1px 0 0 rgba(0,0,0,0.82), -1px 0 0 rgba(0,0,0,0.82),
+                     0 2px 3px rgba(0,0,0,0.75);
+    /* The same contour at full strength, for text that has to survive the brightest
+       thing in the game. Used by the two instrument captions and the status line, which
+       sit lowest on the screen and therefore over the most terrain. */
+    --hud-shadow-hard: 0 1px 0 #000, 0 -1px 0 #000, 1px 0 0 #000, -1px 0 0 #000,
+                       0 0 4px rgba(0,0,0,0.85), 0 2px 4px rgba(0,0,0,0.8);
+
+    /* PHASE 29 — THE HUD TYPE SCALE. Four steps, and nothing invents its own size.
+         primary      the objective: the one line that says what to do
+         secondary    what is in front of you, and what is in your hand
+         label        instrument captions — CONDITION, PERCEPTION, the clock
+         tertiary     counts and supporting readouts
+       "Minimal" is not "tiny". The smallest step is 10px, which is the smallest size
+       this face holds a countable stroke at. Nothing in the HUD goes below it. */
+    --t-primary:   15px;
+    --t-secondary: 12px;
+    --t-label:     11px;
+    --t-tertiary:  10px;
   }
 
   #crosshair {
@@ -105,8 +165,17 @@
   }
   .slot.active { border-color: var(--hud-brass); box-shadow: inset 0 0 8px rgba(0,0,0,0.55), 0 0 0 1px rgba(200,162,74,0.30); }
   .slot .swatch { width: 28px; height: 28px; border-radius: 0; image-rendering: pixelated; display: block; }
-  .slot .num { position: absolute; top: 2px; left: 4px; font-size: 9px; color: var(--hud-ink-faint); text-shadow: 0 1px 2px #000; }
-  .slot .count { position: absolute; bottom: 1px; right: 4px; font-size: 10px; color: var(--hud-ink); font-variant-numeric: tabular-nums; text-shadow: 0 1px 2px #000, 0 0 5px #000; }
+  /* PHASE 29 — the slot numeral and the count both went up a step and gained weight.
+     The count is the one number in this HUD a player reads mid-action ("have I enough
+     torches"), and at 10px regular over a bright swatch it was the least readable thing
+     on the strip. Tabular figures keep a two-digit count from shifting a one-digit one,
+     which is what makes a glance work. */
+  .slot .num { position: absolute; top: 2px; left: 4px; font-size: var(--t-tertiary); color: var(--hud-ink-faint); text-shadow: var(--hud-shadow-hard); }
+  .slot .count {
+    position: absolute; bottom: 1px; right: 4px;
+    font-size: 11.5px; font-weight: 700; color: var(--hud-ink);
+    font-variant-numeric: tabular-nums; text-shadow: var(--hud-shadow-hard);
+  }
 
   #hotbar .slot {
     width: 40px; height: 40px; background: transparent; border: none; border-radius: 0;
@@ -114,8 +183,11 @@
   }
   #hotbar .slot:first-child { border-left: none; }
   #hotbar .slot .swatch { width: 24px; height: 24px; opacity: 0.82; transition: transform 130ms ease-out, opacity 130ms linear; }
-  #hotbar .slot .num { top: 2px; left: 3px; font-size: 8px; color: rgba(180,164,128,0.26); }
-  #hotbar .slot .count { color: var(--hud-ink-dim); }
+  /* PHASE 29 — the strip's slot numeral was 8px at 26% opacity, which is not a numeral,
+     it is a texture. 9.5px at a readable ink is still quiet and can actually be used to
+     find slot 7 without counting along the strip. */
+  #hotbar .slot .num { top: 2px; left: 3px; font-size: 9.5px; color: rgba(190,175,140,0.50); }
+  #hotbar .slot .count { color: var(--hud-ink); }
   #hotbar .slot.active { background: rgba(200,162,74,0.09); box-shadow: none; border-color: rgba(120,104,72,0.16); }
   #hotbar .slot.active::after {
     content: ''; position: absolute; left: 5px; right: 5px; bottom: -1px; height: 2px;
@@ -132,8 +204,12 @@
     position: fixed; left: 50%; bottom: 66px; transform: translateX(-50%);
     z-index: 20; pointer-events: none; opacity: 0;
     transition: opacity 420ms ease-out;
-    font-size: 10px; letter-spacing: 2.6px; text-transform: uppercase;
-    color: var(--hud-ink-dim); text-shadow: var(--hud-shadow); white-space: nowrap;
+    /* PHASE 29 — up one step, with weight, and with the tracking pulled in. Letter
+       spacing past about 2px at this size stops helping a monospace face and starts
+       breaking the word into separate glyphs the eye has to reassemble. */
+    font-size: var(--t-secondary); font-weight: 600; letter-spacing: 1.9px;
+    text-transform: uppercase;
+    color: var(--hud-ink); text-shadow: var(--hud-shadow); white-space: nowrap;
   }
   #heldName.show { opacity: 1; }
 
@@ -170,24 +246,56 @@
      world happens to be. At --hud-ink-faint they read fine at night and disappeared
      entirely against sunlit grass in a real 1280x720 capture, so they carry the dim ink
      and a doubled shadow instead. */
+  /* PHASE 29 — THE TWO WORDS THE PHASE 28 CAPTURE COULD NOT READ.
+
+     They were 9px, regular weight, dim ink, behind a 12px halo. Three of those four
+     things were working against the reader. They are now 11px at 700 with the tracking
+     pulled from 1.8px to 1.2px, in the full parchment ink rather than the dim one, over
+     a hard 1px contour instead of a halo. Still the smallest type in the interface,
+     still a caption rather than a heading — but a caption you read rather than decode. */
   .vital-cap {
-    width: 76px; text-align: right; flex: none;
-    font-size: 9px; letter-spacing: 1.8px; color: var(--hud-ink-dim);
-    text-shadow: 0 1px 2px rgba(0,0,0,0.98), 0 0 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.7);
+    width: 88px; text-align: right; flex: none;
+    font-size: var(--t-label); font-weight: 700; letter-spacing: 1.2px;
+    color: var(--hud-ink);
+    text-shadow: var(--hud-shadow-hard);
     transition: color 400ms linear, letter-spacing 400ms linear;
   }
 
   /* --- CONDITION ---------------------------------------------------------------- */
-  #conditionTicks { display: flex; align-items: flex-end; height: 14px; }
+  /* PHASE 29 — the ladder grew with its caption. 4x13 ticks read as a dotted line at a
+     glance; 5x16 read as something countable, which is the entire reason Phase 27 chose
+     ticks over a bar. The unlit value came up too: an unlit tick has to be visible or
+     the ladder's LENGTH — the thing the endurance milestones change — cannot be seen. */
+  #conditionTicks { display: flex; align-items: flex-end; height: 17px; }
   .tick {
     --f: 0;
     --tick-lit: var(--hud-ink);
-    --tick-off: rgba(128,118,96,0.30);
-    width: 4px; height: 13px; margin-right: 3px; flex: none;
+    /* OPAQUE, AND MID-DARK. A translucent unlit tick composites with whatever is behind
+       it: over a dark interior that reads correctly as an empty socket, and over sunlit
+       grass it composites TOWARD the grass and ends up almost the same value as a lit
+       one — so at a glance the ladder had no reading at all in daylight, which is the one
+       question this instrument exists to answer. An opaque mid-dark value is darker than
+       parchment against grass and lighter than the HUD's ground against night, so the
+       ladder's length and its fill are both legible in either. Found in a bright capture;
+       a dark one looked fine throughout. */
+    --tick-off: #494334;
+    width: 6px; height: 16px; margin-right: 3px; flex: none;
     background: linear-gradient(to top,
       var(--tick-lit) 0 calc(var(--f) * 100%),
       var(--tick-off) calc(var(--f) * 100%) 100%);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.85);
+    /* A contour on the SIDES ONLY, plus a drop.
+
+       The first attempt at this was a full `0 0 0 1px` ring, and the WebGL-free capture
+       (preview-hud-type.js) showed exactly why that is wrong: a 1px ring on every edge of
+       a 5px tick leaves a 3px interior, and over sunlit grass the row stopped reading as
+       ten filled bars and started reading as ten empty boxes. Over a dark interior it
+       looked fine, which is why only a bright capture could find it.
+
+       Left and right are where a tick actually meets the world; top and bottom meet the
+       next tick's own shadow. So the contour goes on the sides, the tick keeps its full
+       height, and it is 6px wide rather than 5 so the lit interior still dominates. */
+    box-shadow: -1px 0 0 rgba(0,0,0,0.62), 1px 0 0 rgba(0,0,0,0.62),
+                0 1px 2px rgba(0,0,0,0.88);
   }
   /* Every fifth tick opens a small gap, so the count reads at a glance instead of
      having to be counted. */
@@ -206,8 +314,14 @@
   #vitals.hp-gone .vital-cap { color: #4a3a34; }
 
   /* --- PERCEPTION --------------------------------------------------------------- */
+  /* PHASE 29 — the trace is 200x22 rather than 176x18, and its backing store is now
+     scaled to the display's device pixel ratio (see UIManager._fitCanvas). On a HiDPI
+     screen the old canvas was a 176px image stretched across 352 physical pixels, which
+     is a genuine blur rather than a perceived one — the one thing on this HUD that
+     really was soft. The DRAWING is untouched: _drawPerception still works in logical
+     units and draws the same picture. */
   #perceptionTrace {
-    display: block; width: 176px; height: 18px; flex: none;
+    display: block; width: 200px; height: 22px; flex: none;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,0.9));
   }
   /* The caption itself comes loose at the last state. One property, no animation. */
@@ -332,11 +446,15 @@
     position: fixed; top: 18px; left: 20px; z-index: 20; pointer-events: none;
     width: clamp(190px, 22vw, 280px);
   }
+  /* PHASE 29 — the primary step of the type scale, and the only element that gets it.
+     12.5px regular was readable if you looked at it; 15px at 600 is readable while you
+     are looking somewhere else, which is what an objective is for. Still one line
+     against a hairline: no panel, no title, no banner. */
   #journeyStep {
-    display: none; font-size: 12.5px; line-height: 1.5;
+    display: none; font-size: var(--t-primary); font-weight: 600; line-height: 1.45;
     color: var(--hud-ink); text-shadow: var(--hud-shadow);
-    padding-left: 11px; border-left: 1px solid var(--hud-rule);
-    letter-spacing: 0.3px;
+    padding-left: 12px; border-left: 1px solid var(--hud-rule);
+    letter-spacing: 0.2px;
   }
   #journeyStep.show { display: block; }
   #journeyStep.done { color: var(--hud-ink-faint); text-decoration: line-through; }
@@ -349,10 +467,10 @@
     100% { opacity: 1; transform: none; border-left-color: var(--hud-rule); }
   }
   #hudStatus {
-    margin-top: 9px; padding-left: 11px;
-    font-size: 9px; letter-spacing: 1.8px;
+    margin-top: 9px; padding-left: 12px;
+    font-size: var(--t-tertiary); letter-spacing: 1.2px;
     color: var(--hud-ink-dim);
-    text-shadow: 0 1px 2px rgba(0,0,0,0.98), 0 0 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.7);
+    text-shadow: var(--hud-shadow-hard);
   }
   /* A middot only ever appears BETWEEN two parts that both have something to say. */
   #hudStatus span:not(:empty) ~ span:not(:empty)::before { content: '\00a0\00b7\00a0'; }
@@ -363,11 +481,12 @@
     position: fixed; top: 18px; right: 20px; z-index: 20; pointer-events: none;
     display: flex; align-items: center; gap: 7px; color: var(--hud-ink-dim);
     background: none; padding: 0; border: none;
-    font-size: 10px; letter-spacing: 2.2px; text-transform: uppercase;
-    text-shadow: var(--hud-shadow);
+    font-size: var(--t-label); font-weight: 600; letter-spacing: 1.4px;
+    text-transform: uppercase;
+    text-shadow: var(--hud-shadow-hard);
   }
-  #clockIcon { color: var(--hud-ink-dim); font-size: 14px; letter-spacing: 0; }
-  #phaseLabel { font-size: 10px; letter-spacing: 2.2px; }
+  #clockIcon { color: var(--hud-ink-dim); font-size: 15px; letter-spacing: 0; }
+  #phaseLabel { font-size: var(--t-label); letter-spacing: 1.4px; }
 
   /* PHASE 20.2 — THE COMPASS. Deliberately the same material as #clockWrap: the same
      panel fill, the same 2px border in the same brass, the same 4px radius, the same
@@ -403,14 +522,18 @@
     z-index: 20; pointer-events: none; opacity: 0;
     transition: opacity 140ms linear;
     display: flex; align-items: center; gap: 8px; white-space: nowrap;
-    font-size: 10.5px; letter-spacing: 2.4px;
-    color: var(--hud-ink-dim); text-shadow: var(--hud-shadow);
+    /* PHASE 29 — the secondary step, with weight and tighter tracking. The prompt is
+       read in the half second before the key is pressed, so it has to resolve at a
+       glance; it moved from the dim ink to the full one for the same reason. */
+    font-size: var(--t-secondary); font-weight: 600; letter-spacing: 1.6px;
+    color: var(--hud-ink); text-shadow: var(--hud-shadow);
   }
   #interactPrompt.show { opacity: 1; }
   #interactPrompt .key {
-    font-size: 9px; letter-spacing: 1.4px; color: var(--hud-ink);
-    border: 1px solid var(--hud-rule); border-radius: 2px; padding: 2px 5px;
-    background: var(--hud-ground);
+    font-size: var(--t-label); font-weight: 700; letter-spacing: 1px; color: var(--hud-ink);
+    border: 1px solid rgba(120,104,72,0.55); border-radius: 2px; padding: 2px 6px;
+    background: rgba(12,10,7,0.72);
+    text-shadow: 0 1px 0 rgba(0,0,0,0.9);
   }
 
   /* =================================================================================
@@ -422,19 +545,24 @@
      rather than letting the strip and the objective collide.
      ================================================================================= */
   @media (max-width: 860px), (max-height: 620px) {
-    #objectivePanel { top: 14px; left: 14px; width: clamp(150px, 34vw, 240px); }
-    #journeyStep { font-size: 11.5px; }
+    /* PHASE 29 — a small window gives up SPACE, not LEGIBILITY. Nothing here drops
+       below the 10px floor: what shrinks is the instrument geometry and the captions'
+       column, and the slot numeral — the one genuinely optional glyph — is dropped
+       outright rather than set at a size nobody could read. */
+    #objectivePanel { top: 14px; left: 14px; width: clamp(160px, 36vw, 250px); }
+    #journeyStep { font-size: 13.5px; }
     #vitals { left: 14px; bottom: 14px; gap: 7px; }
-    .vital-cap { width: 58px; font-size: 8px; letter-spacing: 1.1px; }
-    #perceptionTrace { width: 132px; height: 16px; }
-    .tick { width: 3px; margin-right: 2px; height: 12px; }
+    .vital-cap { width: 74px; font-size: var(--t-tertiary); letter-spacing: 0.9px; }
+    #perceptionTrace { width: 150px; height: 19px; }
+    .tick { width: 5px; margin-right: 2px; height: 14px; }
     .tick.g { margin-left: 4px; }
+    #conditionTicks { height: 15px; }
     #hotbar { bottom: 12px; }
     #hotbar .slot { width: 34px; height: 34px; }
     #hotbar .slot .swatch { width: 20px; height: 20px; }
     #hotbar .slot .num { display: none; }
-    #heldName { bottom: 54px; }
-    #interactPrompt { bottom: 76px; }
+    #heldName { bottom: 54px; font-size: 11px; }
+    #interactPrompt { bottom: 76px; font-size: 11px; }
     #clockWrap { top: 14px; right: 14px; }
   }
 
@@ -478,68 +606,220 @@
     opacity: 0; pointer-events: none; z-index: 30; transition: opacity 0.05s linear;
   }
 
+  /* =================================================================================
+     PHASE 29 — THE MAIN MENU.
+
+     WHAT STOOD HERE. A bordered card floating on a red-and-orange radial glow, with
+     brass corner brackets, an eyebrow reading A SURVIVAL HORROR EXPEDITION, a 56px
+     gradient title with an animated orange bloom, a subtitle reading A COZY WORLD. AN
+     UNKIND NIGHT., a divider rule, two 3px-bordered buttons flickering on a two-second
+     loop, and fifty-five ember particles drifting up the screen. Every one of those is
+     a survival-game convention, and together they promised a different game than the
+     one behind them.
+
+     WHAT IT IS NOW. A place, seen from a distance, with words over it. There is no card
+     and no frame: the composition IS the landscape, and the title sits in its sky. The
+     brass is spent on one thing — the control the keyboard has focused — and everything
+     else is the parchment ink the HUD already reads in, so the menu and the game are
+     visibly made of the same material.
+
+     THE RULE THE WHOLE SCREEN IS BUILT ON: nothing here may be the loudest thing in the
+     room. The scene is dark enough to read text over without a scrim, the title is
+     bright but not lit, the buttons are rules and letterforms rather than boxes, and
+     everything that moves does so slowly enough that a still frame and a moving one look
+     the same. See MenuAtmosphere for what actually moves.
+     ================================================================================= */
   #startScreen, #winScreen {
-    position: fixed; inset: 0; background: #060402; z-index: 50;
+    position: fixed; inset: 0; background: #05060a; z-index: 50;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    color: #e8d9b0; text-align: center; overflow: hidden;
+    color: var(--hud-ink); text-align: center; overflow: hidden;
   }
+  /* The fallback ground under the canvas: a cold night rather than a warm ember glow.
+     If the canvas never paints (a context refused, a very early frame) this is still a
+     dark horizon and not a black rectangle. */
   #startScreen {
     background:
-      radial-gradient(ellipse 900px 600px at 50% 38%, rgba(120,70,20,0.20), transparent 65%),
-      radial-gradient(ellipse 1400px 900px at 50% 100%, rgba(60,10,10,0.35), transparent 60%),
-      linear-gradient(180deg, #0a0705 0%, #060402 55%, #030201 100%);
+      radial-gradient(ellipse 1200px 420px at 50% 74%, rgba(38,44,58,0.55), transparent 70%),
+      linear-gradient(180deg, #05060a 0%, #080a10 46%, #0b0d12 66%, #05060a 100%);
   }
-  #startEmbers { position: absolute; inset: 0; z-index: 1; }
+  /* PHASE 29 DEFECT FIX — `inset: 0` DOES NOT STRETCH A CANVAS.
+
+     `<canvas>` is a REPLACED element, and an absolutely-positioned replaced element with
+     `width: auto` resolves to its INTRINSIC size and then honours only one of the two
+     offsets — it does not stretch between them the way a div does. The ember canvas this
+     replaced carried exactly this rule and was therefore 300x150 for its whole life:
+     measured at 300x150 in Chromium on the Phase 28 build, which means the start screen's
+     particles only ever drifted inside a small box in the top-left corner and nobody
+     noticed, because they were faint and the background was a gradient anyway.
+
+     A scene that IS the background cannot survive that, so the size is stated explicitly.
+     Found by browser-menu.js, which measures the canvas against the window rather than
+     trusting the rule. */
+  #menuScene {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 1; display: block;
+  }
+
+  /* PHASE 29 — THE GRAIN. One repeating gradient at 3% over the whole screen, drifting
+     on a 47-second cycle so it never reads as a static texture and never reads as an
+     effect either. It is CSS, so it costs the compositor and not the main thread, and
+     there is no second animation loop anywhere on this screen. */
+  #menuGrain {
+    position: absolute; inset: -30px; z-index: 2; pointer-events: none; opacity: 0.30;
+    background-image:
+      radial-gradient(rgba(255,255,255,0.055) 0.5px, transparent 0.6px),
+      radial-gradient(rgba(0,0,0,0.09) 0.5px, transparent 0.6px);
+    background-size: 3px 3px, 5px 5px;
+    background-position: 0 0, 1px 2px;
+    animation: menuGrainDrift 47s steps(9, end) infinite;
+  }
+  @keyframes menuGrainDrift {
+    0%   { background-position: 0 0, 1px 2px; }
+    100% { background-position: 27px 15px, 26px 32px; }
+  }
+  /* A vignette, so the corners of the frame are darker than its middle and the eye is
+     led to the title without anything having to glow. */
+  #startScreen::after {
+    content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+    background: radial-gradient(ellipse 104% 92% at 50% 44%, transparent 46%, rgba(2,3,5,0.72) 100%);
+  }
+
+  /* PHASE 29 — the block is lifted off centre so the title and the entries sit in the
+     SKY, above the tree line, rather than across it. The first capture had NEW GAME
+     printed over the treetops and it read as clutter; a menu entry needs empty ground
+     behind it or the letterforms fight the silhouette. */
   #startScreen .start-content {
-    position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center;
-    padding: 46px 64px; border: 1px solid #4a3a24;
-    background: rgba(12, 9, 6, 0.45); border-radius: 2px;
-    box-shadow: 0 0 0 1px rgba(255,207,107,0.08), 0 0 60px rgba(0,0,0,0.6);
+    position: relative; z-index: 4;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 0 24px; max-width: 92vw;
+    margin-bottom: 15vh;
   }
-  #startScreen .corner {
-    position: absolute; width: 22px; height: 22px; border-color: #ffcf6b; opacity: 0.55;
-  }
-  #startScreen .corner.tl { top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; }
-  #startScreen .corner.tr { top: -1px; right: -1px; border-top: 2px solid; border-right: 2px solid; }
-  #startScreen .corner.bl { bottom: -1px; left: -1px; border-bottom: 2px solid; border-left: 2px solid; }
-  #startScreen .corner.br { bottom: -1px; right: -1px; border-bottom: 2px solid; border-right: 2px solid; }
-  #startScreen .eyebrow {
-    font-size: 11px; letter-spacing: 6px; color: #a8622f; margin-bottom: 14px;
-    animation: eyebrowGlow 3.2s ease-in-out infinite;
-  }
-  @keyframes eyebrowGlow { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
   #winScreen { display: none; background: rgba(6, 4, 2, 0.95); z-index: 60; }
+
+  /* PHASE 29 — THE TITLE.
+
+     It is not lit and it is not gradient-filled. It is one weight of parchment ink with
+     a hard dark contour, the same treatment as everything else the player reads in this
+     game — which is what stops it looking like a store page and starts it looking like
+     something printed on the world.
+
+     THE IMPERFECTION IS ONE LETTER. `.t-off` is the apostrophe's neighbour, nudged a
+     third of a pixel out of its line and half a shade darker: at a glance the word is
+     correct, and if you actually look at it the T is not quite where the others are.
+     No scramble, no glitch, no distortion — the title is always readable, and the
+     wrongness is something you find rather than something you are shown. */
   #startScreen h1, #winScreen h1 {
-    font-size: 56px; letter-spacing: 8px; margin: 0 0 6px 0; font-weight: 900;
-    background: linear-gradient(180deg, #ffe6a8 0%, #ffcf6b 45%, #d98a3d 100%);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-    filter: drop-shadow(0 0 18px rgba(255,138,61,0.55)) drop-shadow(3px 3px 0 #2a1508);
-    animation: titlePulse 4s ease-in-out infinite;
+    font-size: clamp(30px, 6.4vw, 62px);
+    letter-spacing: clamp(6px, 1.5vw, 15px);
+    margin: 0 0 18px 0; font-weight: 700;
+    color: var(--hud-ink);
+    text-shadow: 0 1px 0 #000, 0 -1px 0 #000, 1px 0 0 #000, -1px 0 0 #000,
+                 0 0 26px rgba(198,206,222,0.13), 0 6px 26px rgba(0,0,0,0.9);
+    white-space: nowrap;
   }
-  @keyframes titlePulse {
-    0%,100% { filter: drop-shadow(0 0 18px rgba(255,138,61,0.55)) drop-shadow(3px 3px 0 #2a1508); }
-    50% { filter: drop-shadow(0 0 30px rgba(255,138,61,0.85)) drop-shadow(3px 3px 0 #2a1508); }
+  #startScreen h1 .t-off {
+    display: inline-block; transform: translateY(0.035em); color: #b6ac93;
+    animation: titleSettle 23s ease-in-out infinite;
   }
-  #startScreen .sub, #winScreen .sub { font-size: 13px; letter-spacing: 3px; color: #8a7a58; margin-bottom: 34px; }
-  #startScreen .divider {
-    width: 120px; height: 1px; margin: 0 0 30px 0;
-    background: linear-gradient(90deg, transparent, #6b5a3c, transparent);
+  /* Once every 23 seconds it very nearly joins the rest of the word, then does not. */
+  @keyframes titleSettle {
+    0%, 88%, 100% { transform: translateY(0.035em); }
+    93%           { transform: translateY(0); }
   }
+
+  #startScreen .sub, #winScreen .sub {
+    font-size: 12px; letter-spacing: 4.5px; color: var(--hud-ink-dim);
+    text-shadow: var(--hud-shadow); margin-bottom: 40px;
+  }
+
+  /* PHASE 29 — THE CONTROLS.
+
+     No boxes. A menu entry is a word, a hairline under it, and enough space around it to
+     be a target — which reads as an inscription rather than a web form, and cannot be
+     mistaken for the game's own brass-marked hotbar. Four states, and none of them is
+     colour alone: hover and focus both brighten the word AND grow the rule AND shift the
+     entry two pixels right; pressed drops it back; disabled loses the rule entirely and
+     stops responding to the pointer. */
+  .menu-actions { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .menu-btn {
+    position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    min-width: 250px; padding: 13px 26px 12px;
+    background: none; border: none; border-radius: 0;
+    font-family: inherit; font-size: 16px; letter-spacing: 5px; font-weight: 600;
+    color: var(--hud-ink-dim); text-shadow: var(--hud-shadow);
+    cursor: pointer;
+    transition: color 200ms linear, transform 200ms ease-out, letter-spacing 200ms linear;
+  }
+  .menu-btn::after {
+    content: ''; position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%);
+    width: 26px; height: 1px; background: var(--hud-rule);
+    transition: width 240ms ease-out, background-color 200ms linear;
+  }
+  .menu-btn:hover, .menu-btn:focus-visible {
+    color: var(--hud-ink); outline: none; transform: translateX(2px);
+  }
+  .menu-btn:hover::after, .menu-btn:focus-visible::after {
+    width: 84px; background: var(--hud-brass);
+  }
+  /* Keyboard focus says so twice: the rule the pointer also gets, plus a bracket to its
+     left that the pointer never gets. Focus and hover must not be indistinguishable. */
+  .menu-btn:focus-visible { color: var(--hud-ink); }
+  .menu-btn:focus-visible::before {
+    content: '\2503'; position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+    color: var(--hud-brass); font-size: 13px; line-height: 1;
+  }
+  .menu-btn:active { transform: translateX(2px) translateY(1px); color: var(--hud-ink-dim); }
+  .menu-btn[disabled], .menu-btn[aria-disabled="true"] {
+    color: var(--hud-ink-faint); cursor: default; pointer-events: none; transform: none;
+  }
+  .menu-btn[disabled]::after, .menu-btn[aria-disabled="true"]::after { background: transparent; }
+  /* CONTINUE names the run it would resume, on its own line, quietly. */
+  .menu-btn .menu-note {
+    font-size: 9.5px; letter-spacing: 1.6px; font-weight: 400;
+    color: var(--hud-ink-faint); text-transform: uppercase;
+  }
+  .menu-btn:hover .menu-note, .menu-btn:focus-visible .menu-note { color: var(--hud-ink-dim); }
+
+  /* PHASE 29 — the legend is a FOOTNOTE now, pinned to the bottom edge of the screen
+     rather than sitting inside the composition. It is the four things Phase 28 kept
+     because no in-world prompt can reach them, and it is deliberately the quietest text
+     on the page: the game teaches its verbs, this only names the keys that have no
+     surface to point at. */
+  #startScreen .controls {
+    position: absolute; left: 0; right: 0; bottom: 22px; z-index: 4;
+    font-size: 10px; letter-spacing: 1.6px; line-height: 2.1;
+    color: var(--hud-ink-faint); text-shadow: var(--hud-shadow);
+  }
+
   .action-btn {
     font-size: 20px; padding: 14px 32px; letter-spacing: 3px;
     background: #2a2114; color: #ffcf6b; border: 3px solid #6b5a3c; cursor: pointer;
-    animation: flicker 2s infinite; font-family: inherit; position: relative;
+    font-family: inherit; position: relative;
     transition: background 0.2s, border-color 0.2s, transform 0.15s;
   }
   .action-btn:hover { background: #3a2e1c; border-color: #ffcf6b; transform: translateY(-1px); }
-  @keyframes flicker { 0%,100%{opacity:1;} 48%{opacity:1;} 50%{opacity:0.6;} 52%{opacity:1;} }
-  #startScreen .controls { margin-top: 26px; font-size: 11px; color: #6b5a3c; line-height: 1.8; }
   .link-btn {
     margin-top: 18px; background: none; border: none; color: #8a7a58; font-family: inherit;
     font-size: 11px; letter-spacing: 2px; cursor: pointer; text-decoration: underline;
     text-underline-offset: 3px; transition: color 0.2s;
   }
   .link-btn:hover { color: #ffcf6b; }
+
+  /* PHASE 29 — SHORT WINDOWS. The menu gives up the legend and some breathing room
+     before it gives up the title or a button, because a menu you cannot read the title
+     of is broken and a menu with no keyboard legend is merely quieter. */
+  @media (max-height: 560px) {
+    #startScreen h1 { font-size: clamp(26px, 5vw, 40px); margin-bottom: 10px; }
+    #startScreen .sub { margin-bottom: 22px; font-size: 11px; letter-spacing: 3px; }
+    #startScreen .start-content { margin-bottom: 6vh; }
+    .menu-btn { padding: 9px 26px 8px; font-size: 15px; }
+    #startScreen .controls { display: none; }
+  }
+  @media (max-width: 560px) {
+    #startScreen h1 { letter-spacing: 4px; }
+    .menu-btn { min-width: 0; width: min(78vw, 260px); font-size: 15px; letter-spacing: 3.5px; }
+    #startScreen .controls { font-size: 9px; letter-spacing: 1px; padding: 0 10px; }
+  }
 
   /* =================================================================================
      PHASE 22 — SETTINGS
@@ -727,7 +1007,7 @@
     </div>
     <div class="vital">
       <div class="vital-cap cap-perc">PERCEPTION</div>
-      <canvas id="perceptionTrace" width="176" height="18"></canvas>
+      <canvas id="perceptionTrace" width="200" height="22"></canvas>
     </div>
   </div>
 
@@ -816,17 +1096,26 @@
 
 <div id="openingInstruction"><div id="openingLine"></div></div>
 
+<!-- PHASE 29 — THE MAIN MENU.
+
+     The ids are unchanged on purpose: #clickPlay, #continuePlay and #startSettingsLink
+     are what Game binds, what Phase 22 reaches for and what the browser suites drive.
+     This phase rebuilt what they LOOK like and what stands behind them; it did not build
+     a second menu, a second controller or a second set of handlers. There is exactly one
+     start screen in this document and MenuAtmosphere is presentation only — it owns the
+     scene, the grain and the ambience, and touches no gameplay state whatsoever. -->
 <div id="startScreen">
-  <canvas id="startEmbers"></canvas>
+  <canvas id="menuScene"></canvas>
+  <div id="menuGrain"></div>
   <div class="start-content">
-    <div class="corner tl"></div><div class="corner tr"></div>
-    <div class="corner bl"></div><div class="corner br"></div>
-    <div class="eyebrow">A SURVIVAL HORROR EXPEDITION</div>
-    <h1>WHERE IT ISN&rsquo;T</h1>
-    <div class="sub">A COZY WORLD. AN UNKIND NIGHT.</div>
-    <div class="divider"></div>
-    <button id="continuePlay" class="action-btn" style="display:none;">CONTINUE</button>
-    <button id="clickPlay" class="action-btn">BEGIN EXPEDITION</button>
+    <!-- The apostrophe's T is the anomaly. See #startScreen h1 .t-off. -->
+    <h1>WHERE I<span class="t-off">T</span> ISN&rsquo;T</h1>
+    <div class="sub">SOME OF IT IS STILL HERE</div>
+    <div class="menu-actions">
+      <button id="continuePlay" class="menu-btn" style="display:none;">CONTINUE<span class="menu-note" id="continueNote"></span></button>
+      <button id="clickPlay" class="menu-btn">NEW GAME</button>
+      <button id="startSettingsLink" class="menu-btn">SETTINGS</button>
+    </div>
     <!-- PHASE 28 — WHAT IS LEFT OF THE CONTROL LIST, AND WHY.
 
          This used to be three lines and it read as a keyboard reference: break, place,
@@ -836,11 +1125,10 @@
          contextual prompt can reach, because none of it has a target under the
          crosshair: how to move the body, how to change what is in the hand, and how to
          get back out to the menu that saves. -->
-    <div class="controls">
-      WASD MOVE &nbsp;&bull;&nbsp; MOUSE LOOK &nbsp;&bull;&nbsp; SPACE JUMP/SWIM &nbsp;&bull;&nbsp; SHIFT SPRINT<br>
-      1-9 / SCROLL SELECT SLOT &nbsp;&bull;&nbsp; I INVENTORY &nbsp;&bull;&nbsp; O SETTINGS
-    </div>
-    <button id="startSettingsLink" class="link-btn">SETTINGS</button>
+  </div>
+  <div class="controls">
+    WASD MOVE &nbsp;&bull;&nbsp; MOUSE LOOK &nbsp;&bull;&nbsp; SPACE JUMP/SWIM &nbsp;&bull;&nbsp; SHIFT SPRINT<br>
+    1-9 / SCROLL SELECT SLOT &nbsp;&bull;&nbsp; I INVENTORY &nbsp;&bull;&nbsp; O SETTINGS
   </div>
 </div>
 
@@ -1761,6 +2049,9 @@ class SoundEngine {
     this.nightmareMode = false;
     this.havenVoices = [];
     this.voidStatic = null;
+    /* PHASE 29 — the main menu's ambience. One handle, so the pair below can be called
+       any number of times without ever building a second copy of it. */
+    this.menuAmbience = null;
   }
 
   start() {
@@ -1853,6 +2144,81 @@ class SoundEngine {
       }
     }
     return buf;
+  }
+
+  /* =================================================================================
+     PHASE 29 — THE MAIN MENU AMBIENCE.
+
+     Two nodes and nothing else: a brown-noise bed rolled off at 210Hz, which is wind
+     with the wind taken out of it, and a 47Hz sine underneath it that is felt rather
+     than heard. Both come up over four seconds from silence, so the menu does not
+     announce itself — the player's first impression is a quiet room, and the sound is
+     already there by the time they notice it is.
+
+     IT IS MUSIC, ARCHITECTURALLY. Both go to `musicBus`, which means the Music slider
+     moves them, the Master slider moves them, and a player who has turned music off gets
+     a silent menu — all of that for free, and none of it re-implemented here.
+
+     WHY IT IS IDEMPOTENT AND WHY THAT MATTERS. `startMenuAmbience` returns early if the
+     ambience already exists, and `stopMenuAmbience` ramps to zero, stops the source and
+     nulls the handle. Between them there is exactly one place a node can be created and
+     exactly one place it can be destroyed, so no number of menu open/close cycles can
+     leave a second oscillator running under the first. That was the specific failure the
+     brief asked to be designed out.
+
+     THE AUDIOCONTEXT IS NOT OURS TO OPEN. A browser will not hand one over until the
+     player has interacted with the page, so this cannot run at first paint however much
+     it would like to; MainMenu arms it on the first real gesture. Until then the menu is
+     silent, which is a state this design is happy in anyway. */
+  startMenuAmbience() {
+    if (!this.ctx || this.menuAmbience) return false;
+    const now = this.ctx.currentTime;
+
+    const src = this.ctx.createBufferSource();
+    src.buffer = this._makeNoiseBuffer(4, 'brown');
+    src.loop = true;
+    const lp = this.ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 210; lp.Q.value = 0.5;
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.value = 0;
+    src.connect(lp); lp.connect(noiseGain); noiseGain.connect(this.musicBus);
+    src.start();
+    noiseGain.gain.setTargetAtTime(0.075, now, 1.4);
+
+    const drone = this.ctx.createOscillator();
+    drone.type = 'sine'; drone.frequency.value = 47;
+    const droneGain = this.ctx.createGain();
+    droneGain.gain.value = 0;
+    drone.connect(droneGain); droneGain.connect(this.musicBus);
+    drone.start();
+    droneGain.gain.setTargetAtTime(0.028, now, 2.2);
+
+    this.menuAmbience = { src, lp, noiseGain, drone, droneGain };
+    return true;
+  }
+
+  /* Ramped down rather than cut, then genuinely torn down 900ms later. The teardown is
+     wrapped because stopping an already-stopped source throws in some engines, and a
+     menu closing is not a place to take an exception. */
+  stopMenuAmbience() {
+    const a = this.menuAmbience;
+    if (!a) return false;
+    this.menuAmbience = null;
+    const now = this.ctx ? this.ctx.currentTime : 0;
+    try {
+      a.noiseGain.gain.cancelScheduledValues(now);
+      a.noiseGain.gain.setTargetAtTime(0, now, 0.20);
+      a.droneGain.gain.cancelScheduledValues(now);
+      a.droneGain.gain.setTargetAtTime(0, now, 0.20);
+    } catch (e) { /* the graph is already gone */ }
+    setTimeout(() => {
+      try { a.src.stop(); } catch (e) { /* already stopped */ }
+      try { a.drone.stop(); } catch (e) { /* already stopped */ }
+      for (const n of [a.src, a.lp, a.noiseGain, a.drone, a.droneGain]) {
+        try { n.disconnect(); } catch (e) { /* already detached */ }
+      }
+    }, 900);
+    return true;
   }
 
   _buildNightBed() {
@@ -23488,6 +23854,26 @@ class PlayerController {
     return this.inventory.hasItem(ITEM.VOID_SHIELD) ? 0.2 : 0;
   }
 
+  /* PHASE 29 — IS THE GAME ACTUALLY BEING PLAYED?
+
+     Every listener below is live from the moment PlayerController is constructed, which
+     is long before the player has left the main menu — and two of them were reachable
+     from it. Pressing E on the start screen ran `ui.toggleCrafting()`, opening the
+     crafting bench at z-index 40 UNDERNEATH an opaque menu at 50: invisible, unclosable
+     without pressing E again, and it latched the Phase 28 `craft` cue on the way past, so
+     a player who leaned on the keyboard at the title screen was quietly robbed of the one
+     prompt that teaches crafting. I / Tab did the same with the backpack. Movement keys
+     went into `this.keys` and sat there.
+
+     `progression` is the Game (assigned in its constructor), and `running` is true only
+     once _beginPlay has entered the frame loop — so this is false on the menu AND during
+     the opening instruction, which are exactly the two times none of this should fire.
+
+     WHAT IS DELIBERATELY *NOT* GATED: O and Escape. Those are menu keys, not gameplay
+     keys — O is how the settings panel opens from the title screen and the start screen's
+     own legend names it — so they answer everywhere, as they always did. */
+  _playing() { return !!(this.progression && this.progression.running); }
+
   _bindEvents() {
     document.addEventListener('keydown', (e) => {
       /* PHASE 22 — SETTINGS IS MODAL, so nothing may open on top of it. Without this
@@ -23497,12 +23883,13 @@ class PlayerController {
          while settings are up, which is what a paused game should do with them. */
       if (e.code === 'KeyE') {
         // PHASE 28 — pressing it once is the whole lesson; the cue never returns.
-        if (!this.ui.settingsOpen) { this.ui.toggleCrafting(); this._learn('craft'); }
+        // PHASE 29 — and it cannot be pressed before there is a game to press it in.
+        if (this._playing() && !this.ui.settingsOpen) { this.ui.toggleCrafting(); this._learn('craft'); }
         return;
       }
       if (e.code === 'KeyI' || e.code === 'Tab') {
         e.preventDefault();
-        if (this.ui.settingsOpen) return;
+        if (!this._playing() || this.ui.settingsOpen) return;
         // LEVEL 4 — if the cabin storage chest is open, [I] closes it rather than
         // stacking the backpack overlay on top of it.
         if (this.ui.storageOpen) { this.ui.closeStorage(); return; }
@@ -23526,6 +23913,10 @@ class PlayerController {
         this._dropSelected(e.shiftKey);
         return;
       }
+      /* PHASE 29 — movement and slot selection are gameplay, so they stop at the menu.
+         Without this a key held down at the title screen was still held down on the first
+         frame of the world. */
+      if (!this._playing()) return;
       this.keys[e.code] = true;
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') this.sprint = true;
       const num = parseInt(e.key, 10);
@@ -23539,7 +23930,7 @@ class PlayerController {
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') this.sprint = false;
     });
     document.addEventListener('wheel', (e) => {
-      if (!this.locked || this.ui.menuOpen) return;
+      if (!this._playing() || !this.locked || this.ui.menuOpen) return;
       const dir = e.deltaY > 0 ? 1 : -1;
       this.selectedSlot = (this.selectedSlot + dir + 9) % 9;
       this.ui.updateHotbarSelection();
@@ -23558,6 +23949,11 @@ class PlayerController {
       this.pitch = Math.max(-limit, Math.min(limit, this.pitch));
     });
     this.dom.addEventListener('click', () => {
+      /* PHASE 29 — the canvas may not seize the pointer before there is a game to play.
+         The start screen is opaque and normally swallows the click before it reaches
+         here, but "normally" is not a guarantee, and a menu that captured the cursor
+         would be unusable with no obvious way out. */
+      if (!this._playing()) return;
       if (!this.locked && !this.ui.menuOpen) { this.dom.requestPointerLock(); return; }
     });
     document.addEventListener('pointerlockchange', () => {
@@ -28901,6 +29297,11 @@ class UIManager {
     this.perceptionCtx = this.perceptionCanvas ? this.perceptionCanvas.getContext('2d') : null;
     this._traceAt = 0;      // when the trace was last repainted
     this._traceT = 0;       // the trace's own clock, advanced per repaint
+    /* PHASE 29 — both HUD canvases are fitted to the display's pixel ratio. Everything
+       else on this interface is DOM and gets that for free; these two were the only
+       surfaces in the HUD that were genuinely, measurably blurry on a HiDPI screen. */
+    this._fitCanvas(this.perceptionCanvas, this.perceptionCtx);
+    this._fitCanvas(this.compassTape, this.compassCtx);
 
     // PHASE 27 — the interaction prompt, and the held item's name.
     this.interactPrompt = document.getElementById('interactPrompt');
@@ -29485,8 +29886,11 @@ class UIManager {
   _drawPerception() {
     const ctx = this.perceptionCtx;
     if (!ctx || !this.perceptionCanvas) return;
-    const W = this.perceptionCanvas.width || 176;
-    const H = this.perceptionCanvas.height || 18;
+    /* PHASE 29 — the LOGICAL size, not the backing store. On a HiDPI display the two
+       differ by the pixel ratio and the context is already scaled to match; drawing
+       against canvas.width there would paint one third of the instrument. */
+    const W = this.perceptionCanvas._cssW || this.perceptionCanvas.width || 200;
+    const H = this.perceptionCanvas._cssH || this.perceptionCanvas.height || 22;
     const mid = H / 2;
     ctx.clearRect(0, 0, W, H);
 
@@ -29537,6 +29941,37 @@ class UIManager {
         ctx.stroke();
       }
     }
+  }
+
+  /* =================================================================================
+     PHASE 29 — FITTING A HUD CANVAS TO THE DISPLAY.
+
+     A canvas has two sizes: the CSS box the browser lays out, and the backing store it
+     actually rasterises into. If the second is smaller than the first the browser scales
+     the image up and the result is soft — which is what both of these were on any screen
+     with a device pixel ratio above 1. The fix is the standard one: make the backing
+     store `ratio` times bigger, keep the CSS box where it was, and scale the drawing
+     context by the same factor so every drawing routine keeps working in LOGICAL units
+     and does not have to know any of this happened.
+
+     `_cssW` / `_cssH` are what the drawing code reads afterwards, because `canvas.width`
+     is now physical pixels and would be the wrong number to draw against. Capped at 3:
+     past that the extra pixels are invisible and the fill cost is not.
+
+     It runs ONCE per canvas, at construction. The HUD does not resize these — they are
+     fixed-size instruments — so there is nothing to re-fit and no resize listener.
+     ================================================================================= */
+  _fitCanvas(canvas, ctx) {
+    if (!canvas || !ctx) return;
+    const cssW = canvas.width, cssH = canvas.height;
+    canvas._cssW = cssW; canvas._cssH = cssH;
+    const ratio = Math.min(3, Math.max(1,
+      (typeof window !== 'undefined' && window.devicePixelRatio) || 1));
+    if (ratio === 1) return;              // nothing to gain, and no transform to undo
+    canvas.width = Math.round(cssW * ratio);
+    canvas.height = Math.round(cssH * ratio);
+    if (canvas.style) { canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px'; }
+    if (ctx.setTransform) ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
   }
 
   /* =================================================================================
@@ -29772,7 +30207,10 @@ class UIManager {
     }
     this._compassBearing = bearing;
 
-    const ctx = this.compassCtx, W = this.compassTape.width, H = this.compassTape.height;
+    // PHASE 29 — logical size, for the same reason _drawPerception uses it.
+    const ctx = this.compassCtx;
+    const W = this.compassTape._cssW || this.compassTape.width;
+    const H = this.compassTape._cssH || this.compassTape.height;
     const SPAN = 180;                      // degrees of heading visible across the tape
     const pxPerDeg = W / SPAN;
     const centreDeg = bearing * 180 / Math.PI;
@@ -30063,58 +30501,384 @@ class UIManager {
   }
 }
 
-/* ---------------------------------------------------------------------------------
-   START-SCREEN EMBERS — lightweight ambient particle drift behind the title card.
-   --------------------------------------------------------------------------------- */
-function startEmbers(canvas) {
-  const ctx = canvas.getContext('2d');
-  let w, h, particles, raf, running = true;
-  function resize() {
-    w = canvas.width = canvas.offsetWidth;
-    h = canvas.height = canvas.offsetHeight;
+/* =====================================================================================
+   PHASE 29 — THE MAIN MENU ATMOSPHERE
+
+   WHAT WAS DELETED HERE. `startEmbers` — fifty-five orange particles drifting up behind
+   a bordered title card, allocated fresh whenever one expired, at sixty frames a second.
+   It was the visual grammar of a cosy survival game and it was the busiest thing on a
+   screen that is supposed to be quiet.
+
+   WHAT REPLACES IT IS A PLACE, NOT AN EFFECT. A cold horizon, a tree line, and three
+   pieces of rural infrastructure the player will meet again for real: a water tower, a
+   barn with a silo, and a run of poles carrying a wire. Nothing on this screen is a
+   creature, nothing is a Rift, nothing names a dimension, and nothing explains anything.
+   It is a landscape at the wrong end of the night, and the whole horror budget is spent
+   on three things happening rarely enough to be doubted.
+
+   THE ARCHITECTURE, AND WHY IT IS THIS ONE.
+
+     It is ONE 2D CANVAS. Not a Three.js scene: a menu that boots a renderer, a camera
+     and a chunk streamer to show a silhouette would be a second world to keep alive, and
+     the brief is explicit that the menu must not become one. Nothing here generates
+     terrain, ticks a clock, spawns a mob, advances an objective or touches a save.
+
+     THE LANDSCAPE IS DRAWN ONCE, into an offscreen canvas, and blitted afterwards. The
+     tree line is about four hundred strokes; doing that per frame would be the most
+     expensive thing in the build for the least reason. It is re-rendered on a resize and
+     on exactly one anomaly (`shift`), and at no other time.
+
+     IT RUNS AT ~30fps ON PURPOSE. Everything that moves here moves on the scale of tens
+     of seconds. Half the frames is half the cost and no perceptible difference, and it
+     leaves the machine to whatever the player has open behind the window.
+
+     Per frame after the blit: two fog bands, one lamp, and at most one walker. Five
+     draw calls, no allocation, no DOM.
+
+   DETERMINISM. Every schedule is a pure function of the seed, so a test can construct
+   the same menu the player gets and assert exactly when things happen. The runtime seed
+   is the wall clock, so no two launches are identical; `WII_MENU_SEED` is honoured when
+   it is set, which is how the browser suite gets a walker inside a ten-second run
+   instead of waiting for one.
+   ===================================================================================== */
+
+/* The three things that happen, and the intervals between them. Every one of these is
+   phrased as "not before N seconds, then somewhere in a window" — never as a probability
+   per frame, because a per-frame roll cannot be reasoned about or tested. */
+const MENU_EVENTS = Object.freeze({
+  /* THE LAMP. The water tower's red light, which is the one motif this menu shares with
+     the game (Phase 20's gaze anomaly). Here it carries no rule and no meaning: it is on
+     for a fifth of a second, roughly every half minute, and it is never explained. */
+  lamp:   { first: 14, gap: 22, spread: 26, hold: 0.22 },
+  /* THE WALKER. A two-pixel silhouette crossing one gap in the tree line, taking eleven
+     seconds to do it. At that size and that speed it is genuinely missable, which is the
+     entire point — the reaction being designed for is "was that there before?". */
+  walker: { first: 34, gap: 52, spread: 70, hold: 11 },
+  /* THE SHIFT. Once, after a long idle, the far tree line is redrawn a few pixels along.
+     Nothing announces it and nothing draws attention to it; a player who has been staring
+     at the menu for a minute may notice the horizon is not quite where it was. */
+  shift:  { first: 76, gap: 96, spread: 120, hold: 0 },
+});
+
+/* A small deterministic hash. The same shape the HUD's trace noise uses, kept local so
+   the menu cannot be made to depend on anything the game owns. */
+function menuNoise(n) {
+  let x = (n | 0) * 1103515245 + 12345;
+  x = (x ^ (x >>> 15)) >>> 0;
+  x = Math.imul(x ^ (x >>> 13), 1274126177) >>> 0;
+  return ((x ^ (x >>> 16)) >>> 0) / 4294967296;
+}
+
+/* When does event `kind` fire for the `n`th time, in seconds since the menu opened?
+   Pure, monotonic in n, and the only source of timing on this screen. */
+function menuEventAt(seed, kind, n) {
+  const spec = MENU_EVENTS[kind];
+  if (!spec) return Infinity;
+  let t = spec.first;
+  for (let i = 0; i < n; i++) t += spec.gap + menuNoise(seed + i * 7919 + kind.length * 131) * spec.spread;
+  return t;
+}
+
+class MenuAtmosphere {
+  constructor(canvas, seed) {
+    this.canvas = canvas || null;
+    this.ctx = canvas && canvas.getContext ? canvas.getContext('2d') : null;
+    this.seed = (seed === undefined || seed === null) ? (Date.now() & 0xffff) : (seed | 0);
+    this.running = false;
+    this.t = 0;                 // seconds the menu has been open
+    this.w = 0; this.h = 0;
+    this.layer = null;          // the offscreen landscape
+    this.shifted = 0;           // how many times the tree line has moved
+    this._raf = null;
+    this._last = 0;
+    this._acc = 0;
+    this.fired = { lamp: 0, walker: 0, shift: 0 };
+    this.lampUntil = -1;
+    this.walkerFrom = -1;
+    /* Bound once and reused, so open/close cycles cannot stack listeners. */
+    this._onResize = () => this._resize();
+    this._loop = (now) => this._frame(now);
   }
-  function makeParticle() {
-    return {
-      x: Math.random() * w,
-      y: h + Math.random() * 40,
-      r: 0.6 + Math.random() * 1.8,
-      speed: 8 + Math.random() * 18,
-      drift: (Math.random() - 0.5) * 10,
-      life: 0,
-      maxLife: 6 + Math.random() * 6,
-      hue: Math.random() < 0.5 ? '255,138,61' : '255,207,107',
+
+  /* --- the schedule ---------------------------------------------------------------
+     `due` answers "has the nth occurrence of this happened yet", and `_pump` is the only
+     thing that advances the counters. Both are pure enough to test without a canvas. */
+  nextAt(kind) { return menuEventAt(this.seed, kind, this.fired[kind]); }
+
+  _pump() {
+    while (this.t >= this.nextAt('lamp')) { this.lampUntil = this.t + MENU_EVENTS.lamp.hold; this.fired.lamp++; }
+    while (this.t >= this.nextAt('walker')) { this.walkerFrom = this.t; this.fired.walker++; }
+    while (this.t >= this.nextAt('shift')) { this.fired.shift++; this.shifted++; this.layer = null; }
+  }
+
+  open() {
+    if (this.running || !this.ctx) return false;
+    this.running = true;
+    this._resize();
+    if (typeof window !== 'undefined' && window.addEventListener) {
+      window.addEventListener('resize', this._onResize);
+    }
+    this._last = (typeof performance !== 'undefined' && performance.now) ? performance.now() : 0;
+    if (typeof requestAnimationFrame === 'function') this._raf = requestAnimationFrame(this._loop);
+    return true;
+  }
+
+  /* Idempotent, and it really does let go: the frame loop stops, the resize listener is
+     removed, and the offscreen landscape is dropped. Calling it twice is a no-op, which
+     is what makes it safe on every path into gameplay. */
+  close() {
+    if (!this.running) return false;
+    this.running = false;
+    if (this._raf !== null && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(this._raf);
+    this._raf = null;
+    if (typeof window !== 'undefined' && window.removeEventListener) {
+      window.removeEventListener('resize', this._onResize);
+    }
+    this.layer = null;
+    return true;
+  }
+
+  _resize() {
+    const c = this.canvas;
+    if (!c) return;
+    const w = c.offsetWidth || (typeof window !== 'undefined' ? window.innerWidth : 1280) || 1280;
+    const h = c.offsetHeight || (typeof window !== 'undefined' ? window.innerHeight : 720) || 720;
+    if (w === this.w && h === this.h && this.layer) return;
+    this.w = c.width = w;
+    this.h = c.height = h;
+    this.layer = null;                 // the landscape depends on the frame it is drawn in
+  }
+
+  _frame(now) {
+    if (!this.running) return;
+    const dt = Math.min(0.25, Math.max(0, (now - this._last) / 1000));
+    this._last = now;
+    this.t += dt;
+    this._acc += dt;
+    /* ~30fps. The scene's slowest visible motion takes eleven seconds to cross the
+       screen; there is nothing here a sixtieth of a second could resolve. */
+    if (this._acc >= 0.033) { this._acc = 0; this._pump(); this.draw(); }
+    if (typeof requestAnimationFrame === 'function') this._raf = requestAnimationFrame(this._loop);
+  }
+
+  /* --- the landscape, drawn once ---------------------------------------------------
+     Everything in here is deterministic in (seed, shifted, w, h). Nothing is random, so
+     the same window at the same seed is the same picture — which is what lets a
+     screenshot of this menu be compared against another one. */
+  _buildLayer() {
+    const W = this.w, H = this.h;
+    if (!W || !H) return null;
+    let off = null, g = null;
+    try {
+      off = (typeof document !== 'undefined' && document.createElement) ? document.createElement('canvas') : null;
+      if (!off) return null;
+      off.width = W; off.height = H;
+      g = off.getContext ? off.getContext('2d') : null;
+    } catch (e) { return null; }
+    if (!g) return null;
+
+    /* PHASE 29 — the horizon sits low, at just under three quarters, so the upper half of
+       the frame is sky for the title to live in and the landscape is a band rather than a
+       backdrop the words have to compete with. */
+    const horizon = Math.round(H * 0.72);
+    const drift = this.shifted * 3;    // the anomaly: the whole far world, a few px along
+
+    // Sky — cold, and darkest at the very top so the title has something to sit in.
+    const sky = g.createLinearGradient(0, 0, 0, horizon);
+    sky.addColorStop(0.00, '#04050a');
+    sky.addColorStop(0.55, '#080b12');
+    sky.addColorStop(0.88, '#101520');
+    sky.addColorStop(1.00, '#161d29');
+    g.fillStyle = sky; g.fillRect(0, 0, W, horizon);
+
+    // The last of the light, low and wide and off-centre.
+    const glow = g.createRadialGradient(W * 0.38, horizon, 0, W * 0.38, horizon, W * 0.46);
+    glow.addColorStop(0, 'rgba(78,86,104,0.34)');
+    glow.addColorStop(1, 'rgba(78,86,104,0)');
+    g.fillStyle = glow; g.fillRect(0, 0, W, horizon + 2);
+
+    // Ground.
+    const ground = g.createLinearGradient(0, horizon, 0, H);
+    ground.addColorStop(0, '#0a0d13');
+    ground.addColorStop(1, '#040507');
+    g.fillStyle = ground; g.fillRect(0, horizon, W, H - horizon);
+
+    /* THE FAR TREE LINE — two ridges. The back one is lighter and shorter and reads as
+       distance; the front one is nearly black. Both are drawn from the seed, so the same
+       menu has the same trees, and both move together when the anomaly fires.
+
+       THE FIRST VERSION OF THIS WAS A SAWTOOTH. Even spacing and a narrow height range
+       produced a decorative zigzag border rather than woodland — an ornament, which is
+       the one thing this screen cannot afford. Three things fix it and all three are
+       necessary: the walk advances by a VARIABLE step so no two gaps match, the heights
+       run from a third to well over twice the mean so the skyline has real peaks and
+       hollows, and consecutive trees OVERLAP, because a real tree line is a mass with
+       shapes on top of it rather than a row of separate triangles. */
+    const ridge = (baseY, scale, fill, step, salt) => {
+      g.fillStyle = fill;
+      g.beginPath();
+      g.moveTo(-40, H);
+      g.lineTo(-40, baseY);
+      let x = -40, k = 0;
+      while (x <= W + 40) {
+        const r1 = menuNoise(this.seed + k * 37 + salt + drift * 13);
+        const r2 = menuNoise(this.seed + k * 91 + salt);
+        const r3 = menuNoise(this.seed + k * 149 + salt);
+        // A long tail on the height, so a few trees are much taller than their neighbours.
+        const hgt = (5 + r1 * r1 * 46 + r2 * 9) * scale;
+        const halfW = step * (0.42 + r3 * 0.55);
+        g.lineTo(x - halfW * 0.55, baseY - hgt * 0.20);
+        g.lineTo(x - halfW * 0.30, baseY - hgt * 0.58);
+        g.lineTo(x, baseY - hgt);                   // the spire
+        g.lineTo(x + halfW * 0.30, baseY - hgt * 0.58);
+        g.lineTo(x + halfW * 0.55, baseY - hgt * 0.20);
+        x += step * (0.34 + r2 * 0.80);             // overlapping, uneven spacing
+        k++;
+      }
+      g.lineTo(W + 40, baseY); g.lineTo(W + 40, H);
+      g.closePath(); g.fill();
     };
+    ridge(horizon + 4, 0.62, '#0b1019', 15, 1201);
+    ridge(horizon + 11, 1.00, '#04060b', 21, 7717);
+
+    /* THE INFRASTRUCTURE. Three silhouettes, all of them things this game already has.
+       They are placed by fraction of the frame so they hold their composition at any
+       aspect ratio, and they are pure black — no rim light, no detail, no story. */
+    const ink = '#030407';
+    const gy = horizon + 7;
+
+    // Poles and a wire, running off the left edge. Rural, and it gives the eye a line.
+    g.strokeStyle = 'rgba(3,4,7,0.95)'; g.lineWidth = 1.6;
+    for (let i = 0; i < 3; i++) {
+      const px = Math.round(W * (0.05 + i * 0.093));
+      const ph = H * 0.075;
+      g.beginPath(); g.moveTo(px, gy); g.lineTo(px, gy - ph); g.stroke();
+      g.beginPath(); g.moveTo(px - 7, gy - ph + 5); g.lineTo(px + 7, gy - ph + 5); g.stroke();
+      if (i < 2) {
+        const nx = Math.round(W * (0.05 + (i + 1) * 0.093));
+        g.beginPath(); g.moveTo(px, gy - ph + 3);
+        g.quadraticCurveTo((px + nx) / 2, gy - ph + 13, nx, gy - ph + 3); g.stroke();
+      }
+    }
+
+    // A barn and its silo, small, to the right of centre.
+    const bx = Math.round(W * 0.695), bw = Math.max(38, W * 0.052), bh = bw * 0.46;
+    g.fillStyle = ink;
+    g.beginPath();
+    g.moveTo(bx, gy); g.lineTo(bx, gy - bh);
+    g.lineTo(bx + bw * 0.5, gy - bh * 1.62); g.lineTo(bx + bw, gy - bh);
+    g.lineTo(bx + bw, gy); g.closePath(); g.fill();
+    const sx = bx + bw + Math.max(5, W * 0.007), sw = Math.max(9, W * 0.012);
+    g.fillRect(sx, gy - bh * 1.5, sw, bh * 1.5);
+    g.beginPath(); g.ellipse(sx + sw / 2, gy - bh * 1.5, sw / 2, sw * 0.42, 0, Math.PI, 0); g.fill();
+
+    /* THE WATER TOWER — the Farmland's signature landmark, and the tallest thing on the
+       screen. It reaches into the title's half of the frame, which is the only reason the
+       composition has any depth to it. Its lamp is drawn per frame, not here. */
+    const tx = Math.round(W * 0.845);
+    const th = H * 0.30;
+    const tw = Math.max(34, W * 0.044);
+    g.fillStyle = ink;
+    g.fillRect(tx - 1.5, gy - th, 3, th);                       // centre column
+    for (const o of [-tw * 0.42, tw * 0.42]) {                  // splayed legs
+      g.beginPath(); g.moveTo(tx + o * 0.35, gy - th + 4);
+      g.lineTo(tx + o, gy); g.lineTo(tx + o * 0.78, gy);
+      g.lineTo(tx + o * 0.22, gy - th + 4); g.closePath(); g.fill();
+    }
+    g.fillRect(tx - tw * 0.40, gy - th * 0.52, tw * 0.80, 1.4); // cross brace
+    const tankH = th * 0.24, tankW = tw;                        // the tank
+    g.beginPath();
+    g.moveTo(tx - tankW / 2, gy - th + tankH * 0.30);
+    g.lineTo(tx - tankW / 2, gy - th - tankH * 0.55);
+    g.lineTo(tx - tankW * 0.30, gy - th - tankH * 0.92);
+    g.lineTo(tx + tankW * 0.30, gy - th - tankH * 0.92);
+    g.lineTo(tx + tankW / 2, gy - th - tankH * 0.55);
+    g.lineTo(tx + tankW / 2, gy - th + tankH * 0.30);
+    g.closePath(); g.fill();
+    g.fillRect(tx - 1, gy - th - tankH * 1.30, 2, tankH * 0.40); // the mast the lamp is on
+
+    /* THE FOREGROUND. The first capture left the bottom third of the frame an empty
+       rectangle. Three drawn-once details give it depth without giving it interest: a
+       band of low mist sitting on the tree line, and two very faint field furrows
+       converging toward the barn, which is the one piece of rural grammar that reads at
+       this scale. Nothing here is a landmark and nothing is meant to be looked at. */
+    const mist = g.createLinearGradient(0, gy - H * 0.02, 0, gy + H * 0.11);
+    mist.addColorStop(0, 'rgba(126,138,160,0.00)');
+    mist.addColorStop(0.35, 'rgba(126,138,160,0.11)');
+    mist.addColorStop(1, 'rgba(126,138,160,0.00)');
+    g.fillStyle = mist; g.fillRect(0, gy - H * 0.02, W, H * 0.13);
+
+    g.strokeStyle = 'rgba(96,106,124,0.07)'; g.lineWidth = 1;
+    for (let i = 0; i < 2; i++) {
+      const startX = W * (0.30 + i * 0.14);
+      g.beginPath(); g.moveTo(startX, H);
+      g.quadraticCurveTo(W * (0.52 + i * 0.06), gy + H * 0.12, bx + bw * 0.5, gy + 2);
+      g.stroke();
+    }
+
+    this.lampX = tx; this.lampY = gy - th - tankH * 1.34;
+    /* The walker crosses in the gap between the poles and the barn, at the tree line,
+       where the eye is not. */
+    this.walkGround = gy - 1;
+    this.walkFrom = W * 0.30; this.walkTo = W * 0.585;
+    return off;
   }
-  function init() {
-    resize();
-    particles = Array.from({ length: 55 }, () => { const p = makeParticle(); p.y = Math.random() * h; return p; });
-  }
-  function tick(dt) {
-    ctx.clearRect(0, 0, w, h);
-    for (const p of particles) {
-      p.life += dt;
-      p.y -= p.speed * dt;
-      p.x += p.drift * dt;
-      if (p.life > p.maxLife || p.y < -10) Object.assign(p, makeParticle());
-      const fade = Math.min(1, Math.min(p.life, p.maxLife - p.life) * 0.8);
-      ctx.beginPath();
-      ctx.fillStyle = `rgba(${p.hue},${(0.55 * fade).toFixed(3)})`;
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fill();
+
+  /* --- the frame -------------------------------------------------------------------
+     Blit, two fog bands, the lamp if it is lit, the walker if it is walking. */
+  draw() {
+    const ctx = this.ctx;
+    if (!ctx || !this.w || !this.h) return;
+    if (!this.layer) this.layer = this._buildLayer();
+    const W = this.w, H = this.h;
+    ctx.clearRect(0, 0, W, H);
+    if (this.layer) { try { ctx.drawImage(this.layer, 0, 0); } catch (e) { /* stub canvas */ } }
+
+    const horizon = Math.round(H * 0.615);
+
+    /* FOG. Two very wide, very faint bands sliding in opposite directions on periods that
+       do not divide into each other (83s and 127s), so the pair never returns to the same
+       arrangement inside any sitting a person would have. */
+    for (let i = 0; i < 2; i++) {
+      const period = i === 0 ? 83 : 127;
+      const dir = i === 0 ? 1 : -1;
+      const x = ((this.t / period) * dir % 1 + 1) % 1;
+      const cx = (i === 0 ? x : 1 - x) * W * 1.6 - W * 0.3;
+      const cy = horizon - H * (i === 0 ? 0.015 : 0.055);
+      const rx = W * (i === 0 ? 0.40 : 0.30), ry = H * (i === 0 ? 0.055 : 0.038);
+      const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx);
+      grd.addColorStop(0, 'rgba(122,134,156,' + (i === 0 ? 0.085 : 0.060) + ')');
+      grd.addColorStop(1, 'rgba(122,134,156,0)');
+      ctx.save();
+      ctx.translate(cx, cy); ctx.scale(1, ry / rx); ctx.translate(-cx, -cy);
+      ctx.fillStyle = grd;
+      ctx.beginPath(); ctx.arc(cx, cy, rx, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    // THE LAMP. Dark almost always. No sound, no announcement, no explanation.
+    if (this.t < this.lampUntil && this.lampX !== undefined) {
+      const grd = ctx.createRadialGradient(this.lampX, this.lampY, 0, this.lampX, this.lampY, 13);
+      grd.addColorStop(0, 'rgba(198,64,48,0.85)');
+      grd.addColorStop(1, 'rgba(198,64,48,0)');
+      ctx.fillStyle = grd;
+      ctx.beginPath(); ctx.arc(this.lampX, this.lampY, 13, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(226,110,88,0.95)';
+      ctx.fillRect(this.lampX - 1, this.lampY - 1, 2, 2);
+    }
+
+    // THE WALKER. Two pixels wide, eleven seconds to cross, and it fades at both ends so
+    // it is never seen to arrive or to leave — only to be, briefly, somewhere.
+    const wl = MENU_EVENTS.walker.hold;
+    if (this.walkerFrom >= 0 && this.t - this.walkerFrom < wl && this.walkGround !== undefined) {
+      const u = (this.t - this.walkerFrom) / wl;
+      const x = this.walkFrom + (this.walkTo - this.walkFrom) * u;
+      const fade = Math.min(1, Math.min(u, 1 - u) * 5);
+      const hgt = Math.max(4, this.h * 0.010);
+      ctx.fillStyle = 'rgba(2,3,5,' + (0.85 * fade).toFixed(3) + ')';
+      ctx.fillRect(Math.round(x), Math.round(this.walkGround - hgt), 2, hgt);
     }
   }
-  init();
-  let last = performance.now();
-  function loop(now) {
-    if (!running) return;
-    const dt = Math.min(0.05, (now - last) / 1000);
-    last = now;
-    tick(dt);
-    raf = requestAnimationFrame(loop);
-  }
-  raf = requestAnimationFrame(loop);
-  window.addEventListener('resize', resize);
-  return () => { running = false; if (raf) cancelAnimationFrame(raf); };
 }
 
 /* ---------------------------------------------------------------------------------
@@ -31435,6 +32199,115 @@ class ObjectiveSystem {
   }
 }
 
+/* =====================================================================================
+   PHASE 29 — THE MAIN MENU, AS A LIFECYCLE
+
+   THERE IS ONE MAIN MENU AND THIS IS IT. It owns three things and no others:
+
+     the SCENE      a MenuAtmosphere over #menuScene
+     the AMBIENCE   armed on the first real gesture, because a browser will not open an
+                    AudioContext before one
+     the CONTINUE   entry's label and whether it is shown at all
+
+   IT OWNS NO BUTTON HANDLERS. #clickPlay, #continuePlay and #startSettingsLink are bound
+   in the Game constructor exactly where they always were, because those are gameplay
+   verbs and this class is presentation. Splitting a menu across two controllers is how a
+   codebase ends up with two menus, so the split here is by KIND — what it looks like
+   against what it does — and the boundary is one method call in each direction.
+
+   IT MUTATES NOTHING. No objective, no save, no world, no clock, no progression. The
+   only state it writes is its own, plus the text of one button.
+
+   OPEN AND CLOSE ARE IDEMPOTENT AND SYMMETRICAL. Every listener it needs is bound once,
+   in the constructor, and gated on `this.open` — so however many times the menu is shown
+   and hidden, there is one of each. That is asserted rather than asserted-to.
+   ===================================================================================== */
+class MainMenu {
+  constructor(game, seed) {
+    this.game = game;
+    this.root = document.getElementById('startScreen');
+    this.scene = new MenuAtmosphere(document.getElementById('menuScene'), seed);
+    this.open = false;
+    this.audioArmed = false;
+
+    /* THE GESTURE. A browser hands over an AudioContext only after the player has
+       actually done something, so the ambience cannot begin at first paint. This listens
+       once — `{ once: true }` is not used because the handler must survive a gesture that
+       arrives while the menu is closed — and disarms itself the first time it succeeds. */
+    this._arm = () => this._armAudio();
+    if (this.root && this.root.addEventListener) {
+      this.root.addEventListener('pointerdown', this._arm);
+      this.root.addEventListener('pointermove', this._arm);
+    }
+    if (typeof window !== 'undefined' && window.addEventListener) {
+      window.addEventListener('keydown', this._arm);
+    }
+  }
+
+  _armAudio() {
+    if (this.audioArmed || !this.open) return false;
+    const g = this.game;
+    if (!g || !g.sound) return false;
+    this.audioArmed = true;
+    try {
+      g.sound.start();
+      /* The stored volumes reach real gain nodes here rather than in _start(), because
+         this is now the first moment an AudioContext exists. _start() calls it again and
+         the second call is a no-op that costs three ramps. */
+      if (g._applyAudioSettings) g._applyAudioSettings();
+      g.sound.startMenuAmbience();
+    } catch (e) { /* audio is optional; a silent menu is a valid menu */ }
+    return true;
+  }
+
+  show() {
+    if (this.open) return false;
+    this.open = true;
+    if (this.root) this.root.style.display = '';
+    this.scene.open();
+    this.refreshContinue();
+    return true;
+  }
+
+  /* Called from every route into gameplay. Stops the frame loop, releases the resize
+     listener, drops the offscreen landscape, fades the ambience out and hides the
+     screen — in that order, so nothing paints into a hidden element. */
+  hide() {
+    if (!this.open) return false;
+    this.open = false;
+    this.scene.close();
+    if (this.game && this.game.sound) {
+      try { this.game.sound.stopMenuAmbience(); } catch (e) { /* nothing playing */ }
+    }
+    if (this.root) this.root.style.display = 'none';
+    return true;
+  }
+
+  /* CONTINUE is shown only when a save actually validates, which is the Phase 23
+     behaviour and is deliberately unchanged: an entry that cannot resume anything is
+     worse than no entry, and `describeSaveState` is derived from the state itself so the
+     label can never disagree with what a click would load. */
+  refreshContinue() {
+    const g = this.game;
+    if (!g) return null;
+    g.saves.invalidate();
+    const state = g.saves.peek();
+    g.ui.syncSaveUI();
+    const btn = document.getElementById('continuePlay');
+    const note = document.getElementById('continueNote');
+    if (!btn) return state;
+    if (state) {
+      btn.style.display = '';
+      btn.removeAttribute('aria-disabled');
+      if (note) note.textContent = describeSaveState(state).toUpperCase();
+    } else {
+      btn.style.display = 'none';
+      if (note) note.textContent = '';
+    }
+    return state;
+  }
+}
+
 class Game {
   constructor() {
     this.canvas = document.getElementById('gameCanvas');
@@ -31597,7 +32470,12 @@ class Game {
     // because the whole Farmland journey depends on the player having heard it.
     this.openingInstruction = new OpeningInstruction(this.sound);
     this.farmCrossroadsRecalled = false;   // one-shot latch for the Farmlands recall
-    this.stopEmbers = startEmbers(document.getElementById('startEmbers'));
+    /* PHASE 29 — the menu, and the only one. A seed may be forced for testing so a run
+       can be made to contain a walker; without one the schedule follows the wall clock
+       and no two launches are the same. */
+    this.menu = new MainMenu(this,
+      (typeof window !== 'undefined' && window.WII_MENU_SEED !== undefined) ? window.WII_MENU_SEED : null);
+    this.menu.show();
 
     this._animate = this._animate.bind(this);
   }
@@ -32027,8 +32905,7 @@ class Game {
   continueFromSave() {
     const read = this.saves.read();
     if (!read.ok) return { ok: false, error: read.error };
-    document.getElementById('startScreen').style.display = 'none';
-    if (this.stopEmbers) { this.stopEmbers(); this.stopEmbers = null; }
+    this.menu.hide();                     // PHASE 29
     this.sound.start();
     this._applyAudioSettings();
     /* A save carries a copy of the settings, but the browser-global settings written by
@@ -32047,18 +32924,10 @@ class Game {
 
   hasSave() { return !!this.saves.peek(); }
 
+  /* PHASE 29 — one owner. The button's presence and its label are the menu's business;
+     this stays as the name the rest of the game already calls. */
   _refreshContinueButton() {
-    this.saves.invalidate();
-    const state = this.saves.peek();
-    this.ui.syncSaveUI();
-    const btn = document.getElementById('continuePlay');
-    if (!btn) return;
-    if (state) {
-      btn.style.display = '';
-      btn.textContent = 'CONTINUE — ' + describeSaveState(state).toUpperCase();
-    } else {
-      btn.style.display = 'none';
-    }
+    if (this.menu) this.menu.refreshContinue();
   }
 
   /* The one torch the world starts with. Extracted so a New Game puts it back: it is a
@@ -32162,8 +33031,8 @@ class Game {
      instruction: the next thing after these eight seconds is gameplay, with the first
      objective already resolved (see _beginPlay) and the HUD already painted. */
   _start() {
-    document.getElementById('startScreen').style.display = 'none';
-    if (this.stopEmbers) { this.stopEmbers(); this.stopEmbers = null; }
+    // PHASE 29 — one call takes the whole menu down: scene, ambience and screen.
+    this.menu.hide();
     this.sound.start();
     // PHASE 22 — the AudioContext exists only now, so this is where the stored volumes
     // first reach real gain nodes. Before this the call is a no-op by design.

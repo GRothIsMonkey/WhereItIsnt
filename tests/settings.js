@@ -362,8 +362,12 @@ const throwingStore = { getItem() { throw new Error('blocked'); }, setItem() { t
     ['hotbar scroll', "document.addEventListener('wheel'"],
     ['click-to-relock', "this.dom.addEventListener('click'"],
   ]) {
+    /* PHASE 29 widened this window from 260 to 800 characters. It is looking for the
+       menuOpen gate inside each handler, and the handlers gained comments in front of it
+       (and, in two cases, a _playing() gate beside it) — neither of which weakens the
+       property, but both of which pushed the token past a fixed 260-char window. */
     const i = SRC.indexOf(snippet);
-    chk(i > 0 && /this\.ui\.menuOpen/.test(SRC.slice(i, i + 260)),
+    chk(i > 0 && /this\.ui\.menuOpen/.test(SRC.slice(i, i + 800)),
         `${label} is gated on menuOpen, so it stops while settings are open`);
   }
   chk(/if \(e\.code === 'KeyQ' && !e\.repeat && this\.locked && !this\.ui\.menuOpen/.test(SRC),
@@ -452,11 +456,13 @@ const throwingStore = { getItem() { throw new Error('blocked'); }, setItem() { t
      E opened the crafting bench and I opened the backpack on top of a panel that had
      already released pointer lock and paused the world, leaving one overlay orphaned the
      moment the other closed. */
-  /* PHASE 28 added the onboarding latch inside this branch; the settingsOpen guard in
-     front of it is what this check is about and it is unchanged. */
-  chk(/if \(e\.code === 'KeyE'\) \{[\s\S]{0,120}?if \(!this\.ui\.settingsOpen\) \{ this\.ui\.toggleCrafting\(\);/.test(SRC),
+  /* PHASE 28 added the onboarding latch inside this branch and PHASE 29 added a
+     _playing() gate in front of the whole thing (E did nothing useful on the main menu
+     and quietly burned the Phase 28 crafting cue). The settingsOpen guard this check is
+     about is unchanged, and is now one of two conditions rather than one. */
+  chk(/if \(e\.code === 'KeyE'\) \{[\s\S]{0,240}?if \(this\._playing\(\) && !this\.ui\.settingsOpen\) \{ this\.ui\.toggleCrafting\(\);/.test(SRC),
       'E cannot open the crafting bench on top of the settings panel');
-  chk(/if \(e\.code === 'KeyI' \|\| e\.code === 'Tab'\) \{[\s\S]{0,90}if \(this\.ui\.settingsOpen\) return;/.test(SRC),
+  chk(/if \(e\.code === 'KeyI' \|\| e\.code === 'Tab'\) \{[\s\S]{0,90}if \(!this\._playing\(\) \|\| this\.ui\.settingsOpen\) return;/.test(SRC),
       'and I / Tab cannot open the backpack on top of it');
   chk(/e\.code === 'KeyO' && !e\.repeat && !this\.ui\.craftingOpen && !this\.ui\.backpackOpen &&\s*\n\s*!this\.ui\.storageOpen/.test(SRC),
       'nor can settings open on top of the crafting bench, the backpack or the storage chest');
@@ -546,7 +552,10 @@ const throwingStore = { getItem() { throw new Error('blocked'); }, setItem() { t
 
   /* CLICKS MUST NOT LEAK INTO GAMEPLAY while the panel is up. Both gameplay pointer paths
      already consult menuOpen, which settingsOpen feeds. */
-  chk(/this\.dom\.addEventListener\('click', \(\) => \{\s*\n\s*if \(!this\.locked && !this\.ui\.menuOpen\) \{ this\.dom\.requestPointerLock\(\); return; \}/.test(SRC),
+  /* PHASE 29 put a _playing() early return in front of this, so the canvas cannot seize
+     the cursor from behind the main menu either. The menuOpen condition Phase 22 needs is
+     the same line it always was. */
+  chk(/if \(!this\._playing\(\)\) return;\s*\n\s*if \(!this\.locked && !this\.ui\.menuOpen\) \{ this\.dom\.requestPointerLock\(\); return; \}/.test(SRC),
       'a click on the canvas cannot re-take pointer lock while a menu — settings included — is open');
   chk(/document\.addEventListener\('mousedown', \(e\) => \{\s*\n\s*if \(!this\.locked \|\| this\.ui\.menuOpen \|\| this\.dead/.test(SRC),
       'and mousedown cannot break, place or attack through the panel');

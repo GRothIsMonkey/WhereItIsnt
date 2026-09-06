@@ -23,6 +23,9 @@
     "hud": "node hud.js",
     "onboarding": "node onboarding.js",
     "browser-onboarding": "node browser-onboarding.js",
+    "menu": "node menu.js",
+    "preview-hud-type": "node preview-hud-type.js",
+    "browser-menu": "node browser-menu.js",
     "preview-hud": "node preview-hud.js"
   },
   "dependencies": {
