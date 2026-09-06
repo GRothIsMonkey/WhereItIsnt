@@ -3,14 +3,15 @@
 These are the checks Phase 20, its journey revision (20.1), the guidance pass (20.2), the
 item-contact pass (21), the settings pass (22), the save/load pass (23), the story
 foundation (24), the objective system (25), the XP removal (26), the HUD rebirth (27) and
-the tutorial removal (28) were built against. They run the **real game code** — the
+the tutorial removal (28) and the main-menu rebirth + typography pass (29) were built
+against. They run the **real game code** — the
 `<script>` body of `game.html` is loaded into a Node VM with a small DOM stub, and a real
 `VoxelWorld` is constructed and asked to generate real chunks. Nothing here reimplements
 the generator, and nothing here asserts on metadata where a player-facing property could
 be measured instead.
 
-Everything here is offline **except `browser-save.js`, `browser-onboarding.js` and
-`preview-hud.js`**, which launch
+Everything here is offline **except `browser-save.js`, `browser-onboarding.js`,
+`browser-menu.js` and `preview-hud.js`**, which launch
 Chromium, serve `game.html` over HTTP and drive the real page. Where a file is offline it says so, and
 where a claim needs a browser it is made in that file and nowhere else.
 
@@ -32,8 +33,10 @@ node objectives.js                 # Phase 25 — the objective tables, resoluti
 node progression.js                # Phase 26 — XP absence, milestones, legacy-save migration
 node hud.js                        # Phase 27 — condition, perception, objective, hotbar, prompt
 node onboarding.js                 # Phase 28 — the tutorial's absence, the cues, the migration
+node menu.js                       # Phase 29 — the menu, its anomalies, the HUD type scale
 node browser-save.js               # Phase 23 — the same thing in a REAL browser, see below
 node browser-onboarding.js         # Phase 28 — the same thing in a REAL browser, see below
+node browser-menu.js               # Phase 29 — the same thing in a REAL browser, see below
 node red-light.js
 node runtime.js
 node regression.js                 # needs a baseline, see below
@@ -106,14 +109,26 @@ Both are gitignored: they are reproducible from git and each is over a megabyte.
 | `preview-hud.js` | writes `renders/hud-{day,day-vitals,objective,mid,critical}.png` — **real Chromium screenshots of the real game**, the only browser capture in this suite. It boots `game.html`, plays far enough to have a hotbar and a compass, and captures the HUD over live terrain at full, half and near-death. It exists because the HUD's worst defects are invisible to assertions: the first capture of Phase 27 showed captions that were present, laid out, non-zero and the right colour, and completely unreadable against sunlit grass — which is how the caption ink, the trace's dark underlay and the unlit tick value were chosen. **It proves nothing and asserts nothing; it is for looking at.** As of Phase 28 it does not run in the development container at all: its first full-page `page.screenshot` times out after 30s under SwiftShader. That failure reproduces identically on the unmodified Phase 27 build at `e027719`, so it is the environment and not a regression — and since it gates nothing, no phase claim rests on it |
 | `onboarding.js` | Phase 28. Two halves. The **absence** is asserted against the real document, the real stylesheet and the real running build: none of `TUTORIAL_PAGES`, `TutorialController` or `Game._openTutorial` is defined, none of the ten tutorial element ids is in the body, none of the ten `.tutorial-*` rules is in the stylesheet, no code reaches for a tutorial element, and none of the six deleted card titles survives anywhere. The **replacement** is driven for real: the objective chain walked from "Gather wood." through tool, coal, torches, Anchor and the first night, plus the night and Rift overrides, with an audit that no objective line names a key; the three cues resolved through the real `PlayerController._onboardingCue` over log / stone / dirt / nothing, each retiring permanently once answered, each verb a single upper-case word, and a real affordance always outranking a cue; the latch refusing an unknown id and being idempotent over repeats; the save ladder — a new game owing all three, a hostile list repaired, a version 3 save migrated to "knows all three", and a version 1 save still climbing the whole ladder. **It makes no claim that a person understood any of it** |
 | `browser-onboarding.js` | Phase 28 **in Chromium**. Boots the real page and asserts on the live document: that none of the ten tutorial ids exists before OR after clicking BEGIN, that nothing anywhere carries a tutorial id or class, and that the only thing ever covering the viewport is the Phase 20.2 opening instruction; that the first gameplay frame is the first frame and the objective line is laid out and visible on it; that a log placed in a **real generated chunk** raises `LMB · CHOP` above the hotbar and stone raises `LMB · MINE`, that looking at nothing clears it, that felling one block retires the cue, that `E · CRAFT` opens the real bench and retires its own, that `RMB · PLACE` survives to a real placement, and that a chest still says `RMB · OPEN` after all three are done; that an open settings panel clears the prompt; that SAVE, a **page reload** and CONTINUE bring back no tutorial and keep the cues answered; that a hand-written schema-3 save in real `localStorage` loads fully onboarded; that NEW GAME owes them again; and that the resolver costs well under a microsecond either way. **This is the browser validation for this phase** |
+| `menu.js` | Phase 29. Two halves. The **menu**: that there is exactly one start screen and one of each of its three controls, that `startEmbers` is undefined rather than disabled, that neither `MainMenu` nor `MenuAtmosphere` touches an objective, a save, the world, the clock, progression, the player, a mob or pointer lock, that 40 open/close cycles leave zero window listeners, that the three gesture listeners are bound once in the constructor and gated on being open, that the three anomalies are frozen at three, that nothing happens for the first 14 seconds and the figure not before 34, that five minutes produces a countable handful of events, that the schedule is deterministic in the seed and monotonic, that the tower light is lit 0.6% of the time, and that no menu text uses the canon's internal vocabulary. The **typography**: that Courier New is gone from the stylesheet, that the replacement names a real face per platform and disables faux-bold, that nine measured HUD sizes are at or above their floor and none is above 16px, that the type the player reads is 600+ weight, that the four-step scale is strictly descending with a 10px floor the media query also obeys, that nothing is blurred and no HUD text-shadow reads as a halo, and that `_fitCanvas` scales backing store and context together and no-ops at ratio 1. **It makes no claim that the menu is atmospheric or that the HUD is comfortable** |
+| `browser-menu.js` | Phase 29 **in Chromium**. Boots the real page onto the real menu and reads back real pixels, real computed styles and real layout boxes: that the scene canvas is sized to the window and has genuinely been painted (luminance range down the centre column, near-black silhouette across the tower's row); that the title resolves to `WHERE IT ISN’T` at a sane size; that NEW GAME and SETTINGS are laid out, on top and hit-testable; that CONTINUE is hidden with no save and shown, labelled and clickable with one; that settings opens over the menu, its controls are reachable, and Escape closes it without taking pointer lock; that pressing E / I / W / A / 3 / Q / Tab and clicking the background leaves the bench shut, the backpack shut, the Phase 28 cue unburned, no key held, no pointer lock, no frame loop, no clock movement, no objective, no save write, no chunk generated **and the menu still up**; that the anomalies really appear on the canvas over 100 simulated seconds and are absent for 99.5% of them; that nine HUD readings resolve at or above their floors at 1280x720 **and** at 900x600 with nothing overlapping or off-screen; that the menu survives 640x480; that 25 show/hide cycles leave one screen and one canvas; and that a save, a reload and CONTINUE restore the same HUD with no duplicated elements. **This is the browser validation for this phase.** Screenshots are best-effort and reported as written or not — see the note below |
+| `preview-hud-type.js` | writes `renders/hud-type-{bright,dark}.png` plus zoomed crops of the vitals and the hotbar — the **real HUD markup and the real stylesheet** over sunlit grass and over a dark interior, rendered in real Chromium with **no WebGL**, so it captures instantly where a live capture times out. It exists because the Phase 29 readability problem was found in a screenshot and can only be checked in another one; it caught two defects a dark background hid completely (the tick ring reading as empty boxes, and the translucent unlit tick vanishing into daylight). **It proves nothing and asserts nothing; it is for looking at** |
 | `preview-compass.js` | writes `renders/compass-tape.svg` — the compass at six headings, re-emitted from the real `updateCompass` draw calls onto the real panel colours. Derived from the shipped code; **not** a browser render |
 
 ## About the browser run
 
-`browser-save.js` and `browser-onboarding.js` are the only files in this suite that are
-browsers. They need Playwright and a Chromium build (both are present in the development
-container; without them each file prints `SKIP` and exits 0). Each starts its own static
-server on its own port, so nothing else has to be running and they do not collide.
+`browser-save.js`, `browser-onboarding.js` and `browser-menu.js` are the files in this
+suite that are browsers. They need Playwright and a Chromium build (both are present in
+the development container; without them each file prints `SKIP` and exits 0). Each starts
+its own static server on its own port, so nothing else has to be running and they do not
+collide.
+
+**Screenshots in this container are unreliable and the suites say so rather than
+pretending otherwise.** Capturing the page while the WebGL frame loop is running times out
+under SwiftShader — the limitation Phase 28 recorded against `preview-hud.js` and
+reproduced there on an unmodified build. `browser-menu.js` therefore treats every capture
+as best-effort and prints which ones were actually written; the menu captures (no frame
+loop) succeed, the in-game ones usually do not. No assertion anywhere depends on a
+screenshot.
 
 `game.html` pulls three.js from a CDN. Drop the same file in `tests/vendor/` and the run
 becomes hermetic — the request is intercepted and served locally instead:

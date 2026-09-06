@@ -125,15 +125,30 @@ function stubElement(tag) {
    its letters is only measuring the real instrument if the canvas is the real canvas's
    dimensions. Kept next to the loader so adding a HUD canvas and forgetting this list
    shows up as a null context in a test, not in a browser. */
+/* Canvases that have no width/height attributes in the document, and therefore no size
+   the markup can be asked for. Everything else is READ OUT OF game.html — see
+   canvasSizes() — because a hardcoded copy of a size the document also states is a
+   duplicate that silently goes stale. Phase 29 found exactly that: the perception trace
+   grew to 200x22 in the markup and this table still said 176x18, so the HUD test went on
+   asserting the old instrument and passed. */
 const CANVAS_ELEMENT_IDS = new Map([
   ['gameCanvas', [1280, 720]],
-  ['startEmbers', [1280, 720]],
-  ['compassTape', [252, 26]],      // matches <canvas id="compassTape" width height>
-  ['perceptionTrace', [176, 18]],  // PHASE 27 — the perception trace
+  ['menuScene', [1280, 720]],
 ]);
+
+/* Every `<canvas id="..." width="..." height="...">` in the document, so the stub is the
+   size the shipped markup actually declares. */
+function canvasSizes(html) {
+  const out = new Map(CANVAS_ELEMENT_IDS);
+  const re = /<canvas\b[^>]*\bid="([^"]+)"[^>]*\bwidth="(\d+)"[^>]*\bheight="(\d+)"[^>]*>/g;
+  let m;
+  while ((m = re.exec(html)) !== null) out.set(m[1], [parseInt(m[2], 10), parseInt(m[3], 10)]);
+  return out;
+}
 
 function load(htmlPath) {
   const html = fs.readFileSync(htmlPath, 'utf8');
+  const canvasDims = canvasSizes(html);
   const lines = html.split('\n');
   // The single inline <script> body: everything between the tag on line 541 and </script>.
   let start = -1, end = -1;
@@ -156,7 +171,7 @@ function load(htmlPath) {
        id, so the harness never quietly hands a canvas to something expecting a div. */
     getElementById(id) {
       if (!elements.has(id)) {
-        const dims = CANVAS_ELEMENT_IDS.get(id);
+        const dims = canvasDims.get(id);
         const e = dims ? stubCanvas(dims[0], dims[1]) : stubElement('div');
         e.id = id;
         elements.set(id, e);

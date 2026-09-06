@@ -351,8 +351,12 @@ head('6. THE LATCH');
      something, an E that really opened the bench, a placement that really placed. */
   chk(/spawnBlockChips\([\s\S]{0,120}this\._learn\('break'\)/.test(LIVE),
       "'break' is latched inside the branch where a block actually broke, not on the click");
-  chk(/if \(!this\.ui\.settingsOpen\) \{ this\.ui\.toggleCrafting\(\); this\._learn\('craft'\); \}/.test(LIVE),
-      "'craft' is latched where E actually opens the bench (and still not over the settings panel)");
+  /* PHASE 29 added the _playing() gate: E on the MAIN MENU used to open the crafting
+     bench behind an opaque start screen and latch this cue on the way past, which robbed
+     a new player of the one prompt that teaches crafting. The latch is still exactly
+     where the bench actually opens. */
+  chk(/if \(this\._playing\(\) && !this\.ui\.settingsOpen\) \{ this\.ui\.toggleCrafting\(\); this\._learn\('craft'\); \}/.test(LIVE),
+      "'craft' is latched where E actually opens the bench (and not over the settings panel, and not on the menu)");
   chk(/if \(this\.world\.placeBlock\([\s\S]{0,140}this\._learn\('place'\)/.test(LIVE),
       "'place' is latched inside the branch where the block was really placed");
 

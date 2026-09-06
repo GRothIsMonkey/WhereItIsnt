@@ -1413,7 +1413,7 @@ Phase 25 — Dynamic Objective System
 Phase 26 — Remove XP / Rebuild Progression
 Phase 27 — Health / Sanity / HUD Rebirth
 Phase 28 — Remove Tutorial / Organic Onboarding   (COMPLETE — see section 54)
-Phase 29 — Main Menu Rebirth
+Phase 29 — Main Menu Rebirth + UI Typography     (COMPLETE — see section 55)
 Phase 30 — Opening Lore Film
 Phase 31 — Environmental Storytelling
 Phase 32 — Fake Haven Dream Sequence
@@ -1724,43 +1724,91 @@ RULES THAT NOW HOLD:
 
 ---
 
-# 55. PHASE 29 — MAIN MENU REBIRTH
+# 55. PHASE 29 — MAIN MENU REBIRTH + UI TYPOGRAPHY — COMPLETE
 
-The main menu should establish the game's horror identity.
+PHASE 29 CARRIED THIS OUT. The bordered card, the ember particles, the brass corner
+brackets, the gradient title bloom, the eyebrow and BEGIN EXPEDITION are gone; the menu is
+a landscape with words in its sky. This section is now a statement about the code, not an
+intention. See `PROGRESS.md` section 0.0000000 for the full record.
 
-Desired atmosphere:
-
-- quiet
-- dark
-- subtle
-- atmospheric
-- unsettling
-
-Potential elements:
-
-- barely visible environment
-- slow camera
-- distant movement
-- faint environmental sound
-- subtle static
-- rare anomalies
-- integrated title
-
-Menu options:
-
-- New Game
-- Continue
-- Settings
-
-Phase 28 left the start screen otherwise untouched, apart from cutting its control legend
-down to the keys no contextual prompt can reach. The menu rebirth owns that screen now,
-and it may not put a tutorial, a control screen or a "how to play" panel back on it.
-
-The official title is:
+The official title is, and remains:
 
 WHERE IT ISN'T
 
-The title treatment should be distinctive.
+WHAT THE MAIN MENU IS NOW:
+
+  ONE SCREEN    `#startScreen`, with `#clickPlay` (NEW GAME), `#continuePlay` (CONTINUE)
+                and `#startSettingsLink` (SETTINGS). Those ids are the stable API: Game
+                binds them, Phase 22 reaches for them, three browser suites drive them.
+
+  MainMenu      the LIFECYCLE. Owns the scene, the ambience and the CONTINUE label, and
+                NOTHING else. It binds no button. show()/hide() are idempotent, every
+                listener it needs is bound once in the constructor and gated on `open`.
+
+  MenuAtmosphere  the SCENE. One 2D canvas — never Three.js, never a second world. The
+                landscape (horizon, two tree ridges, water tower, barn and silo, poles and
+                wire, mist, field furrows) is drawn ONCE into an offscreen canvas and
+                blitted; per frame it adds two fog bands, a lamp and at most one walker,
+                at ~30fps.
+
+  ANOMALIES     exactly THREE, all scheduled by `MENU_EVENTS` as a pure function of the
+                seed: `lamp` (the tower's red light, 0.22s, not before 14s), `walker`
+                (a 2px silhouette crossing, 11s, not before 34s), `shift` (the tree line
+                redrawn a few pixels along, not before 76s).
+
+  AUDIO         `SoundEngine.startMenuAmbience()` / `stopMenuAmbience()` — brown noise at
+                210Hz plus a 47Hz sine, on `musicBus`, idempotent, armed on the first
+                gesture because no browser opens an AudioContext before one.
+
+RULES THAT NOW HOLD FOR THE MENU:
+
+- ONE menu authority. Do not add a second start screen, a second controller, or button
+  handlers inside `MainMenu`. The split is by KIND — presentation vs verbs — not by
+  control.
+- THE MENU IS PRESENTATION. It may not generate terrain, tick a clock, spawn anything,
+  advance an objective or write a save. `tests/menu.js` and `browser-menu.js` both check.
+- NOTHING ANNOUNCES ITSELF. An anomaly a player cannot doubt has failed. Keep the first
+  one past ten seconds, keep the light under 1% duty, keep the figure two pixels wide.
+- NO CREATURE AND NO ANSWER. No Stalker, Behemoth, Neighbour or final entity, and no menu
+  text may use the canon's internal vocabulary (`tests/menu.js` audits every word on it).
+- CONTINUE appears only when a save VALIDATES, and is hidden otherwise. Never fake it.
+- Four button states, and none of them colour alone. Keyboard focus must be distinguishable
+  from hover.
+
+# 55.1. UI TYPOGRAPHY — THE RULES THAT CAME OUT OF IT
+
+THE HUD WAS NEVER BLURRED. It was set in Courier New — a typewriter face whose stems are
+hairlines by design — at 8-10px, behind a 12px glow. A hairline stem at that size lands on
+a fraction of a pixel and arrives grey, and a halo behind small text is a grey cloud the
+shape of the letters. Both are fixed and neither may come back.
+
+  THE FACE      `--ui-face`: ui-monospace / SF Mono / Cascadia Mono / Segoe UI Mono /
+                Roboto Mono / Menlo / Consolas / DejaVu Sans Mono / Liberation Mono /
+                monospace. Still monospace — that was always the identity — but never
+                Courier New, and `font-synthesis: none` so a missing bold is not smeared.
+
+  THE SHADOW    `--hud-shadow` is four 1px shadows (a real contour) plus one short drop.
+                `--hud-shadow-hard` is the full-strength version for the captions and the
+                status line, which sit over the most terrain. Not a glow. Never a glow.
+
+  THE SCALE     `--t-primary` 15px (the objective, and only the objective)
+                `--t-secondary` 12px (the interaction prompt, the held item)
+                `--t-label` 11px (CONDITION, PERCEPTION, the clock, the key chip)
+                `--t-tertiary` 10px (counts, the status line)
+                Strictly descending. New HUD text uses a step; it does not invent a size.
+
+- MINIMAL IS NOT TINY. Nothing in the HUD goes below 10px — including in the
+  small-viewport media query, which gives up SPACE and drops optional glyphs rather than
+  shrinking type. Nothing goes above 16px either: this is not a console UI.
+- Type the player reads under pressure carries weight (600+). Ultra-light strokes at small
+  sizes are half of what "blurry" meant.
+- NEVER BLUR HUD TEXT FOR ATMOSPHERE. Atmosphere is restraint, spacing, colour and
+  position. `tests/menu.js` fails on a HUD filter blur or a wide text-shadow.
+- HUD CANVASES ARE FITTED TO THE DEVICE PIXEL RATIO (`UIManager._fitCanvas`), which scales
+  the backing store and the context together so drawing stays in logical units. Any new
+  HUD canvas goes through it.
+- Phase 27's instruments were made bigger, not redesigned. Condition is still discrete DOM
+  ticks; perception is still a continuous canvas trace; no rule may reach both.
 
 ---
 
@@ -2256,6 +2304,11 @@ one `:root` block at the top of the stylesheet:
 
 Use them. A new interface element that invents its own colour is how the HUD became
 five unrelated widgets the first time.
+
+Phase 29 added the TYPE side of the same system — one face, one shadow token, one
+four-step size scale — in section 55.1. Use those too: a new interface element that
+invents its own size or its own colour is how the HUD became five unrelated widgets the
+first time.
 
 Do not redesign the entire HUD outside its scheduled phase unless required
 to fix a bug.
