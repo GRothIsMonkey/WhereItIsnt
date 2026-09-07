@@ -17,6 +17,23 @@ const path = require('path');
 const { makeWorld } = require('./harness/util.js');
 const { S } = makeWorld();
 const SRC = fs.readFileSync(path.join(__dirname, '..', 'game.html'), 'utf8');
+/* The whole of one method, brace-matched. It replaces a fixed-length slice, which is a
+   trap: each phase that adds a paragraph of comment to _animate pushes the token a later
+   check is looking for out of a hard-coded window, and the check then fails for a reason
+   that has nothing to do with the property it is about. Phase 30 did exactly that. */
+function methodBody(src, sig) {
+  const i = src.indexOf('\n  ' + sig);
+  if (i < 0) return '';
+  const open = src.indexOf('{', i);
+  let depth = 0;
+  for (let j = open; j < src.length; j++) {
+    const c = src[j];
+    if (c === '{') depth++;
+    else if (c === '}') { depth--; if (depth === 0) return src.slice(open, j + 1); }
+  }
+  return '';
+}
+
 let fail = 0;
 const chk = (ok, msg) => { console.log((ok ? 'PASS  ' : 'FAIL  ') + msg); if (!ok) fail++; };
 const g = (n) => vm.runInContext(n, S);
@@ -374,7 +391,7 @@ const throwingStore = { getItem() { throw new Error('blocked'); }, setItem() { t
       'and so is dropping an item');
 }
 {
-  const anim = SRC.slice(SRC.indexOf('  _animate() {'), SRC.indexOf('  _animate() {') + 2600);
+  const anim = methodBody(SRC, '_animate() {');
   chk(/if \(this\.ui\.settingsOpen\) \{[\s\S]{0,200}return;/.test(anim),
       'the frame loop genuinely PAUSES the simulation while settings are open');
   chk(/this\.postfx\.render\(dt,/.test(anim.slice(anim.indexOf('settingsOpen'))),

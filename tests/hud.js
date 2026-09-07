@@ -52,6 +52,26 @@ function methodBody(src, name) {
   return null;
 }
 const LIVE = strip(SRC);
+
+/* PHASE 30 — EXACTLY ONE CLASS BODY, BRACE-MATCHED.
+
+   This used to be `LIVE.slice(indexOf('class X {'), indexOf(<whatever came next>))`, and
+   Phase 30 inserted a new class between the two markers — so the slice quietly grew to
+   include it and checks about one class started reading another's code. Matching braces
+   cannot drift: the body ends where the class ends, whatever is written after it. */
+function classBody(src, name) {
+  const i = src.indexOf('class ' + name + ' {');
+  if (i < 0) return '';
+  const open = src.indexOf('{', i);
+  let depth = 0;
+  for (let j = open; j < src.length; j++) {
+    const c = src[j];
+    if (c === '{') depth++;
+    else if (c === '}') { depth--; if (depth === 0) return src.slice(open, j + 1); }
+  }
+  return '';
+}
+
 const LIVE_STYLE = strip(STYLE);
 const LIVE_BODY = strip(BODY);
 
@@ -280,7 +300,7 @@ head('5. THE OBJECTIVE');
 
   /* THE HUD IS A RENDERER. Objective authority stayed in the objective system: the class
      body must not contain a single objective table, rule or condition. */
-  const cls = LIVE.slice(LIVE.indexOf('class UIManager {'), LIVE.indexOf('class OpeningInstruction'));
+  const cls = classBody(LIVE, 'UIManager');
   chk(!/OBJECTIVE_CHAINS|OBJECTIVE_OVERRIDES|ObjectiveSystem|objectives\./.test(cls),
       'UIManager reads no objective table and knows no objective rule — it renders the line it is handed');
   chk(/setObjective\(text, struck\) \{ this\.setJourneyStep\(text, !!struck\); \}/.test(LIVE),
@@ -421,7 +441,7 @@ head('10. NO DUPLICATION');
   /* Nothing creates a HUD container at runtime, so a dimension crossing or a load has
      nothing it could duplicate. The only elements the HUD builds are the cells inside
      two containers it empties first. */
-  const cls = LIVE.slice(LIVE.indexOf('class UIManager {'), LIVE.indexOf('class OpeningInstruction'));
+  const cls = classBody(LIVE, 'UIManager');
   const creates = (cls.match(/document\.createElement/g) || []).length;
   chk(/this\.conditionTicksEl\.innerHTML = '';/.test(cls) && /this\.hotbarEl\.innerHTML = '';/.test(cls),
       `the ${creates} elements it does build (ticks and cells) are always emptied before rebuilding`);
@@ -535,7 +555,7 @@ head('12. LAYERING');
 // =====================================================================================
 head('13. NO SECOND SOURCE OF TRUTH');
 {
-  const cls = LIVE.slice(LIVE.indexOf('class UIManager {'), LIVE.indexOf('class OpeningInstruction'));
+  const cls = classBody(LIVE, 'UIManager');
   const renderers = ['updateVitals','setSanity','_paintCondition','_buildConditionTicks','_drawPerception',
                      'updateObjectiveHUD','setJourneyStep','updateHotbarSelection','setInteractPrompt',
                      '_flashHeldName','resetPresentation'];

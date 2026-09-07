@@ -158,7 +158,12 @@ head('2. THE ROUTE IN');
       'and it still teaches no mechanic — it is an instruction, not a lesson');
 
   const begin = methodBody(LIVE, '_beginPlay');
-  chk(begin && begin.indexOf('this._refreshObjective();') < begin.indexOf('requestAnimationFrame'),
+  /* PHASE 30 — _beginPlay no longer calls requestAnimationFrame directly; it calls
+     _enterFrameLoop(), which is latched so the film and gameplay cannot start two loops.
+     The property is the same one it always was: the objective is resolved before the loop
+     is entered, so the first gameplay frame already has a line on it. */
+  chk(begin && begin.indexOf('this._refreshObjective();') >= 0 &&
+      begin.indexOf('this._refreshObjective();') < begin.indexOf('_enterFrameLoop'),
       'the first objective is resolved BEFORE the first frame, not a tick into it');
   chk(begin && /this\.canvas\.requestPointerLock\(\)/.test(begin),
       'and pointer lock is taken on the way in — the player is in gameplay input immediately');

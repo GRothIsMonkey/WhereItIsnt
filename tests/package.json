@@ -26,7 +26,10 @@
     "menu": "node menu.js",
     "preview-hud-type": "node preview-hud-type.js",
     "browser-menu": "node browser-menu.js",
-    "preview-hud": "node preview-hud.js"
+    "preview-hud": "node preview-hud.js",
+    "opening": "node opening.js",
+    "browser-opening": "node browser-opening.js",
+    "preview-opening": "node preview-opening.js"
   },
   "dependencies": {
     "three": "0.128.0"

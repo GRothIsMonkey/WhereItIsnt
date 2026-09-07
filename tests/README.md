@@ -3,15 +3,15 @@
 These are the checks Phase 20, its journey revision (20.1), the guidance pass (20.2), the
 item-contact pass (21), the settings pass (22), the save/load pass (23), the story
 foundation (24), the objective system (25), the XP removal (26), the HUD rebirth (27) and
-the tutorial removal (28) and the main-menu rebirth + typography pass (29) were built
-against. They run the **real game code** — the
+the tutorial removal (28), the main-menu rebirth + typography pass (29) and the opening
+film (30) were built against. They run the **real game code** — the
 `<script>` body of `game.html` is loaded into a Node VM with a small DOM stub, and a real
 `VoxelWorld` is constructed and asked to generate real chunks. Nothing here reimplements
 the generator, and nothing here asserts on metadata where a player-facing property could
 be measured instead.
 
 Everything here is offline **except `browser-save.js`, `browser-onboarding.js`,
-`browser-menu.js` and `preview-hud.js`**, which launch
+`browser-menu.js`, `browser-opening.js`, `preview-hud.js` and `preview-opening.js`**, which launch
 Chromium, serve `game.html` over HTTP and drive the real page. Where a file is offline it says so, and
 where a claim needs a browser it is made in that file and nowhere else.
 
@@ -34,15 +34,18 @@ node progression.js                # Phase 26 — XP absence, milestones, legacy
 node hud.js                        # Phase 27 — condition, perception, objective, hotbar, prompt
 node onboarding.js                 # Phase 28 — the tutorial's absence, the cues, the migration
 node menu.js                       # Phase 29 — the menu, its anomalies, the HUD type scale
+node opening.js                    # Phase 30 — the film's beats, lines, lifecycle, teardown
 node browser-save.js               # Phase 23 — the same thing in a REAL browser, see below
 node browser-onboarding.js         # Phase 28 — the same thing in a REAL browser, see below
 node browser-menu.js               # Phase 29 — the same thing in a REAL browser, see below
+node browser-opening.js            # Phase 30 — the same thing in a REAL browser, see below
 node red-light.js
 node runtime.js
 node regression.js                 # needs a baseline, see below
 node performance.js                # needs a baseline, see below
 node render-journey.js             # writes PNGs into tests/renders/
 node preview-hud.js                # Phase 27 — REAL browser screenshots of the HUD
+node preview-opening.js            # Phase 30 — REAL screenshots of every beat of the film
 ```
 
 `regression.js`, `journey.js`, `chain.js` and `performance.js` compare against the build
@@ -112,11 +115,14 @@ Both are gitignored: they are reproducible from git and each is over a megabyte.
 | `menu.js` | Phase 29. Two halves. The **menu**: that there is exactly one start screen and one of each of its three controls, that `startEmbers` is undefined rather than disabled, that neither `MainMenu` nor `MenuAtmosphere` touches an objective, a save, the world, the clock, progression, the player, a mob or pointer lock, that 40 open/close cycles leave zero window listeners, that the three gesture listeners are bound once in the constructor and gated on being open, that the three anomalies are frozen at three, that nothing happens for the first 14 seconds and the figure not before 34, that five minutes produces a countable handful of events, that the schedule is deterministic in the seed and monotonic, that the tower light is lit 0.6% of the time, and that no menu text uses the canon's internal vocabulary. The **typography**: that Courier New is gone from the stylesheet, that the replacement names a real face per platform and disables faux-bold, that nine measured HUD sizes are at or above their floor and none is above 16px, that the type the player reads is 600+ weight, that the four-step scale is strictly descending with a 10px floor the media query also obeys, that nothing is blurred and no HUD text-shadow reads as a halo, and that `_fitCanvas` scales backing store and context together and no-ops at ratio 1. **It makes no claim that the menu is atmospheric or that the HUD is comfortable** |
 | `browser-menu.js` | Phase 29 **in Chromium**. Boots the real page onto the real menu and reads back real pixels, real computed styles and real layout boxes: that the scene canvas is sized to the window and has genuinely been painted (luminance range down the centre column, near-black silhouette across the tower's row); that the title resolves to `WHERE IT ISN’T` at a sane size; that NEW GAME and SETTINGS are laid out, on top and hit-testable; that CONTINUE is hidden with no save and shown, labelled and clickable with one; that settings opens over the menu, its controls are reachable, and Escape closes it without taking pointer lock; that pressing E / I / W / A / 3 / Q / Tab and clicking the background leaves the bench shut, the backpack shut, the Phase 28 cue unburned, no key held, no pointer lock, no frame loop, no clock movement, no objective, no save write, no chunk generated **and the menu still up**; that the anomalies really appear on the canvas over 100 simulated seconds and are absent for 99.5% of them; that nine HUD readings resolve at or above their floors at 1280x720 **and** at 900x600 with nothing overlapping or off-screen; that the menu survives 640x480; that 25 show/hide cycles leave one screen and one canvas; and that a save, a reload and CONTINUE restore the same HUD with no duplicated elements. **This is the browser validation for this phase.** Screenshots are best-effort and reported as written or not — see the note below |
 | `preview-hud-type.js` | writes `renders/hud-type-{bright,dark}.png` plus zoomed crops of the vitals and the hotbar — the **real HUD markup and the real stylesheet** over sunlit grass and over a dark interior, rendered in real Chromium with **no WebGL**, so it captures instantly where a live capture times out. It exists because the Phase 29 readability problem was found in a screenshot and can only be checked in another one; it caught two defects a dark background hid completely (the tick ring reading as empty boxes, and the translucent unlit tick vanishing into daylight). **It proves nothing and asserts nothing; it is for looking at** |
+| `opening.js` | Phase 30. Drives the **real `OpeningFilm`** against a stand-in for the parts of `Game` it touches: that the beat table is frozen, unique-id'd and tiles the whole film with no gap or overlap; that it opens on real darkness and holds a real stretch of ordinary world before anything happens to it; that the film says exactly two short lines and that neither they nor any string on the layer uses the canon's internal vocabulary or explains a mechanic; that `begin` is idempotent, locks movement, hides the HUD, starts the ambience and asks for pointer lock; that FIVE different exits (running out, skipping at any point, skipping on the first frame, a second film, a film that never rendered) all land in the one teardown and put back movement lock, eye height and the borrowed hour, dispose every geometry and material and leave the scene graph exactly as it was found; that the film contains no `setTimeout` and binds its listeners once; that the shapes are untextured engine primitives with no anatomy and none of the game's creatures; that the moving shape moves only while it is NOT being looked at; that the save schema did not change and carries no cinematic flag; and that the Phase 20.2 instruction is still the film's closing beat and still has exactly one authority. **It cannot prove the film is any good** |
+| `browser-opening.js` | Phase 30 **in Chromium**. Boots the real page, clicks NEW GAME and watches the real film in a real WebGL context: that the frame loop draws it while `running` stays false; that the world genuinely does not move behind it — no day advanced, no objective created, no block changed, no chunk streamed, no health or sanity touched; that E, I, the movement keys and both mouse buttons do nothing and do not end it; that O opens settings **over** it and genuinely pauses it, and that Escape then closes the panel without also skipping the film; that the beats arrive, the shapes appear and are gone again by the calm beat, and the film ends itself and hands to the crossroads instruction; that gameplay begins with the HUD, the crosshair, the first objective and movement restored; that the SKIP control is a real hit-testable target that lands in exactly the same state a watched film does; that CONTINUE never enters the film at all; and that six films in a row leave the scene graph, the document and the audio unchanged. **This is the browser validation for this phase** |
+| `preview-opening.js` | writes `renders/film-{dark,reveal,familiar,anomaly,closer,vast,seam,unresolved,calm}.png` — **real Chromium screenshots of the real film in the real world**, one per beat, taken by driving the film's own clock through its own `update()` and drawing one frame by hand (this container renders the Overworld at about one frame a second, so waiting in real time is not possible). It exists because every composition defect in this film was invisible to assertions and obvious in a picture: the first vantage was inside a tree, the first vast shape was below the horizon and inside the fog, the second read as a brown rectangular building, and the human-sized silhouettes could not be seen at all from above a canopy. **It proves nothing and asserts nothing; it is for looking at** |
 | `preview-compass.js` | writes `renders/compass-tape.svg` — the compass at six headings, re-emitted from the real `updateCompass` draw calls onto the real panel colours. Derived from the shipped code; **not** a browser render |
 
 ## About the browser run
 
-`browser-save.js`, `browser-onboarding.js` and `browser-menu.js` are the files in this
+`browser-save.js`, `browser-onboarding.js`, `browser-menu.js` and `browser-opening.js` are the files in this
 suite that are browsers. They need Playwright and a Chromium build (both are present in
 the development container; without them each file prints `SKIP` and exits 0). Each starts
 its own static server on its own port, so nothing else has to be running and they do not

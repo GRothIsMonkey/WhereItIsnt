@@ -147,8 +147,14 @@ async function clickPanel(page, sel) {
 async function boot(page, { fresh }) {
   await page.waitForFunction('!!window.game', null, { timeout: 90000 });
   if (fresh) {
-    // PHASE 28 — BEGIN EXPEDITION goes straight into the game; there is no skip link.
+    // PHASE 28 — NEW GAME goes straight into the game; there is no skip link.
     await page.click('#clickPlay');
+    /* PHASE 30 — past the opening film. NEW GAME now plays a sixty-eight second cinematic
+       before the crossroads instruction, so every fresh boot here skips it the way a
+       player would. film.skip() is the same path the SKIP control runs. */
+    await page.waitForFunction('window.game.film && window.game.film.active === true', null, { timeout: 30000 });
+    await page.evaluate(() => window.game.film.skip());
+    await page.waitForTimeout(150);
     await page.keyboard.press('Space');            // skip the opening instruction
   } else {
     /* Record the orientation at the instant the restore finishes — BEFORE the frame loop
@@ -361,8 +367,18 @@ async function boot(page, { fresh }) {
       /* Ask the game where the crosshair actually is rather than guessing a block: the
          answer depends on the player's yaw, pitch and reach, and guessing put the chest
          somewhere the ray never went. */
+      /* The ray is cast from the CAMERA, which PlayerController.update syncs from yaw and
+         pitch once a frame — so a pitch written here does nothing until the camera is
+         told. Phase 30 exposed this: its film hands over facing east, and the sweep below
+         was silently re-casting the same ray four times. */
+      const aimCamera = () => {
+        p.camera.rotation.order = 'YXZ';
+        p.camera.rotation.y = p.yaw;
+        p.camera.rotation.x = p.pitch;
+      };
+      aimCamera();
       let hit = p._getLookTarget();
-      if (!hit) for (const pitch of [-0.3, -0.6, -0.9, 0.3]) { p.pitch = pitch; hit = p._getLookTarget(); if (hit) break; }
+      if (!hit) for (const pitch of [-0.3, -0.6, -0.9, 0.3, 0.6]) { p.pitch = pitch; aimCamera(); hit = p._getLookTarget(); if (hit) break; }
       if (!hit) return false;
       const was = g.world.getBlockWorld(hit.bx, hit.by, hit.bz);
       g.world.setBlockWorld(hit.bx, hit.by, hit.bz, BLOCK.TREASURE_CHEST);
