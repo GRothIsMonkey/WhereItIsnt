@@ -29,7 +29,10 @@
     "preview-hud": "node preview-hud.js",
     "opening": "node opening.js",
     "browser-opening": "node browser-opening.js",
-    "preview-opening": "node preview-opening.js"
+    "preview-opening": "node preview-opening.js",
+    "environment": "node environment.js",
+    "browser-environment": "node browser-environment.js",
+    "preview-environment": "node preview-environment.js"
   },
   "dependencies": {
     "three": "0.128.0"

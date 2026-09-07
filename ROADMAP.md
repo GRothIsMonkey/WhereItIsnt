@@ -1930,49 +1930,76 @@ RULES THAT NOW HOLD
   the player is standing exactly where the film found them when it hands over, and the
   crossroads instruction therefore still points from the right place.
 
-**Phase 31 is next** and makes the world itself carry the story.
+**Phase 31 delivered** and made the world itself carry the story — see section 49.
 
 ---
 
-# 49. PHASE 31 — ENVIRONMENTAL STORYTELLING
+# 49. PHASE 31 — ENVIRONMENTAL STORYTELLING  — **COMPLETE**
 
-Use the canonical story to make the world communicate information naturally.
+Delivered. The full record is PROGRESS.md section 0.000000000; this is the shape of it and
+the rules that now hold.
 
-Overworld:
+WHAT WAS ACTUALLY BUILT, AND WHY IT IS MOSTLY NOT CONTENT
 
-- origin
-- survival
-- first warning signs
+The current voxel Overworld is not guaranteed to be the final Dimension 1, and Era 2
+intends to rebuild these dimensions without voxels. So this phase spent its budget on the
+LANGUAGE rather than on objects: a closed vocabulary of what a piece of environmental
+storytelling can be doing, a table of the places it can be doing it, and a runtime that
+knows one thing only — which of them the player has stood in front of. Ten events are a
+representative sentence in that language. The language is the deliverable.
 
-Farmlands:
+  ENV_READS       six closed categories: absence, placement, repetition, contradiction,
+                  callback, trace. Something that fits none of them is a set piece and
+                  belongs to a phase with a name on it.
+  ENV_PERSIST     four classes: generated (re-derived from the seed, never saved),
+                  noticed (a latch, saved), world (the existing edit/stage ledgers carry
+                  it), session. Almost everything is generated, which is why this phase
+                  added one save field and not a ledger.
+  ENV_SITES       THE ERA 2 SEAM. An event carries the NAME of a place; this table says
+                  where that place currently is. Every voxel-specific number in the phase
+                  — parcel indices, superblock arithmetic, lot grids, the Haven pocket —
+                  lives in these eight functions and nowhere else. A site may also name
+                  something an earlier phase already built.
+  ENV_STAMPERS    the only part that knows what a block is, kept out of both the table
+                  and VoxelWorld. This is the part Era 2 throws away.
 
-- abandonment
-- agricultural history
-- human absence
-- consequences
+THE CONTENT, IN ONE LINE EACH
 
-Static Suburbia:
+  Overworld    a held place (a levelled square, four planks, a scorched centre, four
+               spent sticks — somebody else's anchor, unlit and unusable); the same
+               square elsewhere with nothing on it; and a crossing — pressed ground and
+               opened canopy — that appears only after the first night survived.
+  Farmlands    the record's vocabulary: four yard arrangements stamped VERBATIM on a
+               third of farmsteads, in the same corner of every yard. Plus two objects
+               Phase 20 already built, given names so that noticing them can matter.
+  Suburbia     the held place again, in a back yard; the ROTH FARM board again, on a
+               front lawn; and the family photograph losing one of its two figures, as a
+               seventh Phase 15 revision effect.
+  Haven        the armchair from the dead field, by the fire, unremarked.
 
-- imitation
-- memory failure
-- repetition
-- reality reconstruction
+RULES THAT NOW HOLD
 
-Disconnected Homes:
+- **It never speaks.** No notes, no journals, no handwriting, no readable human sentence
+  (STORY.md section 13). No toast, no objective, no marker, no discovery sound. A player
+  who does not notice does not notice.
+- **It never resolves.** STORY.md section 22's list is the boundary. Every event may
+  imply and may not confirm.
+- **Nothing changes while it is being watched.** Section 16 rule 1. This phase adds no new
+  way to break it: a callback appears in a chunk the player has not reached.
+- **Repetition is literal.** Not a similar chair — the same cells, the same ids, the same
+  corner. A variation is a different object and defeats the point.
+- **A callback requires its original.** Three events exist only once the player has stood
+  in front of something in another dimension. A callback nobody has the memory for is a
+  prop.
+- **Three things are tracked at run time, and they are exactly the three that gate
+  something.** The runtime cost is the mechanic and nothing else.
+- **The audio budget is not spent on discovery.** A sound on finding something is a
+  confirmation. It is spent on occupancy instead — one quiet footfall in a house the
+  player has been in before, standing still, at most once per house.
+- **Phase 15 was extended, not shadowed.** There is still exactly one Suburbia revision
+  system.
 
-- evidence of impossible reconstruction
-
-Use:
-
-- objects
-- layouts
-- environments
-- photographs
-- repetition
-- architectural inconsistencies
-- subtle environmental clues
-
-Do not turn the game into a note-collecting simulator.
+**Phase 32 is next** and builds Fake Haven.
 
 ---
 
@@ -3391,8 +3418,8 @@ Claude Code should inspect the repository before making assumptions.
 
 Current completed milestone:
 
-Phase 30 — Opening Lore Film
-(Phase 29 main-menu rebirth + UI typography, Phase 28 tutorial removal, Phase 27 HUD rebirth, Phase 26 XP removal, Phase 25
+Phase 31 — Environmental Storytelling
+(Phase 30 opening lore film, Phase 29 main-menu rebirth + UI typography, Phase 28 tutorial removal, Phase 27 HUD rebirth, Phase 26 XP removal, Phase 25
 dynamic objectives, Phase 24 canonical story foundation, Phase 23 save/load, Phase 22
 settings, Phase 21 dropped item ground contact, and Phase 20 including the 20.1
 journey revision and the 20.2 guidance pass — see PROGRESS.md, and STORY.md for the
@@ -3400,7 +3427,7 @@ canon)
 
 Current next major phase:
 
-Phase 31 — Environmental Storytelling
+Phase 32 — Fake Haven Dream Sequence
 
 Current game build baseline:
 

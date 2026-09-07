@@ -425,7 +425,9 @@ head('8. NEW GAME vs CONTINUE');
   /* NO SAVE FIELD. "Has the film played" is answerable from which function was called, so
      inventing state for it would be a duplicate — and the brief says not to add one just
      because it is convenient. */
-  chk(g('SAVE_VERSION') === 4, `the save schema is untouched at version ${g('SAVE_VERSION')}`);
+  /* THE FILM ADDED NO FIELD, WHICH IS NOT THE SAME AS "THE SCHEMA NEVER MOVES". Phase 31
+     took it to 5 for a reason of its own, so the check is on the SHAPE of the default
+     state below rather than on a version number this phase does not own. */
   const fresh = g('defaultSaveState')(null);
   const keys = Object.keys(fresh.progression).join(' ');
   chk(!/film|cinematic|opening|intro/i.test(keys),

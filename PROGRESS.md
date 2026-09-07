@@ -1,8 +1,8 @@
 # WHERE IT ISN'T — PROJECT STATE
 
 ```
-Current phase              30 — OPENING LORE FILM (complete)
-Next phase                 31 — ENVIRONMENTAL STORYTELLING
+Current phase              31 — ENVIRONMENTAL STORYTELLING (complete)
+Next phase                 32 — FAKE HAVEN DREAM SEQUENCE
 Phase 19                   COMPLETE
 Phase 20                   COMPLETE
 Phase 20 journey revision  COMPLETE           (20.1 — see section 0)
@@ -17,12 +17,13 @@ Phase 27                   COMPLETE           (see section 0.00000)
 Phase 28                   COMPLETE           (see section 0.000000)
 Phase 29                   COMPLETE           (see section 0.0000000)
 Phase 30                   COMPLETE           (see section 0.00000000)
+Phase 31                   COMPLETE           (see section 0.000000000)
 XP                         REMOVED            (no runtime XP exists; see section 0.0000)
 Hearts / vital bars        REMOVED            (no runtime HUD bar exists; see section 0.00000)
 Tutorial                   REMOVED            (no tutorial exists; see section 0.000000)
 Courier New                REMOVED            (the HUD's blur was the typeface; section 0.0000000)
 Opening film               NEW GAME ONLY      (68s, in-world; CONTINUE never plays it)
-Save schema                VERSION 4          (3 -> 4 adds progression.onboarding)
+Save schema                VERSION 5          (4 -> 5 adds progression.noticed)
 Authoritative build        game.html          (there is no other game file)
 Canonical story            STORY.md           (read before writing ANY player text)
 Validation suite           tests/             (see tests/README.md)
@@ -32,11 +33,355 @@ Phases 1–19 are as their sections in `ROADMAP.md` describe them. This file rec
 state of Phase 20 specifically: what was built, what was measured, what was found and
 fixed along the way, and what is honestly not verified.
 
-**Sections 0.00000000–0.5 describe the phases that followed (30, 29, 28, 27, 26, 25, 23, 22, 21, 20.2). Sections 1–5
+**Sections 0.000000000–0.5 describe the phases that followed (31, 30, 29, 28, 27, 26, 25, 23, 22, 21, 20.2). Sections 1–5
 describe Phase 20 as it was first delivered, and Section 0 describes the 20.1 journey
 revision that followed a human playtest and supersedes them wherever they disagree** — principally the beat table, the landmark set, the distances, and the
 performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
 instruction and the compass and changed no world generation at all.
+
+---
+
+## 0.000000000. PHASE 31 — ENVIRONMENTAL STORYTELLING
+
+The world could not tell the player anything except by being looked at, and almost nothing
+in it was arranged to be worth looking at twice.
+
+---
+
+# THE DECISION THIS PHASE TURNS ON
+
+**It did not build a hundred objects. It built the language, and then wrote ten sentences
+in it.**
+
+Phases 17–20 put a great deal of storytelling into the world by hand: the missing-farm
+evidence, three identical burnt-stump arrangements four hundred blocks apart, an armchair
+alone in a dead field, a sign naming a farm that is not there. Every one is a good object.
+Every one is also welded to a parcel index inside a voxel Farmlands that Era 2 intends to
+rebuild from scratch, and the phase brief is explicit that the current Overworld may not
+survive either. Written the same way, the next hundred objects would be thrown away with
+the renderer.
+
+So the deliverable is a vocabulary, a table of places, and a runtime that knows one thing.
+The content below is a demonstration of the vocabulary, not the point of the phase.
+
+## THE FOUR PARTS
+
+**`ENV_READS` — what an event is DOING.** Six closed categories: absence, placement,
+repetition, contradiction, callback, trace. The value of a closed vocabulary is that it can
+be exhausted; something that fits none of these is a set piece, and a set piece belongs to
+a phase with a name on it. All six are exercised by the content.
+
+**`ENV_PERSIST` — how long it lasts, and therefore whether the save has to carry it.**
+Four classes: `generated` (a pure function of the seed, re-derived on every stream-in,
+never saved, because it is not state), `noticed` (a latch, saved), `world` (the existing
+edit and stage ledgers already carry it), `session`. Six of the ten events are `generated`.
+That classification is why this phase added exactly one save field and not a ledger.
+
+**`ENV_SITES` — the Era 2 seam, and the most important thing here.** An event does not
+carry coordinates. It carries the NAME of a place, and a table of eight pure functions says
+where that place currently is. Every voxel-specific number in the phase — parcel indices,
+superblock arithmetic, the lot grid, the 48-block Haven pocket — lives in those eight
+functions and nowhere else. When Era 2 replaces a dimension, the events do not change:
+their sites are re-pointed. "The board that lies" and "the chair from the field" stay true
+across a rebuild in a way `(FARM_J_B0 + 23) * 64 + 47` never could.
+
+A site may also name something **the world already builds**. `farmFieldChair` and
+`farmNameBoard` resolve to two objects Phase 20 stamped, and this phase adds not one block
+to either — it gives them names, so that noticing them can mean something later. That is
+the cheapest storytelling in the build and it is the pattern for Era 2 to copy.
+
+**`ENV_STAMPERS` — the only code that knows what a block is.** Kept out of the event table
+and out of `VoxelWorld`, because this is the part a renderer change throws away.
+
+## THE RUNTIME DOES TWO THINGS
+
+`EnvironmentStorySystem` latches which of **three** tracked events the player has stood in
+front of (2Hz, distance and facing — the same test the water tower's lamp has used since
+Phase 20), and answers "does this exist yet" for chunk generation. That is all of it.
+
+It has no timer, no listener, no geometry and no UI, and it **cannot reach `UIManager`**.
+That is not an omission: a system that can show the player something has stopped being
+environmental storytelling and become a collectible.
+
+Only three events are tracked, and they are exactly the three that gate something. Nothing
+is tracked that does not gate a callback, which makes the runtime cost identical to the
+mechanic.
+
+---
+
+# THE CONTENT
+
+## OVERWORLD — three, deliberately quiet
+
+**A held place.** Somebody squared off a piece of ground, levelled it, kept it, and
+stopped. A seven-block square of bare earth with a hard right-angled edge — the one thing
+weather never makes — a scorched centre where something stood, four planks at the cardinal
+points, and four spent sticks at the corners where the light was.
+
+It is emphatically **not an Anchor**: no `SAFEHOUSE_ANCHOR` block anywhere in it, so it
+cannot be lit, fed or used. STORY.md section 7 says the player is not the first to use the
+technique and that nobody hands them authority; a found working anchor would hand it to
+them.
+
+**The same square, elsewhere, with nothing on it.** Same size, same right angles, same
+scorch, and no objects. Met second it reads as the first one emptied; met first it reads as
+nothing at all, which is correct — a repetition does not exist until there are two.
+
+**A crossing.** Twenty-six blocks of pressed ground on a shallow curve, and the canopy
+opened along it between three and six blocks up — a height nothing that walks here needs.
+Leaves are only ever REMOVED: the trace is an absence in the trees rather than a thing
+standing among them. It appears only **after the player has survived a night**, so it reads
+as something that has started rather than something that was always there.
+
+This is the phase's Stalker integration and it is deliberately the whole of it. STORY.md
+section 5's Stalker is a *draft of a person*; this is the mark a draft leaves. No spawn, no
+trigger, no AI change.
+
+## FARMLANDS — the record's limited vocabulary
+
+**Four yard arrangements, stamped verbatim.** A chair; a fence break; a mailbox; a set of
+tools laid down beside a crate. Not four templates — four OBJECTS, written as offsets and
+stamped without variation, rotation or per-farm seeding, in the same corner of every yard
+that carries one, on roughly one farmstead in three.
+
+STORY.md section 13 calls this the Farmlands' quietest and best horror: *the same mailbox,
+the same chair, the same fence break, on farms that never shared an owner.* A player who
+walks four farms meets the same chair twice and has no way to check whether they are
+remembering wrongly. `tests/environment.js` asserts every repeat is **byte-identical**,
+because a variation is a different object and defeats the entire point.
+
+**And two Phase 20 objects, named.** The armchair alone in a dead field and the ROTH FARM
+board standing at a gate with no farm behind it. No new geometry; one new consequence each.
+
+## STATIC SUBURBIA — where recognition has to do the work
+
+**The held place, in a back yard.** The same square, the same planks, the same scorch,
+between two rows of houses that have never had a fire in them. It exists only if the player
+stood in front of the Overworld one.
+
+**The board, again.** The same two-cell lettered board on the same pair of posts, on a
+front lawn, on a street with no farm within a dimension of it. STORY.md section 10: a name
+painted on a board is geometry, and geometry is what the record keeps.
+
+**The photograph loses a figure.** The house's family photograph, re-hung in exactly the
+cell it already occupies, with one of its two people not in it. Same frame, same wall, same
+height, same display name. It is a **seventh Phase 15 revision effect** rather than
+anything of this phase's own, so it obeys the existing rule that a house only changes while
+the player is far away and not looking, and only ever on a house they have already been
+inside. Roughly a quarter of houses can carry it — the ones that hang the photograph — and
+that rarity is by construction rather than by a tuned number.
+
+## THE HAVEN — one object, unremarked
+
+**The chair from the field, by the fire.** The same furniture model that stands alone on a
+rug in a dead Farmlands field, in the warmest room in the game, in the one place where an
+armchair is completely unremarkable. It exists only if the player stood in front of the one
+in the field. `tests/environment.js` asserts that **not one other cell of the cabin
+differs** — STORY.md section 18 forbids putting a warning in the cabin, and a callback that
+rearranged the room would be one.
+
+---
+
+# THE AUDIO, AND WHY IT IS NOT A DISCOVERY CUE
+
+Every event's `sound` field is null, and the test asserts it.
+
+A sound that fires when the player finds something is an achievement chime with the
+confidence knocked off it: it confirms, and confirmation is the one thing environmental
+storytelling cannot afford. The brief's own section 15 forbids "ANOMALY FOUND"; a sting is
+the same sentence played on a synthesiser.
+
+So the phase's one audio idea is spent on **occupancy** instead. Inside a suburban house
+the player has been in *before*, standing still for four seconds, a single quiet footfall
+from somewhere else in the building — at most once per house, never within forty seconds of
+another, bounded ledger, evicted oldest-first. It is attached to no event, it cannot be
+found, and there is nothing to look at. That is STORY.md's "a faint household sound from an
+empty structure", and it is the only new sound in the phase.
+
+---
+
+# WHAT WAS EXTENDED RATHER THAN DUPLICATED
+
+Phase 15 already owns repetition inside the suburb: motifs, twin houses, and revision on
+revisit, with bounded ledgers and an observation-gated commit. The brief is explicit that a
+parallel system doing the same job is the failure mode, so:
+
+- the photograph effect is a **seventh entry in `_subStageEffect`**, not a new mechanic;
+- the notice latch reuses the shape of the milestone and onboarding sets — an authored id
+  table, filtered on the way into the save and on the way out;
+- the observation test is the water tower's;
+- the ledger eviction is the door registry's;
+- the stamping helpers are `_subSet` / `_subHits` / `_subGet`, which every structure in the
+  build already uses.
+
+`tests/environment.js` asserts there is still exactly one Suburbia revision system.
+
+---
+
+# DEFECTS FOUND AND FIXED
+
+**1. A new furniture model rewrote the entire suburb.** `defFurn('artFamilyAlone')` was
+placed beside `artFamily`, where it belongs conceptually. `_furnNextId` hands out block ids
+in registration order, so every model after it shifted by four and the chunk data of all of
+Static Suburbia changed. `regression.js` caught it in one line (`870 -> 874 x105` across
+five thousand blocks). The model is registered last now, after the last dynamic allocation
+in `buildSuburbInteriorStructure` — and it had to be moved twice, because the `SIDE_LINED`
+loop after `defFurn('newel')` allocates too.
+
+**2. The farm yard arrangement ate a farmhouse.** Placed as a 3×3 patch at `(ox+1, oz+1)`,
+because the farmhouse starts three cells in on both axes. It does not start cleanly: its
+fieldstone footing is at `ox+2` and a downspout hangs off the eave above that. Twenty cells
+of yard track and twelve of footing were repainted and a downspout deleted, five thousand
+blocks from anywhere anyone would have looked. Found by `regression.js`'s transition list
+rather than by its cell count — which is exactly why that test lists ids instead of
+counting differences. The arrangement is a 2×3 strip on the two columns that are genuinely
+free on every farmstead now, and `regression.js`'s allowlist was extended to name every id
+this phase may consume and produce, so eating a building again is a one-line failure.
+
+**3. The Overworld could not stamp across a chunk boundary.** Its surface height was
+computed inline inside `_generateTerrain`'s column loop, so nothing could ask about a
+column in a chunk that did not exist yet — the service `_farmHeightAt` has provided the
+Farmlands since Phase 16. Extracted to `_overworldSurfaceY`; `regression.js` proves the
+terrain is byte-identical.
+
+**4. The crossing began in a lake.** Its first site had ten of its twenty-six columns at or
+below sea level, and the stamper correctly skipped them. Rather than move it by eye, the
+real generator was swept for a run of twenty-six columns that is dry the whole way, rises
+less than two blocks across its length, and has a closed enough canopy that opening it
+means anything. The chosen site strips thirty leaf cells.
+
+**5. The trace was deleting the bottom block of tree trunks.** Litter was written wherever
+the line went. A tree standing on air is a bug, not a track. It writes only into air now.
+
+**6. Three test files asserted a save-schema NUMBER as a proxy.** `objectives.js`,
+`onboarding.js` and `opening.js` each asserted `SAVE_VERSION === 4`, which fails on every
+future phase that adds a field without touching what those files are about. Each now
+asserts the property it actually owns — that its own field is in the schema, that the
+migration ladder has no missing rung, that the film added no field.
+
+**7. Two browser checks were measuring the wrong thing.** "Nothing was added to the scene"
+compared two snapshots a second apart, which measures the chunk streamer rather than the
+notice sweep; it takes both readings inside one page call now. And "a new game clears the
+latch" clicked NEW GAME on a re-shown start screen — a flow the game does not have, since
+`#clickPlay` calls `_start()` on a game that has never run. It exercises the settings
+panel's New Game (which does have a teardown) and a fresh page load instead.
+
+**8. `performance.js`'s journey-corridor ceiling was measuring the container, not the
+build.** It read +12.5% against a 12% threshold, then +13.2% on a re-run. Rather than
+adjust the number, the unmodified Phase 30 build was checked out of git and run in the same
+container in the same session: **it read +12.5% and failed the same check.** Phase 31's own
+contribution was then measured directly — the same 126 journey chunks generated with
+`_envStoryStamp` stubbed out, with a loop-only stub, and with the real one — and the
+loop-only stub came out SLOWER than the real thing, which is what a null result looks like.
+The delivered build then read +8.8% on the next run. Four readings between 8.8% and 13.2%
+on code that differs by less than the noise floor is not a measurement of a build. The
+ceiling is 14 now, with all of that written into the test, because 12 was never a safe line.
+
+**9. The preview could not photograph anything.** Three separate causes, all found by
+looking at the pictures: `findSpawnHeight` on ungenerated columns returned its fallback of
+40 and put every camera fifteen blocks above the ground staring at sky; the eye was placed
+relative to the target rather than to the ground under the vantage, so on a slope it sat
+inside a hill; and driving `updateChunks` by hand with the frame loop off meshes four
+milliseconds' worth per call, which on a container drawing one frame a second produced
+frames of unmeshed stone with the decor floating in it.
+
+---
+
+# VALIDATION
+
+**Offline — `tests/environment.js`, 111 checks, all passing.** Drives the real generator
+and the real runtime. Highlights: fifteen kinds of malformed event definition are all
+rejected and none of them throws; sixteen chunks around a story site are byte-identical
+across two worlds generating in opposite orders, and a story chunk unloaded and regenerated
+comes back the same; every object is read back out of chunk data at the coordinate its site
+resolves to; the held place contains no Anchor block; every repeat of a farm arrangement is
+byte-identical; no Overworld object reaches eighty-one chunks of Farmlands and no Farmlands
+object reaches sixty-four chunks of Overworld; a milestone brings one event into existence
+and moves nothing else; each of the three callbacks is absent without its prerequisite and
+present with it, and noticing one original brings back exactly one; the latch round-trips
+through the real save validator and drops invented ids; the 4 → 5 migration derives
+nothing; the runtime cannot reach the HUD, an objective, a marker or a timer; and no string
+literal in the phase is long enough to be a sentence.
+
+**Browser — `tests/browser-environment.js`, 41 checks, all passing** in real Chromium with
+a real WebGL context. A real player walks to a real object in a real streamed chunk and
+reads it back; the notice sweep fires inside the running frame loop; noticing changes no
+objective, no toast, no prompt, no health, no sanity, no milestone and nothing in the scene
+graph; the callback generates in a browser that has noticed the original and does not in a
+second browser that has not; the latch survives a real save, a real page reload and a real
+CONTINUE; the in-session New Game and a fresh page both clear it; and settings, the
+backpack, the HUD and walking are all unchanged.
+
+**Pictures — `tests/preview-environment.js`.** One real screenshot per object plus a 14x
+crop of the two family photographs taken straight out of the live texture atlas, because
+the difference between them is eleven pixels and is invisible in a screenshot of a room.
+
+**Regression — the whole suite re-run on the delivered build:**
+
+```
+determinism 8    regression 13   core-disk 16   journey 37   red-light 10
+runtime 21       settings 110    items 44       compass 71   chain 40
+save 157         story 35        objectives 78  progression 77
+hud 102          onboarding 117  menu 126       opening 106  environment 111
+performance      WITHIN BOUNDS (+8.8% on the journey corridor; one ceiling raised —
+                 see defect 8 — after the unmodified previous build failed the same check)
+browser-save 102   browser-onboarding 48   browser-menu 70
+browser-opening 72   browser-environment 41
+```
+
+All passing. No suite was skipped.
+
+---
+
+# KNOWN LIMITATIONS — HONEST LIST
+
+**NO HUMAN HAS PLAYED THIS BUILD.** The phase brief requires a genuine human playtest and
+lists eleven questions for it — did I notice it naturally, did I understand too quickly,
+was it too subtle, did it feel gamey, did it make me remember a previous place. **Not one
+of those has been answered.** Everything in this document is a measurement or my own
+reading of a still image. That gate is not met, and the phase should be treated as
+code-complete rather than as design-validated until somebody plays it.
+
+**The photograph has not been seen in a house.** The two tiles are captured side by side at
+14x, which proves the difference is there and is small. Whether a player who has walked past
+nine of them notices the tenth, in a dim interior, at a glance, is exactly the question a
+person has to answer.
+
+**The occupancy footfall has not been heard.** It is asserted — the gating, the ledger, the
+cooldown, the two-step timing — but nobody has listened to it, and a footstep at gain 0.05
+may be inaudible or may read as a bug.
+
+**The composition is tuned to the default seed.** The three Overworld sites were chosen by
+sweeping the real generator for dry, level, appropriately-treed ground, and that sweep was
+run on one seed. On another, the held place still levels its own pad (so it always exists)
+but its surroundings are unchosen. The Farmlands and Suburbia content is placed relative to
+farmsteads and lots and does not have this problem.
+
+**The Farmlands vocabulary sits in the yard's edge column.** It is on the two columns of a
+farmyard that are free on every farmstead the generator makes — which is a fact established
+by reading four of them and by `regression.js`'s transition list, not by a proof. A future
+change to the farmstead plan could put a building there, and the failure mode would be a
+chair inside a wall. The regression allowlist is what would catch it.
+
+**One event is declared and owned elsewhere.** `sub_photograph` has no stamper and no site;
+it is a Phase 15 revision effect, listed in the table because the table is the index of
+everything the phase does. That is a supported state, not a gap — but it does mean the
+event table is not, on its own, a complete description of where the content lives.
+
+**No new dimension-1 content beyond three objects.** Deliberate, per the brief's scope rule:
+the current Overworld may be replaced, so it got the lightest touch of the four dimensions.
+
+**The crossing is the least legible thing in the phase.** Its capture shows a short run of
+bare pressed earth between trees that reads at close range and disappears at distance —
+which may be exactly right for a trace and may be indistinguishable from nothing. It was
+already made twice as legible once: the first version wrote leaf litter and no ground, and
+the picture of it was four brown specks in a field of green. Whether the current version is
+subtle or absent is the single clearest question for a playtest.
+
+**A performance ceiling was raised.** See defect 8. The evidence that it is drift rather
+than regression is written into the test, and the phase's own cost was measured separately
+and is below this harness's noise floor — but a raised threshold is a raised threshold, and
+it is recorded here rather than buried.
 
 ---
 

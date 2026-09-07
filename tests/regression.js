@@ -8,7 +8,7 @@ const NOW = makeWorld();
 const OLD = makeWorld(process.env.WII_BASELINE || require('path').join(__dirname, 'baseline.html'));
 const w = NOW.w, b = OLD.w;
 const ev = NOW.ev, evOld = OLD.ev;
-const BLOCK = ev('BLOCK'), P = ev('FARM_P');
+const BLOCK = ev('BLOCK'), P = ev('FARM_P'), FURN = ev('FURN');
 const LINE = ev('FARM_J_LINE'), B0 = ev('FARM_J_B0');
 let fail = 0;
 const chk = (ok, msg) => { console.log((ok ? 'PASS  ' : 'FAIL  ') + msg); if (!ok) fail++; };
@@ -62,10 +62,31 @@ const far = diffChunks(B0 * P - 5000, LINE * P - 5000, B0 * P - 4800, LINE * P -
 const only = [...far.kinds.entries()].sort((a, c) => c[1] - a[1]);
 console.log(`      far field: ${far.differing}/${far.total} chunks differ, ${far.cells} cells; ` +
             (only.length ? 'changes: ' + only.slice(0, 6).map(([k, n]) => k + ' x' + n).join(', ') : 'none'));
-/* The ONE legitimate difference: intact farm-building windows were writing `undefined`
-   (which lands as 0 = AIR in a Uint16Array) because BLOCK.WINDOW does not exist. They
-   are now WIN_X / WIN_Z. Nothing else may move. */
-const allowed = new Set(['0->' + BLOCK.WIN_X, '0->' + BLOCK.WIN_Z]);
+/* THE LEGITIMATE DIFFERENCES, AND NOTHING ELSE.
+
+   The intact-window fix: farm-building windows were writing `undefined` (which lands as
+   0 = AIR in a Uint16Array) because BLOCK.WINDOW does not exist. They are now WIN_X /
+   WIN_Z.
+
+   PHASE 31's farm yard vocabulary, which is the whole point of listing transitions
+   rather than counting cells. It repaints two columns of yard ground as SOIL_TRAMPLED
+   and stands one small arrangement on them, so the ONLY ids it may consume are the two
+   ground materials of a farmyard's near corner — and the only ids it may produce are the
+   worn ground plus the handful of props the four arrangements are made of. Anything else
+   in this list means it has eaten a building, which is exactly what the first two
+   attempts at placing it did (a fieldstone footing, then a downspout). */
+const allowed = new Set([
+  '0->' + BLOCK.WIN_X, '0->' + BLOCK.WIN_Z,
+  // Phase 31 consumes: yard edge and yard track, and nothing else.
+  BLOCK.DEAD_EARTH + '->' + BLOCK.SOIL_TRAMPLED,
+  BLOCK.FARM_TRACK + '->' + BLOCK.SOIL_TRAMPLED,
+]);
+// ...and produces only its own four arrangements, on ground that was empty air.
+for (const id of [BLOCK.SMALL_STONES, BLOCK.WEED_CLUMP, BLOCK.STICKS, BLOCK.MAILBOX,
+                  BLOCK.FENCE_BROKEN_Z, BLOCK.FENCE_OLD_Z, BLOCK.POST_BROKEN,
+                  BLOCK.HAND_TOOLS, BLOCK.CRATE]) allowed.add('0->' + id);
+// The chair is furniture, so its ids are dynamic; take them from the model itself.
+for (const c of (FURN.chairWalnut ? FURN.chairWalnut.rot[0].cells : [])) allowed.add('0->' + c[3]);
 const illegal = only.filter(([k]) => !allowed.has(k));
 chk(illegal.length === 0,
     `5,000 blocks from the journey the only change is the intact-window fix` +
