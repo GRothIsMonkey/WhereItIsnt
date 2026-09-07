@@ -342,7 +342,11 @@ function aim(page, kind, dist) {
     {
       await page.evaluate(() => window.game.saveGame('manual'));
       const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('whereitisnt.save.v1')));
-      chk(saved.version === 4 && Array.isArray(saved.progression.onboarding) &&
+      /* The version is read from the build rather than written as a literal: this file
+         owns `progression.onboarding`, not the schema number, and later phases keep
+         raising the number without touching the cues. */
+      const schema = await page.evaluate(() => SAVE_VERSION);
+      chk(saved.version === schema && Array.isArray(saved.progression.onboarding) &&
           saved.progression.onboarding.length === 3,
           `the save carries the answered cues (v${saved.version}: ${saved.progression.onboarding.join(', ')})`);
       chk(!JSON.stringify(saved).toLowerCase().includes('tutorial'),

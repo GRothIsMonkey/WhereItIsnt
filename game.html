@@ -5292,6 +5292,16 @@ const SUB_TILE_DEFS = [
   { n:'greatBark',   c:0x4A3A26, j:0.17, p:'barkLine' },
   { n:'greatLeaf',   c:0x4E7A3A, j:0.14, p:'leafy'    },
   { n:'rotSoil',     c:0x312E26, j:0.14, p:'silt'     },
+  /* PHASE 31 — THE SAME PHOTOGRAPH, WITH ONE OF THE TWO PEOPLE NOT IN IT.
+
+     Identical mount, identical frame, identical grey-brown image, one figure. It is
+     appended at the END of this table on purpose: a tile's index is its position here,
+     so adding anywhere else would silently repaint every Suburbia surface after it.
+
+     STORY.md section 1 — the record is catastrophically bad at people — and section 23's
+     "family photographs where the arrangement of people changes and the frame does not".
+     Nothing in the game ever remarks on it. */
+  { n:'artFamilyLone', c:0x9A9186, j:0.09,  p:'artPhotoLone' },
 ];
 
 
@@ -5680,6 +5690,18 @@ function _paintSubTile(def, px, py, r, g, b, rand, j) {
       r = 150; g = 142; b = 130;
       if (py > 8 && (Math.abs(px - 6) < 2 || Math.abs(px - 10) < 2)) { r *= 0.72; g *= 0.72; b *= 0.74; }
       if (py > 5 && py < 8 && (Math.abs(px - 6) < 1 || Math.abs(px - 10) < 1)) { r *= 1.2; g *= 1.16; b *= 1.1; }
+    }
+  } else if (P === 'artPhotoLone') {
+    /* THE SAME PHOTOGRAPH, ONE FIGURE. Deliberately identical to 'artPhoto' above apart
+       from the second figure's two bands — same mount, same inset, same image tone — so
+       that the two tiles are indistinguishable at any distance at which a player is not
+       looking straight at one. */
+    const inset = px > 2 && px < 13 && py > 2 && py < 13;
+    if (!inset) { r = 238; g = 233; b = 222; }
+    else {
+      r = 150; g = 142; b = 130;
+      if (py > 8 && Math.abs(px - 6) < 2) { r *= 0.72; g *= 0.72; b *= 0.74; }
+      if (py > 5 && py < 8 && Math.abs(px - 6) < 1) { r *= 1.2; g *= 1.16; b *= 1.1; }
     }
   } else if (P === 'carton') {
     // Cardboard: fluting seen edge-on plus a strip of tape.
@@ -7640,7 +7662,11 @@ const SUB_REVISIT_ELIGIBLE = 0.42;
 const SUB_REVISIT_MAX_STAGE = 3;
 const SUB_RECOG_COOLDOWN = 26;   // seconds between any two committed revisions
 const SUB_RECOG_DISTANCE = 30;   // blocks the player must be from the house
-const SUB_STAGE_EFFECTS = 6;     // see _subStageEffect
+/* PHASE 31 raised this from six to seven: effect 6 is the family photograph losing one
+   of its two figures. It is INTERIOR, which is why _subStageEffect's "an exterior effect
+   is a switch, not an addition" step-past now tests a range rather than a floor. */
+const SUB_STAGE_EFFECTS = 7;     // see _subStageEffect
+const SUB_STAGE_EXTERIOR_LO = 3, SUB_STAGE_EXTERIOR_HI = 5;
 /* Bounded ledgers. An infinite suburb must never accumulate one permanent entry per
    house ever entered, so both of these evict oldest-first exactly as the Phase 14 door
    registry does. An evicted house streams back in its original state. */
@@ -9750,6 +9776,7 @@ function buildSuburbInteriorStructure() {
     deco: [[T.woodWhite, 0.00, 1.02, 0.00, 0.28, 1.14, 0.28]],
   });
 
+
   /* --- LINED EXTERIOR WALL ---------------------------------------------------------------
      mask bit 1 = the -x face looks inward, 2 = +x, 4 = -z, 8 = +z. Only the eight
      combinations a rectangular plan can actually produce are built (four faces and four
@@ -9783,6 +9810,29 @@ function buildSuburbInteriorStructure() {
                             box(T.ceiling, 0.14, 0, 0.14, 0.86, 0.14, 0.86)] }, 'Ceiling');
   ATTIC_HATCH = reg({ parts: [box(T.ceiling, 0, 0.10, 0, 1, 1, 1),
                               box(T.woodWhite, 0.14, 0, 0.14, 0.86, 0.10, 0.86)] }, 'Loft Hatch');
+
+  /* PHASE 31 — THE SAME PHOTOGRAPH, ONE FIGURE SHORT. Same frame, same size, same wall
+     height, same display name: everything about it is the picture the player has already
+     walked past in nine houses, except who is in it.
+
+     IT IS REGISTERED LAST, AND THAT IS NOT A STYLE CHOICE. _furnNextId hands out block
+     ids in registration order, so defining this beside artFamily — where it belongs
+     alphabetically and conceptually — shifted the id of every model after it by four and
+     rewrote the chunk data of the entire suburb. regression.js caught it immediately
+     (870 -> 874 across five thousand blocks). Anything added to this catalogue from now
+     on goes on the end, for the same reason Phase 13's tiles do. */
+  defFurn('artFamilyAlone', {
+    /* The `art()` helper that builds the other four framed pieces is a local of the
+       catalogue function above and is not in scope here, so its two boxes are written
+       out: the white frame, and the picture inset inside it. The numbers are artFamily's
+       exactly (w 1, 0.30 to 0.86) — same size, same height, same proportions. */
+    w: 1, d: 1, rots: 4, label: 'Family Photograph',
+    solid: [],
+    deco: [
+      [T.woodWhite, 0.14, 0.25, 0.02, 0.86, 0.91, 0.09],
+      [T.artFamilyLone, 0.20, 0.30, 0.05, 0.80, 0.86, 0.10],
+    ],
+  });
 }
 
 /* =====================================================================================
@@ -10745,6 +10795,752 @@ function subRoofPiece(base, h00, h10, h01, h11) {
   return { id: base + p + half, y: cellY };
 }
 
+/* =====================================================================================
+   PHASE 31 — ENVIRONMENTAL STORYTELLING
+
+   THE PROBLEM THIS PHASE SOLVES, AND THE ONE IT DELIBERATELY DOES NOT.
+
+   Phases 17-20 put a great deal of storytelling into the world by hand: the missing-farm
+   evidence, three identical burnt-stump arrangements four hundred blocks apart, an
+   armchair alone in a dead field, a sign naming a farm that is not there. Every one of
+   them is a good object, and every one of them is welded to a parcel index inside a
+   voxel Farmlands that Era 2 intends to rebuild from scratch. Written the same way, the
+   next hundred would be welded too, and thrown away with the renderer.
+
+   So this phase does not add a hundred objects. It adds the LANGUAGE: a closed
+   vocabulary of what a piece of environmental storytelling can be DOING, a table of the
+   PLACES it can be doing it, and a runtime that knows one thing only — which of them the
+   player has stood in front of. The content below is a representative sentence in that
+   language, not the phase's product. The product is the language, because the language
+   is the part that survives a renderer.
+
+   FOUR RULES IT IS BUILT AROUND, ALL OF THEM STORY.md's:
+
+     IT NEVER SPEAKS.        No notes, journals, handwriting or readable human sentence
+                             anywhere (section 13). Nothing on screen announces any of
+                             it: no toast, no objective, no marker, no discovery sting.
+                             A player who does not notice does not notice.
+     IT NEVER RESOLVES.      Section 22 lists what the player must never be told. Every
+                             event here may imply and may not confirm.
+     NOTHING CHANGES WHILE   Section 16 rule 1, which the water tower's lamp, the diorama
+     IT IS BEING WATCHED.    mailbox and the Phase 15 revision layer already obey. This
+                             phase adds no new way to break it.
+     REPETITION BEATS        Section 16 rule 5. The strongest thing in here is not an
+     NOVELTY.                object; it is the SAME object, somewhere it cannot be.
+
+   WHAT IT IS NOT. It is not a second Suburbia recognition layer — Phase 15 owns
+   repetition inside the suburb and this phase EXTENDS it (one new revision effect)
+   rather than shadowing it. It is not a collectible system: there is no index, no
+   counter and no completion. And it is not a scheduler: nothing in it runs on a timer.
+   ===================================================================================== */
+
+/* WHAT AN EVENT IS DOING. Closed on purpose — something that fits none of these six is a
+   set piece, and a set piece belongs to a phase with a name on it. */
+const ENV_READS = Object.freeze({
+  ABSENCE:       'absence',        // it implies a person and contains none
+  PLACEMENT:     'placement',      // it could exist here, and plainly should not
+  REPETITION:    'repetition',     // it is the same object, again, where it cannot be
+  CONTRADICTION: 'contradiction',  // two things that have to agree, disagreeing
+  CALLBACK:      'callback',       // it is from somewhere the player has already been
+  TRACE:         'trace',          // something was here, and is not
+});
+const ENV_READ_VALUES = Object.freeze(Object.keys(ENV_READS).map(k => ENV_READS[k]));
+
+/* HOW LONG A PIECE OF IT LASTS, AND THEREFORE WHETHER THE SAVE HAS TO CARRY IT.
+
+   The classification exists to keep the save small and honest. Almost everything in this
+   phase is GENERATED: a pure function of the seed and the world position, re-derived
+   identically every time a chunk streams in, and therefore not state at all. Only the
+   NOTICED latch is player knowledge that the world cannot re-derive, and only three
+   events carry it — the three that gate something else. */
+const ENV_PERSIST = Object.freeze({
+  GENERATED: 'generated',  // re-derived from the seed; NEVER saved, because it is not state
+  NOTICED:   'noticed',    // the player has stood in front of it. A latch. Saved.
+  WORLD:     'world',      // it has changed the world, and the existing edit/stage ledgers carry it
+  SESSION:   'session',    // this sitting only; deliberately forgotten on load
+});
+const ENV_PERSIST_VALUES = Object.freeze(Object.keys(ENV_PERSIST).map(k => ENV_PERSIST[k]));
+
+/* The dimensions an event may belong to. Strings rather than the numeric DIMENSION ids
+   for the same reason the save uses strings: an id is a number that can silently become
+   a different dimension, and a name cannot. */
+const ENV_DIMENSIONS = Object.freeze(['overworld', 'farmlands', 'suburbia', 'haven']);
+
+/* The Overworld's storytelling origin. The spawn, named once — every Overworld site
+   below is an offset from it, so the set moves together if the spawn ever does. */
+const ENV_OW_X = WORLD_CHUNKS_X * CHUNK_SX / 2;
+const ENV_OW_Z = WORLD_CHUNKS_Z * CHUNK_SZ / 2;
+
+/* =====================================================================================
+   THE SITES, AND WHY THIS INDIRECTION IS THE WHOLE ERA 2 STORY.
+
+   An event does not carry coordinates. It carries the NAME of a place, and the table
+   below says where that place currently is. Everything voxel-specific in this phase —
+   parcel indices, superblock arithmetic, lot grids, the 48-block Haven pocket — lives in
+   these eight functions and nowhere else.
+
+   When Era 2 replaces a dimension, the events do not change: their sites are re-pointed.
+   An event says "the held place", "the board that lies", "the chair from the field", and
+   those sentences stay true across a rebuild in a way that `(FARM_J_B0 + 23) * 64 + 47`
+   never could.
+
+   A site may also name something the world ALREADY BUILDS. `farmFieldChair` and
+   `farmNameBoard` resolve to two objects Phase 20 stamped, and this phase adds not one
+   block to either — it gives them names, so that noticing them can mean something later.
+   That is the cheapest storytelling in the whole build and it is the pattern to copy.
+
+   Every function is pure and total: it returns {x, z} or null, and null means "this place
+   does not exist in this build", which the stamper and the runtime both treat as "then
+   the event is not there". Nothing throws. */
+const ENV_SITES = Object.freeze({
+  // A piece of ground somebody squared off, levelled, and held. Far enough from spawn
+  // to be found rather than issued; near enough to be found at all.
+  owHolding:  () => ({ x: ENV_OW_X + 118, z: ENV_OW_Z - 86 }),
+  /* The same square of ground, elsewhere, with none of the objects on it. Its offset was
+     chosen the same way the crossing's was — by sweeping the real generator for ground
+     whose relief across a nineteen-block window is two blocks or less. The first one sat
+     in a dip below a rise and the capture of it was a bank of grass. */
+  owReleased: () => ({ x: ENV_OW_X - 78, z: ENV_OW_Z + 66 }),
+  /* A line of pressed ground and opened canopy. Only after the first night. The offset
+     is not arbitrary: it was chosen by sweeping the real generator for a run of
+     twenty-six columns that is dry the whole way and rises less than two blocks across
+     its length, because a trace that begins in a lake or climbs a hillside does not read
+     as a route, and one whose canopy is closed enough that opening it means anything. */
+  owCrossing: () => ({ x: ENV_OW_X + 140, z: ENV_OW_Z + 14 }),
+
+  /* PHASE 20's OWN OBJECTS, NAMED. Neither of these stamps anything: the coordinates
+     below are the ones _farmStampJourneyMarks already writes to, recomputed from the
+     same constants, so the site is the object rather than a copy of it. */
+  farmFieldChair: (w) => {
+    if (!w || typeof w._farmJourneyLaneZ !== 'function') return null;
+    const x = (FARM_J_B0 + FARM_J_ECHO0 + 3) * FARM_P + 47;
+    return { x, z: Math.round(w._farmJourneyLaneZ(x)) - 23 };
+  },
+  farmNameBoard: (w) => {
+    if (!w || typeof w._farmJourneyLaneZ !== 'function') return null;
+    const x = (FARM_J_B0 + FARM_J_ECHO0 + 2) * FARM_P + 12;
+    return { x, z: Math.round(w._farmJourneyLaneZ(x)) + 9 };
+  },
+
+  /* SUBURBIA. Both sites are resolved off the lot grid rather than written as numbers,
+     because the lot grid is what decides where a lawn is. The back-yard strip between
+     the two rows of a superblock is the one part of a lot that is guaranteed open: the
+     roads are at the superblock edge, the facades face outward, and nothing is ever
+     built between the two rows' back walls. */
+  subHolding: (w) => {
+    if (!w || typeof w._subLot !== 'function') return null;
+    const b = SUBURBIA_SPAWN_BLOCK + 2;
+    const lot = w._subLot(b, SUBURBIA_SPAWN_BLOCK, 0, 1);
+    return { x: lot.hx + 5, z: lot.bz * SUB_P + Math.round((SUB_ROW0_V + SUB_ROW1_V) / 2) };
+  },
+  subNameBoard: (w) => {
+    if (!w || typeof w._subLot !== 'function') return null;
+    const lot = w._subLot(SUBURBIA_SPAWN_BLOCK + 1, SUBURBIA_SPAWN_BLOCK, 0, 2);
+    // The front lawn: between the facade and the sidewalk, on a road-facing row.
+    return { x: lot.hx + 4, z: lot.hz - 4 };
+  },
+
+  // The Haven cabin's hearth room. Fixed, because the pocket is.
+  havenChair: () => {
+    const minX = FAKE_HAVEN_CHUNK_OFFSET * CHUNK_SX, minZ = FAKE_HAVEN_CHUNK_OFFSET * CHUNK_SZ;
+    const span = FAKE_HAVEN_CHUNKS_SPAN * CHUNK_SX;
+    const cX = minX + Math.floor(span / 2), cZ = minZ + Math.floor(span / 2);
+    const half = Math.floor(FAKE_HAVEN_CABIN_SIZE / 2);
+    return { x: cX - 3, z: (cZ - half) + 8 };
+  },
+});
+
+/* =====================================================================================
+   THE EVENTS.
+
+   Ten of them, and the count is the point: STORY.md section 23 lists roughly thirty
+   opportunities and this phase spends a third of them, because the difference between
+   environmental storytelling and clutter is entirely how rarely it happens. A player who
+   meets a wrong thing every two minutes has learned that this world contains wrong
+   things, which is the opposite of the intended effect.
+
+   FIELDS, AND WHAT EACH IS FOR:
+
+     id          stable, saved for the three NOTICED ones, never shown to the player
+     dimension   one of ENV_DIMENSIONS
+     reads       what it is DOING (ENV_READS) — the design vocabulary, audited by tests
+     site        a key into ENV_SITES, or null for an event that is distributed rather
+                 than placed (the farm yard vocabulary) or that an existing system owns
+                 (the photograph, which is a Phase 15 revision)
+     persist     ENV_PERSIST
+     notice      radius in blocks within which standing and looking latches it; 0 means
+                 the event is not tracked at all, which is true of everything that gates
+                 nothing. Three events are tracked. That is the entire runtime cost.
+     requires    event ids that must be NOTICED before this one exists. This is the
+                 cross-dimension callback mechanism and it is the whole of it.
+     after       a PROGRESSION_MILESTONES id that must be reached before this one exists
+     sound       a SoundEngine method name, or null. Every entry is null — see the
+                 occupancy note in EnvironmentStorySystem for why this phase spends its
+                 one audio idea on something that is NOT a discovery cue.
+   ===================================================================================== */
+const ENVIRONMENT_STORY_EVENTS = Object.freeze([
+  /* --- OVERWORLD. Deliberately three, deliberately quiet, and deliberately built out of
+     nothing that a non-voxel Dimension 1 could not rebuild in an afternoon. STORY.md
+     section 3 forbids explaining anything here; section 7 explicitly authorises the
+     first of these. */
+  {
+    /* A HELD PLACE. Somebody squared off a piece of ground, levelled it, kept it, and
+       stopped. Four planks laid at the cardinal points — the Anchor's own recipe, laid
+       flat — a scorched square where something stood, and four spent sticks at the
+       corners where the light was. It is NOT an anchor: it does not burn, it cannot be
+       fed, and it grants nothing. STORY.md section 7: "the player is not the first to
+       use it", and nobody hands them authority. */
+    id: 'ow_holding', dimension: 'overworld', reads: ENV_READS.ABSENCE,
+    site: 'owHolding', persist: ENV_PERSIST.NOTICED, notice: 11,
+    requires: [], after: null, sound: null,
+  },
+  {
+    /* THE SAME SQUARE, WITHOUT ITS OBJECTS. Same size, same right angles, same scorch,
+       and nothing on it. Met second it reads as the first one having been emptied; met
+       first it reads as nothing at all, which is correct — this is a repetition, and a
+       repetition only exists once there are two. */
+    id: 'ow_released', dimension: 'overworld', reads: ENV_READS.REPETITION,
+    site: 'owReleased', persist: ENV_PERSIST.GENERATED, notice: 0,
+    requires: [], after: null, sound: null,
+  },
+  {
+    /* A CROSSING. Ground pressed flat in a line, and the canopy opened along it at a
+       height nothing that walks here needs. It is not a spawn, not a trigger and not a
+       Stalker: it is the shape of a route, and it appears only after the player has
+       survived a night, so it reads as something that has started rather than something
+       that was always there. STORY.md section 5's Stalker is a DRAFT of a person, and
+       this is the mark a draft leaves. */
+    id: 'ow_crossing', dimension: 'overworld', reads: ENV_READS.TRACE,
+    site: 'owCrossing', persist: ENV_PERSIST.GENERATED, notice: 0,
+    requires: [], after: 'firstNight', sound: null,
+  },
+
+  /* --- FARMLANDS. STORY.md section 13: "the same mailbox, the same chair, the same
+     fence break, on farms that never shared an owner. The record has a limited
+     vocabulary and reuses it." */
+  {
+    /* THE RECORD'S VOCABULARY. Four yard arrangements, stamped VERBATIM — not varied,
+       not mirrored, not seeded per farm — on roughly one farmstead in three, in the same
+       corner of every yard that carries one. A player who walks four farms meets the
+       same chair twice and has no way to tell whether they are remembering wrongly.
+       That doubt is the entire object. */
+    id: 'farm_vocabulary', dimension: 'farmlands', reads: ENV_READS.REPETITION,
+    site: null, persist: ENV_PERSIST.GENERATED, notice: 0,
+    requires: [], after: null, sound: null,
+  },
+  {
+    /* PHASE 20's ARMCHAIR, NAMED. One piece of somebody's living room in a dead field,
+       facing the road. Not one block is added here; the event exists so that noticing it
+       can put a chair in the Haven forty minutes later. */
+    id: 'farm_field_chair', dimension: 'farmlands', reads: ENV_READS.PLACEMENT,
+    site: 'farmFieldChair', persist: ENV_PERSIST.NOTICED, notice: 10,
+    requires: [], after: null, sound: null,
+  },
+  {
+    /* PHASE 20's LYING BOARD, NAMED. ROTH FARM, at a gate, in an empty field, seven
+       hundred blocks from the farm it names. Same again: no new geometry, one new
+       consequence. */
+    id: 'farm_name_board', dimension: 'farmlands', reads: ENV_READS.CONTRADICTION,
+    site: 'farmNameBoard', persist: ENV_PERSIST.NOTICED, notice: 10,
+    requires: [], after: null, sound: null,
+  },
+
+  /* --- STATIC SUBURBIA. The dimension STORY.md section 15 calls a second-generation
+     rebuild, and therefore the one where recognition has to do the work. Two of these
+     three exist only if the player has already met their original. */
+  {
+    /* THE HELD PLACE, IN A BACK YARD. The same square, the same planks, the same scorch,
+       between two rows of houses that have never had a fire in them. It is here because
+       the suburb is the same place (section 8), and it is here ONLY if the player stood
+       in the Overworld one — a callback nobody has the memory for is just a prop. */
+    id: 'sub_holding', dimension: 'suburbia', reads: ENV_READS.CALLBACK,
+    site: 'subHolding', persist: ENV_PERSIST.GENERATED, notice: 0,
+    requires: ['ow_holding'], after: null, sound: null,
+  },
+  {
+    /* THE BOARD, AGAIN. The same two-cell lettered board on the same pair of posts,
+       standing on a suburban front lawn on a street with no farm within a dimension of
+       it. STORY.md section 10: a name painted on a board is geometry, and geometry is
+       what the record keeps. */
+    id: 'sub_name_board', dimension: 'suburbia', reads: ENV_READS.CALLBACK,
+    site: 'subNameBoard', persist: ENV_PERSIST.GENERATED, notice: 0,
+    requires: ['farm_name_board'], after: null, sound: null,
+  },
+  {
+    /* THE PHOTOGRAPH LOSES A FIGURE. Implemented as a seventh Phase 15 revision effect
+       rather than as anything of this phase's own — the frame does not move, the wall
+       does not move, the house does not move, and one of the two people in the picture
+       is not there any more. STORY.md section 1: the record is catastrophically bad at
+       people. It is declared here because this table is the index of everything the
+       phase does, and it is owned by _subStageEffect. */
+    id: 'sub_photograph', dimension: 'suburbia', reads: ENV_READS.ABSENCE,
+    site: null, persist: ENV_PERSIST.WORLD, notice: 0,
+    requires: [], after: null, sound: null,
+  },
+
+  /* --- THE HAVEN. STORY.md section 23: "one object that is also in the Farmlands,
+     unremarked." Nothing about it is wrong. */
+  {
+    /* THE CHAIR FROM THE FIELD, BY THE FIRE. The same furniture model, in the warmest
+       room in the game, in the one place where it is not out of place at all. It exists
+       only if the player stood in front of the one in the dead field. Nothing marks it,
+       nothing sounds, and the Haven does not acknowledge it — section 18 forbids putting
+       a warning in the cabin, and this is not one. */
+    id: 'haven_chair', dimension: 'haven', reads: ENV_READS.CALLBACK,
+    site: 'havenChair', persist: ENV_PERSIST.GENERATED, notice: 0,
+    requires: ['farm_field_chair'], after: null, sound: null,
+  },
+]);
+
+const ENV_STORY_IDS = Object.freeze(ENVIRONMENT_STORY_EVENTS.map(e => e.id));
+
+/* =====================================================================================
+   THE AUDIT. Pure, total, and takes its table as an argument so a test can hand it
+   garbage — which is the only way to prove that malformed data fails safely rather than
+   throwing during world generation.
+
+   It returns a list of human-readable problems, empty for a good table. It never throws,
+   and it never repairs: a broken event is DROPPED by the runtime (see the constructor),
+   because a storytelling event that half-exists is worse than one that does not.
+   ===================================================================================== */
+function validateEnvStoryEvents(table, milestoneIds) {
+  const problems = [];
+  if (!Array.isArray(table)) return ['the event table is not a list'];
+  const seen = new Set();
+  const ids = new Set();
+  for (const e of table) { if (e && typeof e.id === 'string') ids.add(e.id); }
+  const knownMilestones = Array.isArray(milestoneIds) ? new Set(milestoneIds) : null;
+  for (let i = 0; i < table.length; i++) {
+    const e = table[i];
+    const at = 'event[' + i + ']';
+    if (!e || typeof e !== 'object' || Array.isArray(e)) { problems.push(at + ' is not an object'); continue; }
+    if (typeof e.id !== 'string' || !e.id) { problems.push(at + ' has no id'); continue; }
+    if (seen.has(e.id)) problems.push(e.id + ': duplicate id');
+    seen.add(e.id);
+    if (ENV_DIMENSIONS.indexOf(e.dimension) < 0) problems.push(e.id + ': unknown dimension ' + e.dimension);
+    if (ENV_READ_VALUES.indexOf(e.reads) < 0) problems.push(e.id + ': unknown read ' + e.reads);
+    if (ENV_PERSIST_VALUES.indexOf(e.persist) < 0) problems.push(e.id + ': unknown persistence ' + e.persist);
+    if (e.site !== null && !(typeof e.site === 'string' && ENV_SITES[e.site])) {
+      problems.push(e.id + ': site ' + e.site + ' is not in ENV_SITES');
+    }
+    if (typeof e.notice !== 'number' || !isFinite(e.notice) || e.notice < 0) {
+      problems.push(e.id + ': notice must be a distance in blocks');
+    } else if (e.notice > 0 && !e.site) {
+      problems.push(e.id + ': is tracked but has no site to stand in front of');
+    } else if (e.notice > 0 && e.persist !== ENV_PERSIST.NOTICED) {
+      /* A tracked event whose latch is not saved would re-arm on load and could take a
+         callback away from a player who had already earned it. */
+      problems.push(e.id + ': is tracked but does not persist its latch');
+    }
+    if (!Array.isArray(e.requires)) problems.push(e.id + ': requires must be a list');
+    else for (const r of e.requires) {
+      if (!ids.has(r)) problems.push(e.id + ': requires unknown event ' + r);
+      else if (r === e.id) problems.push(e.id + ': requires itself');
+    }
+    if (e.after !== null && typeof e.after !== 'string') problems.push(e.id + ': after must be a milestone id or null');
+    if (e.after && knownMilestones && !knownMilestones.has(e.after)) {
+      problems.push(e.id + ': after names unknown milestone ' + e.after);
+    }
+    if (e.sound !== null && typeof e.sound !== 'string') problems.push(e.id + ': sound must be a method name or null');
+  }
+  /* A prerequisite that is itself untracked can never be satisfied, which would make the
+     event dead content nobody would ever notice was missing. */
+  const trackable = new Set();
+  for (const e of table) if (e && e.notice > 0 && e.site) trackable.add(e.id);
+  for (const e of table) {
+    if (!e || !Array.isArray(e.requires)) continue;
+    for (const r of e.requires) {
+      if (ids.has(r) && !trackable.has(r)) problems.push(e.id + ': requires ' + r + ', which is never tracked');
+    }
+  }
+  return problems;
+}
+
+/* =====================================================================================
+   THE STAMPERS.
+
+   Kept OUT of VoxelWorld and out of the event table, because they are the only part of
+   this phase that knows what a block is. An event says what it means; a site says where
+   it is; a stamper is the one function that turns those into voxels, and it is the
+   function Era 2 throws away.
+
+   Every one takes (world, chunk, site) and clips its own writes through _subSet, exactly
+   as every structure in this build does, so a stamped object spans chunks and streams
+   without a special case. None of them allocates, none of them reads runtime state, and
+   all of them are pure functions of the seed and the position — which is what makes
+   "same seed, same result" true by construction rather than by test.
+   ===================================================================================== */
+
+/* THE HELD PLACE, and the released one, which are the same function. A seven-block
+   square of levelled earth with a hard right-angled edge — the one thing weather never
+   makes — a scorched centre where something stood, and, when furnished, the four planks
+   and the four spent sticks.
+
+   IT LEVELS RATHER THAN CHOOSES ITS GROUND. Picking a flat, dry site would mean this
+   object sometimes does not exist, which is not something a test can rely on and not
+   something a player can be told. Instead the pad is cut and filled to the height of its
+   own centre, never below the waterline: somebody levelled this, and nobody levels a
+   pond. */
+function envStampHolding(w, chunk, at, furnished) {
+  if (!at) return;
+  const R = 3;
+  if (!w._subHits(chunk, at.x - R, at.z - R, at.x + R, at.z + R)) return;
+  const S = (x, y, z, id) => w._subSet(chunk, x, y, z, id);
+  const base = Math.max(w._overworldSurfaceY(at.x, at.z), SEA_LEVEL + 2);
+  for (let dx = -R; dx <= R; dx++) {
+    for (let dz = -R; dz <= R; dz++) {
+      const x = at.x + dx, z = at.z + dz;
+      const from = Math.min(base - 1, w._overworldSurfaceY(x, z) - 1);
+      for (let y = from; y < base; y++) S(x, y, z, BLOCK.DIRT);
+      for (let y = base; y < base + 9; y++) S(x, y, z, BLOCK.AIR);
+    }
+  }
+  S(at.x, base - 1, at.z, BLOCK.ASH_GROUND);
+  if (!furnished) return;
+  for (const [dx, dz] of [[-2, 0], [2, 0], [0, -2], [0, 2]]) S(at.x + dx, base, at.z + dz, BLOCK.OAK_LOG);
+  for (const [dx, dz] of [[-3, -3], [3, -3], [-3, 3], [3, 3]]) S(at.x + dx, base, at.z + dz, BLOCK.STICKS);
+  S(at.x - 1, base, at.z + 1, BLOCK.SMALL_STONES);
+  S(at.x + 2, base, at.z - 1, BLOCK.SMALL_STONES);
+}
+
+/* THE CROSSING. Twenty-six blocks of pressed ground on a shallow curve, and the canopy
+   opened along it between three and six blocks up — a height nothing that lives here
+   needs. Leaves are only ever REMOVED, never added: the trace is an absence in the trees
+   rather than a thing standing among them. */
+function envStampCrossing(w, chunk, at) {
+  if (!at) return;
+  const LEN = 26;
+  if (!w._subHits(chunk, at.x - 2, at.z - 4, at.x + LEN + 2, at.z + 4)) return;
+  const S = (x, y, z, id) => w._subSet(chunk, x, y, z, id);
+  for (let i = 0; i < LEN; i++) {
+    const x = at.x + i;
+    const z = at.z + Math.round(Math.sin(i * 0.23) * 2);
+    const y = w._overworldSurfaceY(x, z);
+    if (y <= SEA_LEVEL) continue;                       // it does not cross open water
+    /* ONLY WHERE THERE IS NOTHING. Punching litter into the bottom cell of a trunk would
+       leave a tree standing on air, which a player reads as a bug rather than as a track.
+       _subGet returns -1 outside the chunk being generated and the writes below are
+       clipped to exactly the same cells, so the two always agree and the result is
+       identical whichever chunk of the line stamps it. */
+    if (w._subGet(chunk, x, y, z) !== BLOCK.AIR) continue;
+    /* THE GROUND ITSELF, NOT JUST WHAT IS LYING ON IT. The first version wrote litter and
+       nothing else, and the capture of it was four brown specks in a field of green — a
+       trace nobody could see is not subtle, it is absent. Bare pressed earth in a line
+       through grass reads at fifty metres, and it is still one cell wide, because two
+       would be a path and a path implies traffic. */
+    S(x, y - 1, z, BLOCK.SOIL_TRAMPLED);
+    S(x, y, z, BLOCK.LEAF_LITTER);
+    for (let dy = 3; dy <= 6; dy++) {
+      if (w._subGet(chunk, x, y + dy, z) === BLOCK.LEAVES) S(x, y + dy, z, BLOCK.AIR);
+    }
+  }
+}
+
+/* =====================================================================================
+   THE FARM YARD VOCABULARY.
+
+   Four arrangements. Not four templates — four OBJECTS, written as offsets and stamped
+   without variation, rotation or seeding, so the chair beside the fifth farm's gate is
+   not a chair like the second farm's, it is that chair. STORY.md section 13 calls this
+   the Farmlands' quietest and best horror and it is right: nothing about any of these is
+   wrong on its own, and there is no version of "I have seen this before" that a player
+   can check.
+
+   THEY GO IN THE YARD'S NEAR CORNER, in a strip two cells wide and three deep, and both
+   of those numbers were found by regression.js rather than reasoned out. The farmhouse
+   starts three cells in on both axes, but it does not start cleanly: its fieldstone
+   footing is at ox+2 and a downspout hangs off the eave above that, so the first attempt
+   (a three-by-three patch at ox+1) repainted twenty cells of yard track and twelve of
+   footing and deleted a downspout, five thousand blocks from anywhere anyone would have
+   looked. The two columns that are genuinely free on every farmstead the generator makes
+   are the yard's edge ring and the track beside it — ox and ox+1 — so that is where this
+   goes. The barn is at the far corner and the outbuildings line the far edge.
+
+   Placing them at the same corner of every yard is deliberate. The position is part of
+   the repetition. */
+const ENV_FARM_YARD = Object.freeze([
+  { id: 'chair',  furn: [['chairWalnut', 0, 0, 2]],
+    blocks: [[1, 2, BLOCK.SMALL_STONES], [0, 2, BLOCK.WEED_CLUMP]] },
+  { id: 'break',  furn: [],
+    blocks: [[0, 0, BLOCK.FENCE_BROKEN_Z], [0, 1, BLOCK.POST_BROKEN], [0, 2, BLOCK.FENCE_OLD_Z],
+             [1, 1, BLOCK.WEED_CLUMP]] },
+  { id: 'box',    furn: [],
+    blocks: [[0, 0, BLOCK.MAILBOX], [1, 1, BLOCK.SMALL_STONES], [1, 2, BLOCK.STICKS]] },
+  { id: 'tools',  furn: [],
+    blocks: [[0, 0, BLOCK.HAND_TOOLS], [0, 1, BLOCK.CRATE], [1, 2, BLOCK.SMALL_STONES]] },
+]);
+const ENV_FARM_YARD_CHANCE = 0.34;   // roughly one farmstead in three carries one
+
+function envStampFarmYard(w, chunk) {
+  const L = w._farmPlotSteads;
+  if (!L) return;
+  for (let i = 0; i < L.length; i++) {
+    const st = L[i];
+    /* THE RECTANGLE TEST BEFORE THE HASH, not after. This runs for every chunk of an
+       infinite region and the overwhelming majority of them contain no part of any yard
+       corner, so the four comparisons go first and the hash is only paid by the handful
+       of chunks that could actually carry one. Measured: performance.js's journey
+       corridor comparison sits within a point of its ceiling, and this is the difference
+       between over and under it. */
+    const ax = st.ox, az = st.oz + 1;
+    if (!w._subHits(chunk, ax, az, ax + 1, az + 2)) continue;
+    if (w._farmHash(st.bx, st.bz, 771) >= ENV_FARM_YARD_CHANCE) continue;
+    const S = (x, y, z, id) => w._subSet(chunk, x, y, z, id);
+    const base = st.padY;
+    // A worn patch under it — the ground somebody stood on, and the reason the objects
+    // are not sitting on crop stubble.
+    for (let dx = 0; dx <= 1; dx++)
+      for (let dz = 0; dz <= 2; dz++) {
+        S(ax + dx, base - 1, az + dz, BLOCK.SOIL_TRAMPLED);
+        for (let dy = 0; dy < 3; dy++) S(ax + dx, base + dy, az + dz, BLOCK.AIR);
+      }
+    const m = ENV_FARM_YARD[Math.floor(w._farmHash(st.bx * 3 + 1, st.bz * 5 + 2, 773) * ENV_FARM_YARD.length) % ENV_FARM_YARD.length];
+    for (const [dx, dz, id] of m.blocks) S(ax + dx, base, az + dz, id);
+    for (const [name, dx, dz, face] of m.furn) furnStamp(S, name, ax + dx, base, az + dz, face);
+  }
+}
+
+/* THE BOARD, ON A LAWN. Phase 18's sign vocabulary reused exactly — the same post pair,
+   the same two-cell lettered board, the same four-id run convention — so this is
+   physically the same kind of object as every fingerpost in the Farmlands. Only where it
+   is standing is wrong. */
+function envStampNameBoard(w, chunk, at) {
+  if (!at) return;
+  if (!w._subHits(chunk, at.x - 1, at.z - 1, at.x + 1, at.z + 2)) return;
+  const S = (x, y, z, id) => w._subSet(chunk, x, y, z, id);
+  const base = SUBURBIA_BASE_Y;
+  for (let dz = 0; dz <= 1; dz++)
+    for (let dy = 0; dy < 4; dy++) S(at.x, base + dy, at.z + dz, BLOCK.AIR);
+  for (let dz = 0; dz <= 1; dz++) {
+    S(at.x, base, at.z + dz, BLOCK.SIGN_POST);
+    S(at.x, base + 1, at.z + dz, BLOCK.SIGN_POST);
+  }
+  const bId = BLOCK.SIGN_TEXT_BASE + FARM_SIGN_IDX_OF.ROTH * 4 + 2;   // run along Z
+  S(at.x, base + 2, at.z, bId + 0);
+  S(at.x, base + 2, at.z + 1, bId + 1);
+}
+
+/* THE HELD PLACE, IN A BACK YARD. Not envStampHolding: the suburb is a flat plane at a
+   known height, so there is nothing to level, and levelling it would carve a hole in a
+   lawn. Same seven-block square, same planks, same scorch, same spent sticks. */
+function envStampSubHolding(w, chunk, at) {
+  if (!at) return;
+  const R = 3;
+  if (!w._subHits(chunk, at.x - R, at.z - R, at.x + R, at.z + R)) return;
+  const S = (x, y, z, id) => w._subSet(chunk, x, y, z, id);
+  const base = SUBURBIA_BASE_Y;
+  for (let dx = -R; dx <= R; dx++)
+    for (let dz = -R; dz <= R; dz++) {
+      S(at.x + dx, base - 1, at.z + dz, BLOCK.DEAD_EARTH);
+      for (let dy = 0; dy < 4; dy++) S(at.x + dx, base + dy, at.z + dz, BLOCK.AIR);
+    }
+  S(at.x, base - 1, at.z, BLOCK.ASH_GROUND);
+  for (const [dx, dz] of [[-2, 0], [2, 0], [0, -2], [0, 2]]) S(at.x + dx, base, at.z + dz, BLOCK.OAK_LOG);
+  for (const [dx, dz] of [[-3, -3], [3, -3], [-3, 3], [3, 3]]) S(at.x + dx, base, at.z + dz, BLOCK.STICKS);
+  S(at.x - 1, base, at.z + 1, BLOCK.SMALL_STONES);
+}
+
+/* The stamper table, keyed by event id. An event with no entry here is one an existing
+   system already builds (the two Phase 20 objects) or one another system owns (the
+   photograph, which is a Phase 15 revision) — and that is a supported, deliberate state,
+   not a gap. */
+const ENV_STAMPERS = Object.freeze({
+  ow_holding:      (w, chunk, at) => envStampHolding(w, chunk, at, true),
+  ow_released:     (w, chunk, at) => envStampHolding(w, chunk, at, false),
+  ow_crossing:     (w, chunk, at) => envStampCrossing(w, chunk, at),
+  farm_vocabulary: (w, chunk) => envStampFarmYard(w, chunk),
+  sub_holding:     (w, chunk, at) => envStampSubHolding(w, chunk, at),
+  sub_name_board:  (w, chunk, at) => envStampNameBoard(w, chunk, at),
+});
+
+/* =====================================================================================
+   THE RUNTIME.
+
+   It does exactly two things, and the shortness of that list is the design.
+
+     1. IT LATCHES WHAT THE PLAYER HAS STOOD IN FRONT OF. Three events, at 2Hz, by
+        distance and facing — the same test the water tower's lamp has used since Phase
+        20. There is no line-of-sight raycast: standing eleven blocks from a thing and
+        looking towards it is close enough, and a raycast per event per tick to be
+        slightly more correct about a latch nobody sees is not a trade worth making.
+
+     2. IT ANSWERS "DOES THIS EXIST YET". Chunk generation asks; the answer is a
+        milestone test and a set membership test.
+
+   IT HAS NO TIMERS, NO LISTENERS, NO GEOMETRY AND NO UI. It cannot show the player
+   anything, which is not an omission — section 15 of the brief and section 22 of
+   STORY.md both require it. Nothing in this class can reach UIManager.
+
+   THE ONE PIECE OF AUDIO IN THIS PHASE IS NOT A DISCOVERY CUE. A sound that fires when
+   the player finds something is an achievement chime with the confidence knocked off it:
+   it confirms, and confirmation is the one thing environmental storytelling cannot
+   afford. So the audio budget is spent on OCCUPANCY instead — inside a suburban house
+   the player has been in before, standing still, a single quiet footfall from somewhere
+   else in the building, at most once per house and never twice inside forty seconds. It
+   is not attached to any event, it cannot be found, and there is nothing to look at.
+   ===================================================================================== */
+const ENV_TICK = 0.5;                 // seconds between notice sweeps
+const ENV_FACING_DOT = 0.30;          // how far off-centre a thing may be and still count
+const ENV_OCCUPANCY_STILL = 4.0;      // seconds of standing still before the house answers
+const ENV_OCCUPANCY_GAP = 40.0;       // seconds between any two of them, anywhere
+const ENV_OCCUPANCY_CAP = 64;         // houses remembered as having already sounded
+
+class EnvironmentStorySystem {
+  constructor(game) {
+    this.game = game || null;
+    this.noticed = new Set();
+    /* MALFORMED DATA FAILS SAFE, HERE. The table is audited once and the bad entries are
+       dropped rather than repaired, so a typo in a future event cannot throw inside chunk
+       generation — the worst it can do is make one piece of storytelling not exist. */
+    this.problems = validateEnvStoryEvents(ENVIRONMENT_STORY_EVENTS,
+      (typeof PROGRESSION_MILESTONE_IDS !== 'undefined') ? PROGRESSION_MILESTONE_IDS : null);
+    const broken = new Set();
+    for (const p of this.problems) broken.add(String(p).split(':')[0]);
+    this.events = ENVIRONMENT_STORY_EVENTS.filter(e => e && e.id && !broken.has(e.id));
+    this._byId = new Map();
+    for (const e of this.events) this._byId.set(e.id, e);
+    this.tracked = this.events.filter(e => e.notice > 0 && e.site);
+    this._tick = 0;
+    // Occupancy: state only, no timer.
+    this._occCooldown = 0;
+    this._occStep = 0;
+    this._occHeard = new Set();
+    this._occOrder = [];
+  }
+
+  /* A NEW GAME KNOWS NOTHING. Called from the one teardown path both New Game and Load
+     run, so a callback can never survive into a world where its original does not. */
+  reset() {
+    this.noticed.clear();
+    this._tick = 0;
+    this._occCooldown = 0;
+    this._occStep = 0;
+    this._occHeard.clear();
+    this._occOrder.length = 0;
+  }
+
+  has(id) { return this.noticed.has(id); }
+  event(id) { return this._byId.get(id) || null; }
+
+  _milestone(id) {
+    const g = this.game;
+    return !!(g && g.milestones && g.milestones.has(id));
+  }
+
+  /* DOES THIS EXIST YET? The only question chunk generation asks. */
+  eligible(evt) {
+    if (!evt) return false;
+    if (evt.after && !this._milestone(evt.after)) return false;
+    const req = evt.requires || [];
+    for (let i = 0; i < req.length; i++) if (!this.noticed.has(req[i])) return false;
+    return true;
+  }
+  eligibleById(id) { return this.eligible(this._byId.get(id)); }
+
+  /* Which dimension the player is standing in, as one of ENV_DIMENSIONS. */
+  static dimensionOf(player) {
+    if (!player) return null;
+    if (player.inFakeHaven) return 'haven';
+    if (player.inSuburbia) return 'suburbia';
+    if (player.inFarmlands) return 'farmlands';
+    return 'overworld';
+  }
+
+  /* Mark an event noticed. Returns true the first time only, so a caller can act on the
+     transition — nothing currently does, and nothing should start showing the player
+     anything when it happens. */
+  notice(id) {
+    if (!this._byId.has(id) || this.noticed.has(id)) return false;
+    this.noticed.add(id);
+    return true;
+  }
+
+  update(dt, player, camera, world) {
+    if (!player) return;
+    this._advanceOccupancy(dt, player, world);
+    this._tick += dt;
+    if (this._tick < ENV_TICK) return;
+    this._tick = 0;
+    if (!this.tracked.length) return;
+    const dim = EnvironmentStorySystem.dimensionOf(player);
+    const pos = player.position;
+    let fx = 0, fz = 0, haveFacing = false;
+    if (camera && camera.getWorldDirection) {
+      const f = _envForward;
+      camera.getWorldDirection(f);
+      fx = f.x; fz = f.z;
+      haveFacing = true;
+    }
+    for (let i = 0; i < this.tracked.length; i++) {
+      const evt = this.tracked[i];
+      if (evt.dimension !== dim) continue;
+      if (this.noticed.has(evt.id)) continue;
+      if (!this.eligible(evt)) continue;
+      const site = ENV_SITES[evt.site];
+      const at = site ? site(world) : null;
+      if (!at) continue;
+      const dx = (at.x + 0.5) - pos.x, dz = (at.z + 0.5) - pos.z;
+      const d2 = dx * dx + dz * dz;
+      if (d2 > evt.notice * evt.notice) continue;
+      if (haveFacing && d2 > 4) {
+        const inv = 1 / Math.sqrt(d2);
+        if (dx * inv * fx + dz * inv * fz < ENV_FACING_DOT) continue;
+      }
+      this.notice(evt.id);
+    }
+  }
+
+  /* OCCUPANCY. A house the player has been inside before, stood still in, answering
+     once. Two footfalls, the second one frame-driven rather than scheduled, so there is
+     no timer to leak and nothing to cancel when the dimension changes. */
+  _advanceOccupancy(dt, player, world) {
+    if (this._occCooldown > 0) this._occCooldown = Math.max(0, this._occCooldown - dt);
+    const g = this.game;
+    if (this._occStep > 0) {
+      this._occStep -= dt;
+      if (this._occStep <= 0 && g && g.sound && g.sound.playFootstep) {
+        this._occStep = 0;
+        try { g.sound.playFootstep(0.17); } catch (e) { /* audio is optional */ }
+      }
+      return;
+    }
+    if (!player.inSuburbia || !world || !world._subHouseAt) return;
+    if (this._occCooldown > 0) return;
+    if ((player.stationaryTimer || 0) < ENV_OCCUPANCY_STILL) return;
+    const lot = world._subHouseAt(player.position);
+    if (!lot) return;
+    const key = world._subLotKey(lot);
+    if (this._occHeard.has(key)) return;
+    // Only a house they have already left and come back to: the first visit is not it.
+    const visits = world.suburbiaVisits ? (world.suburbiaVisits.get(key) || 0) : 0;
+    if (visits < 2) return;
+    this._occHeard.add(key);
+    this._occOrder.push(key);
+    while (this._occOrder.length > ENV_OCCUPANCY_CAP) this._occHeard.delete(this._occOrder.shift());
+    this._occCooldown = ENV_OCCUPANCY_GAP;
+    this._occStep = 0.36;                             // the second footfall
+    if (g && g.sound && g.sound.playFootstep) {
+      try { g.sound.playFootstep(0.2); } catch (e) { /* audio is optional */ }
+    }
+  }
+
+  /* SAVE. Only the latch, and only the ids this build knows — filtered through the
+     authored table on the way out as well as on the way in, exactly as the milestone and
+     onboarding sets are. */
+  capture() { return ENV_STORY_IDS.filter(id => this.noticed.has(id)); }
+  restore(list) {
+    this.noticed.clear();
+    if (!Array.isArray(list)) return;
+    const seen = new Set();
+    for (const v of list) if (typeof v === 'string') seen.add(v);
+    for (const id of ENV_STORY_IDS) if (seen.has(id)) this.noticed.add(id);
+  }
+}
+
+/* One reusable vector for the facing test. The notice sweep runs at 2Hz and must not
+   allocate; every other per-frame system in this build does the same. */
+const _envForward = (typeof THREE !== 'undefined' && THREE.Vector3) ? new THREE.Vector3() : { x: 0, y: 0, z: 0 };
+
 class VoxelWorld {
   constructor(scene, atlasInfo, itemManager) {
     this.scene = scene;
@@ -10934,6 +11730,9 @@ class VoxelWorld {
       this._generateTrees(chunk);
       this._generateDecor(chunk);
       this._generateTreasureChests(chunk);
+      /* PHASE 31 — last, so a story object is never grown through by a tree and never
+         overwrites a chest. See _envStoryStamp for why it works before Game exists. */
+      this._envStoryStamp(chunk, 'overworld');
     }
     const edits = this.editedChunks.get(k);
     if (edits) { for (const [idx, id] of edits) chunk.data[idx] = id; }
@@ -11524,6 +12323,21 @@ class VoxelWorld {
     // A lamp on the low table and a soft bounce over the rug.
     this._havenAddLight(0xffdca8, 0.8, 10, cX + 0.5, baseY + 1.6, fz + 5.5);
     this._havenAddLight(0xffb877, 0.7, 14, cX + 0.5, baseY + 1.2, fz + 4.0);
+
+    /* PHASE 31 — THE CHAIR FROM THE FIELD.
+
+       The same furniture model that stands alone on a rug in a dead Farmlands field,
+       here, turned toward the fire, in the one room in the game where an armchair is
+       completely unremarkable. It appears only if the player actually stood in front of
+       the one in the field — a callback to something nobody looked at is a prop.
+
+       Nothing marks it and the Haven does not acknowledge it. STORY.md section 18
+       forbids putting a warning in the cabin and this is emphatically not one: it is a
+       comfortable chair by a fire, and the only thing wrong with it is where else it is. */
+    if (this.envStory && this.envStory.eligibleById('haven_chair')) {
+      const at = ENV_SITES.havenChair();
+      if (at) furnStamp(W, 'armchairOat', at.x, baseY, at.z, 2);
+    }
   }
 
   // Additive point-cloud flames for the cabin hearth. Each particle rises from the
@@ -12061,6 +12875,59 @@ class VoxelWorld {
     }
   }
 
+  /* =====================================================================================
+     PHASE 31 — THE ONE PLACE ENVIRONMENTAL STORYTELLING TOUCHES THE WORLD.
+
+     Called once from each of the three chunk generators, after everything that phase
+     builds, so a story object always wins over ordinary cover and never over progression
+     (the Farmlands call sits before _farmStampHome for exactly that reason).
+
+     IT WORKS WITHOUT A RUNTIME. VoxelWorld's own constructor eagerly loads chunks around
+     spawn, which happens before Game has finished constructing and therefore before
+     `envStory` exists. That is not an edge case to guard against, it is the normal first
+     few chunks of a new game — so with no runtime the ungated events stamp and every
+     gated one is skipped, which is exactly the state a new game should be in.
+     ===================================================================================== */
+  _envStoryStamp(chunk, dimension) {
+    const runtime = this.envStory || null;
+    const table = runtime ? runtime.events : ENVIRONMENT_STORY_EVENTS;
+    /* The Haven's one event is stamped by _dressHavenInterior, not by a chunk generator,
+       so the whole pass is skipped there for the cost of one string comparison. */
+    if (dimension === 'haven') return;
+    for (let i = 0; i < table.length; i++) {
+      const evt = table[i];
+      if (evt.dimension !== dimension) continue;
+      const stamp = ENV_STAMPERS[evt.id];
+      if (!stamp) continue;                       // an event another system already builds
+      if (runtime) { if (!runtime.eligible(evt)) continue; }
+      else if (evt.after || (evt.requires && evt.requires.length)) continue;
+      const site = evt.site ? ENV_SITES[evt.site] : null;
+      const at = site ? site(this) : null;
+      if (evt.site && !at) continue;              // a place this build does not have
+      stamp(this, chunk, at);
+    }
+  }
+
+  /* THE OVERWORLD SURFACE, AS A PURE FUNCTION OF POSITION (PHASE 31).
+
+     `y` of the first air block above the ground — precisely the number _generateTerrain
+     computes for each of its columns, factored out so that a structure spanning chunks
+     can ask about a column belonging to a chunk that does not exist yet. That is the
+     same service _farmHeightAt has provided the Farmlands since Phase 16, and its
+     absence is why nothing in the Overworld has ever been able to stamp across a chunk
+     border. Phase 31's stampers are the first callers. The extraction is behaviour-
+     preserving by construction and regression.js proves the terrain is byte-identical. */
+  _overworldSurfaceY(wx, wz) {
+    // FLATTER SURFACE NOISE: lower frequency + fewer octaves than the original reads as
+    // gentle rolling hills instead of steep jagged peaks. The raw fbm is then
+    // asymmetrically compressed — the below-midline half (valley floors) is squashed
+    // much harder than the above-midline half (hill crests) — so low ground flattens out
+    // into spacious building zones while hills still get to roll softly.
+    const raw = this.noise.fbm2(wx * 0.018, wz * 0.018, 3, 2.0, 0.45);
+    const shaped = raw < 0 ? raw * 0.35 : raw * 0.7;
+    return 24 + Math.floor(shaped * 10);
+  }
+
   _generateTerrain(chunk) {
     for (let x = 0; x < CHUNK_SX; x++) {
       for (let z = 0; z < CHUNK_SZ; z++) {
@@ -12071,9 +12938,7 @@ class VoxelWorld {
         // squashed much harder than the above-midline half (hill crests) — so low
         // ground flattens out into spacious building zones while hills still get to
         // roll softly rather than spike.
-        const raw = this.noise.fbm2(wx * 0.018, wz * 0.018, 3, 2.0, 0.45);
-        const shaped = raw < 0 ? raw * 0.35 : raw * 0.7;
-        const h = 24 + Math.floor(shaped * 10);
+        const h = this._overworldSurfaceY(wx, wz);
         for (let y = 0; y < CHUNK_SY; y++) {
           let id = BLOCK.AIR;
           if (y < h) {
@@ -13026,6 +13891,10 @@ class VoxelWorld {
     this._farmStampGreatTree(chunk);
     this._farmStampJourneyMarks(chunk);
     this._farmStampApproach(chunk);
+    /* PHASE 31 — after every Phase 16-20 pass so the yard vocabulary is laid on top of a
+       finished farmyard, and BEFORE the Home so nothing this phase does can ever reach
+       Level 2 progression. */
+    this._envStoryStamp(chunk, 'farmlands');
     // --- The Disconnected Home last of all, so nothing can ever overwrite Level 2
     // progression — the same guarantee Phase 16 gave it, on a much larger structure.
     this._farmStampHome(chunk);
@@ -19280,6 +20149,12 @@ class VoxelWorld {
 
     // --- Street furniture ------------------------------------------------------------
     this._subStreetDetails(chunk);
+    /* PHASE 31 — the two callbacks, which exist only if the player has already stood in
+       front of their originals in another dimension. A chunk resident when that happens
+       does not re-stamp; the object is there the next time the street streams in, which
+       is the correct behaviour rather than a limitation (STORY.md section 16: change is
+       discovered, never witnessed). */
+    this._envStoryStamp(chunk, 'suburbia');
   }
 
   /* Clipped voxel write — the only way any Suburbia structure touches the world, so a
@@ -21765,8 +22640,9 @@ class VoxelWorld {
        3  SHUTTERS                closed where they were open, or open where they were shut
        4  THE MAILBOX             on the other side of the front path
        5  A WINDOW                now blank siding, inside and out
+       6  THE PHOTOGRAPH          the same frame on the same wall, one figure short
 
-     0, 1 and 2 are applied here. 3, 4 and 5 belong to the shell and the yard and are
+     0, 1, 2 and 6 are applied here. 3, 4 and 5 belong to the shell and the yard and are
      applied where those are written — see _subOpenings and _subYard — because a revision
      has to be part of GENERATION, not a patch applied over it, or it would not survive a
      reload.
@@ -21801,11 +22677,12 @@ class VoxelWorld {
        quite happily. Still a pure function of the lot and the revision number: the earlier
        draws it consults are themselves pure, and the recursion is bounded by
        SUB_REVISIT_MAX_STAGE. */
-    if (e >= 3) {
+    const isExterior = (v) => v >= SUB_STAGE_EXTERIOR_LO && v <= SUB_STAGE_EXTERIOR_HI;
+    if (isExterior(e)) {
       const used = new Set();
       for (let j = 1; j < k; j++) {
         const p = this._subStageEffect(lot, j);
-        if (p >= 3) used.add(p);
+        if (isExterior(p)) used.add(p);
       }
       for (let guard = 0; used.has(e) && guard < SUB_STAGE_EFFECTS; guard++) {
         e = (e + 1) % SUB_STAGE_EFFECTS;
@@ -21955,14 +22832,40 @@ class VoxelWorld {
       return false;
     };
 
-    const interior = [effChair, effDoorway, effPicture];
+    const effLoneFigure = () => {
+      /* PHASE 31 — ONE OF THE TWO PEOPLE IS NOT IN IT.
+
+         The frame does not move. The wall does not move. The height does not move. The
+         picture is re-hung in exactly the cell it already occupies, with the model whose
+         only difference is that the second figure is not there.
+
+         IT ONLY APPLIES TO A HOUSE THAT HANGS THE PHOTOGRAPH, and roughly a quarter of
+         them do — which is the right rarity by construction rather than by a tuned
+         number, and is why this returns false rather than substituting something else.
+         A house with a mirror in the bedroom has nothing to lose a figure from.
+
+         STORY.md section 22 forbids ever explaining why human imagery behaves like this,
+         and nothing here does: it is a photograph, on a wall, in a house. */
+      if (!motif || SUB_MOTIFS[motif.idx].model !== 'artFamily') return false;
+      furnStamp(S, 'artFamilyAlone', hx + motif.dx, floorY + motif.y, hz + motif.dz, motif.face);
+      return true;
+    };
+
+    /* The interior effects, and which stage effect id each one answers to. Two lists
+       rather than one, because the ids are not contiguous — 3, 4 and 5 belong to the
+       shell and the yard — and because the fallback chain below walks the LIST, so an
+       effect that cannot apply hands over to its neighbour rather than to whichever id
+       happens to be numerically next. */
+    const interior = [effChair, effDoorway, effPicture, effLoneFigure];
+    const INTERIOR_AT = { 0: 0, 1: 1, 2: 2, 6: 3 };
     for (let k = 1; k <= n; k++) {
       const e = this._subStageEffect(lot, k);
       // Effects 3, 4 and 5 are exterior; _subOpenings and _subYard have already applied
       // them by the time this runs, so there is nothing to do for them here.
-      if (e >= interior.length) continue;
+      const start = INTERIOR_AT[e];
+      if (start === undefined) continue;
       for (let t = 0; t < interior.length; t++) {
-        if (interior[(e + t) % interior.length](k)) break;
+        if (interior[(start + t) % interior.length](k)) break;
       }
     }
   }
@@ -31795,7 +32698,7 @@ class OpeningInstruction {
    PROGRESSION_MILESTONES, and its migration is the interesting one: see SAVE_MIGRATIONS.
    ===================================================================================== */
 
-const SAVE_VERSION = 4;
+const SAVE_VERSION = 5;
 const SAVE_STORAGE_KEY = 'whereitisnt.save.v1';
 const SAVE_BACKUP_KEY = 'whereitisnt.save.v1.backup';
 
@@ -31858,9 +32761,33 @@ const SAVE_MAX_EDITS = 400000;
    reasoning as 2 -> 3 above: derive what the old save has already lived rather than
    letting a new field default to a lie.
 
-   Nothing else in the schema moved. Every version-3 field is carried across untouched,
-   and a version-3 file remains fully loadable. */
+   4 -> 5 (PHASE 31). Version 5 adds `progression.noticed`: which pieces of environmental
+   storytelling the player has stood in front of. Unlike every migration above it, this
+   one derives nothing and defaults to empty — and that is the correct answer rather than
+   the lazy one. The three objects the latch tracks are new in this phase, so no version-4
+   player can have seen any of them; an empty set is what actually happened. Marking them
+   noticed would put a Suburbia callback and a Haven callback in front of a player who has
+   never met the original, which is precisely the prop this phase exists not to build.
+
+   Nothing else in the schema moved at any step. Every version-3 field is carried across
+   untouched, and a version-3 file remains fully loadable. */
 const SAVE_MIGRATIONS = {
+  4: (state) => {
+    const out = Object.assign({}, state);
+    out.version = 5;
+    const rawG4 = _svPlainObject(out.progression) || {};
+    const progression4 = Object.assign({}, rawG4);
+    /* NOTHING TO DERIVE, AND THAT IS THE POINT. Every previous migration in this ladder
+       had to work out what an old save had already LIVED, because it was adding a field
+       for something the player had been doing all along. This one is not: the objects
+       `noticed` tracks did not exist in any build that wrote a version-4 file, so nobody
+       has stood in front of one, and an empty set is the literal truth rather than a
+       convenient default. Marking them noticed would hand a returning player two
+       Suburbia callbacks and a Haven callback for originals they have never seen. */
+    if (!Array.isArray(progression4.noticed)) progression4.noticed = [];
+    out.progression = progression4;
+    return out;
+  },
   1: (state) => {
     const out = Object.assign({}, state);
     out.version = 2;
@@ -31964,6 +32891,21 @@ function _svOnboarding(rep, raw) {
   for (const v of raw) { if (typeof v === 'string') seen.add(v); }
   const out = ONBOARDING_CUE_IDS.filter(id => seen.has(id));
   if (out.length !== raw.length) rep.push('progression.onboarding contained entries this build does not know; they were dropped');
+  return out;
+}
+
+/* PHASE 31 — which pieces of environmental storytelling have been noticed, filtered
+   against the authored table exactly the way the milestone and onboarding sets are. A
+   save cannot invent an event, cannot list one twice and cannot control the order. Absent
+   means "none", which is correct both for a new game and for a save written before this
+   phase existed — see the 4 -> 5 migration for why that needs no derivation. */
+function _svNoticed(rep, raw) {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) { rep.push('progression.noticed was not a list; using none'); return []; }
+  const seen = new Set();
+  for (const v of raw) { if (typeof v === 'string') seen.add(v); }
+  const out = ENV_STORY_IDS.filter(id => seen.has(id));
+  if (out.length !== raw.length) rep.push('progression.noticed contained entries this build does not know; they were dropped');
   return out;
 }
 
@@ -32146,6 +33088,10 @@ function validateSaveState(input) {
     /* PHASE 28 — the onboarding cue latch set, validated the same way and for the same
        reason. It gates nothing but three two-word lines above the hotbar. */
     onboarding: _svOnboarding(rep, rawG.onboarding),
+    /* PHASE 31 — the notice latch set. It gates whether two objects exist in Static
+       Suburbia and one in the Haven, so an invented id here would be a callback the
+       player never earned; the filter is what makes that impossible. */
+    noticed: _svNoticed(rep, rawG.noticed),
     farmJourneyOrd: _svInt(rep, 'progression.farmJourneyOrd', rawG.farmJourneyOrd, 0, -1e6, 1e6),
     farmHouseSeen: _svBool(rep, 'progression.farmHouseSeen', rawG.farmHouseSeen, false),
     killCount: _svInt(rep, 'progression.killCount', rawG.killCount, 0, 0, 1e9),
@@ -32596,6 +33542,9 @@ function defaultSaveState(settings) {
       /* PHASE 28 — a new game has answered no cues. This is the field a New Game resets,
          and it is why a New Game gets the cues back while a Load does not. */
       onboarding: [],
+      /* PHASE 31 — a new game has noticed nothing, which is not merely the safe default:
+         a callback that existed before its original had been seen would be a prop. */
+      noticed: [],
       farmCrossroadsRecalled: false, farmJourneyOrd: 0, farmHouseSeen: false,
       killCount: 0, riftDisks: [], dimensionsBreached: [DIMENSION.OVERWORLD],
     },
@@ -33213,6 +34162,14 @@ class Game {
     /* PHASE 30 — the opening film, which plays the instruction above as its closing beat
        rather than reimplementing it. Constructed once; begin() is called only from
        _start(), which is the New Game path and the only one. */
+    /* PHASE 31 — ENVIRONMENTAL STORYTELLING. Constructed before anything asks it a
+       question, and handed to the world, because chunk generation is the only caller
+       that matters. It owns a latch set and nothing else: no geometry, no UI, no timer.
+       The world's own constructor has already eagerly generated the chunks around spawn
+       by this point, which is fine and documented — see VoxelWorld._envStoryStamp. */
+    this.envStory = new EnvironmentStorySystem(this);
+    this.world.envStory = this.envStory;
+
     this.film = new OpeningFilm(this);
     this.farmCrossroadsRecalled = false;   // one-shot latch for the Farmlands recall
     /* PHASE 29 — the menu, and the only one. A seed may be forced for testing so a run
@@ -33301,6 +34258,11 @@ class Game {
         milestones: PROGRESSION_MILESTONE_IDS.filter(id => this.milestones.has(id)),
         // PHASE 28 — the onboarding cue latch set, in the table's own order.
         onboarding: ONBOARDING_CUE_IDS.filter(id => this.onboarding.has(id)),
+        /* PHASE 31 — which pieces of environmental storytelling the player has stood in
+           front of. Three ids at most, and they are saved for one reason: they decide
+           whether a callback in a LATER dimension exists at all. Everything else this
+           phase puts in the world is a pure function of the seed and is re-derived. */
+        noticed: this.envStory.capture(),
         farmJourneyOrd: this.farmJourneyOrd || 0,
         farmHouseSeen: !!this.farmHouseSeen,
         killCount: this.mobs.killCount || 0,
@@ -33365,6 +34327,11 @@ class Game {
     w._subRecogCooldown = 0;
     if (w._subPending) w._subPending.clear();
     w._suburbiaRearrangeTimer = 0;
+    /* PHASE 31 — the notice latch and the occupancy ledger. Cleared HERE, in the one
+       teardown both a New Game and a Load pass through, so a callback earned in a
+       previous world can never survive into a new one. _applySaveState restores the
+       latch immediately afterwards for a Load; a New Game keeps the empty set. */
+    this.envStory.reset();
 
     this.anchorManager.removeAnchor();
 
@@ -33511,6 +34478,11 @@ class Game {
        already answered, and a pre-Phase-28 save arrives with all three (the 3 -> 4
        migration), so a returning player is never told how to hold a pickaxe again. */
     this.onboarding = new Set(g.onboarding);
+    /* PHASE 31 — restored before the world streams anything, so a chunk generated after
+       this point already knows whether its callback exists. A save written before this
+       phase existed arrives with an empty list, which is exactly right: the objects it
+       tracks are new, so nobody has stood in front of one. */
+    this.envStory.restore(g.noticed);
     this.compassAcquired = g.compassAcquired;
     this.pendingLevel2Transition = g.pendingLevel2Transition;
     this.fakeHavenTriggered = g.fakeHavenTriggered;
@@ -34488,6 +35460,10 @@ class Game {
          entity and no HUD state; see VoxelWorld.updateSuburbiaRecognition. */
       this.world.updateSuburbiaRecognition(dt, this.player, this.camera);
     }
+    /* PHASE 31 — the notice sweep. Runs in every dimension because two of the three
+       tracked events are in the Farmlands, costs one distance and one dot product per
+       tracked event at 2Hz, and cannot show the player anything. */
+    this.envStory.update(dt, this.player, this.camera, this.world);
     /* PHASE 19 — bounded local water flow. Costs one comparison per frame unless the
        player has actually disturbed some water, and runs BEFORE updateChunks so that
        any cell it moves is remeshed by the dirty sweep in the very same frame — which

@@ -298,10 +298,15 @@ const textFor = (over) => { const o = new ObjectiveSystem(null); o.evaluate(snap
 // 9. SAVE / LOAD, AND THE VERSION 1 -> 2 MIGRATION
 // =====================================================================================
 {
-  /* PHASE 28 took the schema to 4 (progression.onboarding). The objective marks were
-     added at 2 and have not moved since; what this asserts is that the ladder this file
-     walks below really does end where the build says it ends. */
-  chk(SAVE_VERSION === 4, `the save schema is at version ${SAVE_VERSION}`);
+  /* THE OBJECTIVE MARKS WERE ADDED AT VERSION 2 AND HAVE NOT MOVED SINCE. The schema
+     itself keeps climbing — 4 for Phase 28's onboarding cues, 5 for Phase 31's notice
+     latch — so asserting a NUMBER here would fail on every phase that adds a field
+     without touching an objective. What this actually needs is that the ladder this file
+     walks below ends where the build says it ends, and that every rung of it is real. */
+  chk(SAVE_VERSION >= 4, `the save schema is at version ${SAVE_VERSION}`);
+  for (let v = 1; v < SAVE_VERSION; v++) {
+    chk(typeof SAVE_MIGRATIONS[v] === 'function', `and the ladder has no missing rung at ${v} -> ${v + 1}`);
+  }
   chk(typeof SAVE_MIGRATIONS[1] === 'function', 'and a real migration from version 1 exists');
   chk(typeof SAVE_MIGRATIONS[2] === 'function', 'as does the Phase 26 migration from version 2');
 

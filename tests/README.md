@@ -3,15 +3,16 @@
 These are the checks Phase 20, its journey revision (20.1), the guidance pass (20.2), the
 item-contact pass (21), the settings pass (22), the save/load pass (23), the story
 foundation (24), the objective system (25), the XP removal (26), the HUD rebirth (27) and
-the tutorial removal (28), the main-menu rebirth + typography pass (29) and the opening
-film (30) were built against. They run the **real game code** — the
+the tutorial removal (28), the main-menu rebirth + typography pass (29), the opening
+film (30) and the environmental-storytelling framework (31) were built against. They run the **real game code** — the
 `<script>` body of `game.html` is loaded into a Node VM with a small DOM stub, and a real
 `VoxelWorld` is constructed and asked to generate real chunks. Nothing here reimplements
 the generator, and nothing here asserts on metadata where a player-facing property could
 be measured instead.
 
 Everything here is offline **except `browser-save.js`, `browser-onboarding.js`,
-`browser-menu.js`, `browser-opening.js`, `preview-hud.js` and `preview-opening.js`**, which launch
+`browser-menu.js`, `browser-opening.js`, `browser-environment.js`, `preview-hud.js`,
+`preview-opening.js` and `preview-environment.js`**, which launch
 Chromium, serve `game.html` over HTTP and drive the real page. Where a file is offline it says so, and
 where a claim needs a browser it is made in that file and nowhere else.
 
@@ -35,10 +36,12 @@ node hud.js                        # Phase 27 — condition, perception, objecti
 node onboarding.js                 # Phase 28 — the tutorial's absence, the cues, the migration
 node menu.js                       # Phase 29 — the menu, its anomalies, the HUD type scale
 node opening.js                    # Phase 30 — the film's beats, lines, lifecycle, teardown
+node environment.js                # Phase 31 — the story framework, its content and its latch
 node browser-save.js               # Phase 23 — the same thing in a REAL browser, see below
 node browser-onboarding.js         # Phase 28 — the same thing in a REAL browser, see below
 node browser-menu.js               # Phase 29 — the same thing in a REAL browser, see below
 node browser-opening.js            # Phase 30 — the same thing in a REAL browser, see below
+node browser-environment.js        # Phase 31 — the same thing in a REAL browser, see below
 node red-light.js
 node runtime.js
 node regression.js                 # needs a baseline, see below
@@ -46,6 +49,7 @@ node performance.js                # needs a baseline, see below
 node render-journey.js             # writes PNGs into tests/renders/
 node preview-hud.js                # Phase 27 — REAL browser screenshots of the HUD
 node preview-opening.js            # Phase 30 — REAL screenshots of every beat of the film
+node preview-environment.js        # Phase 31 — REAL screenshots of every object it adds
 ```
 
 `regression.js`, `journey.js`, `chain.js` and `performance.js` compare against the build
@@ -118,11 +122,15 @@ Both are gitignored: they are reproducible from git and each is over a megabyte.
 | `opening.js` | Phase 30. Drives the **real `OpeningFilm`** against a stand-in for the parts of `Game` it touches: that the beat table is frozen, unique-id'd and tiles the whole film with no gap or overlap; that it opens on real darkness and holds a real stretch of ordinary world before anything happens to it; that the film says exactly two short lines and that neither they nor any string on the layer uses the canon's internal vocabulary or explains a mechanic; that `begin` is idempotent, locks movement, hides the HUD, starts the ambience and asks for pointer lock; that FIVE different exits (running out, skipping at any point, skipping on the first frame, a second film, a film that never rendered) all land in the one teardown and put back movement lock, eye height and the borrowed hour, dispose every geometry and material and leave the scene graph exactly as it was found; that the film contains no `setTimeout` and binds its listeners once; that the shapes are untextured engine primitives with no anatomy and none of the game's creatures; that the moving shape moves only while it is NOT being looked at; that the save schema did not change and carries no cinematic flag; and that the Phase 20.2 instruction is still the film's closing beat and still has exactly one authority. **It cannot prove the film is any good** |
 | `browser-opening.js` | Phase 30 **in Chromium**. Boots the real page, clicks NEW GAME and watches the real film in a real WebGL context: that the frame loop draws it while `running` stays false; that the world genuinely does not move behind it — no day advanced, no objective created, no block changed, no chunk streamed, no health or sanity touched; that E, I, the movement keys and both mouse buttons do nothing and do not end it; that O opens settings **over** it and genuinely pauses it, and that Escape then closes the panel without also skipping the film; that the beats arrive, the shapes appear and are gone again by the calm beat, and the film ends itself and hands to the crossroads instruction; that gameplay begins with the HUD, the crosshair, the first objective and movement restored; that the SKIP control is a real hit-testable target that lands in exactly the same state a watched film does; that CONTINUE never enters the film at all; and that six films in a row leave the scene graph, the document and the audio unchanged. **This is the browser validation for this phase** |
 | `preview-opening.js` | writes `renders/film-{dark,reveal,familiar,anomaly,closer,vast,seam,unresolved,calm}.png` — **real Chromium screenshots of the real film in the real world**, one per beat, taken by driving the film's own clock through its own `update()` and drawing one frame by hand (this container renders the Overworld at about one frame a second, so waiting in real time is not possible). It exists because every composition defect in this film was invisible to assertions and obvious in a picture: the first vantage was inside a tree, the first vast shape was below the horizon and inside the fog, the second read as a brown rectangular building, and the human-sized silhouettes could not be seen at all from above a canopy. **It proves nothing and asserts nothing; it is for looking at** |
+| `environment.js` | Phase 31. Drives the **real generator** — real chunks, real farmsteads, real Suburbia lots, the real Haven cabin — and the real `EnvironmentStorySystem`: that the event table is a frozen, unique-id'd, audited vocabulary in which every event names a closed storytelling category, a persistence class, a dimension by name and a PLACE rather than a coordinate; that fifteen kinds of malformed definition are all rejected and none of them throws, including a callback whose original is never tracked; that sixteen chunks around a story site are byte-identical across two worlds generating in opposite orders and that a story chunk unloaded and regenerated comes back the same; that every object is actually in the world at the coordinate its site resolves to, that the held place contains no Anchor block, and that the released one is the same square with nothing on it; that the farm yard vocabulary is stamped on a minority of farmsteads and every repeat of an arrangement is **byte-identical**; that no Overworld object reaches the Farmlands and no Farmlands object reaches the Overworld; that a milestone brings one event into existence and moves nothing else; that each of the three callbacks is absent without its prerequisite, present with it, and that noticing one original brings back exactly one callback; that the notice latch round-trips through the real save validator and drops invented ids; that the 4 → 5 migration derives nothing; that the runtime cannot reach the HUD, an objective, a marker or a timer, and that not one string literal in the phase is long enough to be a sentence. **It cannot prove any of it is noticeable** |
+| `browser-environment.js` | Phase 31 **in Chromium**. Boots the real page, plays, walks a real player to a real object in a real streamed chunk and reads it back out of chunk data; latches it through the real notice sweep inside the real frame loop and asserts that the objective, the toast, the prompt, health, sanity, the milestone set, the scene graph and every overlay are exactly what they were; generates the Suburbia callback in one browser that has noticed the original and in a second browser that has not; saves, reloads the page, hits CONTINUE and finds the latch and the callback still there; clears it through the in-session New Game and through a fresh page; and confirms settings, the backpack, the HUD and walking still work. **This is the browser validation for this phase** |
+| `preview-environment.js` | writes `renders/env-{holding,released,crossing,farmyard,sub-holding,sub-board}.png` plus `env-photographs.png` — **real Chromium screenshots of the real objects in the real world**, one per piece of content, plus a 14x crop of the two family photographs taken straight out of the live texture atlas because the difference between them is eleven pixels. **It proves nothing and asserts nothing; it is for looking at** |
 | `preview-compass.js` | writes `renders/compass-tape.svg` — the compass at six headings, re-emitted from the real `updateCompass` draw calls onto the real panel colours. Derived from the shipped code; **not** a browser render |
 
 ## About the browser run
 
-`browser-save.js`, `browser-onboarding.js`, `browser-menu.js` and `browser-opening.js` are the files in this
+`browser-save.js`, `browser-onboarding.js`, `browser-menu.js`, `browser-opening.js` and
+`browser-environment.js` are the files in this
 suite that are browsers. They need Playwright and a Chromium build (both are present in
 the development container; without them each file prints `SKIP` and exits 0). Each starts
 its own static server on its own port, so nothing else has to be running and they do not

@@ -378,7 +378,12 @@ head('6. THE LATCH');
 // =====================================================================================
 head('7. SAVE / LOAD');
 {
-  chk(SAVE_VERSION === 4, `the schema is at version ${SAVE_VERSION}`);
+  /* PHASE 28 took the schema to 4 and later phases keep climbing it (5 is Phase 31's
+     notice latch). The property this file owns is not the number — it is that the
+     onboarding field is in the schema and that the ladder reaches it. */
+  chk(SAVE_VERSION >= 4, `the schema is at version ${SAVE_VERSION}`);
+  chk(typeof g('SAVE_MIGRATIONS')[3] === 'function',
+      'and the 3 -> 4 migration that carries a pre-Phase-28 player across still exists');
   const fresh = defaultSaveState(null);
   chk(Array.isArray(fresh.progression.onboarding) && fresh.progression.onboarding.length === 0,
       'A NEW GAME HAS ANSWERED NOTHING — the cues are owed again, which is the point of a new game');

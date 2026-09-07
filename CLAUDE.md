@@ -1415,7 +1415,7 @@ Phase 27 — Health / Sanity / HUD Rebirth
 Phase 28 — Remove Tutorial / Organic Onboarding   (COMPLETE — see section 54)
 Phase 29 — Main Menu Rebirth + UI Typography     (COMPLETE — see section 55)
 Phase 30 — Opening Lore Film                     (COMPLETE — see section 56)
-Phase 31 — Environmental Storytelling
+Phase 31 — Environmental Storytelling            (COMPLETE — see section 57)
 Phase 32 — Fake Haven Dream Sequence
 Phase 33 — Final Creature / Horror Finale
 Phase 34 — Final Audio / Visual Climax
@@ -1885,45 +1885,78 @@ RULES THAT NOW HOLD:
   at the bottom of the brief's window (68s, ~77s with the instruction). STORY.md was NOT
   changed — this is two briefs disagreeing, not a canon contradiction.
 
-# 57. PHASE 31 — ENVIRONMENTAL STORYTELLING
+# 57. PHASE 31 — ENVIRONMENTAL STORYTELLING — COMPLETE
 
-Environmental storytelling should communicate the canonical story without
-giant lore dumps.
+PHASE 31 CARRIED THIS OUT. The world now tells the player things without saying anything,
+and the way it does so is a small data-driven language rather than a pile of objects. This
+section is now a statement about the code, not an intention. See `PROGRESS.md` section
+0.000000000 for the full record.
 
-Overworld:
+WHY IT IS A LANGUAGE AND NOT CONTENT. The current voxel Overworld is not guaranteed to be
+the final Dimension 1, and Era 2 intends to rebuild these dimensions without voxels.
+Phases 17-20 wrote their storytelling by hand, welded to parcel indices; written that way,
+the next hundred objects would be thrown away with the renderer. So this phase built the
+vocabulary and spent ten events demonstrating it.
 
-- origin
-- survival
-- first signs
+WHAT THE FRAMEWORK IS:
 
-Farmlands:
+  ENV_READS       SIX CLOSED CATEGORIES — absence, placement, repetition, contradiction,
+                  callback, trace. An event that fits none of them is a set piece, and a
+                  set piece belongs to a phase with a name on it.
 
-- abandonment
-- history
-- consequence
-- rural human traces
+  ENV_PERSIST     generated / noticed / world / session. Almost everything is GENERATED —
+                  a pure function of the seed, re-derived on every stream-in, therefore
+                  not state and not in the save. This is why the phase added one save
+                  field rather than a ledger.
 
-Static Suburbia:
+  ENV_SITES       THE ERA 2 SEAM, and the most important thing in the phase. An event
+                  carries the NAME of a place; this table says where that place currently
+                  is. Every voxel-specific number lives in these eight functions and
+                  nowhere else. A site may also name something an earlier phase already
+                  built — two of them point at Phase 20 objects and add no blocks at all.
 
-- imitation
-- repetition
-- memory failure
-- reality reconstruction
+  ENV_STAMPERS    the only code that knows what a block is, kept out of both the event
+                  table and VoxelWorld. This is the part Era 2 replaces.
 
-Disconnected Homes:
+  EnvironmentStorySystem   the runtime. It does two things: latches which of THREE tracked
+                  events the player has stood in front of (2Hz, distance and facing, the
+                  same test the water tower's lamp uses), and answers "does this exist
+                  yet" for chunk generation. It has no timer, no listener, no geometry and
+                  no UI, and `tests/environment.js` fails if it grows one.
 
-- increasingly direct evidence of broken reconstruction
+RULES THAT NOW HOLD:
 
-The player should learn through:
-
-- seeing
-- exploring
-- remembering
-- noticing
-
-Do not turn the game into a collectible note simulator.
-
----
+- IT NEVER SPEAKS. No notes, no journals, no handwriting, no readable human sentence
+  anywhere (STORY.md section 13). No toast, no objective line, no marker, no waypoint, no
+  discovery sound. A player who does not notice does not notice. `tests/environment.js`
+  fails if a string literal in the phase gets long enough to be a sentence.
+- IT NEVER RESOLVES. STORY.md section 22's list is the boundary. Imply, never confirm.
+- NOTHING CHANGES WHILE IT IS BEING WATCHED. Section 16 rule 1, which the water tower's
+  lamp, the diorama mailbox and the Phase 15 revision layer already obey. A callback
+  appears in a chunk the player has not reached; it is discovered, never witnessed.
+- REPETITION IS LITERAL. The four farmstead yard arrangements are stamped VERBATIM — not
+  varied, not mirrored, not re-seeded per farm — in the same corner of every yard. A
+  variation is a different object and defeats the entire point.
+- A CALLBACK REQUIRES ITS ORIGINAL. Three events exist only once the player has stood in
+  front of something in another dimension. A callback nobody has the memory for is a prop,
+  and the test proves each one is absent without its prerequisite.
+- ONLY WHAT GATES SOMETHING IS TRACKED. Three events out of ten. If a new event needs no
+  callback, it needs no runtime, and giving it one is cost for nothing.
+- THE AUDIO BUDGET IS NOT SPENT ON DISCOVERY. A sound that fires when the player finds
+  something is a confirmation with the confidence knocked off it. The one cue in this
+  phase is OCCUPANCY: a single quiet footfall in a suburban house the player has been
+  inside before, standing still, at most once per house and never within forty seconds of
+  another. It is attached to no event and cannot be found.
+- PHASE 15 WAS EXTENDED, NOT SHADOWED. The seventh revision effect (the family photograph
+  losing one of its two figures) rides on `_subStageEffect`. There is still exactly one
+  Suburbia revision system, and there must never be two.
+- ANYTHING ADDED TO THE FURNITURE CATALOGUE GOES ON THE END. `_furnNextId` hands out block
+  ids in registration order; defining `artFamilyAlone` beside `artFamily`, where it
+  belongs conceptually, shifted every id after it by four and rewrote the chunk data of
+  the entire suburb. The same is true of `SUB_TILE_DEFS`.
+- THE SITE TABLE IS WHERE A FUTURE PHASE LOOKS FIRST. Adding a piece of environmental
+  storytelling means adding a row to `ENVIRONMENT_STORY_EVENTS`, a site, and — only if it
+  is genuinely new geometry — a stamper. It does not mean writing another `_farmStamp*`.
 
 # 58. PHASE 32 — FAKE HAVEN
 

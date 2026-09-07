@@ -641,9 +641,13 @@ async function boot(page, { fresh }) {
         `and the chain mark did not regress (${before.objectiveMarks.overworld} -> ${after.objectiveMarks.overworld})`);
     chk(stored.payload.objectives && typeof stored.payload.objectives.overworld === 'number',
         'the save file carries the objective marks');
-    /* PHASE 28 took the schema to 4 (progression.onboarding). The objective marks this
-       block is about were added at 2 and have not moved since. */
-    chk(stored.payload.version === 4, `and it is written at schema version ${stored.payload.version}`);
+    /* THE MARKS THIS BLOCK IS ABOUT WERE ADDED AT VERSION 2 AND HAVE NOT MOVED SINCE.
+       The schema itself keeps climbing — 4 for Phase 28's onboarding cues, 5 for Phase
+       31's notice latch — so asserting a NUMBER here fails on every phase that adds a
+       field without touching an objective. What it needs is that the file the game just
+       wrote is at the version the build declares. */
+    chk(stored.payload.version === await page.evaluate(() => SAVE_VERSION),
+        `and it is written at the build's own schema version (${stored.payload.version})`);
     chk(Array.isArray(stored.payload.progression.onboarding),
         'alongside the Phase 28 onboarding set, which is what stops a load re-teaching the keys');
     chk(await page.evaluate(() => typeof ITEM.COMPASS === 'undefined'),
