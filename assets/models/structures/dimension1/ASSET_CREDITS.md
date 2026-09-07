@@ -18,3 +18,5 @@ Rural road 1 Credits
 "Road02" (https://skfb.ly/oSZzW) by SKMT is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
 Rural main road 1 Credits
 "Road_ Avenue_ street" (https://skfb.ly/oPLV6) by Mehdi Shahsavan is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+Rural modular roads pack multiple road pieces credits
+"Road Modular" (https://skfb.ly/pxYZw) by golukumar is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
