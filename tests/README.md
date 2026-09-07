@@ -4,8 +4,8 @@ These are the checks Phase 20, its journey revision (20.1), the guidance pass (2
 item-contact pass (21), the settings pass (22), the save/load pass (23), the story
 foundation (24), the objective system (25), the XP removal (26), the HUD rebirth (27) and
 the tutorial removal (28), the main-menu rebirth + typography pass (29), the opening
-film (30), the environmental-storytelling framework (31) and the Fake Haven sequence (32)
-were built against. They run the **real game code** — the
+film (30), the environmental-storytelling framework (31), the Fake Haven sequence (32) and
+the final creature (33) were built against. They run the **real game code** — the
 `<script>` body of `game.html` is loaded into a Node VM with a small DOM stub, and a real
 `VoxelWorld` is constructed and asked to generate real chunks. Nothing here reimplements
 the generator, and nothing here asserts on metadata where a player-facing property could
@@ -66,7 +66,13 @@ node preview-opening.js            # Phase 30 — REAL screenshots of every beat
 node preview-environment.js        # Phase 31 — REAL screenshots of every object it adds
 node haven.js                      # Phase 32 — the Haven stages, cabin, anomaly, save block
 node browser-haven.js              # Phase 32 — the sequence in a real Chromium
+node finale.js                     # Phase 33 — the beats, the creature, the scale, the cut
+node browser-finale.js             # Phase 33 — the whole ending in a real Chromium
 ```
+
+**Run the browser suites ONE AT A TIME.** They wait on rendered state, and two Chromium
+instances starve each other's frame loop badly enough to produce false failures — and, if
+two runs of the same file overlap, they collide on a port and on each other's output.
 
 `regression.js`, `journey.js`, `chain.js` and `performance.js` compare against the build
 **before** the change you are testing. Produce one with git and point the suite at it:
@@ -111,6 +117,8 @@ Both are gitignored: they are reproducible from git and each is over a megabyte.
 |---|---|
 | `determinism.js` | two independently booted worlds, and one world generating the same chunks in reverse order, produce byte-identical chunk data across the journey; a disposed chunk regenerates identically; the resolved journey sites and the Rift Core chest key agree across boots |
 | `core-disk.js` | the Level 2 Rift Core Disk is **reachable on foot** — a body with the player's real dimensions is walked from the field outside the property, through the house, down the cellar stair, along the corridor and into the room at the end, and back out again |
+| `finale.js` | Phase 33. The beat table tiles all 32s with no gap and every beat's duration sits inside the brief's own window; the creature is BUILT and MEASURED — 150m tall, 10.7:1 slender, arms ending below the knee, a head 4.5% of the body, every material unlit and exactly one of them pale; no RingGeometry, TetrahedronGeometry, PointLight or emissive anywhere in it; the landmark ladder marches outward and the creature subtends more of the screen than any of it despite being the furthest thing in the shot; the fog curve is checked against `exp(-(density*d)^2)` so the creature is 0.3% visible at the silence beat and never more than 77%; the camera drift is driven and a shoved yaw is proved not to snap; gameplay keys are gated through a terminal cinematic; the audio rig is idempotent, starts three sources, stops all three by name and never gets quieter; the sequence is begun from one call site downstream of the shift, spawns nothing hostile, writes no text, touches no save, tears down before handing to the credits, and costs 0.00165 ms/frame |
+| `browser-finale.js` | Phase 33 in a real Chromium with a real WebGL context: a real New Game, the real Haven run out, the real handoff, the renderer measured clean at the boundary, the creature measured at 145m in world units with zero lit materials, all seven beats walked live, the fog measured opening and the eye measured lifting, the arm and head measured moving and staying moved, leaning on the keyboard proved to move nothing and open nothing, the hard cut, the credits exactly once, the save byte-identical, and a New Game followed by a second full ending leaving no duplicate mesh, audio rig or scene object |
 | `haven.js` | Phase 32. The stage table tiles all 178s with no gap and resolves identically for the same second; the comfort is measured (nothing changes for 82s) and every stage is a subtraction — no ambience layer or music state may ever rise; the dissolve is a monotonic ramp reaching exactly 1; the real cabin is read out of real chunk data and found closed, floored, roofed, furnished and lit; the one committed change is driven from four camera positions and refused from three of them; the armchair callback is present with its prerequisite and absent without it, and is literally the same furniture id the Farmlands stamps; the cabin refuses mining and placement while the bed and chest still work; the finale entity is spawned from one call site downstream of the shift; the ambience rig is idempotent and stops all five of its sources; the save is refused and a forged Haven save never loads; and no string the sequence can show is longer than sixty characters |
 | `browser-haven.js` | Phase 32 in a real Chromium with a real WebGL context: a real New Game, the real entry point, the world genuinely flushed to the nine-chunk pocket, control and pointer lock returned, forty frames of holding the break button at a cabin wall removing nothing, a real save written from the Overworld and not moved by a byte from inside the Haven, all six stages walked against a live renderer, the mug appearing only once the player has looked away, the fog and shader and lights measurably collapsing, the handoff handing the renderer back on the same frame, and a New Game followed by a second visit leaving no duplicate light, chunk, audio loop or timer |
 | `journey.js` | the beats: spawn on the carriageway facing the journey, crop density in the opening field, livestock and farmsteads met, the spine still bends, the tower's height/structure/biome/sightlines, the isolation ramp against the baseline, the repetition and cross-dimensional marks, the missing-farm evidence, and that leaving the route breaks nothing |

@@ -2066,7 +2066,18 @@ That makes the eventual collapse more powerful.
 
 ---
 
-# 51. PHASE 33 — FINAL CREATURE / 30-SECOND HORROR FINALE
+# 51. PHASE 33 — FINAL CREATURE / 30-SECOND HORROR FINALE — COMPLETE
+
+**DELIVERED. See `PROGRESS.md` section 0.00000000000.** The brief below was implemented as
+written: a 32-second, seven-beat cinematic; a 150-metre unlit silhouette that is never shown
+whole, never lit, never named and never explained; scale established against a ladder of
+fifteen familiar landmarks; a hard cut to the existing credits. The eight-metre "Void
+Sovereign" monolith it replaces is removed from the build entirely — rings, shards, red slit
+and roar were the grammar of a boss, which STORY.md section 19 forbids.
+
+---
+
+*The original brief follows.*
 
 This is NOT a boss fight.
 

@@ -1417,7 +1417,7 @@ Phase 29 — Main Menu Rebirth + UI Typography     (COMPLETE — see section 55)
 Phase 30 — Opening Lore Film                     (COMPLETE — see section 56)
 Phase 31 — Environmental Storytelling            (COMPLETE — see section 57)
 Phase 32 — Fake Haven Dream Sequence              (COMPLETE — see section 58)
-Phase 33 — Final Creature / Horror Finale
+Phase 33 — Final Creature / Horror Finale         (COMPLETE — see section 59)
 Phase 34 — Final Audio / Visual Climax
 Phase 35 — Complete Dimension Cohesion
 Phase 36 — Complete Playable Alpha / Full Audit
@@ -2041,15 +2041,73 @@ RULES THAT NOW HOLD:
 
 ---
 
-# 59. PHASE 33 — FINAL CREATURE
+# 59. PHASE 33 — FINAL CREATURE — COMPLETE
 
-The final creature is NOT a boss fight.
+PHASE 33 CARRIED THIS OUT. The eight-metre monolith is deleted; the finale is 32 seconds of
+seven beats ending in the existing hard cut. This section is now a statement about the code,
+not an intention. See `PROGRESS.md` section 0.00000000000.
 
-It is a short cinematic horror sequence.
+WHAT THE FINALE IS NOW:
 
-Target:
+  FINALE_BEATS  a frozen table of SEVEN beats tiling 0-32s with no gap: silence,
+                impression, scale, movement, face, impossible, cut. The beat, the fog, the
+                camera target and every ramp are PURE FUNCTIONS of one accumulating number.
+                `setTimeout` appears nowhere in FinalSequence.
 
-approximately 30 seconds.
+  THE CREATURE  150 metres, 10.7:1 slender, arms that end below the knee, a head that is
+                4.5% of the body, three unlit materials and twelve meshes. A SILHOUETTE,
+                not a model. No light of its own, no texture, no rings, no shards, no
+                emissive, and one pale featureless patch where a face would be.
+
+  THE GROUND    the finale builds its own: a dark plane and fifteen familiar silhouettes
+                at authored distances — poles, trees, a barn, a farmhouse, the Haven cabin,
+                the WATER TOWER, a suburban row — every one nearer than the creature and
+                every one smaller on screen.
+
+  THE CAMERA    a DRIFT, not a rail. Pitch and yaw are lerped toward the beat's target at
+                dt*1.1 and dt*0.55, so a player who does nothing is carried through the
+                composition and a player who fights it can look away and is merely pulled
+                back. Nothing is ever set outright.
+
+  THE AUDIO     three low layers on the existing musicBus that only ever thicken, and ONE
+                event in thirty-two seconds — a low strike on the face beat.
+
+RULES THAT NOW HOLD:
+
+- **IT IS NOT A BOSS AND HAS NO MECHANICS.** No health, damage, attack, dodge, weapon, QTE
+  or arena. The creature does not know the player exists until it looks at them once.
+  `tests/finale.js` fails if any of those words appears in the sequence.
+- **IT IS NEVER SHOWN WHOLE AND NEVER LIT.** The fog densities are computed from
+  `exp(-(density*d)^2)` at the creature's 320m: 0.3% visible at the silence beat, and only
+  77% at its clearest. Every material is `MeshBasicMaterial`, so no lamp, sun or effect can
+  ever resolve it into a lit asset.
+- **THE FACE HAS NOTHING ON IT.** No eye, no mouth, no teeth, no jaw, ever. The player's
+  imagination finishes it, which is the point of requirement 6.
+- **IT EXPLAINS NOTHING.** No name, no label, no text, no lore, no stats. The longest string
+  literal in the whole sequence is under thirty characters. STORY.md sections 19 and 22.
+- **IT CANNOT APPEAR EARLY.** Built from exactly one call site, begun from exactly one call
+  site, and that site is the Haven shift. Both suites walk the intact Haven proving nothing
+  has spawned.
+- **NOT THE STALKER, NOT THE BEHEMOTH.** Neither mesh, name, nor behaviour is reachable from
+  the finale, and the tests assert it.
+- **THE PLAYER'S EYE STAYS THEIRS.** No second camera is ever constructed and the camera is
+  never positioned or aimed directly — only yaw and pitch move, and only by a fraction per
+  frame.
+- **A TERMINAL CINEMATIC DISABLES GAMEPLAY KEYS.** `PlayerController._playing()` is false
+  while the finale is active and through the climax. It was not, and a screenshot caught
+  the inventory grid open across the middle of the reveal. The Haven is deliberately NOT
+  terminal — its chest and backpack stay usable.
+- **ONE TEARDOWN.** `FinalSequence` disposes its scene's geometry and materials, stops its
+  audio, hands back the sky and restores the HUD — from `finish()` and from `reset()`, which
+  the one New Game / Load path calls. Reaching the ending three times builds the same scene
+  three times.
+- **THE CREDITS ARE NOT THIS PHASE'S TO REDESIGN** and were not touched. `_triggerClimax` is
+  latched, so they fire exactly once.
+- **THE HUD IS RESTORED BY CLEARING THE INLINE STYLE, NOT THE CLASS.** `hardCutToBlack`
+  writes `style.display='none'`; a class removal cannot beat it, and a New Game from the
+  credits left the HUD invisible for the rest of the session until this was fixed.
+
+Target: approximately 30 seconds. Delivered at 32.
 
 Sequence:
 

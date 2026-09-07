@@ -1,8 +1,8 @@
 # WHERE IT ISN'T — PROJECT STATE
 
 ```
-Current phase              32 — FAKE HAVEN DREAM SEQUENCE (complete)
-Next phase                 33 — FINAL CREATURE / HORROR FINALE
+Current phase              33 — FINAL CREATURE / HORROR FINALE (complete)
+Next phase                 34 — FINAL AUDIO / VISUAL CLIMAX
 Phase 19                   COMPLETE
 Phase 20                   COMPLETE
 Phase 20 journey revision  COMPLETE           (20.1 — see section 0)
@@ -19,6 +19,7 @@ Phase 29                   COMPLETE           (see section 0.0000000)
 Phase 30                   COMPLETE           (see section 0.00000000)
 Phase 31                   COMPLETE           (see section 0.000000000)
 Phase 32                   COMPLETE           (see section 0.0000000000)
+Phase 33                   COMPLETE           (see section 0.00000000000)
 XP                         REMOVED            (no runtime XP exists; see section 0.0000)
 Hearts / vital bars        REMOVED            (no runtime HUD bar exists; see section 0.00000)
 Tutorial                   REMOVED            (no tutorial exists; see section 0.000000)
@@ -26,6 +27,8 @@ Courier New                REMOVED            (the HUD's blur was the typeface; 
 Opening film               NEW GAME ONLY      (68s, in-world; CONTINUE never plays it)
 Fake Haven                 178s, SIX STAGES   (nothing differs for 82s; never saved)
 Haven mining               REFUSED            (the cabin cannot be taken apart)
+Final creature             185m, 7 BEATS      (32s; a silhouette, never lit, never named)
+Void Sovereign             REMOVED            (the 8m monolith was a boss; section 0.00000000000)
 Save schema                VERSION 5          (4 -> 5 adds progression.noticed)
 Authoritative build        game.html          (there is no other game file)
 Canonical story            STORY.md           (read before writing ANY player text)
@@ -36,11 +39,248 @@ Phases 1–19 are as their sections in `ROADMAP.md` describe them. This file rec
 state of Phase 20 specifically: what was built, what was measured, what was found and
 fixed along the way, and what is honestly not verified.
 
-**Sections 0.0000000000–0.5 describe the phases that followed (32, 31, 30, 29, 28, 27, 26, 25, 23, 22, 21, 20.2). Sections 1–5
+**Sections 0.00000000000–0.5 describe the phases that followed (33, 32, 31, 30, 29, 28, 27, 26, 25, 23, 22, 21, 20.2). Sections 1–5
 describe Phase 20 as it was first delivered, and Section 0 describes the 20.1 journey
 revision that followed a human playtest and supersedes them wherever they disagree** — principally the beat table, the landmark set, the distances, and the
 performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
 instruction and the compass and changed no world generation at all.
+
+---
+
+## 0.00000000000. PHASE 33 — FINAL CREATURE / HORROR FINALE
+
+The ending was two and a half seconds long. The Haven snapped red, an eight-metre object
+appeared overhead, the camera shook, and the screen cut to black before the player had
+focused on anything.
+
+---
+
+# THE DECISION THIS PHASE TURNS ON
+
+**The old ending was frightening by volume. This one is frightening by arithmetic.**
+
+Everything the previous finale did was loud: a blood-red sky, a roar built out of
+hard-clipped noise, full-screen datamosh, and a violent shake — all of it on top of an
+object four and a half times the player's height. And every one of those choices worked
+against the only thing the scene actually had to deliver, which is a SIZE. A player cannot
+judge the scale of something they are looking at through a shaking, tearing, red-crushed
+frame, and they cannot be impressed by an eight-metre object standing over a twelve-metre
+cabin.
+
+So the whole phase is a subtraction and a multiplication. The renderer is handed back
+clean — no glitch, no grading, no shake, no red — and the creature goes from eight metres
+to a hundred and eighty-five, standing three hundred and twenty metres away behind a ladder of
+things the player already knows the size of.
+
+## WHAT THE CREATURE IS
+
+`buildVoidSovereignMesh` is gone. It was a floating obsidian monolith with counter-rotating
+rings, a halo of orbiting shards and a vertical slit of red light: a good-looking object and
+the wrong one. Rings, shards and a glowing red eye are the visual grammar of a boss, and
+STORY.md section 19 is explicit that this is "not a boss, not a reveal, a removal".
+
+What replaced it is a SILHOUETTE, not a model — near-black, unlit, read against fog, with
+one pale patch where a face would be and nothing on that patch. The proportions are the
+horror and are written down rather than tuned by eye:
+
+| part | value | why |
+|---|---|---|
+| height | **185m** | 6.6x the water tower, 23x the Haven cabin |
+| slenderness | **6.6 : 1** | a human is about 4:1, and this is 185 metres tall |
+| legs | 63% of height | knee at 55% of the leg and displaced sideways, so the joint reads as assembled rather than grown |
+| **arms** | **118m** | they end below the knee — **a hand hanging past a knee** is the single most legible wrongness at distance |
+| head | **4.5%** of the body | the eye uses head size to judge distance, and this one lies about it |
+| materials | 3, all `MeshBasicMaterial` | nothing in it can be lit, so it can never become a model showcase |
+
+It has no light of its own, no texture, no rings, no shards, no emissive, and twelve meshes.
+
+## HOW THE SCALE IS READ
+
+Scale is a RELATIONSHIP, and the Haven is a forty-eight block pocket with a fog wall and
+nothing outside it — there was nothing in the world to measure against. So the finale
+builds its own ground: a dark plane and a ladder of fifteen familiar silhouettes marching
+away from the player at authored distances.
+
+    poles 38m -> trees -> barn+silo 92m -> farmhouse 150m -> the cabin 186m
+    -> WATER TOWER 212m -> a suburban row 258-270m -> [ the creature, 320m ]
+
+Every one of them is something the player has stood next to, and every one is nearer than
+the creature. **The creature is the furthest object in the shot and still the largest**:
+30.0° of screen against the biggest landmark's 13.3°, and ten times the angular size of the
+furthest thing standing in front of it. That inversion is the whole trick — the eye climbs
+the ladder outward and runs out of ladder before it runs out of creature.
+
+It is also, quietly, requirement 17 answered without a montage: the Overworld's trees, the
+Farmlands' barn and water tower, Suburbia's row of identical houses and the Haven's own
+cabin are standing on the same ground in one shot for the first and only time in the game,
+and the creature is behind all of them. Nothing says so.
+
+## THE SEVEN BEATS
+
+`FINALE_BEATS` is a frozen table and the beat, the fog, the camera target and every ramp
+are PURE FUNCTIONS of one accumulating number — the same discipline as `FILM_BEATS`
+(Phase 30) and `HAVEN_STAGES` (Phase 32). `setTimeout` appears nowhere in the class.
+
+| beat | at | for | what happens |
+|---|---|---|---|
+| `silence` | 0 | 3.5s | nothing. Fog at 0.0075 — the creature is 0.3% visible, i.e. not there |
+| `impression` | 3.5 | 6.5s | 2.4% visible. A smudge that reads as terrain |
+| `scale` | 10 | 7.5s | 22%. The ladder resolves; the smudges do not stop where the ladder stops |
+| `movement` | 17.5 | 4.5s | one arm rotates through 0.9 rad; the head tilts and never straightens |
+| `face` | 22 | 4s | the head turns once, arrives at the player, and stops. One audio event |
+| `impossible` | 26 | 5s | 77% — more body than the player expected. The eye lifts to 0.36 rad |
+| `cut` | 31 | 1s | hard cut to black, then the credits |
+
+**32 seconds**, inside the brief's 20–40s window and within two of the ~30s target. The fog
+densities are computed from `exp(-(density*d)^2)` at the creature's 320m rather than chosen
+by eye — a shape at the wrong distance for the fog is simply not in the shot, which is the
+mistake Phase 30 made once and documented.
+
+## THE CAMERA IS A DRIFT, NOT A RAIL
+
+The hardest decision in the phase. Requirement 8 wants a deliberate cinematic camera,
+requirement 9 forbids yanking the player's view, and requirement 33 says that if the player
+feels detached from their own body the shot has failed.
+
+The resolution is that each frame the pitch moves a small fraction of the way toward what
+the beat wants (`dt * 1.1`) and the yaw a smaller fraction still (`dt * 0.55`). A player who
+does nothing is carried through the intended composition; a player who fights it can look
+wherever they like and is merely pulled back. **Nothing is ever set outright, so there is no
+frame in which the view jumps** — driven and measured in the browser: a yaw shoved to 1.2
+rad is still at 1.16 one frame later, and back to 0.585 two and a half seconds after that.
+
+## THE AUDIO
+
+`playVoidSovereignRoar()` is gone — a thing that roars is a thing with lungs, and a thing
+with lungs is a thing you could in principle fight. Three continuous layers on the existing
+`musicBus`, arranged so the sequence gets LOWER and LARGER rather than louder: a 24Hz sine
+below where most speakers reproduce a pitch, brown noise through a 90Hz low-pass, and a
+41Hz sine beating against the sub so the floor never sits still. Levels are per-beat targets
+with a 1.6s time constant and **no layer ever gets quieter**.
+
+There is exactly ONE event in thirty-two seconds: a low strike with a two-second tail on the
+face beat. No shaper, no clipping, no shriek.
+
+## WHAT THE RENDERS CHANGED
+
+Three of the phase's decisions were made by looking at captures rather than by reasoning,
+and all three were wrong until a screenshot said so.
+
+**THE FIRST CAPTURE WAS THE INSIDE OF A WALL.** `corruptHaven()` decays the cabin in
+PLACE, and the player is standing in it — so the finale was composing three hundred and
+twenty metres of sightline behind rotting geometry a metre from the camera.
+`clearHavenForFinale()` now takes the pocket down before the finale is built. Writing it
+surfaced a second bug immediately: `disposeChunk` returns early for a PINNED chunk and the
+Haven's nine are all pinned, so the first version disposed nothing at all — and the
+sightline assertion caught it.
+
+**THE SECOND CAPTURE HAD NO CREATURE IN IT.** The finale's sky was `0x05060a`; the
+creature is `0x04050a`. A silhouette is a contrast, and those are the same colour — a
+near-black shape seen through near-black fog is not a shape. The sky is now a dim slate
+(`0x1b2029`, 0.124 luma against the creature's 0.021), which is also what makes the fog
+curve mean anything: everything in this scene is darker than the air it stands in, so
+heavy fog washes the distance out and thinning fog lets the dark shapes emerge. A live
+scene probe at the same moment found the cabin's two wall sconces still burning at head
+height in the middle of the empty plain, because torches are registered per-POSITION
+rather than per-chunk and `disposeChunk` never reached them.
+
+**THE THIRD CAPTURE WAS A RADIO MAST.** At the original limb radii the legs were three
+metres across at three hundred and twenty metres, they merged into a single column, and
+the figure had no body. Limb radii went up by roughly half, the stance was widened so
+there is a gap between the legs, and the height went from 150 to 185.
+
+## FOUR REAL DEFECTS FOUND, ALL FIXED
+
+All four were found by the browser suite and two of them by a SCREENSHOT, which is the
+argument for capturing them.
+
+**1. THE INVENTORY OPENED OVER THE FINALE.** `_playing()` — the gate every overlay key is
+behind — was `running && progression`, and `running` is true through the whole sequence
+because it IS the frame loop. A capture of the scale beat came back showing a nine-by-four
+grid of empty inventory slots across the middle of the shot, with the crafting bench behind
+it. The opening film never had this because it plays with `running === false`. The gate now
+also excludes a terminal cinematic, and anything already open is closed as the sequence
+begins. The Haven is deliberately NOT terminal — its chest and backpack stay usable.
+
+**2. A NEW GAME AFTER THE ENDING LEFT THE HUD INVISIBLE.** `hardCutToBlack()` hides the HUD
+with `style.display = 'none'` — an inline style, which no class removal can beat. That was
+survivable only for as long as the single route out of the credits was a full page reload.
+Requirement 25 asks for a New Game from the ending, and taking one gave a playable run with
+no HUD for the rest of the session.
+
+**3. THE LAST SHOT WAS CAPTIONED "THE HAVEN".** `updateVitals` repaints the dimension banner
+every frame from `player.inFakeHaven`, which stays true through the finale — so clearing it
+once at the start of the sequence had it back on the next tick.
+
+**4. THE FINALE'S SKY WAS BEING REPAINTED.** The env's nightmare override is checked before
+the Haven's, and both would have run over the finale's own near-black. The finale's fog is
+now checked ahead of every dimension override, and the handoff clears the nightmare flag.
+
+## THE HANDOFF, AND WHAT WAS NOT REBUILT
+
+`_triggerHavenShift` is still the Phase 32 boundary and `_triggerClimax` is still the
+Phase 5B climax — hard cut, silence, credits — **unchanged**. Requirement 23 says the
+credits are not this phase's to redesign and they were not. What changed is the thirty-two
+seconds between them, and the STATE the climax is reached in.
+
+`FinalSequence.finish()` tears the sequence down BEFORE handing over, so nothing of it
+survives into the credits. The climax is latched, so the credits fire exactly once — driven
+in the browser, including ticking the sequence for ten more seconds afterwards.
+
+## VALIDATION
+
+| suite | result |
+|---|---|
+| `finale.js` (new) | 181 checks, all pass |
+| `browser-finale.js` (new) | all pass, real Chromium + WebGL |
+| the other 20 offline suites | all pass |
+| the other 6 browser suites | all pass |
+
+Three existing suites were amended, each because Phase 33 changed the thing they described
+and none because they were inconvenient:
+
+- `haven.js` — Phase 32's "the finale entity is spawned from exactly one call site
+  downstream of the shift" named `spawnVoidSovereign`, which no longer exists. The
+  invariant is unchanged and is now checked against `buildFinale` and `finale.begin`.
+- `browser-haven.js` — its handoff assertion required the renderer to be TAKEN by the
+  collapse (`horror === 1`, void glitch past 0.5). Phase 33 inverted that deliberately: the
+  finale needs a legible frame, because the whole of it is a judgement about the size of
+  something three hundred metres away and nobody can judge size through datamosh. The
+  assertion now requires the opposite and says why. Its mug section also had to stop
+  driving the Haven clock to 177 of 178 — `settle` waits while the clock runs, and since
+  Phase 33 tipping past the end disposes the pocket's chunks, leaving no cabin to rewind
+  into.
+- `opening.js` — Phase 30 pinned the exact one-line source of `_playing()`, which Phase 33
+  grew into a method. It now tests the gate rather than its formatting, and asserts the new
+  terminal-cinematic case, which can only ever make more keys inert.
+
+### PERFORMANCE
+
+**Measured on the real tick**: the whole sequence costs **0.00165 ms/frame** against a
+16.7 ms budget. It is twelve creature meshes over three shared materials plus thirty-seven
+scene meshes over two, with **no lights, no textures and nothing animated but four
+rotations**. Nothing is rebuilt per frame and the scene is built once and disposed once —
+verified by running three full playthroughs and comparing the scene graph, and in the
+browser by reaching the ending twice.
+
+World generation is untouched: `determinism.js` compares 374 chunks and passes,
+`regression.js` is byte-identical, and `performance.js` is unchanged against its baselines.
+
+### WHAT IS NOT VALIDATED
+
+**THE FULL HUMAN ERA 1 PLAYTHROUGH IS INTENTIONALLY DEFERRED UNTIL PHASE 36**, by the
+developer's own decision, and this phase does not claim otherwise. Everything above is
+structural, mechanical or measured. Open:
+
+- whether a player mistakes a leg for a tower before they read it as a leg
+- whether 150m at 320m actually feels enormous or merely far away
+- whether the arm reads as wrong or as a rendering error
+- whether the face is unsettling or silly at that size
+- whether the drift camera feels like their own head or like being steered
+- **whether anyone reaches the credits thinking "what the hell was that"**
+
+The screenshots in `tests/renders/finale-*.png` are real frames from a real WebGL context
+and are the closest thing to an answer this session can offer, which is not close.
 
 ---
 

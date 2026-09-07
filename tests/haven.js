@@ -414,16 +414,23 @@ head('7. NOTHING HOSTILE EXISTS HERE, AND THE FINALE CANNOT LEAK IN');
 
   /* THE FINALE MAY NOT BE FORESHADOWED. The entity is spawned on exactly one line in the
      build, and that line is downstream of the shift. */
-  const spawnCalls = (LIVE.match(/\.spawnVoidSovereign\(/g) || []).length;
-  chk(spawnCalls === 1,
-      `the finale entity is CALLED from exactly ${spawnCalls} place in the build ` +
-      '(the other match is its own definition)');
+  /* PHASE 33 RENAMED THE MECHANISM AND THE INVARIANT SURVIVED IT UNCHANGED. The finale
+     entity used to be `spawnVoidSovereign()`; it is now built by `world.buildFinale()`,
+     called from `FinalSequence.begin()`, called from the shift. What this file cares
+     about is unchanged and is what is checked: the creature is created from exactly one
+     place, and that place is downstream of the Haven finishing. */
+  const buildCalls = (LIVE.match(/\.buildFinale\(/g) || []).length;
+  chk(buildCalls === 1,
+      `the finale scene is BUILT from exactly ${buildCalls} place in the build`);
+  const begin = methodBody(LIVE, 'begin') || '';
   const shift = methodBody(LIVE, '_triggerHavenShift') || '';
-  chk(/spawnVoidSovereign\(\)/.test(shift),
-      'and that place is the shift — i.e. after the Haven has finished, never during it');
+  chk(/this\.finale\.begin\(\)/.test(shift),
+      'and the shift is what starts the sequence that reaches it');
+  const beginCalls = (LIVE.match(/finale\.begin\(\)/g) || []).length;
+  chk(beginCalls === 1, `the sequence itself is begun from exactly ${beginCalls} place`);
   const machine = methodBody(LIVE, '_updateHaven') || '';
-  chk(machine && !/spawnVoidSovereign|corruptHaven|setNightmareOverride|playVoidSovereignRoar/.test(machine),
-      'the intact sequence spawns nothing, corrupts nothing and roars at nobody');
+  chk(machine && !/buildFinale|finale\.begin|corruptHaven|setNightmareOverride/.test(machine),
+      'the intact sequence builds nothing, corrupts nothing and starts no finale');
   chk(!/jumpscare|Jumpscare/.test(machine), 'and it cannot trigger a jumpscare');
 
   /* The Stalker's own guard, read from its source rather than assumed. */

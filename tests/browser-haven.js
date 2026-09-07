@@ -94,7 +94,10 @@ const SNAP = () => {
     stalkerAlive: !!(g.stalker && g.stalker.active),
     phantoms: g.phantoms && g.phantoms.list ? g.phantoms.list.length : 0,
     items: g.itemManager.entities.length,
-    sovereign: !!w.voidSovereign,
+    /* PHASE 33 — `voidSovereign` is gone from the build; what "the finale entity has
+       arrived" means now is that the finale scene, which contains the creature, has been
+       built. Same claim, current mechanism. */
+    sovereign: !!(w.finale && w.finale.creature),
     spawningDisabled: !!g.mobs.spawningDisabled,
     behemothGate: !!g.behemothSpawned,
     sceneChildren: g.scene.children.length,
@@ -112,6 +115,7 @@ const SNAP = () => {
     // --- the renderer ---------------------------------------------------------------
     havenFade: g.postfx.uniforms.uHavenFade.value,
     voidGlitch: g.postfx.uniforms.uVoidGlitch.value,
+    shake: g.shakeTime,
     horror: g.postfx.uniforms.uHorror.value,
     envDissolve: g.env.havenDissolve,
     fogDensity: +g.env.fog.density.toFixed(5),
@@ -337,8 +341,15 @@ const SNAP = () => {
         null, { timeout: 30000 });
       return page.evaluate(SNAP);
     };
+    /* THE LAST SAMPLE STOPS SHORT OF THE END ON PURPOSE. `settle` waits for the renderer
+       to catch up, and the clock keeps running while it does — so a sample at 177 of a
+       178-second Haven can tip past the end mid-wait and fire the shift. That used to be
+       survivable; since Phase 33 the shift calls `clearHavenForFinale()`, which disposes
+       the pocket's chunks, and section 5 below then has no cabin left to put a mug in.
+       172 is deep inside the dissolution (77% of the way through it) with six seconds of
+       headroom. */
     const seen = [];
-    for (const target of [20, 50, 90, 130, 160, 177]) seen.push(await settle(target));
+    for (const target of [20, 50, 90, 130, 160, 172]) seen.push(await settle(target));
     const [settled, perfect, noticing, thinning, ending, late] = seen;
 
     chk(settled.stage === 'settled' && perfect.stage === 'perfect' &&
@@ -379,6 +390,9 @@ const SNAP = () => {
     // =================================================================================
     head('5. THE ONE COMMITTED CHANGE, IN A LIVE WORLD');
     // =================================================================================
+    const notEnded = await page.evaluate('!window.game.havenShiftTriggered');
+    chk(notEnded,
+        'the Haven has not ended yet — this section rewinds its clock and needs a cabin to rewind into');
     const mugRun = await page.evaluate(`(async () => {
       const g = window.game, w = g.world, st = window.__mantel;
       // Rewind to the noticing stage and re-arm, so this is driven from a clean state.
@@ -439,16 +453,27 @@ const SNAP = () => {
        cannot overshoot. */
     await page.waitForFunction('window.game.havenShiftTriggered === true',
                                null, { timeout: 30000, polling: 'raf' });
-    await page.waitForFunction('window.game.postfx.uniforms.uVoidGlitch.value > 0.5',
+    /* NOTE: `settle` in this file is the stage-driving helper above, not a wait — it takes
+       a Haven second and assigns it. Waiting is done with waitForFunction directly. */
+    await page.waitForFunction('window.game.finale && window.game.finale.active === true',
                                null, { timeout: 30000, polling: 'raf' });
     const shifted = await page.evaluate(SNAP);
     chk(shifted.shifted, 'running out of Haven fires the shift');
     chk(shifted.havenCorrupted, 'the cabin decays');
-    chk(shifted.sovereign, 'and the finale entity arrives — for the first time in the run');
+    chk(shifted.sovereign,
+        'and the finale creature arrives — for the first time in the run');
     chk(shifted.havenFade === 0 && shifted.envDissolve === 0,
         'the dissolve is handed back at the boundary, so the two sequences never overlap by a frame');
-    chk(shifted.horror === 1 && shifted.voidGlitch > 0.5,
-        'the finale takes the renderer');
+    /* PHASE 33 INVERTED THIS ASSERTION, DELIBERATELY. Phase 32 handed the renderer to a
+       collapse: horror grading back on and the void glitch driven to full. Phase 33's
+       finale needs the opposite — a legible frame, because the whole of it is a judgement
+       about the SIZE of something three hundred metres away, and nobody can judge the
+       size of anything through datamosh. The handoff now hands the renderer back CLEAN,
+       and this is the check that it stays that way. */
+    chk(shifted.voidGlitch === 0 && shifted.horror === 0,
+        'the finale takes the renderer CLEAN — no glitch, no grading');
+    chk(shifted.shake === 0 || shifted.shake === undefined,
+        'and no camera shake');
     chk(shifted.nightmare && !shifted.ambience,
         'and the warm ambience rig is stopped rather than left playing under the static');
     chk(shifted.objective === null, 'nothing is asked of the player from here');

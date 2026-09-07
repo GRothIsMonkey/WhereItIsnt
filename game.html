@@ -2109,6 +2109,7 @@ class SoundEngine {
        loses its bass voice, so the theme the player has been trusting for two minutes
        gets quietly smaller without ever becoming a horror cue. */
     this.havenAmbience = null;
+    this.finaleAudio = null;          // PHASE 33 — see startFinaleAudio
     this.havenMusicThin = false;
     this.havenMusicSilent = false;
     // --- PHASE 5B: illusion-collapse audio state ---
@@ -3046,67 +3047,133 @@ class SoundEngine {
     this.voidStatic = { src, gain, shaper };
   }
 
-  /* PHASE 5B — THE VOID SOVEREIGN'S ROAR.
-     Entirely procedural: a sub-bass fundamental swept downward through the floor of
-     hearing, a detuned second voice a fifth above it for beating/dissonance, and a
-     filtered noise "breath" layer over the top — all pushed through a distortion
-     stage so it distorts the master bus rather than sitting politely under it. */
-  playVoidSovereignRoar() {
-    if (!this.ctx) return;
+/* =====================================================================================
+     PHASE 33 — THE FINALE'S SOUND.
+
+     WHAT WAS HERE, AND WHY IT IS GONE. `playVoidSovereignRoar()` — three and a half
+     seconds of hard-clipped noise through a tanh shaper, i.e. a monster roaring. The
+     brief forbids it twice: the creature must not "roar like an animal", and the finale
+     must not rely on one giant jumpscare sound. A thing that roars is a thing with lungs,
+     and a thing with lungs is a thing you could in principle fight.
+
+     WHAT REPLACED IT. Three continuous layers and one event, arranged so that the
+     sequence gets LOWER and LARGER rather than louder:
+
+       sub     a 24Hz sine. Below where most speakers reproduce a pitch, which is the
+               point — on a laptop it is felt as pressure and heard as nothing.
+       press   brown noise through a 90Hz low-pass. The weight of something big being
+               nearby, with no information in it.
+       air     a 41Hz sine beating slightly against the sub, so the two of them wander in
+               and out of phase and the floor of the sound never sits still.
+
+     The `impact` on the face beat is the ONLY event in the sequence and it is not a
+     scare: a single low strike with a long tail, the sound of something settling rather
+     than of something lunging.
+
+     Same contract as Phase 30's film ambience and Phase 32's Haven rig: one AudioContext
+     (the one the engine already has), one bus, idempotent in both directions, one
+     teardown that stops and disconnects every node by name. Requirement 12's "do not
+     create another AudioContext" is satisfied structurally — this cannot, it has no way
+     to make one. */
+  startFinaleAudio() {
+    if (!this.ctx || this.finaleAudio) return false;
     const now = this.ctx.currentTime;
-    const dur = 3.4;
+    const bus = this.musicBus || this.master;
 
-    const shaper = this.ctx.createWaveShaper();
-    const curve = new Float32Array(1024);
-    for (let i = 0; i < 1024; i++) {
-      const x = (i / 1023) * 2 - 1;
-      curve[i] = Math.tanh(x * 5.5);
-    }
-    shaper.curve = curve;
-    shaper.oversample = '2x';
-    const out = this.ctx.createGain();
-    out.gain.setValueAtTime(0.0, now);
-    out.gain.linearRampToValueAtTime(0.85, now + 0.25);
-    out.gain.linearRampToValueAtTime(0.55, now + dur * 0.6);
-    out.gain.linearRampToValueAtTime(0.0, now + dur);
-    shaper.connect(out); out.connect(this.sfxUnityBus || this.master);
-
-    // Sub-bass fundamental: 58Hz down to 17Hz — the tail is felt more than heard.
     const sub = this.ctx.createOscillator();
-    sub.type = 'sine';
-    sub.frequency.setValueAtTime(58, now);
-    sub.frequency.exponentialRampToValueAtTime(17, now + dur);
+    sub.type = 'sine'; sub.frequency.value = 24;
     const subGain = this.ctx.createGain();
-    subGain.gain.value = 0.9;
-    sub.connect(subGain); subGain.connect(shaper);
-    sub.start(now); sub.stop(now + dur + 0.1);
+    subGain.gain.value = 0;
+    sub.connect(subGain); subGain.connect(bus);
+    sub.start(now);
 
-    // Detuned companion for a slow, sickening beat frequency.
-    const growl = this.ctx.createOscillator();
-    growl.type = 'sawtooth';
-    growl.frequency.setValueAtTime(87, now);
-    growl.frequency.exponentialRampToValueAtTime(26, now + dur);
-    growl.detune.setValueAtTime(-18, now);
-    const growlGain = this.ctx.createGain();
-    growlGain.gain.setValueAtTime(0.28, now);
-    growlGain.gain.linearRampToValueAtTime(0.1, now + dur);
-    growl.connect(growlGain); growlGain.connect(shaper);
-    growl.start(now); growl.stop(now + dur + 0.1);
+    const air = this.ctx.createOscillator();
+    air.type = 'sine'; air.frequency.value = 41;
+    const airGain = this.ctx.createGain();
+    airGain.gain.value = 0;
+    air.connect(airGain); airGain.connect(bus);
+    air.start(now);
 
-    // Breath layer: swept band-passed noise riding on top of the sub.
-    const breath = this.ctx.createBufferSource();
-    breath.buffer = this._makeNoiseBuffer(dur, 'brown');
-    const band = this.ctx.createBiquadFilter();
-    band.type = 'bandpass';
-    band.frequency.setValueAtTime(900, now);
-    band.frequency.exponentialRampToValueAtTime(120, now + dur);
-    band.Q.value = 2.2;
-    const breathGain = this.ctx.createGain();
-    breathGain.gain.setValueAtTime(0.0, now);
-    breathGain.gain.linearRampToValueAtTime(0.34, now + 0.4);
-    breathGain.gain.linearRampToValueAtTime(0.0, now + dur);
-    breath.connect(band); band.connect(breathGain); breathGain.connect(shaper);
-    breath.start(now); breath.stop(now + dur + 0.05);
+    const press = this.ctx.createBufferSource();
+    press.buffer = this._makeNoiseBuffer(4, 'brown');
+    press.loop = true;
+    const pressLp = this.ctx.createBiquadFilter();
+    pressLp.type = 'lowpass'; pressLp.frequency.value = 90; pressLp.Q.value = 0.5;
+    const pressGain = this.ctx.createGain();
+    pressGain.gain.value = 0;
+    press.connect(pressLp); pressLp.connect(pressGain); pressGain.connect(bus);
+    press.start(now);
+
+    this.finaleAudio = { sub, subGain, air, airGain, press, pressLp, pressGain };
+    return true;
+  }
+
+  /* Driven by the beat, not by a timer — the sequence hands this a beat id on the frame
+     it changes and the ramps do the rest. Levels are targets with a multi-second time
+     constant, so a stepped table cannot produce an audible edge. */
+  setFinaleBeat(beat) {
+    const a = this.finaleAudio;
+    if (!a || !this.ctx) return false;
+    const now = this.ctx.currentTime;
+    /* [sub, press, air]. The shape of this table IS the sound design: nothing at all for
+       three and a half seconds, then a floor that thickens beat by beat, and a last beat
+       that is briefly more than is comfortable. */
+    const L = {
+      silence:    [0.000, 0.000, 0.000],
+      impression: [0.030, 0.010, 0.000],
+      scale:      [0.055, 0.028, 0.012],
+      movement:   [0.075, 0.045, 0.022],
+      face:       [0.090, 0.060, 0.030],
+      impossible: [0.130, 0.095, 0.055],
+      cut:        [0.150, 0.110, 0.065],
+    }[beat] || [0, 0, 0];
+    try {
+      a.subGain.gain.setTargetAtTime(L[0], now, 1.6);
+      a.pressGain.gain.setTargetAtTime(L[1], now, 1.6);
+      a.airGain.gain.setTargetAtTime(L[2], now, 1.6);
+    } catch (e) { /* the graph is already gone */ }
+    if (beat === 'face') this.playFinaleImpact();
+    return true;
+  }
+
+  /* ONE EVENT IN THE WHOLE SEQUENCE. A low strike with a two-second tail — no click, no
+     clip, no shriek. It marks the moment the head turns and nothing else. */
+  playFinaleImpact() {
+    if (!this.ctx) return false;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(58, now);
+    osc.frequency.exponentialRampToValueAtTime(19, now + 1.6);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(0.22, now + 0.06);
+    g.gain.exponentialRampToValueAtTime(0.0015, now + 2.0);
+    osc.connect(g); g.connect(this.sfxUnityBus || this.master);
+    osc.start(now); osc.stop(now + 2.1);
+    return true;
+  }
+
+  stopFinaleAudio() {
+    const a = this.finaleAudio;
+    if (!a) return false;
+    this.finaleAudio = null;
+    const now = this.ctx ? this.ctx.currentTime : 0;
+    try {
+      for (const g of [a.subGain, a.pressGain, a.airGain]) {
+        g.gain.cancelScheduledValues(now);
+        g.gain.setTargetAtTime(0, now, 0.05);
+      }
+    } catch (e) { /* already gone */ }
+    setTimeout(() => {
+      for (const n of [a.sub, a.air, a.press]) {
+        try { n.stop(); } catch (e) { /* already stopped */ }
+      }
+      for (const k of Object.keys(a)) {
+        try { a[k].disconnect(); } catch (e) { /* already detached */ }
+      }
+    }, 400);
+    return true;
   }
 
   // Hard-stops every audio source for the credits hard-cut to black.
@@ -8012,9 +8079,10 @@ function havenDissolveAt(t) {
   if (span <= 0) return s >= HAVEN_SHIFT_SECONDS ? 1 : 0;
   return Math.max(0, Math.min(1, (s - HAVEN_ENDING_FROM) / span));
 }
-// PHASE 5B — seconds the player must hold out against The Void Sovereign before the
-// hard cut to black and the end credits.
-const CLIMAX_SECONDS = 2.5;
+/* PHASE 33 — CLIMAX_SECONDS is gone with the thing it timed. It was 2.5 seconds of
+   holding out against an eight-metre entity; the finale is FINALE_BEATS and runs for
+   FINALE_DURATION, and the hard cut is reached by FinalSequence.finish() rather than by
+   a countdown. */
 
 function isFakeHavenWorldPos(wx, wz) {
   const minX = FAKE_HAVEN_CHUNK_OFFSET * CHUNK_SX, maxX = minX + FAKE_HAVEN_CHUNKS_SPAN * CHUNK_SX;
@@ -8248,19 +8316,6 @@ function buildHavenStorageChestProp() {
   return group;
 }
 
-/* ---------------------------------------------------------------------------------
-   PHASE 5B — THE VOID SOVEREIGN.
-   The colossal entity that tears itself out of the Fake Haven once the illusion
-   collapses. Built at a literal 8-metre height (VOID_SOVEREIGN_HEIGHT), which is
-   roughly 4.5x the player and taller than the cabin it hangs over, so it reads as
-   genuinely architectural rather than as "a big mob".
-
-   Deliberately built from a different visual vocabulary than every other mob in the
-   game: no limbs, no walk cycle, no eyes-in-a-face. It is a floating obsidian monolith
-   wrapped in counter-rotating void rings with a single enormous vertical slit of
-   light, so nothing about it suggests it can be fought — because it can't be.
-   The returned handle keeps every animated part addressable for updateVoidSovereign.
-   --------------------------------------------------------------------------------- */
 /* PHASE 20 — module-scope scratch for the water tower's gaze test, so the per-frame
    anomaly allocates nothing. One vector, reused. */
 const _farmTowerFwd = new THREE.Vector3();
@@ -8288,73 +8343,309 @@ function _farmLampHaloTexture() {
   return _farmLampHalo;
 }
 
-const VOID_SOVEREIGN_HEIGHT = 8.0;
+/* =====================================================================================
+   PHASE 33 — THE FINAL CREATURE.
 
-function buildVoidSovereignMesh() {
+   WHAT WAS HERE BEFORE, AND WHY IT IS GONE. This file used to build "the Void Sovereign":
+   an eight-metre floating obsidian monolith with counter-rotating rings, a halo of
+   orbiting shards and a vertical slit of red light. It was a good-looking object and it
+   was the wrong object. Eight metres is four and a half times the player — a big mob, not
+   a category error — and rings, shards and a glowing red eye are the visual grammar of a
+   boss. STORY.md section 19 is explicit that this is "not a boss, not a reveal, a
+   removal", and that the internal name is retired. The Phase 33 brief forbids the same
+   thing from the other direction: not muscular, not armoured, not demon-looking, not
+   spiked, not a generic giant humanoid, not a video-game boss.
+
+   WHAT IT IS NOW. One hundred and fifty metres of something too thin to stand up, built
+   as a SILHOUETTE and not as a model: near-black, unlit, read against fog. The only part
+   of it that is not black is a small pale patch where a face would be, and that patch has
+   nothing on it.
+
+   THE PROPORTIONS ARE THE HORROR, so they are written down rather than tuned by eye:
+
+     legs      63% of total height, and thinner at the top than a utility pole
+     knee      at 55% of the leg rather than 50%, and displaced sideways, so the two
+               segments are not collinear and the joint reads as assembled rather than
+               grown
+     torso     narrow, short for the body, and tilted forward a few degrees
+     arms      NINETY-SIX metres — they hang to a third of the way down the shins, which
+               is the single most legible piece of wrongness at distance
+     neck      long and thinner than the arms
+     head      SMALL. Six metres on a hundred-and-fifty metre body, which is what makes
+               the scale impossible to read: the eye uses head size to judge distance and
+               this one lies about it.
+
+   EVERYTHING IS DERIVED FROM `h`, so Era 2 can replace the geometry inside this one
+   function without touching the cinematic, the camera, the audio or the state machine —
+   which is requirement 26. Nothing outside here knows how the creature is built; the
+   sequence only ever asks it to look somewhere or move a limb.
+
+   COST: eleven meshes over three shared materials, no textures, no lights of its own.
+   It is lit by nothing and that is deliberate — see requirement 14. */
+/* Raised from 150 after the renders. At 150m against 320m of distance the figure was
+   legible and not yet absurd: it stood a head above the barn line and the last beat looked
+   much like the one before it. 185 puts the head at thirty degrees above the horizon,
+   which the player has to crane at, and makes it nearly seven times the water tower —
+   the tallest thing they have ever stood under in this game. */
+const FINAL_CREATURE_HEIGHT = 185;
+
+function buildFinalCreature(h) {
+  const H = (typeof h === 'number' && h > 0) ? h : FINAL_CREATURE_HEIGHT;
   const group = new THREE.Group();
-  const H = VOID_SOVEREIGN_HEIGHT;
 
-  const voidMat = new THREE.MeshLambertMaterial({ color: 0x0a0410, emissive: 0x1a0020, emissiveIntensity: 0.6 });
-  const glowMat = new THREE.MeshBasicMaterial({ color: 0xff2a2a, transparent: true, opacity: 0.92 });
-  const ringMat = new THREE.MeshBasicMaterial({
-    color: 0x8a1030, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false
+  /* MATERIALS. Three, shared across every part, and none of them respond to light in a
+     way that could resolve the shape: `body` is a flat near-black basic material, so no
+     lamp, sun or fog light can ever accidentally turn this into a lit model showcase. */
+  const bodyMat = new THREE.MeshBasicMaterial({ color: 0x04050a, fog: true });
+  const limbMat = new THREE.MeshBasicMaterial({ color: 0x06070c, fog: true });
+  /* The one pale thing. Slightly transparent so it reads as an area rather than as a
+     sticker, and deliberately off-white rather than white — a clean white would look
+     like a light source, and this is not lit, it is just less dark. */
+  const faceMat = new THREE.MeshBasicMaterial({
+    color: 0xb9b5ac, transparent: true, opacity: 0.85, fog: true, side: THREE.DoubleSide,
   });
 
-  // CORE MONOLITH — a tapered slab: broad at the shoulders, narrowing to a point at
-  // the base, so it hangs like something suspended rather than something standing.
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(H * 0.30, H * 0.06, H * 0.78, 6), voidMat);
-  body.position.y = H * 0.42;
-  group.add(body);
+  /* THE LIMB RADII WERE RAISED BY ROUGHLY HALF AFTER THE FIRST RENDER.
 
-  // CROWN — a heavy angular cap.
-  const crown = new THREE.Mesh(new THREE.CylinderGeometry(H * 0.20, H * 0.34, H * 0.22, 6), voidMat);
-  crown.position.y = H * 0.90;
-  group.add(crown);
+     At the original thickness the legs were three metres across at three hundred and
+     twenty metres — about seven pixels — and the whole figure read as a radio mast rather
+     than as a body. That is the correct read for the first two beats and the wrong one for
+     the last four: by the time the head turns, the player has to be looking at something
+     with a TORSO.
 
-  // THE SLIT — one vertical seam of red light running most of the body's height.
-  const slit = new THREE.Mesh(new THREE.PlaneGeometry(H * 0.055, H * 0.52), glowMat);
-  slit.position.set(0, H * 0.50, H * 0.30);
-  group.add(slit);
-  const slitBack = new THREE.Mesh(new THREE.PlaneGeometry(H * 0.055, H * 0.52), glowMat);
-  slitBack.position.set(0, H * 0.50, -H * 0.30);
-  slitBack.rotation.y = Math.PI;
-  group.add(slitBack);
+     It is still absurdly thin. A human silhouette is roughly four to one, height against
+     width; this is about seven to one at a hundred and fifty metres tall, which is a
+     proportion no skeleton supports. `tests/finale.js` holds the floor at five and a half
+     so it can never quietly become a normal giant. */
+  const seg = (rTop, rBot, len, mat) =>
+    new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBot, len, 6, 1, true), mat || limbMat);
 
-  // COUNTER-ROTATING VOID RINGS — three flat annuli at different radii/heights.
-  const rings = [];
-  const ringSpecs = [
-    [H * 0.52, H * 0.66, H * 0.34],
-    [H * 0.44, H * 0.56, H * 0.62],
-    [H * 0.60, H * 0.76, H * 0.16]
-  ];
-  for (const [inner, outer, ry] of ringSpecs) {
-    const ring = new THREE.Mesh(new THREE.RingGeometry(inner, outer, 32), ringMat.clone());
-    ring.rotation.x = Math.PI / 2;
-    ring.position.y = ry;
-    group.add(ring);
-    rings.push(ring);
+  // --- LEGS ---------------------------------------------------------------------------
+  // Two segments each, meeting at a knee that is neither halfway nor in line.
+  const legTop = H * 0.63;
+  const kneeY = legTop * 0.55;
+  const legs = [];
+  for (const side of [-1, 1]) {
+    /* THE STANCE WAS WIDENED AFTER THE SECOND RENDER. At ±0.021H the two legs were about
+       six metres apart at three hundred and twenty metres — closer together than they were
+       thick — and they merged into one column, which read as a mast. A figure needs a gap
+       between its legs more than it needs anything else about it. */
+    const hipX = side * H * 0.038;          // still a narrow stance for the height
+    const kneeX = side * H * 0.055;         // knee displaced OUTWARD from the hip line
+    const footX = side * H * 0.030;         // and the foot back inside it again
+
+    const thighLen = legTop - kneeY;
+    const thigh = seg(H * 0.016, H * 0.021, thighLen);
+    thigh.position.set((hipX + kneeX) / 2, kneeY + thighLen / 2, 0);
+    thigh.rotation.z = Math.atan2(kneeX - hipX, thighLen);
+    group.add(thigh);
+
+    const shin = seg(H * 0.021, H * 0.010, kneeY);
+    shin.position.set((kneeX + footX) / 2, kneeY / 2, 0);
+    shin.rotation.z = Math.atan2(footX - kneeX, kneeY);
+    group.add(shin);
+
+    legs.push({ thigh, shin, side });
   }
 
-  // SHARD HALO — jagged fragments orbiting the crown, suggesting the thing is still
-  // pulling itself together out of the broken dimension.
-  const shards = [];
-  const shardGeo = new THREE.TetrahedronGeometry(H * 0.075);
-  for (let i = 0; i < 10; i++) {
-    const shard = new THREE.Mesh(shardGeo, voidMat);
-    const ang = (i / 10) * Math.PI * 2;
-    shard.userData.angle = ang;
-    shard.userData.radius = H * 0.48 + Math.random() * H * 0.14;
-    shard.userData.bob = Math.random() * Math.PI * 2;
-    group.add(shard);
-    shards.push(shard);
+  // --- TORSO --------------------------------------------------------------------------
+  // Short for the body and tilted forward, so the mass hangs over the legs rather than
+  // sitting on them.
+  const torsoLen = H * 0.20;
+  const torso = seg(H * 0.026, H * 0.042, torsoLen, bodyMat);
+  torso.position.set(0, legTop + torsoLen / 2, 0);
+  torso.rotation.x = 0.06;
+  group.add(torso);
+  const shoulderY = legTop + torsoLen;
+
+  // --- ARMS ---------------------------------------------------------------------------
+  /* THE THING A PLAYER ACTUALLY NOTICES. Upper and fore-arm together run to 0.64H, which
+     puts the ends of them a third of the way down the shins. Nothing about the rest of
+     the body is as immediately wrong as a hand hanging below a knee. */
+  const arms = [];
+  for (const side of [-1, 1]) {
+    const pivot = new THREE.Group();
+    pivot.position.set(side * H * 0.030, shoulderY, 0);
+    group.add(pivot);
+
+    const upperLen = H * 0.30;
+    const upper = seg(H * 0.013, H * 0.011, upperLen);
+    upper.position.y = -upperLen / 2;
+    pivot.add(upper);
+
+    const elbow = new THREE.Group();
+    elbow.position.y = -upperLen;
+    pivot.add(elbow);
+
+    const foreLen = H * 0.34;
+    const fore = seg(H * 0.011, H * 0.007, foreLen);
+    fore.position.y = -foreLen / 2;
+    elbow.add(fore);
+
+    // A slight outward set at rest, so the arms do not read as two straight lines.
+    pivot.rotation.z = -side * 0.05;
+    elbow.rotation.z = -side * 0.04;
+    arms.push({ pivot, elbow, side });
   }
 
-  // Its own light, so it lights the ruins from above in hard red.
-  const light = new THREE.PointLight(0xff1a1a, 3.2, 42, 2);
-  light.position.set(0, H * 0.5, 0);
-  group.add(light);
+  // --- NECK + HEAD --------------------------------------------------------------------
+  const neckLen = H * 0.09;
+  const neck = seg(H * 0.010, H * 0.014, neckLen);
+  neck.position.set(0, shoulderY + neckLen / 2, 0);
+  group.add(neck);
 
-  return { group, rings, shards, slit, slitBack, light, height: H };
+  /* The head is a GROUP, because the sequence turns it and tilts it and must be able to
+     do both without touching how it is built. */
+  const head = new THREE.Group();
+  head.position.set(0, shoulderY + neckLen, 0);
+  group.add(head);
+
+  const skullH = H * 0.045, skullW = H * 0.030, skullD = H * 0.022;
+  const skull = new THREE.Mesh(new THREE.BoxGeometry(skullW, skullH, skullD), bodyMat);
+  skull.position.y = skullH / 2;
+  head.add(skull);
+
+  /* THE FACE. A plain rectangle on the front of the skull, smaller than the skull so the
+     dark surrounds it on every side. There are no features on it and there must never be:
+     requirement 6 wants the player's imagination doing this work, and an eye or a mouth
+     at this distance would resolve the whole thing into a monster. */
+  const face = new THREE.Mesh(
+    new THREE.PlaneGeometry(skullW * 0.62, skullH * 0.66), faceMat);
+  face.position.set(0, skullH * 0.54, skullD / 2 + 0.05);
+  head.add(face);
+
+  return {
+    group, legs, arms, head, face, faceMat, torso, neck,
+    height: H, shoulderY, t: 0,
+  };
+}
+
+
+/* =====================================================================================
+   PHASE 33 — THE GROUND THE FINAL CREATURE IS MEASURED AGAINST.
+
+   THE PROBLEM THIS SOLVES. Scale is the primary horror of this phase (requirement 5) and
+   scale is a RELATIONSHIP: a hundred and fifty metres means nothing on its own, and a
+   creature alone in fog is just a shape. The player has to read its size off things they
+   already know the size of. But the Haven is a forty-eight block pocket ringed by a fog
+   wall with nothing outside it, so there was nothing in the world to measure against —
+   the old finale put an eight-metre object over a twelve-metre cabin and the player had
+   no way to be impressed by it.
+
+   So the finale builds its own ground: a dark plane, and a ladder of familiar silhouettes
+   marching away from the player at known distances. Poles, then a barn, then a farmhouse,
+   then the water tower, then a suburban street — every one of them a shape this player has
+   spent hours next to, and every one of them SMALLER than the last thing in the line even
+   though it is nearer. The eye climbs that ladder outward and runs out of ladder before it
+   runs out of creature.
+
+   WHY THE LADDER IS ALSO THE STORY. Requirement 17 asks that the final image echo the
+   earlier dimensions without a montage and without explaining the connection. It does not
+   need one: the Overworld's trees, the Farmlands' barn and water tower, Suburbia's row of
+   identical houses and the Haven's cabin are standing on the same ground, in one shot,
+   for the first and only time in the game — and the creature is behind all of them.
+   Nothing says so.
+
+   COST. Twenty-eight meshes over four shared materials and two shared geometries, built
+   once, never rebuilt, disposed in one call. No textures, no lights, no per-frame work of
+   any kind — none of this is animated. Requirement 28's whole list is avoided by the
+   scene being furniture rather than simulation.
+
+   ERA 2. This function is the seam. It knows what a barn looks like; nothing else in the
+   sequence does. Replacing the voxel look means replacing this and `buildFinalCreature`,
+   and the beats, camera, audio and state machine survive untouched. */
+const FINALE_GROUND_SIZE = 4000;
+const FINALE_CREATURE_DISTANCE = 320;
+
+/* The ladder, nearest first: [distance, lateral offset, height, kind]. Distances are the
+   real reason the shot works, so they are a table rather than a loop — each one was chosen
+   so the next silhouette out is visibly smaller on screen than the one before it, which is
+   what makes the line read as depth instead of as clutter. */
+const FINALE_LANDMARKS = Object.freeze([
+  { at:  38, x: -22, h:  9, kind: 'pole' },
+  { at:  46, x:  26, h:  9, kind: 'tree' },
+  { at:  62, x: -34, h:  9, kind: 'pole' },
+  { at:  74, x:  40, h: 11, kind: 'tree' },
+  { at:  92, x: -14, h: 12, kind: 'barn' },
+  { at: 104, x: -46, h:  9, kind: 'pole' },
+  { at: 118, x:  52, h: 10, kind: 'tree' },
+  { at: 150, x:  30, h:  9, kind: 'house' },
+  { at: 168, x: -58, h:  9, kind: 'pole' },
+  { at: 186, x: -36, h:  8, kind: 'cabin' },
+  { at: 212, x:  62, h: 28, kind: 'tower' },
+  { at: 258, x: -70, h:  8, kind: 'suburb' },
+  { at: 262, x: -44, h:  8, kind: 'suburb' },
+  { at: 266, x: -18, h:  8, kind: 'suburb' },
+  { at: 270, x:   8, h:  8, kind: 'suburb' },
+]);
+
+function buildFinaleScene() {
+  const group = new THREE.Group();
+  const parts = [];
+
+  /* One material for everything that is not the ground. The finale is a silhouette shot:
+     a lit material here would give the landmarks form, and form at this distance competes
+     with the one shape that is meant to be hard to read. */
+  const inkMat = new THREE.MeshBasicMaterial({ color: 0x0a0c12, fog: true });
+  const groundMat = new THREE.MeshBasicMaterial({ color: 0x0d0f14, fog: true });
+
+  // THE GROUND. One plane, big enough that its edge is far past anything the fog lets
+  // through, so the horizon is fog rather than an edge.
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(FINALE_GROUND_SIZE, FINALE_GROUND_SIZE), groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  group.add(ground);
+  parts.push(ground);
+
+  const box = (w, hh, d, x, y, z) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, hh, d), inkMat);
+    m.position.set(x, y, z);
+    group.add(m); parts.push(m);
+    return m;
+  };
+
+  for (const L of FINALE_LANDMARKS) {
+    const z = -L.at, x = L.x, h = L.h;
+    switch (L.kind) {
+      case 'pole':
+        box(0.5, h, 0.5, x, h / 2, z);
+        box(4.0, 0.4, 0.4, x, h * 0.86, z);          // crossarm
+        break;
+      case 'tree':
+        box(0.9, h * 0.45, 0.9, x, h * 0.22, z);     // trunk
+        box(h * 0.62, h * 0.58, h * 0.62, x, h * 0.70, z);  // crown
+        break;
+      case 'barn':
+        box(20, h, 12, x, h / 2, z);
+        box(14, h * 0.42, 12, x, h * 1.10, z);       // roof mass
+        box(5, h * 1.35, 5, x + 14, h * 0.68, z);    // silo
+        break;
+      case 'house':
+        box(11, h, 9, x, h / 2, z);
+        box(12, h * 0.40, 10, x, h * 1.12, z);
+        box(1.2, h * 0.5, 1.2, x + 3, h * 1.45, z);  // chimney
+        break;
+      case 'cabin':
+        // The Haven's own footprint, at its own size, standing on this ground.
+        box(12, h * 0.75, 12, x, h * 0.375, z);
+        box(1.2, h * 0.55, 1.2, x + 2, h * 0.95, z);
+        break;
+      case 'tower': {
+        // The Farmlands' signature landmark, and the tallest thing the player knows.
+        for (const lx of [-4, 4]) box(0.8, h * 0.72, 0.8, x + lx, h * 0.36, z);
+        for (const lz of [-4, 4]) box(0.8, h * 0.72, 0.8, x, h * 0.36, z + lz);
+        box(13, h * 0.20, 13, x, h * 0.82, z);       // tank
+        box(0.6, h * 0.12, 0.6, x, h * 0.98, z);     // mast
+        break;
+      }
+      case 'suburb':
+        box(10, h, 10, x, h / 2, z);
+        box(11, h * 0.38, 11, x, h * 1.10, z);
+        break;
+    }
+  }
+
+  return { group, parts, inkMat, groundMat };
 }
 
 /* ---------------------------------------------------------------------------------
@@ -11995,7 +12286,7 @@ class VoxelWorld {
     this.havenAnomalyDone = new Set();
     this._havenAnomalyTick = 0;
     this._havenLightLevel = 1;        // PHASE 32 — see setHavenLightLevel
-    this.voidSovereign = null;
+    this.finale = null;        // PHASE 33 — the final sequence's scene, or null
     // Persistent 27-slot container backing the cabin's storage chest.
     this.havenStorage = Array(27).fill(null).map(() => ({ item: ITEM.NONE, count: 0 }));
 
@@ -13017,60 +13308,132 @@ class VoxelWorld {
     for (const chunk of this.chunks.values()) { chunk.dirty = true; this.generateChunkMesh(chunk); }
   }
 
-  /* PHASE 5B — spawns The Void Sovereign floating directly above the cabin ruins.
-     Positioned so its base clears the (now broken) roofline, meaning the player has
-     to physically crane upward to take it in. */
-  spawnVoidSovereign() {
-    if (this.voidSovereign) return this.voidSovereign;
-    const minX = FAKE_HAVEN_CHUNK_OFFSET * CHUNK_SX, minZ = FAKE_HAVEN_CHUNK_OFFSET * CHUNK_SZ;
-    const span = FAKE_HAVEN_CHUNKS_SPAN * CHUNK_SX;
-    const cX = minX + Math.floor(span / 2), cZ = minZ + Math.floor(span / 2);
+  /* =================================================================================
+     PHASE 33 — TAKE THE HAVEN AWAY BEFORE THE FINALE STANDS UP.
 
-    const sov = buildVoidSovereignMesh();
-    // Cabin walls top out at baseY+5; float the Sovereign clear above the ruins.
-    sov.group.position.set(cX + 0.5, FAKE_HAVEN_BASE_Y + 9.5, cZ + 0.5);
-    sov.t = 0;
-    sov.baseY = sov.group.position.y;
-    this.scene.add(sov.group);
-    this.voidSovereign = sov;
-    return sov;
+     THE BUG THIS FIXES, AND HOW IT WAS FOUND. The first browser capture of the last beat
+     came back as a wall of dark red voxels a metre from the camera. The player was still
+     standing INSIDE the cabin: `corruptHaven()` decays the Haven in place rather than
+     removing it, which was right for the old ending — that finale happened in the ruins,
+     with an eight-metre object hanging over them. This one needs three hundred and twenty
+     metres of clear sightline, and it was looking at the inside of a rotting wall.
+
+     It is also, separately, what the story asks for. STORY.md section 18: the Haven RUNS
+     OUT. A cabin that rots around the player is a cabin that turned on them; a cabin that
+     is simply not there any more is the thing the whole of Phase 32 was building toward.
+
+     WHY NOT `_resetHavenPocket()`. That is the New Game path and it clears
+     `fakeHavenActive`, which would switch chunk streaming back on — and the finale stands
+     at x/z ~6144, so the streamer would immediately begin generating Overworld terrain
+     underneath it. This disposes the geometry and leaves the streaming lock alone.
+
+     The player does not fall: `movementLocked` skips physics entirely, and the finale's
+     ground plane is placed at their feet. */
+  clearHavenForFinale() {
+    if (!this.fakeHavenBuilt) return false;
+    /* THE PINS COME OFF FIRST, and the order matters: `disposeChunk` returns early for a
+       pinned chunk, and the Haven pocket's nine are all pinned — pinning is what stops
+       the streamer unloading the cabin out from under the player. Disposing before
+       unpinning silently did nothing, which is exactly the shape of bug the sightline
+       assertion in tests/finale.js exists to catch. `wipeAllChunks` unpins first for the
+       same reason. */
+    this.pinnedChunkKeys.clear();
+    for (const chunk of Array.from(this.chunks.values())) this.disposeChunk(chunk);
+    this._genQueue.length = 0;
+    this._queuedKeys.clear();
+    /* The warm fog ring is the last of the illusion still in the scene — corruptHaven
+       only recoloured it, because the old ending kept it as a red box around the ruins.
+       Here it would be a wall of haze between the player and the thing they are meant to
+       be looking at. */
+    if (this.havenFogWall) {
+      this.scene.remove(this.havenFogWall);
+      for (const sprite of this.havenFogWall.children.slice()) {
+        if (sprite.material) sprite.material.dispose();
+      }
+      this.havenFogWall = null;
+    }
+    if (this.havenFire) {
+      this.scene.remove(this.havenFire.points);
+      this.havenFire.geo.dispose();
+      this.havenFire.points.material.dispose();
+      this.havenFire = null;
+    }
+    for (const key of ['havenFireLight', 'havenCozyLight']) {
+      if (this[key]) { this.scene.remove(this[key]); this[key] = null; }
+    }
+    if (this.havenWarmLights) {
+      for (const l of this.havenWarmLights) this.scene.remove(l);
+      this.havenWarmLights.length = 0;
+    }
+    /* THE SCONCES. The cabin's two wall torches are VOXELS, so each one registered a
+       point light and a prop mesh in the world's own position-keyed registries — which
+       are not per-chunk and which `disposeChunk` therefore does not reach. A probe of the
+       live scene during the scale beat found both of them still burning at head height in
+       the middle of an empty plain, three hundred metres from anything: two small orange
+       lights in the one shot in the game that is meant to have no light in it at all.
+       `wipeAllChunks` clears these two maps for exactly the same reason. */
+    if (this.torchLights) {
+      for (const light of this.torchLights.values()) this.scene.remove(light);
+      this.torchLights.clear();
+    }
+    if (this.torchProps) {
+      for (const prop of this.torchProps.values()) {
+        this.scene.remove(prop);
+        prop.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+      }
+      this.torchProps.clear();
+    }
+    return true;
   }
 
-  // Per-frame animation for the Sovereign: slow bob, counter-rotating rings, orbiting
-  // shard halo, and a hard irregular pulse on the light slit.
-  updateVoidSovereign(dt, playerPos) {
-    const s = this.voidSovereign;
-    if (!s) return;
-    s.t += dt;
+  /* =================================================================================
+     PHASE 33 — BUILDING AND DISPOSING THE FINALE.
 
-    s.group.position.y = s.baseY + Math.sin(s.t * 0.6) * 0.55;
-    s.group.rotation.y += dt * 0.25;
+     VoxelWorld owns this for one reason only: it owns the scene graph, and every other
+     "put something in the world and take it out again" path in the build lives here too
+     (the Haven pocket, the tower proxies, the landmark silhouettes). Nothing about the
+     CINEMATIC is here — no beats, no camera, no timing. FinalSequence asks for a scene
+     and later asks for it to go away, and that is the whole interface between them,
+     which is what lets Era 2 replace either side on its own.
 
-    s.rings.forEach((ring, i) => {
-      // Alternating directions at different rates.
-      ring.rotation.z += dt * (i % 2 === 0 ? 0.9 : -1.35) * (1 + i * 0.25);
-      ring.material.opacity = 0.45 + Math.sin(s.t * (1.4 + i * 0.6)) * 0.2;
+     `atX/atZ/eyeY` place it on the player rather than on a fixed coordinate, so the
+     finale composes itself around wherever the Haven happened to leave them. The
+     creature stands along -Z, which is the bearing yaw 0 faces. */
+  buildFinale(atX, atZ, groundY) {
+    if (this.finale) return this.finale;
+
+    const root = new THREE.Group();
+    root.position.set(atX, groundY, atZ);
+
+    const scene = buildFinaleScene();
+    root.add(scene.group);
+
+    const creature = buildFinalCreature(FINAL_CREATURE_HEIGHT);
+    creature.group.position.set(0, 0, -FINALE_CREATURE_DISTANCE);
+    root.add(creature.group);
+
+    this.scene.add(root);
+    this.finale = { root, scene, creature, groundY };
+    return this.finale;
+  }
+
+  /* ONE TEARDOWN, and it disposes geometry and materials rather than only detaching the
+     group — the finale's meshes are built per run and a New Game after the credits would
+     otherwise leak a hundred and fifty metres of creature per playthrough. Idempotent:
+     the handle is nulled first, so a second call finds nothing. */
+  disposeFinale() {
+    const f = this.finale;
+    if (!f) return false;
+    this.finale = null;
+    this.scene.remove(f.root);
+    f.root.traverse(o => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) {
+        if (Array.isArray(o.material)) o.material.forEach(m => m.dispose());
+        else o.material.dispose();
+      }
     });
-
-    for (const shard of s.shards) {
-      shard.userData.angle += dt * 0.7;
-      const a = shard.userData.angle, r = shard.userData.radius;
-      shard.position.set(Math.cos(a) * r, VOID_SOVEREIGN_HEIGHT * 0.88 + Math.sin(s.t * 1.5 + shard.userData.bob) * 0.35, Math.sin(a) * r);
-      shard.rotation.x += dt * 1.6;
-      shard.rotation.y += dt * 1.1;
-    }
-
-    // Erratic, non-sinusoidal pulse — two out-of-phase sines plus a hard flicker.
-    const pulse = 0.6 + Math.sin(s.t * 4.1) * 0.2 + Math.sin(s.t * 11.3) * 0.12 + (Math.random() < 0.06 ? 0.3 : 0);
-    s.slit.material.opacity = Math.min(1, pulse);
-    s.slitBack.material.opacity = Math.min(1, pulse);
-    s.light.intensity = 2.6 + pulse * 2.2;
-
-    // Always face the player, so it is unmistakably watching them.
-    if (playerPos) {
-      const dx = playerPos.x - s.group.position.x, dz = playerPos.z - s.group.position.z;
-      s.group.rotation.y = Math.atan2(dx, dz);
-    }
+    return true;
   }
 
   // Ring of warm billboard puffs hugging the inside face of the invisible barrier.
@@ -25456,7 +25819,28 @@ class PlayerController {
      WHAT IS DELIBERATELY *NOT* GATED: O and Escape. Those are menu keys, not gameplay
      keys — O is how the settings panel opens from the title screen and the start screen's
      own legend names it — so they answer everywhere, as they always did. */
-  _playing() { return !!(this.progression && this.progression.running); }
+  _playing() {
+    const g = this.progression;
+    if (!g || !g.running) return false;
+    /* PHASE 33 — AND NOT DURING A TERMINAL CINEMATIC.
+
+       `running` is true through the whole final sequence, because it IS the frame loop —
+       which meant every overlay key still answered during it. A browser screenshot of the
+       scale beat caught the inventory grid open across the middle of the shot: the player
+       had pressed I, and the last image in the game was a nine-by-four box of empty
+       slots over the creature.
+
+       The opening film never had this problem because it plays with `running === false`,
+       so the existing gate covered it for free. The finale runs inside the loop and needs
+       saying explicitly. The Haven deliberately does NOT count as terminal — its storage
+       chest and backpack are part of that dimension (Phase 32) and stay usable.
+
+       Requirement 10's list — inventory, crafting, interaction — is closed by this one
+       predicate rather than by a guard bolted onto each key. */
+    if (g.finale && g.finale.active) return false;
+    if (g.climaxTriggered) return false;
+    return true;
+  }
 
   _bindEvents() {
     document.addEventListener('keydown', (e) => {
@@ -26550,6 +26934,21 @@ class EnvironmentSystem {
        stage machine from the pure havenDissolveAt(). Zero for the whole intact sequence.
        Two scratch colours so the ramp never allocates in the frame loop. */
     this.havenDissolve = 0;
+    this.finaleFog = null;              // PHASE 33 — see setFinaleFog
+    /* PHASE 33 — THE FINALE'S SKY, AND WHY IT IS NOT BLACK.
+
+       It was 0x05060a, and the creature is 0x04050a. A silhouette is a CONTRAST, and
+       those two are the same colour: the first render of the scale beat came back as an
+       empty grey plain with a landmark ladder on it and no creature anywhere, because a
+       near-black shape seen through near-black fog is not a shape.
+
+       The reveal works the other way round. Everything in this scene is DARKER than the
+       air it stands in, so heavy fog washes the distance out to sky colour and hides it,
+       and thinning fog lets the dark shapes emerge. That only functions if the sky has
+       somewhere to wash TO — hence a dim cold slate, bright enough to silhouette against
+       at 320m and dark enough that the beat called `silence` still reads as almost
+       nothing. */
+    this._finaleColor = new THREE.Color(0x1b2029);
     this._havenFogColor = new THREE.Color(FAKE_HAVEN_SKY_COLOR);
     this._havenPale = new THREE.Color(0xBFC6C9);
     // PHASE 5B — THE HAVEN SHIFT: blood red (#4A0000) fog/sky, applied INSTANTLY (no
@@ -26672,6 +27071,17 @@ class EnvironmentSystem {
     this.havenDissolve = Math.max(0, Math.min(1,
       (typeof amount === 'number' && isFinite(amount)) ? amount : 0));
   }
+
+  /* PHASE 33 — THE FINALE'S AIR. A density in metres^-1, or null to hand the sky back.
+
+     It is a full override rather than another dimension flag because the finale is not in
+     a dimension: it is standing on ground the world does not otherwise contain, and every
+     other branch of update() would repaint the sky underneath it. Checked FIRST in
+     update() for exactly that reason. See FINALE_FOG for where the numbers come from. */
+  setFinaleFog(density) {
+    this.finaleFog = (typeof density === 'number' && isFinite(density) && density > 0)
+      ? density : null;
+  }
   // PHASE 5B — The Haven Shift: instant blood-red collapse of the sky and fog.
   setNightmareOverride(active) { this.nightmareActive = !!active; }
 
@@ -26687,6 +27097,29 @@ class EnvironmentSystem {
   update(dt) {
     this.t += dt;
     const f = this.dayFraction;
+
+    /* PHASE 33 — THE FINALE. Checked before every dimension override, because the final
+       sequence is not standing in one: the ground under it is the finale's own, and any
+       other branch would repaint the sky over the top of it. Near-black and almost
+       lightless — the creature is a silhouette and a silhouette needs nothing behind it
+       but air. */
+    if (this.finaleFog !== null) {
+      this.sun.visible = false;
+      this.sun.castShadow = false;
+      this.sunSprite.visible = false;
+      this.moonSprite.visible = false;
+      this.cloudGroup.visible = false;
+      this.skyDome.visible = false;
+      this.hemi.intensity = 0;
+      this.scene.background = this._finaleColor;
+      this.fog.color = this._finaleColor;
+      this.fog.density = this.finaleFog;
+      /* Just enough ambient that the ground plane is not a void, and not enough to give
+         anything form. Requirement 14: the player never gets a lit model. */
+      this.ambient.intensity = 0.16;
+      this.ambient.color = this._finaleColor;
+      return;
+    }
 
     // PHASE 5B — THE HAVEN SHIFT. Checked before the Haven's own blue-sky override so
     // the collapse always wins. There is no transition here on purpose: the color
@@ -31489,7 +31922,14 @@ class UIManager {
       if (wasDead !== dead) { this._traceAt = 0; this._drawPerception(); }
     }
 
-    if (player.inFakeHaven) {
+    /* PHASE 33 — THE BANNER IS OFF FOR THE FINALE, and this needs saying here rather than
+       once at the start of the sequence: `updateVitals` runs every frame and
+       `player.inFakeHaven` stays true through the finale, so clearing the classes in
+       setFinaleMode only had them re-added on the next tick. The last shot of the game
+       was captioned THE HAVEN across the top of it. */
+    if (this.finaleMode) {
+      this.dimensionBanner.classList.remove('active', 'haven');
+    } else if (player.inFakeHaven) {
       // LEVEL 4 — warm, unthreatening banner: no skulls, no red, no horror styling.
       this.dimensionBanner.textContent = 'THE HAVEN';
       this.dimensionBanner.classList.add('active', 'haven');
@@ -31766,7 +32206,59 @@ class UIManager {
      No gameplay state is touched: the callers re-push health, sanity, the objective and
      the selected slot immediately afterwards, from the state they just restored.
      ================================================================================= */
+  /* PHASE 33 — THE FINALE HIDES THE INTERFACE, AND THE HUD IS THE ONLY THING THAT KNOWS.
+
+     Requirement 20 forbids a name, a health bar or any text on this sequence, and
+     requirement 13 says the creature is the effect. A condition readout and a hotbar at
+     the bottom of the last shot in the game would say, plainly, "this is a level" — so
+     for thirty-two seconds the interface is not there.
+
+     It reuses the class Phase 30's film already added for exactly this (`film-hidden`),
+     rather than inventing a second way to hide the same elements: there is one mechanism
+     for "the game is showing you something", and both cinematics use it. Restoring is
+     symmetric and idempotent, and `hardCutToBlack` takes the whole document down a second
+     later anyway — this is what makes the frames BEFORE the cut clean. */
+  setFinaleMode(on) {
+    /* Read every frame by updateVitals, which would otherwise repaint the dimension
+       banner over the finale on the very next tick. */
+    this.finaleMode = !!on;
+    const hide = ['hud', 'crosshair'];
+    for (const id of hide) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      if (on) el.classList.add('film-hidden');
+      else {
+        el.classList.remove('film-hidden');
+        /* AND THE INLINE STYLE, WHICH IS A REAL BUG THIS FOUND.
+
+           `hardCutToBlack()` hides the HUD by writing `style.display = 'none'` directly,
+           not by adding a class — and nothing ever cleared it. That was survivable for as
+           long as the ONLY route out of the credits was `_reenterOverworld()`, which
+           reloads the page and therefore throws the whole document away. It stopped being
+           survivable the moment a New Game could be taken from the ending, which
+           requirement 25 asks for explicitly: the run started, the world rebuilt, the
+           player could walk — and the HUD stayed invisible for the rest of the session,
+           because a class removal cannot beat an inline style. */
+        el.style.display = '';
+      }
+    }
+    if (!on) {
+      const mining = document.getElementById('miningReadout');
+      if (mining) mining.style.display = '';
+    }
+    if (on) {
+      if (this.interactPrompt) this.interactPrompt.classList.remove('show');
+      if (this.journeyStep) this.journeyStep.className = '';
+      if (this.hudToast) this.hudToast.classList.remove('show');
+      if (this.dimensionBanner) this.dimensionBanner.classList.remove('active', 'haven');
+    }
+    return !!on;
+  }
+
   resetPresentation() {
+    /* PHASE 33 — the finale's HUD hide is transient presentation like everything else
+       here, so a New Game taken mid-sequence does not start behind an invisible HUD. */
+    this.setFinaleMode(false);
     this.view.hp = null; this.view.maxHp = null; this.view.hpState = null;
     this.view.dead = null; this.view.sanity = null; this.view.sanityState = null;
     this.view.slot = null;
@@ -32790,6 +33282,333 @@ const FILM_LIGHT = Object.freeze({
   dark: 697, reveal: 703, familiar: 709, anomaly: 713, closer: 716,
   vast: 718, seam: 2, unresolved: 5, calm: 12, out: 16,
 });
+
+/* =====================================================================================
+   PHASE 33 — THE FINAL SEQUENCE.
+
+   Thirty-two seconds between the Haven running out and the credits, and the whole of it
+   is one number.
+
+   THE SHAPE, AND WHY IT IS THIS SHAPE. The old ending was two and a half seconds long: the
+   Haven snapped red, an eight-metre object appeared overhead, the camera shook, and the
+   screen cut to black before the player had focused on anything. Everything that made it
+   frightening was volume. This one is built the other way round — the loudest thing in it
+   is a fact about size, and it takes half a minute to deliver because the player has to
+   do the arithmetic themselves for it to land.
+
+   BEATS ARE DECLARATIVE, exactly as FILM_BEATS is (Phase 30) and HAVEN_STAGES is
+   (Phase 32). `FINALE_BEATS` is a table of { id, at, dur }; the beat, the fog, the camera
+   target and every fade are PURE FUNCTIONS of `this.t`. Nothing is scheduled. `setTimeout`
+   appears nowhere in this class and `tests/finale.js` fails if it ever does. That is what
+   makes the sequence reproducible, drivable by a test at any instant, and impossible to
+   leak.
+
+   WHAT IT DELIBERATELY IS NOT:
+     - not a fight. No health, no damage, no weapon, no dodge, no timed press, and the
+       creature has no idea the player exists until beat five, when it looks at them once.
+     - not a reveal. STORY.md section 19: "It is not a revelation; it is a removal." The
+       creature is never shown whole, never lit, never named, and never explained.
+     - not a cutscene the player watches from somewhere else. The camera is the player's
+       own eye the entire time — see `_camera` for the drift, which is a suggestion the
+       player can override rather than a rail.
+   ===================================================================================== */
+const FINALE_BEATS = Object.freeze([
+  /* SILENCE. The Haven is gone and nothing has replaced it. No creature, no sound, no
+     movement — the player is standing in the dark on ground they have never seen, and the
+     game does not tell them anything for three and a half seconds. Everything after this
+     is measured against how empty this is. */
+  { id: 'silence',    at: 0,    dur: 3.5 },
+  /* FIRST IMPRESSION. The world fades up through heavy fog. The creature is already
+     standing there and is meant to read as terrain: at this fog density the legs are two
+     dim vertical smudges and nothing about them says "alive". The intended thought is
+     "what am I looking at", not "there it is". */
+  { id: 'impression', at: 3.5,  dur: 6.5 },
+  /* SCALE RECOGNITION. The fog thins and the ladder of landmarks resolves — poles, a
+     barn, a farmhouse, the water tower, a suburban row. The player reads the line
+     outward, and the two smudges do not stop where the ladder stops. No sound event, no
+     movement yet: the horror in this beat is arithmetic. */
+  { id: 'scale',      at: 10,   dur: 7.5 },
+  /* IMPOSSIBLE MOVEMENT. One arm repositions, over four seconds, through an angle no
+     shoulder has. The head tilts. It does not step, turn, roar or charge — it is not
+     coming for the player and nothing about the motion suggests it could. */
+  { id: 'movement',   at: 17.5, dur: 4.5 },
+  /* FACE. The head turns and the one pale thing in the shot is briefly pointed at the
+     player. It is small, it is featureless, and it is held for under four seconds,
+     because requirement 6 wants the player's imagination to finish it. */
+  { id: 'face',       at: 22,   dur: 4 },
+  /* FINAL SCALE. The fog opens further than it has all sequence and the eye lifts. More
+     body arrives than the frame can hold: the head is still far away while the legs run
+     out of the bottom of the shot. This is the beat that is supposed to stop being
+     comprehensible. */
+  { id: 'impossible', at: 26,   dur: 5 },
+  /* OUT. One second, then the hard cut. No fade, no text, no score. */
+  { id: 'cut',        at: 31,   dur: 1 },
+]);
+
+const FINALE_DURATION = FINALE_BEATS[FINALE_BEATS.length - 1].at +
+                        FINALE_BEATS[FINALE_BEATS.length - 1].dur;
+
+/* Which beat owns second `t`. Pure and total — a caller inside the frame loop is always
+   entitled to an answer, so this clamps rather than returning null. */
+function finaleBeatAt(t) {
+  if (!(t >= 0)) return FINALE_BEATS[0].id;
+  for (let i = FINALE_BEATS.length - 1; i >= 0; i--) {
+    if (t >= FINALE_BEATS[i].at) return FINALE_BEATS[i].id;
+  }
+  return FINALE_BEATS[0].id;
+}
+/* How far through its own beat `t` is, 0..1 — every ramp in the sequence is built on it. */
+function finaleBeatProgress(t) {
+  for (let i = FINALE_BEATS.length - 1; i >= 0; i--) {
+    const b = FINALE_BEATS[i];
+    if (t >= b.at) return Math.max(0, Math.min(1, (t - b.at) / b.dur));
+  }
+  return 0;
+}
+
+/* FOG PER BEAT, and it is the single most important number in the phase after the
+   creature's height. FogExp2 visibility at distance d is exp(-(density*d)^2), so at the
+   creature's 320m these densities put it at roughly:
+
+     0.0075 -> 0.3%   invisible; the silence beat has nothing in it
+     0.0060 -> 2.4%   a smudge. "Is something there?"
+     0.0038 -> 22%    legible as two columns, and the landmark ladder is fully readable
+     0.0030 -> 40%    the body resolves
+     0.0022 -> 61%    the head and the pale face are readable
+     0.0016 -> 77%    more of it than the player expected to be able to see
+
+   The values are chosen from that curve rather than by eye, which is the same discipline
+   Phase 30 used to size its silhouettes — a shape at the wrong distance for the fog is
+   simply not in the shot, and guessing produced an invisible one the first time. */
+const FINALE_FOG = Object.freeze({
+  silence: 0.0075, impression: 0.0060, scale: 0.0038,
+  movement: 0.0030, face: 0.0022, impossible: 0.0016, cut: 0.0016,
+});
+
+/* HOW FAR UP THE EYE IS ASKED TO LOOK, per beat, in radians. The creature's head at 320m
+   sits about 25 degrees up, so the sequence walks the pitch from level to most of the way
+   there — and reaches it only at the end, so that "look up" is the last thing that
+   happens rather than the first. */
+const FINALE_PITCH = Object.freeze({
+  silence: 0.00, impression: 0.02, scale: 0.06,
+  movement: 0.12, face: 0.20, impossible: 0.36, cut: 0.40,
+});
+
+class FinalSequence {
+  constructor(game) {
+    this.game = game;
+    this.active = false;
+    this.done = false;
+    this.t = 0;
+    this.beat = null;
+    this.scene = null;
+    this._restore = null;
+  }
+
+  /* Called once, from Game._triggerHavenShift — the Phase 32 boundary and the only
+     caller. Returns false if it is already running, so a double-fire cannot build two
+     creatures. */
+  begin() {
+    if (this.active || this.done) return false;
+    const g = this.game;
+    const p = g.player;
+    this.active = true;
+    this.t = 0;
+    this.beat = null;
+
+    /* EVERYTHING THIS SEQUENCE TOUCHES, WRITTEN DOWN BEFORE IT TOUCHES IT — the same
+       contract OpeningFilm._restore is under, and for the same reason: the teardown puts
+       each of these back and the test suite compares the two. */
+    this._restore = {
+      yaw: p.yaw, pitch: p.pitch,
+      movementLocked: !!p.movementLocked,
+      eyeHeight: p.eyeHeight,
+      fogDensity: g.env && g.env.fog ? g.env.fog.density : 0.015,
+    };
+
+    /* LOOK-ONLY. No new input layer was invented for this, exactly as Phase 30 did not
+       invent one: `movementLocked` already drops velocity, movement input, mining and
+       placing while still syncing the camera from yaw/pitch, and every overlay key is
+       already gated on `running`. Requirement 10's list is satisfied by one flag that
+       three previous phases already tested. */
+    p.movementLocked = true;
+    p.velocity.set(0, 0, 0);
+    p.mining = false;
+    if (p.highlight) p.highlight.hide();
+    /* Anything already open goes now. The gate in PlayerController._playing stops a new
+       overlay being opened during the sequence, but a player who was standing in the
+       Haven with the backpack up when it ran out would otherwise watch the whole finale
+       through it. */
+    if (g.ui) {
+      if (g.ui.storageOpen) g.ui.closeStorage();
+      if (g.ui.craftingOpen) g.ui.toggleCrafting();
+      if (g.ui.backpackOpen) g.ui.toggleBackpack();
+    }
+
+    /* THE BEARING. The creature stands along -Z, which is what yaw 0 faces, so the player
+       begins already looking at the place it is standing — and sees nothing there, because
+       beat one's fog hides it completely. They are looking at it before they know it. */
+    p.yaw = 0;
+    p.pitch = 0;
+
+    /* THE HAVEN GOES FIRST. Everything of it — the decayed cabin, the fog ring, the
+       hearth, the lights — is taken out of the scene before the finale is built, so the
+       player is standing in the open with nothing between them and the distance. See
+       VoxelWorld.clearHavenForFinale for what this was fixing. */
+    g.world.clearHavenForFinale();
+
+    // The ground the finale composes itself on, at the player's feet.
+    const groundY = p.position.y;
+    this.scene = g.world.buildFinale(p.position.x, p.position.z, groundY);
+
+    if (g.ui) g.ui.setFinaleMode(true);
+    if (g.sound) g.sound.startFinaleAudio();
+    return true;
+  }
+
+  /* Advanced from the frame loop, and the only thing that moves this sequence. */
+  tick(dt) {
+    if (!this.active) return;
+    this.t += dt;
+
+    const beat = finaleBeatAt(this.t);
+    if (beat !== this.beat) {
+      this.beat = beat;
+      if (this.game.sound) this.game.sound.setFinaleBeat(beat);
+    }
+
+    this._environment();
+    this._camera(dt);
+    this._creature(dt);
+
+    if (this.t >= FINALE_DURATION) this.finish();
+  }
+
+  /* THE AIR. Fog is interpolated BETWEEN beats rather than stepped at them, because a
+     step in fog density is a visible pop and the whole sequence is one continuous
+     opening-up. The darkness ramps the other way so the shot never becomes bright: the
+     player is being shown more of something, not shown it better. */
+  _environment() {
+    const g = this.game;
+    if (!g.env || !g.env.fog) return;
+    const b = this.beat, prog = finaleBeatProgress(this.t);
+    const idx = FINALE_BEATS.findIndex(x => x.id === b);
+    const next = FINALE_BEATS[Math.min(FINALE_BEATS.length - 1, idx + 1)];
+    const from = FINALE_FOG[b] !== undefined ? FINALE_FOG[b] : 0.006;
+    const to = FINALE_FOG[next.id] !== undefined ? FINALE_FOG[next.id] : from;
+    g.env.setFinaleFog(from + (to - from) * prog);
+  }
+
+  /* THE CAMERA, AND THE ONE DECISION IN THIS PHASE THAT WAS HARDEST TO GET RIGHT.
+
+     Requirement 8 wants a deliberate cinematic camera; requirement 9 forbids yanking the
+     player's view; requirement 33 says that if the player feels detached from their own
+     body the shot has failed. Those pull in opposite directions and the resolution is
+     that this is a DRIFT, not a rail: each frame the pitch moves a small fraction of the
+     way toward what the beat wants, and the yaw a smaller fraction still.
+
+     What that means in the hand is that a player who does nothing is carried through the
+     intended composition, and a player who fights it can look wherever they like and is
+     merely pulled back. Nothing is ever set outright, so there is no frame in which the
+     view jumps. The drift is also slow enough (a 1.1/s pitch coefficient) that on the
+     beat where the eye lifts, the lift is legible as a movement of the head rather than
+     as a cut. */
+  _camera(dt) {
+    const p = this.game.player;
+    if (!p) return;
+    const b = this.beat, prog = finaleBeatProgress(this.t);
+    const idx = FINALE_BEATS.findIndex(x => x.id === b);
+    const next = FINALE_BEATS[Math.min(FINALE_BEATS.length - 1, idx + 1)];
+    const from = FINALE_PITCH[b] !== undefined ? FINALE_PITCH[b] : 0;
+    const to = FINALE_PITCH[next.id] !== undefined ? FINALE_PITCH[next.id] : from;
+    const wantPitch = from + (to - from) * prog;
+
+    const kp = Math.min(1, dt * 1.1);
+    p.pitch += (wantPitch - p.pitch) * kp;
+    // Yaw is pulled back to the creature more gently still, so looking away is allowed
+    // and looking away forever is not.
+    const ky = Math.min(1, dt * 0.55);
+    p.yaw += (0 - p.yaw) * ky;
+  }
+
+  /* THE CREATURE. Every motion here is slow enough to be doubted, and none of it is a
+     walk cycle. It has no AI, no target, no state of its own beyond `t`. */
+  _creature(dt) {
+    const f = this.scene;
+    if (!f || !f.creature) return;
+    const c = f.creature;
+    c.t += dt;
+
+    /* A sway so slight it is below the threshold of "is that moving". It runs for the
+       whole sequence including the silence, so that by the time the player is sure the
+       thing is alive, it has been alive the entire time. */
+    c.group.rotation.z = Math.sin(c.t * 0.11) * 0.004;
+
+    const b = this.beat, prog = finaleBeatProgress(this.t);
+
+    /* THE ARM, on the movement beat only. One shoulder rotates through 0.9 radians over
+       four and a half seconds — about twelve degrees a second, which is slow enough that
+       a player watching the horizon rather than the arm will look back and find it
+       somewhere else. The elbow straightens as the shoulder lifts, which is the wrong way
+       round for an arm and is the point. */
+    if (b === 'movement' || b === 'face' || b === 'impossible' || b === 'cut') {
+      const m = (b === 'movement') ? prog : 1;
+      const e = m * m * (3 - 2 * m);           // smoothstep, so it starts and ends still
+      c.arms[0].pivot.rotation.z = -c.arms[0].side * 0.05 + e * 0.9;
+      c.arms[0].elbow.rotation.z = -c.arms[0].side * 0.04 - e * 0.55;
+      c.head.rotation.z = e * 0.16;            // the tilt, and it never comes back
+    }
+
+    /* THE HEAD TURNS ONCE. Not tracking, not following — it arrives at the player and
+       stops. Held through the last two beats, because a head that turns away again would
+       let the player off. */
+    if (b === 'face' || b === 'impossible' || b === 'cut') {
+      const m = (b === 'face') ? prog : 1;
+      c.head.rotation.y = (m * m * (3 - 2 * m)) * 0.30;
+    }
+  }
+
+  /* THE END, AND THE HANDOFF. One exit, called from tick and from nowhere else, and it
+     hands to the climax that Phase 5B already built and Phase 32 already left alone —
+     hard cut to black, then the credits. Requirement 23: the credits are not redesigned
+     here and are triggered exactly once, by the latch in _triggerClimax. */
+  finish() {
+    if (!this.active) return false;
+    this.active = false;
+    this.done = true;
+    this._teardown();
+    if (this.game._triggerClimax) this.game._triggerClimax();
+    return true;
+  }
+
+  /* ONE TEARDOWN. Everything begin() changed is put back and everything it built is
+     disposed. Called from finish(), and from Game's reset path for the case where a New
+     Game happens mid-sequence. Idempotent. */
+  _teardown() {
+    const g = this.game, p = g.player;
+    if (this.scene) { g.world.disposeFinale(); this.scene = null; }
+    if (g.sound) g.sound.stopFinaleAudio();
+    if (g.env) g.env.setFinaleFog(null);
+    if (g.ui) g.ui.setFinaleMode(false);
+    const r = this._restore;
+    if (r && p) {
+      p.eyeHeight = r.eyeHeight;
+      // movementLocked is deliberately NOT restored here: the climax locks the body and
+      // the reset path clears it. Putting it back would unlock the player under a
+      // black screen.
+    }
+    this._restore = null;
+  }
+
+  /* A New Game or a Load taken at any point in the sequence lands here. */
+  reset() {
+    if (this.active || this.scene) this._teardown();
+    this.active = false;
+    this.done = false;
+    this.t = 0;
+    this.beat = null;
+  }
+}
 
 class OpeningFilm {
   constructor(game) {
@@ -34792,7 +35611,7 @@ class Game {
     // LEVEL 4 — THE FAKE HAVEN: one-shot latch so the illusion sequence can only ever
     // fire once, no matter how many frames the Disk sits in the inventory.
     this.fakeHavenTriggered = false;
-    // --- PHASE 5B: Haven Shift / Void Sovereign / climax state ---
+    // --- Haven Shift / final sequence / climax state (PHASE 5B, 32, 33) ---
     this.havenTimer = 0;              // seconds spent in the Haven pre-shift
     this.havenStageId = null;         // PHASE 32 — last applied HAVEN_STAGES id
     this.havenBedEnding = false;      // PHASE 32 — the ending was chosen, not reached
@@ -34859,6 +35678,11 @@ class Game {
     this.world.envStory = this.envStory;
 
     this.film = new OpeningFilm(this);
+    /* PHASE 33 — the final sequence. Constructed once, here, beside the other cinematic,
+       because they are the same kind of object and share the same disciplines: a frozen
+       beat table, one accumulating number, no timers, one teardown. begin() is called
+       only from _triggerHavenShift, which is the Phase 32 boundary and the only caller. */
+    this.finale = new FinalSequence(this);
     this.farmCrossroadsRecalled = false;   // one-shot latch for the Farmlands recall
     /* PHASE 29 — the menu, and the only one. A seed may be forced for testing so a run
        can be made to contain a walker; without one the schedule follows the wall clock
@@ -35074,6 +35898,10 @@ class Game {
        instead of skipping it as unchanged. */
     this.havenStageId = null;
     this.havenBedEnding = false;
+    /* PHASE 33 — and the final sequence, which owns a scene, an audio rig, a fog override
+       and a hidden HUD. reset() runs its one teardown if it is mid-flight and clears the
+       done latch, so a New Game taken from the credits can reach the ending again. */
+    if (this.finale) this.finale.reset();
     this.climaxTriggered = false;
     this.shakeAmount = 0; this.shakeDuration = 0; this.shakeTime = 0;
   }
@@ -35768,10 +36596,10 @@ class Game {
        t+30s   ... OR the instant the bed is used — whichever lands first — the
                    illusion collapses (_triggerHavenShift).
        shift+0 ... music warps and tears into harsh static, sky snaps blood red, the
-                   cabin decays into glitched void voxels, The Void Sovereign appears
-                   above the ruins with a sub-bass roar and violent camera shake.
-       shift+2.5s. holding out that long triggers the hard cut to black
-                   (_triggerClimax) and the retro end credits.
+                   cabin decays into glitched void voxels, and the renderer is handed
+                   back clean for the finale (PHASE 33 — no red snap, no roar, no shake).
+       shift+0 ... FinalSequence.begin(): thirty-two seconds of FINALE_BEATS, ending in
+                   the hard cut to black (_triggerClimax) and the end credits.
      ================================================================================= */
 
   /* =================================================================================
@@ -35868,8 +36696,6 @@ class Game {
     }
   }
 
-  /* PHASE 25 — the Haven turning and the climax both take the screen; the objective line
-     goes silent for both. See OBJECTIVE_OVERRIDES. */
   /* =================================================================================
      THE HANDOFF POINT. PHASE 32 ENDS HERE AND PHASE 33 BEGINS.
 
@@ -35909,27 +36735,43 @@ class Game {
     this.postfx.setHavenFade(0);
     this.env.setHavenDissolve(0);
 
-    // --- AUDIO: warp the chiptune down and tear it into harsh static ---------------
+    /* --- AUDIO ---------------------------------------------------------------------
+       The chiptune is warped and torn into static exactly as Phase 5B built it, because
+       that IS the Haven ending and it is good. What does NOT happen any more is the roar:
+       see SoundEngine's note where playVoidSovereignRoar used to be. The finale's own
+       sound starts a moment later, from silence, in FinalSequence.begin(). */
     this.sound.warpHavenMusicToStatic();
-    this.sound.playVoidSovereignRoar();
 
-    // --- SKY/FOG: instant snap to blood red ----------------------------------------
-    this.env.setNightmareOverride(true);
-    this.env.update(0); // repaint this frame — the collapse must not wait a tick
-
-    // --- WORLD: decay the cabin, then spawn the Sovereign above the ruins -----------
+    // --- WORLD: the cabin decays. -----------------------------------------------------
     this.world.corruptHaven();
-    this.world.spawnVoidSovereign();
 
-    // --- POST-FX: full renderer collapse -------------------------------------------
-    // Horror grading comes back on AND the independent void glitch is driven to full.
-    this.postfx.setHorrorEnabled(true);
-    this.postfx.setVoidGlitch(1.0);
-    this.sanity.value = 0;
-    this.ui.setSanity(0);
+    /* --- PHASE 33: HAND OVER --------------------------------------------------------
 
-    // --- CAMERA: violent shake ------------------------------------------------------
-    this.shake(0.85, 2.6);
+       WHAT USED TO HAPPEN HERE. The sky snapped blood red, an eight-metre entity appeared
+       above the ruins, the horror grading came back on, the void glitch went to full, the
+       camera shook for two and a half seconds, and the screen cut to black. Everything in
+       that list is gone.
+
+       WHY. The brief's beat one is SILENCE — "the player is left in near silence, no
+       immediate creature, no soundtrack explosion; let the absence breathe". A red sky, a
+       roar, full-screen datamosh and a violent shake are the opposite of an absence, and
+       they also destroy the one thing the next thirty seconds need, which is a legible
+       image: the player cannot judge the size of something they are looking at through a
+       shaking, tearing, red-crushed frame.
+
+       So the renderer is handed back CLEAN. The horror grading stays off (it was already
+       off for the Haven), the glitch stays at zero, there is no shake, and the sky becomes
+       the finale's own near-black — which FinalSequence.begin() establishes through
+       env.setFinaleFog, checked ahead of every other override precisely so this works. */
+    this.postfx.setVoidGlitch(0);
+    this.postfx.setHorrorEnabled(false);
+    this.shakeTime = 0;
+    this.camera.rotation.z = 0;
+    this.env.setNightmareOverride(false);
+    this.env.setFakeHavenOverride(false);
+
+    this.finale.begin();
+    this.env.update(0);   // paint the finale's air on this frame, not the next
 
     /* PHASE 32 — AND THE SHIFT SAYS NOTHING EITHER.
 
@@ -35961,23 +36803,9 @@ class Game {
     this.camera.rotation.z = (Math.random() - 0.5) * amt * 0.09;
   }
 
-  // Runs every frame after the shift has fired, counting down to the climax.
-  _updateHavenShift(dt) {
-    this.havenShiftElapsed += dt;
-    this.world.updateVoidSovereign(dt, this.player.position);
-
-    // Glitch intensity surges as the Sovereign closes the distance to the climax.
-    const p = Math.min(1, this.havenShiftElapsed / CLIMAX_SECONDS);
-    this.postfx.setVoidGlitch(0.55 + p * 0.45);
-
-    // Keep the shake alive right through the encounter rather than letting it decay
-    // out — the ground should never feel steady again.
-    if (this.shakeTime <= 0.05) this.shake(0.35 + p * 0.5, 0.9);
-
-    if (!this.climaxTriggered && this.havenShiftElapsed >= CLIMAX_SECONDS) {
-      this._triggerClimax();
-    }
-  }
+  /* PHASE 33 — `_updateHavenShift` is gone. It counted 2.5 seconds of camera shake and
+     escalating glitch and then cut to black; FinalSequence.tick is what runs after the
+     shift now, and it is called from the frame loop directly. */
 
   _triggerClimax() {
     if (this.climaxTriggered) return;
@@ -36284,9 +37112,9 @@ class Game {
     if (this.player.inFakeHaven) {
       this.world.updateFakeHaven(dt);
       // PHASE 5B — either count down to the illusion collapse, or, once it has
-      // happened, run the Void Sovereign encounter toward the climax.
+      // happened, run the final sequence (PHASE 33) toward the credits.
       if (!this.havenShiftTriggered) this._updateHaven(dt);
-      else this._updateHavenShift(dt);
+      else this.finale.tick(dt);   // PHASE 33 — the final sequence owns everything after
     }
     // LEVEL 3 — STATIC SUBURBIA (PHASE 5A PART 2): while stationary >3s, silently
     // rotate an out-of-sightline house's door/window wall (see the SanitySystem
