@@ -2104,6 +2104,13 @@ class SoundEngine {
     this.fakeHavenMode = false;
     this.havenMusicTimer = 0;
     this.havenMusicBar = 0;
+    /* PHASE 32 — the ambience rig handle (see startHavenAmbience) and the one-bit music
+       state the `thinning` stage sets: with it true the chiptune keeps its melody and
+       loses its bass voice, so the theme the player has been trusting for two minutes
+       gets quietly smaller without ever becoming a horror cue. */
+    this.havenAmbience = null;
+    this.havenMusicThin = false;
+    this.havenMusicSilent = false;
     // --- PHASE 5B: illusion-collapse audio state ---
     // nightmareMode latches the chiptune scheduler off permanently once the Haven
     // shift fires. havenVoices tracks the currently-sounding chiptune oscillators so
@@ -2366,6 +2373,137 @@ class SoundEngine {
         try { n.disconnect(); } catch (e) { /* already detached */ }
       }
     }, 900);
+    return true;
+  }
+
+  /* =================================================================================
+     PHASE 32 — THE HAVEN AMBIENCE, AND WHY IT ONLY EVER GETS QUIETER.
+
+     Three layers, and the phase's entire horror budget is spent on TAKING THEM AWAY:
+
+       room     the cabin itself. Very low brown noise through a low-pass — the sound a
+                room makes when you stop and listen to it.
+       outside  the world beyond the windows. A band-passed wash, slowly wandering, so it
+                reads as air and distance rather than as weather.
+       hearth   the fire. Filtered noise with a slow amplitude wander for the crackle.
+
+     The stage table (HAVEN_STAGES) names a target for each, and the Haven's progression
+     is nothing but those targets going to zero one at a time: the outside first, then the
+     hearth WHILE THE FIRE IS STILL VISIBLY BURNING, then the room. The brief's
+     "Something is missing" before "Something is attacking me", implemented literally.
+
+     Deliberately NOT a music track and NOT on the horror ambience path: this is its own
+     small rig on musicBus, started and stopped with the dimension, so nothing in it can
+     be retriggered by the main loop and there is no second audio context, no second
+     scheduler and nothing to leak. It is idempotent in both directions exactly like
+     startFilmAmbience/stopFilmAmbience, and the ONE place it stops is setFakeHavenMode(false),
+     which every exit from the Haven runs through. */
+  startHavenAmbience() {
+    if (!this.ctx || this.havenAmbience) return false;
+
+    const room = this.ctx.createBufferSource();
+    room.buffer = this._makeNoiseBuffer(4, 'brown');
+    room.loop = true;
+    const roomLp = this.ctx.createBiquadFilter();
+    roomLp.type = 'lowpass'; roomLp.frequency.value = 190; roomLp.Q.value = 0.4;
+    const roomGain = this.ctx.createGain();
+    roomGain.gain.value = 0;
+    room.connect(roomLp); roomLp.connect(roomGain); roomGain.connect(this.musicBus);
+    room.start();
+
+    const outside = this.ctx.createBufferSource();
+    outside.buffer = this._makeNoiseBuffer(4, 'brown');
+    outside.loop = true;
+    const outBp = this.ctx.createBiquadFilter();
+    outBp.type = 'bandpass'; outBp.frequency.value = 520; outBp.Q.value = 0.7;
+    const outGain = this.ctx.createGain();
+    outGain.gain.value = 0;
+    outside.connect(outBp); outBp.connect(outGain); outGain.connect(this.musicBus);
+    outside.start();
+
+    /* The wander on the outside layer. One slow LFO into the band-pass frequency, which
+       is what keeps the layer from reading as a static hiss — and, once the layer is
+       gone, is one of the things that has stopped. */
+    const wander = this.ctx.createOscillator();
+    wander.type = 'sine'; wander.frequency.value = 0.06;
+    const wanderGain = this.ctx.createGain();
+    wanderGain.gain.value = 140;
+    wander.connect(wanderGain); wanderGain.connect(outBp.frequency);
+    wander.start();
+
+    const hearth = this.ctx.createBufferSource();
+    hearth.buffer = this._makeNoiseBuffer(4, 'white');
+    hearth.loop = true;
+    const hearthBp = this.ctx.createBiquadFilter();
+    hearthBp.type = 'bandpass'; hearthBp.frequency.value = 1150; hearthBp.Q.value = 0.9;
+    const hearthGain = this.ctx.createGain();
+    hearthGain.gain.value = 0;
+    hearth.connect(hearthBp); hearthBp.connect(hearthGain); hearthGain.connect(this.musicBus);
+    hearth.start();
+
+    // The crackle: a fast, irregular amplitude wander on the fire layer only.
+    const crackle = this.ctx.createOscillator();
+    crackle.type = 'sawtooth'; crackle.frequency.value = 3.1;
+    const crackleGain = this.ctx.createGain();
+    crackleGain.gain.value = 0.5;
+    crackle.connect(crackleGain); crackleGain.connect(hearthGain.gain);
+    crackle.start();
+
+    this.havenAmbience = {
+      room, roomLp, roomGain, outside, outBp, outGain, wander, wanderGain,
+      hearth, hearthBp, hearthGain, crackle, crackleGain,
+    };
+    // Start silent and let the first stage ramp them up, so entry is a fade-in and never
+    // a layer arriving at full level on the first frame.
+    this.setHavenAmbienceLevels(1, 1, 1);
+    return true;
+  }
+
+  /* Called from the Haven stage machine with the current stage's three targets, every
+     frame. Cheap by construction: setTargetAtTime with a multi-second time constant is a
+     single parameter write, and writing the same target repeatedly is a no-op in the
+     audio graph — which is why the stage table can be a step function and still be
+     inaudible as one. The 4.5s constant is long enough that no stage boundary is a
+     perceivable edge and short enough that a layer is gone well inside its stage. */
+  setHavenAmbienceLevels(room, outside, hearth) {
+    const a = this.havenAmbience;
+    if (!a || !this.ctx) return false;
+    const now = this.ctx.currentTime;
+    const clamp = (v) => Math.max(0, Math.min(1, typeof v === 'number' && isFinite(v) ? v : 0));
+    try {
+      a.roomGain.gain.setTargetAtTime(clamp(room) * 0.030, now, 4.5);
+      a.outGain.gain.setTargetAtTime(clamp(outside) * 0.022, now, 4.5);
+      a.hearthGain.gain.setTargetAtTime(clamp(hearth) * 0.026, now, 4.5);
+      // The crackle depth follows the hearth down, so the fire does not go silent while
+      // still modulating a gain of zero.
+      a.crackleGain.gain.setTargetAtTime(clamp(hearth) * 0.5, now, 4.5);
+    } catch (e) { /* the graph is already gone */ }
+    return true;
+  }
+
+  stopHavenAmbience() {
+    const a = this.havenAmbience;
+    if (!a) return false;
+    this.havenAmbience = null;
+    const now = this.ctx ? this.ctx.currentTime : 0;
+    try {
+      for (const g of [a.roomGain, a.outGain, a.hearthGain]) {
+        g.gain.cancelScheduledValues(now);
+        g.gain.setTargetAtTime(0, now, 0.2);
+      }
+    } catch (e) { /* already gone */ }
+    /* The one teardown, on the same shape as stopFilmAmbience: ramp, then stop and
+       disconnect every node once the ramp has landed. Nothing here is re-entrant — the
+       handle is nulled above before the timeout is armed, so a second call returns false
+       and cannot double-stop a source. */
+    setTimeout(() => {
+      for (const n of [a.room, a.outside, a.wander, a.hearth, a.crackle]) {
+        try { n.stop(); } catch (e) { /* already stopped */ }
+      }
+      for (const k of Object.keys(a)) {
+        try { a[k].disconnect(); } catch (e) { /* already detached */ }
+      }
+    }, 700);
     return true;
   }
 
@@ -2688,10 +2826,20 @@ class SoundEngine {
       // via setMusicTrackSource('haven_chiptune', url) with no change here.
       this.stopMusicTrack('suburbia_crt', { fadeOut: 0.05 });
       this.playMusicTrack('haven_chiptune', { fadeIn: 0.8 });
+      /* PHASE 32 — the three ambience layers the stage machine spends the dimension
+         taking away. Started here so there is exactly one place the Haven's sound comes
+         up and exactly one place it goes down. */
+      this.havenMusicThin = false;
+      this.havenMusicSilent = false;
+      this.startHavenAmbience();
     } else {
       this.stopMusicTrack('haven_chiptune', { fadeOut: 0.4 });
       this.havenMusicTimer = 0;
       this.havenMusicBar = 0;
+      // PHASE 32 — the single exit. Every way out of the Haven runs through here.
+      this.havenMusicThin = false;
+      this.havenMusicSilent = false;
+      this.stopHavenAmbience();
     }
   }
 
@@ -2745,7 +2893,15 @@ class SoundEngine {
       };
     });
 
-    // Triangle bass root, one sustained note under the whole bar.
+    /* Triangle bass root, one sustained note under the whole bar.
+
+       PHASE 32 — and the first thing the Haven takes off the player. Once havenMusicThin
+       is set (the `thinning` stage) the bar is scheduled without it: same tune, same
+       tempo, same key, no floor under it. It is the quietest possible way to make a
+       theme somebody has been trusting for two minutes feel thinner without adding one
+       frightening sound to it, and it is a REMOVAL, which is the only horror vocabulary
+       this dimension gets (STORY.md section 18). */
+    if (this.havenMusicThin) return;
     const bassOsc = this.ctx.createOscillator();
     bassOsc.type = 'triangle';
     bassOsc.frequency.setValueAtTime(BASS[bar % BASS.length], now);
@@ -2781,6 +2937,13 @@ class SoundEngine {
   warpHavenMusicToStatic() {
     if (!this.ctx || this.nightmareMode) return;
     this.nightmareMode = true;
+    /* PHASE 32 — the three warm ambience layers go with it. fakeHavenMode deliberately
+       STAYS true through the collapse (so the previous level's horror bed cannot return),
+       which means setFakeHavenMode(false) will not run here and the rig has to be stopped
+       explicitly. Without this the cabin's room tone and fire would still be quietly
+       playing underneath the void static. stopHavenAmbience is idempotent, so the
+       setFakeHavenMode(false) that eventually follows is harmless. */
+    this.stopHavenAmbience();
     const now = this.ctx.currentTime;
 
     // --- 1. WARP: drag the currently-sounding chiptune voices down and out. ---------
@@ -2983,6 +3146,22 @@ class SoundEngine {
   }
 
   // Frame driver for the chiptune. Loops the 4-bar phrase set forever with no gap.
+  /* PHASE 32 — the three music states the stage table names, as one call so the stage
+     machine never has to know how the chiptune is built.
+
+       full   melody + triangle bass. What the player arrives to.
+       thin   melody only. See playHavenChiptunePhrase: the bass is simply not scheduled.
+       none   no new bars. The bar already sounding finishes; nothing follows it.
+
+     Monotonic in practice but not enforced as such, because a test that drives the stage
+     machine backwards is entitled to get the sound of the stage it asked for. Unknown
+     states are treated as `full` rather than throwing: this runs inside the frame loop. */
+  setHavenMusicState(state) {
+    this.havenMusicThin = (state === 'thin' || state === 'none');
+    this.havenMusicSilent = (state === 'none');
+    return state === 'thin' || state === 'none' ? state : 'full';
+  }
+
   updateHavenMusic(dt) {
     // PHASE 10 — havenTrackOn is set by the 'haven_chiptune' music track. Checking it
     // as an alternative to fakeHavenMode means the theme can also be driven purely
@@ -2990,6 +3169,9 @@ class SoundEngine {
     // the whole dimension mode flipped on.
     if (!this.ctx || !(this.fakeHavenMode || this.havenTrackOn)) return;
     if (this.nightmareMode) return; // PHASE 5B — the illusion has collapsed; no more bars
+    // PHASE 32 — the `ending` stage. No new bars are queued; the one already sounding is
+    // allowed to finish, so the theme runs out rather than being cut off.
+    if (this.havenMusicSilent) return;
 
     this.havenMusicTimer -= dt;
     if (this.havenMusicTimer <= 0) {
@@ -7728,9 +7910,108 @@ const FAKE_HAVEN_FOG_RADIUS = 18;      // half-extent of the impenetrable fog wa
 const FAKE_HAVEN_SKY_COLOR = 0x7EC0EE;
 // PHASE 5B — the blood-red the sky/fog snaps to when the illusion collapses.
 const NIGHTMARE_SKY_COLOR = 0x4A0000;
-// PHASE 5B — seconds of simply standing in the Fake Haven before the illusion
-// collapses on its own (the bed short-circuits this).
-const HAVEN_SHIFT_SECONDS = 30;
+/* =====================================================================================
+   PHASE 32 — THE HAVEN STAGES.
+
+   The Haven used to be a flat thirty-second timer with a monster on the end of it. It is
+   now an ordered emotional progression, and this table is the whole of it.
+
+   WHY A TABLE AND NOT A SEQUENCE OF TIMERS. Exactly the reason FILM_BEATS is one
+   (PHASE 30): the stage is a PURE FUNCTION of `havenTimer`, so settings can pause it, a
+   test can drive it to any point in one assignment, and there is nothing scheduled that
+   could outlive the dimension. `setTimeout` appears nowhere in this sequence and
+   `tests/haven.js` fails if it ever does.
+
+   HOW TO READ A ROW. `until` is the elapsed second the stage ends at. The three level
+   fields are the ambience the stage wants (0..1); the audio engine ramps toward them with
+   a multi-second time constant, so a stepped table can never produce an audible edge.
+
+   THE PROGRESSION IS SUBTRACTIVE, AND THAT IS THE DESIGN. Nothing is added to frighten
+   the player. Things stop:
+
+     perfect   the world beyond the windows goes quiet
+     thinning  the hearth stops sounding while it is still visibly burning, the clouds
+               stop moving, and the music loses its bass voice
+     ending    the room tone itself goes, and the Haven begins to be removed
+
+   The brief calls it "Something is missing" before "Something is attacking me". Removal
+   is the only horror vocabulary this dimension is allowed (STORY.md section 18: nothing
+   turns on the player, the Haven RUNS OUT), and it is the one that hands cleanly to
+   Phase 33, which is a removal too.
+
+   `anomaly` names the one committed change a stage permits. It is not a scare and it is
+   not addressed to the player: see VoxelWorld.updateHavenAnomalies, which will only
+   commit it behind their back, and will simply never commit it if they never look away.
+
+   LENGTH — A KNOWN DISAGREEMENT, RECORDED RATHER THAN RESOLVED. ROADMAP.md section 50
+   says "approximately 30 seconds"; the Phase 32 brief asks for the first one to two
+   minutes to be calm and for the wrongness to arrive gradually after that. Those cannot
+   both be true, and the brief is the later and more specific document, so the intact
+   Haven runs 178s with nothing whatsoever different for the first 82. The bed is
+   available from the first frame for a player who wants to leave sooner — which is the
+   canonical second exit (STORY.md section 18: "by lying down, or by simply being there
+   long enough"), not a skip button. ROADMAP.md was NOT rewritten; see PROGRESS.md. */
+const HAVEN_STAGES = Object.freeze([
+  /* Control has just come back. Deliberately the longest stretch in which the game does
+     absolutely nothing, because the player needs to stop bracing before anything can be
+     taken away from them. */
+  Object.freeze({ id: 'arrival',  until: 14,  room: 1, outside: 1, hearth: 1,
+                  music: 'full', drift: 1, anomaly: null }),
+  /* The room is simply the room. Full ambience, full warmth, no event of any kind. */
+  Object.freeze({ id: 'settled',  until: 44,  room: 1, outside: 1, hearth: 1,
+                  music: 'full', drift: 1, anomaly: null }),
+  /* THE FIRST SUBTRACTION, and it is not frightening: the world outside the windows
+     stops being audible. A player who notices reads it as the room being cosy. */
+  Object.freeze({ id: 'perfect',  until: 82,  room: 1, outside: 0, hearth: 1,
+                  music: 'full', drift: 1, anomaly: null }),
+  /* THE ONE UNMISTAKABLE QUIET INCONSISTENCY. A second mug, identical to the one already
+     on the low table, on the mantel. Mugs come in sets; nothing about it is broken. The
+     player who counts is the player who gets it. */
+  Object.freeze({ id: 'noticing', until: 118, room: 1, outside: 0, hearth: 1,
+                  music: 'full', drift: 1, anomaly: 'haven_second_mug' }),
+  /* STILLNESS. The fire is still burning and no longer makes a sound; the clouds stop.
+     Nothing is wrong with any object in the room — the room has stopped happening. */
+  Object.freeze({ id: 'thinning', until: 152, room: 1, outside: 0, hearth: 0,
+                  music: 'thin', drift: 0, anomaly: null }),
+  /* IT RUNS OUT. The last layer goes and the dissolve ramps across this stage; at its end
+     the sequence hands to Phase 33. */
+  Object.freeze({ id: 'ending',   until: 178, room: 0, outside: 0, hearth: 0,
+                  music: 'none', drift: 0, anomaly: null }),
+]);
+
+const HAVEN_STAGE_IDS = Object.freeze(HAVEN_STAGES.map(s => s.id));
+/* Total seconds of intact Haven. Derived, never written down twice. */
+const HAVEN_SHIFT_SECONDS = HAVEN_STAGES[HAVEN_STAGES.length - 1].until;
+/* The second the final stage begins — i.e. when the dissolve starts. Derived the same
+   way, so moving a row in the table moves the dissolve with it. */
+const HAVEN_ENDING_FROM = HAVEN_STAGES.length > 1
+  ? HAVEN_STAGES[HAVEN_STAGES.length - 2].until : 0;
+
+/* Which stage `t` seconds of Haven is in. Total: clamps past the end to the last stage
+   rather than returning null, because a caller reading a stage is always entitled to an
+   answer and "no stage" would only ever become a crash somewhere further down. */
+function havenStageAt(t) {
+  const s = (typeof t === 'number' && isFinite(t)) ? Math.max(0, t) : 0;
+  for (let i = 0; i < HAVEN_STAGES.length; i++) if (s < HAVEN_STAGES[i].until) return HAVEN_STAGES[i];
+  return HAVEN_STAGES[HAVEN_STAGES.length - 1];
+}
+
+/* How far the Haven has been removed, 0..1. Zero for the whole intact sequence; ramps
+   across the final stage only. Pure, so the renderer, the fog and the audio can each ask
+   independently and cannot disagree. */
+/* PHASE 32 — the behind-your-back gate for the Haven's one committed change. Blocks
+   rather than the Suburbia figures because the whole cabin is twelve blocks across: five
+   is most of the room, and a dot of -0.25 is a shelf comfortably behind the shoulder
+   rather than merely off the centre of the screen. */
+const HAVEN_ANOMALY_MIN_DISTANCE = 5;
+const HAVEN_ANOMALY_MAX_DOT = -0.25;
+
+function havenDissolveAt(t) {
+  const s = (typeof t === 'number' && isFinite(t)) ? t : 0;
+  const span = HAVEN_SHIFT_SECONDS - HAVEN_ENDING_FROM;
+  if (span <= 0) return s >= HAVEN_SHIFT_SECONDS ? 1 : 0;
+  return Math.max(0, Math.min(1, (s - HAVEN_ENDING_FROM) / span));
+}
 // PHASE 5B — seconds the player must hold out against The Void Sovereign before the
 // hard cut to black and the end credits.
 const CLIMAX_SECONDS = 2.5;
@@ -10948,16 +11229,30 @@ const ENV_SITES = Object.freeze({
     const half = Math.floor(FAKE_HAVEN_CABIN_SIZE / 2);
     return { x: cX - 3, z: (cZ - half) + 8 };
   },
+  /* PHASE 32 — THE MANTEL. The one shelf in the cabin the eye returns to, because the
+     hearth is what the whole room is arranged around. Resolved off the same fireplace
+     arithmetic _dressHavenInterior uses (the mantel course is baseY+3 on the hearth wall
+     at z0+1, and its clutter sits at baseY+4), so the site cannot drift away from the
+     shelf it names. `y` is carried here because this is the only site in the game whose
+     object is above the floor. */
+  havenMantel: () => {
+    const minX = FAKE_HAVEN_CHUNK_OFFSET * CHUNK_SX, minZ = FAKE_HAVEN_CHUNK_OFFSET * CHUNK_SZ;
+    const span = FAKE_HAVEN_CHUNKS_SPAN * CHUNK_SX;
+    const cX = minX + Math.floor(span / 2), cZ = minZ + Math.floor(span / 2);
+    const half = Math.floor(FAKE_HAVEN_CABIN_SIZE / 2);
+    return { x: cX + 1, y: FAKE_HAVEN_BASE_Y + 4, z: (cZ - half) + 1 };
+  },
 });
 
 /* =====================================================================================
    THE EVENTS.
 
-   Ten of them, and the count is the point: STORY.md section 23 lists roughly thirty
-   opportunities and this phase spends a third of them, because the difference between
-   environmental storytelling and clutter is entirely how rarely it happens. A player who
-   meets a wrong thing every two minutes has learned that this world contains wrong
-   things, which is the opposite of the intended effect.
+   Twelve of them — ten from Phase 31 and two the Haven added in Phase 32 — and the count
+   is the point: STORY.md section 23 lists roughly thirty opportunities and these two
+   phases have spent well under half of them, because the difference between environmental
+   storytelling and clutter is entirely how rarely it happens. A player who meets a wrong
+   thing every two minutes has learned that this world contains wrong things, which is the
+   opposite of the intended effect.
 
    FIELDS, AND WHAT EACH IS FOR:
 
@@ -11089,6 +11384,45 @@ const ENVIRONMENT_STORY_EVENTS = Object.freeze([
     id: 'haven_chair', dimension: 'haven', reads: ENV_READS.CALLBACK,
     site: 'havenChair', persist: ENV_PERSIST.GENERATED, notice: 0,
     requires: ['farm_field_chair'], after: null, sound: null,
+  },
+  {
+    /* PHASE 32 — THE SECOND MUG. The same block id as the mug already left out on the low
+       table, on the mantel, put there while the player was not looking at the hearth.
+
+       It is the Haven's ONE committed change, and it is deliberately the least alarming
+       object it could possibly be: mugs come in sets, a mantel is where a mug gets put
+       down, and nothing about the room is broken by it. What it actually is, is the
+       record's vocabulary (STORY.md section 13) showing up in the one dimension that was
+       supposed to be above that — repetition, in the place rebuilt from what was loved.
+
+       STORY.md section 16 rule 1 is absolute and this obeys it: the commit is refused
+       while the hearth is in shot or the player is near it (VoxelWorld.updateHavenAnomalies),
+       so it is DISCOVERED and never witnessed. A player who never turns their back on the
+       fireplace during the noticing stage simply never gets it, and that is correct.
+
+       notice: 0 — nothing later is gated on having seen it, so nothing tracks it. */
+    id: 'haven_second_mug', dimension: 'haven', reads: ENV_READS.REPETITION,
+    site: 'havenMantel', persist: ENV_PERSIST.SESSION, notice: 0,
+    requires: [], after: null, sound: null,
+  },
+  {
+    /* PHASE 32 — THE ROOM STOPS HAPPENING. Declared here because this table is the index
+       of everything the game says without speaking, and owned by the Haven stage machine
+       rather than by any code of this table's own — exactly as `sub_photograph` is
+       declared here and owned by _subStageEffect.
+
+       What it is: the progressive removal of the Haven's ambience. The world beyond the
+       windows goes quiet, then the hearth stops sounding while it is still visibly
+       burning, then the clouds stop moving, then the room tone itself goes. Not one
+       object in the cabin changes. STORY.md section 23 requires that nothing be overtly
+       wrong in the Haven before the shift, and nothing here is: things are simply
+       missing, which is what this game is called.
+
+       SESSION, because the Haven is never saved (see saveBlockedReason) and a stage
+       reached in one sitting means nothing in the next. */
+    id: 'haven_still_air', dimension: 'haven', reads: ENV_READS.ABSENCE,
+    site: null, persist: ENV_PERSIST.SESSION, notice: 0,
+    requires: [], after: null, sound: null,
   },
 ]);
 
@@ -11653,6 +11987,14 @@ class VoxelWorld {
     this.havenFogWall = null;
     // PHASE 5B — illusion-collapse state.
     this.havenCorrupted = false;
+    /* PHASE 32 — the Haven's one committed change. `armed` is the event id the stage
+       machine has permitted; `done` is what has already happened this visit, so nothing
+       can fire twice. Both are transient by construction: the Haven is never saved and
+       these are re-created with the world. See updateHavenAnomalies. */
+    this.havenAnomalyArmed = null;
+    this.havenAnomalyDone = new Set();
+    this._havenAnomalyTick = 0;
+    this._havenLightLevel = 1;        // PHASE 32 — see setHavenLightLevel
     this.voidSovereign = null;
     // Persistent 27-slot container backing the cabin's storage chest.
     this.havenStorage = Array(27).fill(null).map(() => ({ item: ITEM.NONE, count: 0 }));
@@ -12192,11 +12534,87 @@ class VoxelWorld {
     return this.fakeHavenSpawn;
   }
 
+  /* =================================================================================
+     PHASE 32 — PUT THE POCKET BACK.
+
+     THE BUG THIS EXISTS TO FIX, because it is worth writing down. `generateFakeHaven()`
+     is one-shot on `fakeHavenBuilt`, and nothing ever set that flag back. A New Game (or
+     a Load) runs `wipeAllChunks()`, which disposes the Haven's nine chunks and clears the
+     pin registry — but left the flag true and left every prop in the scene. So:
+
+       - a player who visited the Haven, started a new run and reached it again arrived in
+         an EMPTY pocket: no ground, no cabin, nothing, because generateFakeHaven() saw
+         the flag and returned the stale spawn without building anything;
+       - and until then, the bed, the storage chest, the hearth fire, six warm lights and
+         the whole fog-wall ring were still sitting in the scene at x/z ~6168, in the
+         middle of the new run's Overworld.
+
+     The brief's replay-behaviour requirement is exactly this: the Haven must not retain
+     stale transient state between unrelated new games. So this undoes everything
+     generateFakeHaven() did — flags, props, lights, particles, the fog ring and the
+     storage — and _teardownForRestore calls it, which is the ONE path both a New Game and
+     a Load pass through.
+
+     It does NOT dispose the chunks: wipeAllChunks() owns those and calling it from here
+     would be two systems disposing the same objects. Safe to call when no Haven was ever
+     built, which is the common case — it returns on the first line. */
+  _resetHavenPocket() {
+    if (!this.fakeHavenBuilt && !this.havenBedGroup && !this.havenFogWall) return false;
+
+    if (this.havenFire) {
+      this.scene.remove(this.havenFire.points);
+      this.havenFire.geo.dispose();
+      this.havenFire.points.material.dispose();
+      this.havenFire = null;
+    }
+    this.havenFirePos = null;
+    if (this.havenFireLight) { this.scene.remove(this.havenFireLight); this.havenFireLight = null; }
+    if (this.havenCozyLight) { this.scene.remove(this.havenCozyLight); this.havenCozyLight = null; }
+    if (this.havenWarmLights) {
+      for (const l of this.havenWarmLights) this.scene.remove(l);
+      this.havenWarmLights.length = 0;
+    }
+    for (const key of ['havenBedGroup', 'havenChestGroup']) {
+      const g = this[key];
+      if (!g) continue;
+      this.scene.remove(g);
+      g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+      this[key] = null;
+    }
+    /* The fog ring is a group of sprites, each with its own material. corruptHaven only
+       ever RECOLOURED them, because the Haven it was collapsing was about to be replaced
+       by the credits; a reset has to actually take them down. */
+    if (this.havenFogWall) {
+      this.scene.remove(this.havenFogWall);
+      for (const sprite of this.havenFogWall.children.slice()) {
+        if (sprite.material) sprite.material.dispose();
+      }
+      this.havenFogWall = null;
+    }
+
+    this.fakeHavenBuilt = false;
+    this.fakeHavenActive = false;
+    this.fakeHavenSpawn = null;
+    this.havenCorrupted = false;
+    this.havenAnomalyArmed = null;
+    if (this.havenAnomalyDone) this.havenAnomalyDone.clear();
+    this._havenAnomalyTick = 0;
+    this._havenLightLevel = 1;
+    /* The cabin's storage chest is a real 27-slot container. It is not saved, so anything
+       in it belongs to the run that put it there and must not be waiting in a new one. */
+    this.havenStorage = Array(27).fill(null).map(() => ({ item: ITEM.NONE, count: 0 }));
+    return true;
+  }
+
   /* PHASE 10 — every warm light the Haven adds is registered here so corruptHaven()
      can extinguish the whole set generically. Adding another lamp later requires no
      change to the collapse path at all. */
   _havenAddLight(color, intensity, distance, x, y, z) {
     const l = new THREE.PointLight(color, intensity, distance, 2);
+    /* PHASE 32 — the light the dissolve ramps DOWN FROM. Kept on the light itself rather
+       than in a parallel array, so a lamp added later is carried by setHavenLightLevel
+       without touching it — the same reason the list exists at all. */
+    l.userData.baseIntensity = intensity;
     l.position.set(x, y, z);
     this.scene.add(l);
     if (!this.havenWarmLights) this.havenWarmLights = [];
@@ -12344,6 +12762,37 @@ class VoxelWorld {
   // firebox, drifts slightly, fades as it climbs, then respawns at the base — giving
   // a continuously burning fire for effectively free (one draw call, no per-particle
   // objects).
+  /* PHASE 32 — THE LIGHT GOING OUT.
+
+     `frac` is 1 for the whole intact Haven and ramps to 0 across the dissolution. It
+     reaches every warm source in the cabin — the sconces, the table lamp, the rug bounce,
+     the interior fill and the hearth — through the registry _havenAddLight already keeps,
+     so the room dims as one thing rather than in pieces.
+
+     WHY THIS AND NOT JUST THE SUN. The environment's dissolve already takes the sun and
+     the ambient down, but a cabin at night is lit by its own lamps: without this the
+     windows went grey while the inside stayed golden, which reads as weather rather than
+     as the place being removed. And it pairs with the audio, deliberately and in this
+     order: the hearth stops SOUNDING one stage before it stops GLOWING. The fire is still
+     visibly burning in a room that has gone quiet, and only then does it start to go out.
+
+     Idempotent and cheap: a handful of float writes, skipped entirely when nothing has
+     been built. The fire's own flicker in updateFakeHaven multiplies against the level
+     set here rather than fighting it — see the reference it takes. */
+  setHavenLightLevel(frac) {
+    const f = Math.max(0, Math.min(1, (typeof frac === 'number' && isFinite(frac)) ? frac : 1));
+    if (this._havenLightLevel === f) return false;
+    this._havenLightLevel = f;
+    if (this.havenWarmLights) {
+      for (const l of this.havenWarmLights) {
+        const base = (l.userData && l.userData.baseIntensity) || 0;
+        l.intensity = base * f;
+      }
+    }
+    if (this.havenCozyLight) this.havenCozyLight.intensity = 1.1 * f;
+    return true;
+  }
+
   _buildHavenFireParticles() {
     const count = 90;
     const geo = new THREE.BufferGeometry();
@@ -12367,6 +12816,82 @@ class VoxelWorld {
   // Called once per frame while the player is in the Haven: advances the flame
   // particles and gives the hearth light a gentle, non-threatening flicker (a slow
   // double-sine, deliberately unlike the erratic horror torch flicker).
+  /* =================================================================================
+     PHASE 32 — THE HAVEN'S ONE COMMITTED CHANGE.
+
+     A second mug appears on the mantel: the same block id as the one already left out on
+     the low table, in the one place a mug would obviously be put down.
+
+     THE RULE THIS EXISTS TO OBEY. STORY.md section 16 rule 1 — nothing changes while it
+     is being watched — is the load-bearing premise of the entire game, and the Haven is
+     the last place it may be broken, because the Haven's whole pitch is that it is the
+     one honest room in the world. So the commit is gated exactly the way Suburbia's
+     revisions are: the hearth must be out of shot AND far enough away that the player
+     could not resolve the shelf even peripherally. If they never turn their back on the
+     fireplace during the noticing stage, the mug never appears, and that is a correct
+     outcome rather than a missed one.
+
+     It is armed by the stage machine (Game._updateHaven) and disarmed by the commit, so
+     it can happen at most once per visit. There is no timer, no listener and no
+     geometry: it writes one voxel and remeshes the chunk that holds it.
+
+     `armed` is the event id rather than a boolean so that a second Haven anomaly, if a
+     later phase ever earns one, needs no new plumbing here. */
+  armHavenAnomaly(id) {
+    if (!this.fakeHavenBuilt || this.havenCorrupted) return false;
+    if (this.havenAnomalyDone && this.havenAnomalyDone.has(id)) return false;
+    this.havenAnomalyArmed = id || null;
+    return true;
+  }
+
+  updateHavenAnomalies(dt, player, camera) {
+    if (!this.havenAnomalyArmed || !player || !player.inFakeHaven) return false;
+    if (this.havenCorrupted || !camera) return false;
+    this._havenAnomalyTick = (this._havenAnomalyTick || 0) + dt;
+    if (this._havenAnomalyTick < 0.5) return false;   // 2Hz, like every other notice sweep
+    this._havenAnomalyTick = 0;
+
+    const id = this.havenAnomalyArmed;
+    if (id !== 'haven_second_mug') return false;
+    const site = ENV_SITES.havenMantel ? ENV_SITES.havenMantel(this) : null;
+    if (!site) return false;
+
+    /* The gate. Distance first because it is the cheaper test, then facing — and the
+       facing test is only meaningful while the shelf is close enough to be resolved at
+       all, which inside a 12x12 cabin it always is. */
+    const camPos = camera.position;
+    const dx = (site.x + 0.5) - camPos.x, dz = (site.z + 0.5) - camPos.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist < HAVEN_ANOMALY_MIN_DISTANCE) return false;
+    const forward = _havenForward;
+    camera.getWorldDirection(forward);
+    const dot = (dx / dist) * forward.x + (dz / dist) * forward.z;
+    if (dot > HAVEN_ANOMALY_MAX_DOT) return false;    // the hearth is still in shot
+
+    /* REFUSE UNLESS THE SLOT IS WHAT WE EXPECT IT TO BE.
+
+       The mantel is the chimney breast's brick face, and the two objects _dressHavenInterior
+       already puts on it are set INTO that face rather than resting on air — so an empty
+       slot on this shelf reads as BRICK, not as AIR. Requiring exactly that is what makes
+       this safe: if a future change moves the mantel, re-dresses the room, or puts
+       something else here, the block under the site stops being brick and the anomaly
+       quietly does not happen. Better a piece of storytelling that fails to appear than
+       one that punches a hole through the fireplace. */
+    if (this.getBlockWorld(site.x, site.y, site.z) !== BLOCK.BRICK) {
+      this.havenAnomalyArmed = null;
+      return false;
+    }
+
+    this._writeBlockRaw(site.x, site.y, site.z, BLOCK.SIDE_CREAM);
+    const chunk = this.chunks.get(this.key(site.x >> 4, site.z >> 4));
+    if (chunk) { chunk.dirty = true; this.generateChunkMesh(chunk); }
+
+    this.havenAnomalyArmed = null;
+    if (!this.havenAnomalyDone) this.havenAnomalyDone = new Set();
+    this.havenAnomalyDone.add(id);
+    return true;
+  }
+
   updateFakeHaven(dt) {
     // PHASE 5B — once the illusion collapses the hearth is gone entirely; havenFire is
     // nulled by corruptHaven(), so this returns immediately from then on.
@@ -12389,7 +12914,12 @@ class VoxelWorld {
     f.points.material.opacity = 0.75 + Math.sin(f.t * 3.1) * 0.12;
 
     if (this.havenFireLight) {
-      this.havenFireLight.intensity = 2.2 + Math.sin(f.t * 2.3) * 0.25 + Math.sin(f.t * 5.7) * 0.12;
+      /* PHASE 32 — the flicker is now a MULTIPLIER on the dissolve's level rather than an
+         absolute value. Written absolutely it re-lit the hearth to full every single
+         frame and the fire alone stayed golden while the whole room around it went out. */
+      const level = (this._havenLightLevel === undefined) ? 1 : this._havenLightLevel;
+      this.havenFireLight.intensity =
+        (2.2 + Math.sin(f.t * 2.3) * 0.25 + Math.sin(f.t * 5.7) * 0.12) * level;
     }
   }
 
@@ -12409,6 +12939,9 @@ class VoxelWorld {
   corruptHaven() {
     if (this.havenCorrupted || !this.fakeHavenBuilt) return;
     this.havenCorrupted = true;
+    // PHASE 32 — disarm the anomaly. There is no mantel to put a mug on any more, and a
+    // pending change surviving the collapse would be a write into decayed geometry.
+    this.havenAnomalyArmed = null;
 
     const minX = FAKE_HAVEN_CHUNK_OFFSET * CHUNK_SX, minZ = FAKE_HAVEN_CHUNK_OFFSET * CHUNK_SZ;
     const span = FAKE_HAVEN_CHUNKS_SPAN * CHUNK_SX;
@@ -25065,7 +25598,35 @@ class PlayerController {
   }
 
   // --- Mining: hold-to-break with a HUD progress bar ------------------------------
+  /* =================================================================================
+     PHASE 32 — THE HAVEN IS NOT MINEABLE, AND THIS IS THE ONE PLACE THAT SAYS SO.
+
+     The cabin was built out of ordinary oak logs, polished oak, brick and glass, all of
+     which carry ordinary hardness values — so until this existed the player could stand
+     in the one room in the game that was rebuilt perfectly because somebody loved it,
+     and chop the walls down for timber. A browser screenshot of the arrival caught the
+     interaction prompt reading `LMB · CHOP` at a cabin wall, which is how it was found.
+
+     Two rules require this, and they agree:
+       - the brief: no mining, crafting, gathering, building or farming here; "the player
+         should inhabit the space, not construct it", and the Haven must not become a
+         continuation of the survival loop;
+       - STORY.md section 18: the Haven is the best work the reconstruction is capable
+         of. A player who can dismantle it has been handed a different game.
+
+     WHAT IS STILL ALLOWED, deliberately: walking, looking, opening the storage chest,
+     resting in the bed. Those are the contextual interactions the brief lists, they are
+     prop raycasts rather than voxel edits, and none of them changes the room.
+
+     IT REFUSES SILENTLY. No message, no denial sound, no red flash — an error toast in
+     the Haven would be the game speaking, and this dimension does not. The player swings
+     at a wall, nothing happens, and they stop. */
+  _havenIsReadOnly() { return !!this.inFakeHaven; }
+
   _startMining() {
+    // PHASE 32 — see _havenIsReadOnly. Refused before a target is even resolved, so no
+    // progress bar, no crack overlay and no hit cadence ever starts.
+    if (this._havenIsReadOnly()) { this._cancelMining(); return; }
     const hit = this._getLookTarget();
     if (!hit) { this._cancelMining(); return; }
     const key = hit.bx + ',' + hit.by + ',' + hit.bz;
@@ -25091,6 +25652,30 @@ class PlayerController {
 
   /* PHASE 2 — the crosshair's current voxel, refreshed every frame whether or not the
      player is mining, so the world always tells you what you're pointing at. */
+  /* =================================================================================
+     WHAT THE INTERACTION PROMPT SAYS, AND IN WHAT ORDER. One function, because it is a
+     POLICY and it was previously spelled out at three call sites that could drift apart.
+
+     PHASE 28 — THE ORDER IS THE POLICY. A real affordance (a door, the Anchor, a chest, a
+     Haven prop) always wins the line; an onboarding cue only ever fills space nothing
+     else wanted, which is what keeps it from reading as a tutorial layer.
+
+     PHASE 32 — AND IN THE HAVEN THE PROPS ARE THE WHOLE VOCABULARY. That dimension
+     refuses mining, placement and crafting (see _havenIsReadOnly), so every other line
+     this could return would name a verb the game will not honour. Telling somebody to
+     CHOP the wall of the room they are meant to be resting in is the single worst line
+     the interface could show, and the CRAFT cue — which needs no crosshair target at all,
+     and so used to appear in the cabin merely for holding a log — is the same mistake
+     one step quieter.
+
+     `id` is null when there is nothing under the crosshair, in which case there is no
+     affordance to look up and only a target-free cue (CRAFT) can fill the line. */
+  _lookPrompt(id) {
+    if (this._havenIsReadOnly()) return this._havenPropPrompt();
+    const affordance = (typeof id === 'number' && id !== BLOCK.AIR) ? this._promptForBlock(id) : null;
+    return affordance || this._havenPropPrompt() || this._onboardingCue(id === undefined ? null : id);
+  }
+
   _updateTargetHighlight() {
     if (!this.highlight) return;
     if (this.dead || !this.locked) { this.highlight.hide(); this._setPrompt(null); return; }
@@ -25099,12 +25684,12 @@ class PlayerController {
     /* PHASE 28 — with nothing under the crosshair there is no affordance to show, but a
        cue that needs no target (CRAFT) may still be the useful thing to say. */
     if (!hit) {
-      this.highlight.hide(); this._setPrompt(this._havenPropPrompt() || this._onboardingCue(null)); return;
+      this.highlight.hide(); this._setPrompt(this._lookPrompt(null)); return;
     }
 
     const id = this.world.getBlockWorld(hit.bx, hit.by, hit.bz);
     if (id === BLOCK.AIR || NO_HIGHLIGHT_BLOCKS.has(id)) {
-      this.highlight.hide(); this._setPrompt(this._havenPropPrompt() || this._onboardingCue(null)); return;
+      this.highlight.hide(); this._setPrompt(this._lookPrompt(null)); return;
     }
 
     /* PHASE 14 — interaction feedback. Looking at a door tells you what it will do, so
@@ -25117,7 +25702,7 @@ class PlayerController {
     /* PHASE 28 — the ORDER IS THE POLICY. A real affordance (a door, the Anchor, a
        chest, a Haven prop) always wins the line; an onboarding cue only ever fills space
        nothing else wanted, which is what keeps it from reading as a tutorial layer. */
-    this._setPrompt(this._promptForBlock(id) || this._havenPropPrompt() || this._onboardingCue(id));
+    this._setPrompt(this._lookPrompt(id));
 
     const heldMeta = ITEM_DATA[this.inventory.slots[this.selectedSlot].item];
     const info = computeBreakTime(id, heldMeta, this.miningSpeedBonus);
@@ -25304,6 +25889,12 @@ class PlayerController {
           if (kind === 'storage') { this.ui.openStorage(this.world.havenStorage); return; }
         }
       }
+      /* PHASE 32 — and NOTHING ELSE. The two props above are the Haven's whole
+         interaction vocabulary; everything past this point is placement, door-opening,
+         Anchor feeding and chest looting, none of which exists in a cabin. Returning
+         here is what stops the player building a dirt tower in the one room the game
+         asks them to sit still in. See _havenIsReadOnly. */
+      if (this._havenIsReadOnly()) return;
     }
 
     const hit = this._getLookTarget();
@@ -25418,9 +26009,12 @@ class PlayerController {
         : 'You rest. Everything aches a little less.', 2600);
     }
     if (this.sound) this.sound.playHavenRestChime();
-    // PHASE 5B — using the bed is one of the two triggers for the illusion collapse.
-    // Set as a flag read by the Game loop rather than calling into the Game directly,
-    // so PlayerController keeps no reference back up to it.
+    /* PHASE 32 — lying down is how a player CHOOSES the ending, and the rest above it is
+       real: the health and the sanity are already restored by the time this line runs.
+       Game._updateHaven consumes the flag and moves the Haven's clock to the start of its
+       final stage, so the player gets the whole dissolution rather than an immediate
+       collapse. Set as a flag read by the Game loop rather than calling into the Game
+       directly, so PlayerController keeps no reference back up to it. */
     this.havenBedUsed = true;
   }
 
@@ -25952,6 +26546,12 @@ class EnvironmentSystem {
     // rather than closed-in. Overrides the Suburbia and Farmlands paths entirely.
     this.fakeHavenActive = false;
     this.fakeHavenColor = new THREE.Color(FAKE_HAVEN_SKY_COLOR);
+    /* PHASE 32 — how far the Haven has been removed, 0..1, written every frame by the
+       stage machine from the pure havenDissolveAt(). Zero for the whole intact sequence.
+       Two scratch colours so the ramp never allocates in the frame loop. */
+    this.havenDissolve = 0;
+    this._havenFogColor = new THREE.Color(FAKE_HAVEN_SKY_COLOR);
+    this._havenPale = new THREE.Color(0xBFC6C9);
     // PHASE 5B — THE HAVEN SHIFT: blood red (#4A0000) fog/sky, applied INSTANTLY (no
     // lerp) the moment the illusion collapses, and checked ahead of every other
     // override so nothing can repaint over it.
@@ -26060,6 +26660,18 @@ class EnvironmentSystem {
   setSuburbiaOverride(active) { this.suburbiaActive = !!active; }
   // The Fake Haven (Level 4) — permanent bright blue midday sky, high visibility.
   setFakeHavenOverride(active) { this.fakeHavenActive = !!active; }
+  /* PHASE 32 — THE HAVEN BEING REMOVED. One number, 0..1, and everything the sky does
+     about it is derived from it below: the fog closes in, the colour drains toward a
+     dead pale grey, the sun and the ambient go down, and the clouds stop.
+
+     Note what this is NOT: it is not the nightmare override, which is an instant snap to
+     blood red and belongs to the shift. This is the gentle one — the safe place going
+     away rather than turning. Kept as a plain setter with no side effects so the frame
+     loop can write it unconditionally. */
+  setHavenDissolve(amount) {
+    this.havenDissolve = Math.max(0, Math.min(1,
+      (typeof amount === 'number' && isFinite(amount)) ? amount : 0));
+  }
   // PHASE 5B — The Haven Shift: instant blood-red collapse of the sky and fog.
   setNightmareOverride(active) { this.nightmareActive = !!active; }
 
@@ -26131,12 +26743,28 @@ class EnvironmentSystem {
       // Drift the clouds gently so the sky is alive but never threatening. Uses the
       // same wrap+fade helper as the overworld so the Haven's clouds picked up the
       // no-popping fix too, but at a slower, calmer drift.
-      this._updateClouds(dt, 0.7, 0.62, _havenCloudTint);
-      this.scene.background = this.fakeHavenColor;
-      this.fog.color = this.fakeHavenColor;
-      this.fog.density = 0.006;
-      this.ambient.intensity = 0.95;
-      this.ambient.color = new THREE.Color(0xEAF4FF);
+      /* PHASE 32 — THE DISSOLVE, and the ONE moving thing in this sky.
+
+         The clouds are the only part of the Haven's sky that ever changes, which makes
+         stopping them the cheapest and quietest "time is wrong" beat available: the
+         `thinning` stage sets drift to 0 through the dissolve ramp and the sky becomes a
+         painting. Nothing announces it. A player who never looks up never learns it. */
+      const dis = this.havenDissolve;
+      this._updateClouds(dt * (1 - dis), 0.7, 0.62, _havenCloudTint);
+      /* The fog closes in and drains. Both are ramps off the same number, so the room
+         cannot get dimmer than it gets distant or the other way round. The density
+         target (0.075) is well past the nightmare's own 0.055 — by the end of the
+         dissolve the far wall of a 48-block clearing is genuinely gone. */
+      this._havenFogColor.copy(this.fakeHavenColor).lerp(this._havenPale, dis * 0.9);
+      this.scene.background = this._havenFogColor;
+      this.fog.color = this._havenFogColor;
+      this.fog.density = 0.006 + dis * 0.069;
+      // The light collapses with it: midday down to almost nothing, and the sun's own
+      // billboard fades out rather than hanging in a grey sky.
+      this.sun.intensity = 1.55 * (1 - dis * 0.85);
+      this.sunSprite.material.opacity = 1.0 - dis;
+      this.ambient.intensity = 0.95 * (1 - dis * 0.8);
+      this.ambient.color = _havenAmbientColor.setHex(0xEAF4FF).lerp(this._havenPale, dis);
       return;
     }
 
@@ -26312,7 +26940,15 @@ const _ambNightColor = new THREE.Color(0xffffff);
 const _hemiGround = new THREE.Color(0x5A4A32);
 const _hemiGroundNight = new THREE.Color(0x14161F);
 const _sunSetTint = new THREE.Color(0xff7a33);
+/* PHASE 32 — scratch for the anomaly gate's facing test, so the 2Hz sweep allocates
+   nothing. Declared here beside the other Haven scratch vectors. */
+const _havenForward = new THREE.Vector3();
 const _havenCloudTint = new THREE.Color(0xffffff);
+/* PHASE 32 — scratch for the Haven ambient ramp. The pre-Phase-32 code allocated a new
+   THREE.Color for the ambient on every single frame the player was in the Haven; the
+   dissolve made that two allocations a frame, so both are hoisted to module scope here
+   the way the cloud tint already was. */
+const _havenAmbientColor = new THREE.Color(0xEAF4FF);
 
 /* ---------------------------------------------------------------------------------
    ASH PARTICLE SYSTEM — floating cinder/ash flakes drifting down through the Ashen
@@ -26496,6 +27132,11 @@ class PostFX {
       // red crush during The Haven Shift, so the collapse looks like the renderer
       // itself is failing rather than like the player merely losing their mind.
       uVoidGlitch: { value: 0.0 },
+      /* PHASE 32 — 0..1 Haven dissolve. Independent of everything above it, because the
+         Haven runs with uHorror at 0 and must be able to fade out without any of the
+         horror grading coming back on to do it. ONE uniform added to the pass that was
+         already there — see setHavenFade for why this is not a new effect stack. */
+      uHavenFade: { value: 0.0 },
       uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
     };
     const mat = new THREE.ShaderMaterial({
@@ -26512,6 +27153,7 @@ class PostFX {
         uniform float uJumpscare;
         uniform float uHorror;
         uniform float uVoidGlitch;
+        uniform float uHavenFade;
         uniform vec2 uResolution;
         varying vec2 vUv;
 
@@ -26594,6 +27236,33 @@ class PostFX {
 
           color = mix(color, vec3(0.9, 0.05, 0.05), uJumpscare * 0.6 * uHorror);
 
+          // --- PHASE 32: THE HAVEN DISSOLVE ------------------------------------
+          // The safe place being removed, not corrupted. Three cheap terms and no
+          // second render pass:
+          //   soften   four taps on a radius that opens with the fade, so the room
+          //            goes out of focus the way a memory of it would
+          //   drain    toward luma, so the gold light leaves before the shapes do
+          //   recede   toward the pale ground colour from the edges inward, so the
+          //            cabin is lost from the outside in rather than dimming evenly
+          // Entirely skipped while the fade is zero, which is the whole of the intact
+          // Haven and every other dimension in the game.
+          if (uHavenFade > 0.001) {
+            float f = clamp(uHavenFade, 0.0, 1.0);
+            vec2 texel = 1.0 / uResolution.xy;
+            float r = f * 3.5;
+            vec3 soft = texture2D(tDiffuse, clamp(uv + vec2( r, 0.0) * texel, 0.0, 1.0)).rgb
+                      + texture2D(tDiffuse, clamp(uv + vec2(-r, 0.0) * texel, 0.0, 1.0)).rgb
+                      + texture2D(tDiffuse, clamp(uv + vec2(0.0,  r) * texel, 0.0, 1.0)).rgb
+                      + texture2D(tDiffuse, clamp(uv + vec2(0.0, -r) * texel, 0.0, 1.0)).rgb;
+            color = mix(color, soft * 0.25, f * 0.85);
+
+            float lum = dot(color, vec3(0.299, 0.587, 0.114));
+            color = mix(color, vec3(lum), f * 0.80);
+
+            float edge = smoothstep(0.15, 0.85, length(uv - vec2(0.5)) * 1.35);
+            color = mix(color, vec3(0.75, 0.78, 0.79), f * f * edge * 0.9);
+          }
+
           gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
         }
       `
@@ -26623,6 +27292,19 @@ class PostFX {
   // PHASE 5B — sets the void-glitch intensity (0 = off, 1 = full renderer collapse).
   setVoidGlitch(amount) {
     this.uniforms.uVoidGlitch.value = Math.max(0, Math.min(1, amount));
+  }
+
+  /* PHASE 32 — sets the Haven dissolve (0 = the intact cabin, 1 = fully removed).
+
+     WHY THIS IS ONE UNIFORM AND NOT A FRAMEWORK. The brief is explicit that the
+     transition out should not justify building a post-processing stack. It does not: the
+     scene already renders through this single full-screen pass on its way to the canvas,
+     so the whole dissolve is one branch inside a shader that was already running, costing
+     four texture taps on the frames where it is not zero and nothing at all on the frames
+     where it is. No render target, no second pass, no new material. */
+  setHavenFade(amount) {
+    this.uniforms.uHavenFade.value = Math.max(0, Math.min(1,
+      (typeof amount === 'number' && isFinite(amount)) ? amount : 0));
   }
 
   setHorrorEnabled(enabled) {
@@ -33620,7 +34302,11 @@ const OBJECTIVE_OVERRIDES = [
 
   /* THE HAVEN. One word while it is intact, and nothing at all once it turns. STORY.md
      section 18: the safety must be real, so the objective must not hedge. */
-  { id: 'haven_rest', text: 'Rest.', when: (s) => s.haven && !s.havenShifted },
+  { id: 'haven_rest', text: 'Rest.', when: (s) => s.haven && !s.havenShifted && !s.havenEnding },
+  /* PHASE 32 — and nothing from the moment it starts to go. The line clears BEFORE the
+     shift, not at it: the dissolution is twenty-six seconds long and an objective is the
+     one thing on screen that could still be read as the game having a plan for the
+     player. It does not. */
   { id: 'haven_after', text: null, when: (s) => s.haven },
 
   /* A POWERED RIFT OUTRANKS EVERYTHING. It is the one thing in the game that is both
@@ -34108,6 +34794,8 @@ class Game {
     this.fakeHavenTriggered = false;
     // --- PHASE 5B: Haven Shift / Void Sovereign / climax state ---
     this.havenTimer = 0;              // seconds spent in the Haven pre-shift
+    this.havenStageId = null;         // PHASE 32 — last applied HAVEN_STAGES id
+    this.havenBedEnding = false;      // PHASE 32 — the ending was chosen, not reached
     this.havenShiftTriggered = false; // latch: the illusion has collapsed
     this.havenShiftElapsed = 0;       // seconds since the collapse
     this.climaxTriggered = false;     // latch: hard cut to black has fired
@@ -34317,6 +35005,12 @@ class Game {
        has to happen before the edit registry is replaced: a pinned chunk that survived
        would still be holding the PREVIOUS session's blocks. */
     w.wipeAllChunks();
+    /* PHASE 32 — and the Haven pocket, which wipeAllChunks does not reach: it disposes the
+       nine chunks but left `fakeHavenBuilt` true and every prop in the scene, so the next
+       run reached an empty Haven and the current one kept a bed in its Overworld. See
+       VoxelWorld._resetHavenPocket. Called AFTER wipeAllChunks because the chunks are
+       that function's to dispose and this one's not to touch. */
+    w._resetHavenPocket();
     w._genQueue.length = 0;
     w._queuedKeys.clear();
     w.mimicCandidates.clear();
@@ -34374,6 +35068,12 @@ class Game {
     this.havenTimer = 0;
     this.havenShiftTriggered = false;
     this.havenShiftElapsed = 0;
+    /* PHASE 32 — the stage machine's whole memory: which stage was last applied, so the
+       frame loop can tell a stage CHANGE from a stage continuing. Null means "none
+       applied yet", which is what makes the first frame of a Haven apply its stage
+       instead of skipping it as unchanged. */
+    this.havenStageId = null;
+    this.havenBedEnding = false;
     this.climaxTriggered = false;
     this.shakeAmount = 0; this.shakeDuration = 0; this.shakeTime = 0;
   }
@@ -34533,6 +35233,18 @@ class Game {
     this.sound.setFakeHavenMode(false);
     this.sound.setSuburbiaMode(this.player.inSuburbia);
     this.postfx.setHorrorEnabled(true);
+    /* PHASE 32 — and the dissolve, which is the one piece of Haven presentation that
+       lives in the renderer rather than in a dimension flag. Cleared here for the same
+       reason the nightmare override is: a load that landed on a half-faded screen would
+       be indistinguishable from a broken one. */
+    this.postfx.setHavenFade(0);
+    this.env.setHavenDissolve(0);
+    /* ...and the void glitch, which had the same gap. _triggerClimax clears it on the way
+       to the credits, so the ordinary route out was covered; a New Game or a Load taken
+       from anywhere else after the shift was not, and left the datamosh tearing running
+       over a freshly restored Overworld. Everything the finale writes to the renderer is
+       now cleared in the one place a restore repaints from. */
+    this.postfx.setVoidGlitch(0);
     this.env.setNightmareOverride(false);
     this.env.setFakeHavenOverride(false);
     this.env.setSuburbiaOverride(this.player.inSuburbia);
@@ -34969,7 +35681,16 @@ class Game {
     this.player.velocity.set(0, 0, 0);
     if (this.ui.storageOpen) this.ui.closeStorage();
 
-    this.ui.showToast('The room goes bright \u2014 and keeps going.', 2400);
+    /* PHASE 32 — THE ENTRY SAYS NOTHING.
+
+       It used to say "The room goes bright — and keeps going." and then, on the far side,
+       "Somewhere safe. Somewhere warm." Both are gone, and their absence is the point.
+       The second one was the worse of the two: it TOLD the player the room was safe,
+       which is precisely the conclusion the room has to earn on its own over the next two
+       minutes. A player who is told they are safe is being asked to take the game's word
+       for it; a player who works it out has invested something they can then lose.
+
+       The white wash carries the whole transition, and the cabin makes its own case. */
     this.ui.fadeToWhite(1400);
     setTimeout(() => this._transitionToLevel4(), 1500);
   }
@@ -35035,7 +35756,6 @@ class Game {
       this.ui.fadeFromWhite(1800);
       this.player.movementLocked = false;
       this.canvas.requestPointerLock();
-      this.ui.showToast('Somewhere safe. Somewhere warm.', 3200);
       this._refreshObjective();   // PHASE 25 — the Haven asks for one word, and only one
     }, 400);
   }
@@ -35054,29 +35774,140 @@ class Game {
                    (_triggerClimax) and the retro end credits.
      ================================================================================= */
 
-  // Runs every frame while the player is in the Haven and the shift hasn't fired yet.
-  _updateHavenCountdown(dt) {
+  /* =================================================================================
+     PHASE 32 — THE HAVEN STAGE MACHINE.
+
+     Runs every frame while the player is in the Haven and the shift has not fired. It
+     does four things and owns nothing:
+
+       1. advances `havenTimer`, which is the ONLY state the sequence has;
+       2. resolves the stage from it (havenStageAt — pure) and, on a CHANGE only, hands
+          the stage's targets to the audio and arms whatever anomaly it permits;
+       3. writes the dissolve (havenDissolveAt — pure) to the fog and the renderer every
+          frame, because it is a ramp rather than a step;
+       4. lets VoxelWorld decide whether it may commit the armed anomaly yet.
+
+     WHY THE STAGE IS DERIVED AND NOT STORED. It means a test can drive the whole
+     progression by assigning `havenTimer` and calling this once, that the settings pause
+     stops the Haven simply by not calling it, and that nothing is scheduled that could
+     fire after the dimension is gone. It is the same discipline FILM_BEATS is under and
+     for the same reasons.
+
+     THE TWO EXITS ARE BOTH CANON. STORY.md section 18: the Haven ends "by lying down, or
+     by simply being there long enough". The bed is not a skip — it is the player choosing
+     the ending, which is why it is available from the first frame and why resting really
+     does restore them first. */
+  _updateHaven(dt) {
     if (this.havenShiftTriggered) return;
 
-    // TRIGGER A — the bed. PlayerController._restInHavenBed sets this flag; reading it
-    // here (rather than calling back into the Game from the player) keeps the player
-    // free of a Game reference.
+    /* EXIT A — THE BED, WHICH IS AN ENDING AND NOT A SKIP.
+
+       PlayerController._restInHavenBed sets this flag; reading it here rather than
+       calling back into the Game keeps the player free of a Game reference.
+
+       WHAT IT DOES NOW, AND WHY THAT IS THE WHOLE POINT. It used to fire the shift on the
+       very next frame: the player lay down, was told they felt better, and the world
+       detonated in their face before the sentence had finished. That is a punishment for
+       accepting the one kindness the game offers, and it makes a liar of STORY.md section
+       18 — "Why is the player allowed to rest? Because nothing here is trying to do
+       anything to them. Resting works. The bed genuinely restores. That is what makes it
+       cruel."
+
+       So the rest lands in full — the health and the sanity are already restored by the
+       time this runs — and lying down moves the clock to the START of the final stage
+       rather than past it. The player then gets the entire dissolution: they close their
+       eyes in a warm room and it goes quiet and pale and distant around them over
+       twenty-six seconds. Nothing turns on them. It ends.
+
+       Guarded so that lying down again later can never rewind the clock. */
     if (this.player.havenBedUsed) {
-      this._triggerHavenShift('bed');
-      return;
+      this.player.havenBedUsed = false;
+      if (this.havenTimer < HAVEN_ENDING_FROM) this.havenTimer = HAVEN_ENDING_FROM;
+      this.havenBedEnding = true;
     }
 
-    // TRIGGER B — 30 seconds of simply being here.
     this.havenTimer += dt;
-    if (this.havenTimer >= HAVEN_SHIFT_SECONDS) this._triggerHavenShift('time');
+
+    const stage = havenStageAt(this.havenTimer);
+    if (stage.id !== this.havenStageId) {
+      this.havenStageId = stage.id;
+      /* THE STAGE'S TARGETS. Applied on the transition only — the audio ramps toward
+         them with a 4.5s time constant and re-writing an unchanged target every frame
+         would be pure waste. */
+      this.sound.setHavenAmbienceLevels(stage.room, stage.outside, stage.hearth);
+      this.sound.setHavenMusicState(stage.music);
+      /* THE STAGE'S ANOMALY, if it has one. Arming is permission, not a trigger: the
+         world commits it only once the player is not looking (updateHavenAnomalies), and
+         will simply never commit it if they never look away. */
+      if (stage.anomaly) this.world.armHavenAnomaly(stage.anomaly);
+      /* The objective line is otherwise resolved on a 0.25s accumulator. Refreshing on
+         the stage change costs one extra resolution per stage — six for the whole
+         sequence — and means "Rest." is gone on the first frame of the dissolution
+         rather than up to a quarter of a second into it. */
+      this._refreshObjective();
+    }
+
+    /* THE DISSOLVE. Zero for the whole intact sequence, so this is two assignments of 0
+       per frame for all but the last stage. Written every frame because it is a
+       continuous ramp: the fog closing in and the image draining are the Haven being
+       REMOVED, and a stepped removal would read as a glitch rather than as a loss. */
+    const fade = havenDissolveAt(this.havenTimer);
+    this.env.setHavenDissolve(fade);
+    this.postfx.setHavenFade(fade);
+    /* ...and the cabin's own lamps, off the same number, so the sky and the room can
+       never disagree about how far gone the place is. */
+    this.world.setHavenLightLevel(1 - fade);
+
+    // The one committed change, if one is armed and the player has looked away.
+    this.world.updateHavenAnomalies(dt, this.player, this.camera);
+
+    /* EXIT B — the record runs out. Both exits arrive here: the bed reaches it by moving
+       the clock, so there is exactly ONE line in the build that ends the Haven. */
+    if (this.havenTimer >= HAVEN_SHIFT_SECONDS) {
+      this._triggerHavenShift(this.havenBedEnding ? 'bed' : 'time');
+    }
   }
 
   /* PHASE 25 — the Haven turning and the climax both take the screen; the objective line
      goes silent for both. See OBJECTIVE_OVERRIDES. */
+  /* =================================================================================
+     THE HANDOFF POINT. PHASE 32 ENDS HERE AND PHASE 33 BEGINS.
+
+     Everything above this line is the Haven: three minutes of a room, and then the room
+     being removed. Everything below it — the collapse, the entity, the climax, the
+     credits — is the finale, and Phase 33 owns all of it.
+
+     WHAT PHASE 32 CHANGED ABOUT THIS FUNCTION, AND WHAT IT DELIBERATELY DID NOT.
+
+     It did not rebuild the collapse. The audio warp, the blood-red snap, the cabin decay
+     and the entity were all built and working, and CLAUDE.md section 18 is clear that a
+     working system is not rewritten because a new phase has arrived at it. What changed
+     is WHEN this is reached and WHAT STATE it is reached in: the player now arrives here
+     through twenty-six seconds of the Haven visibly running out, rather than from a
+     bright, intact, perfectly safe cabin with no warning at all. The old sequence was
+     "surprise, monster", which the brief forbids in as many words and which STORY.md
+     section 18 forbids by a different route ("the transition is not a betrayal").
+
+     THE ENTITY IS NOT FORESHADOWED AND CANNOT APPEAR EARLY. It is spawned on this line
+     and nowhere else, this line is reachable only once havenShiftTriggered goes true, and
+     `tests/haven.js` drives the entire intact sequence frame by frame asserting that
+     nothing has spawned at any point in it. A silhouette in the window during the calm
+     would spend Phase 33's only card in the one place the game has promised there is
+     nothing to be afraid of.
+
+     Called from exactly two places, both in _updateHaven: the bed, and the record running
+     out. There is no third. */
   _triggerHavenShift(cause) {
     if (this.havenShiftTriggered) return;
     this.havenShiftTriggered = true;
     this.havenShiftElapsed = 0;
+
+    /* PHASE 32 — HAND THE RENDERER BACK FIRST. The dissolve is the Haven's own effect and
+       the collapse below is the finale's; leaving the fade up would blur and desaturate
+       the void glitch, and leaving the env dissolve up would fight the nightmare fog.
+       Both are dropped here so the two sequences never overlap by one frame. */
+    this.postfx.setHavenFade(0);
+    this.env.setHavenDissolve(0);
 
     // --- AUDIO: warp the chiptune down and tear it into harsh static ---------------
     this.sound.warpHavenMusicToStatic();
@@ -35100,9 +35931,13 @@ class Game {
     // --- CAMERA: violent shake ------------------------------------------------------
     this.shake(0.85, 2.6);
 
-    this.ui.showToast(cause === 'bed'
-      ? 'You close your eyes \u2014 and it is already here.'
-      : 'The warmth was never yours.', 2600);
+    /* PHASE 32 — AND THE SHIFT SAYS NOTHING EITHER.
+
+       It used to say "The warmth was never yours." That line is a betrayal, and STORY.md
+       section 18 is explicit that this is not one: "Nothing turns on the player. The
+       Haven RUNS OUT, and what is underneath it was always underneath it." A sentence
+       that reframes the last three minutes as a trick also throws away the only thing
+       the sequence was built to produce, which is loss. Nothing is said. */
     this._refreshObjective();
   }
 
@@ -35286,6 +36121,11 @@ class Game {
 
       // --- the end ---------------------------------------------------------------------
       havenShifted: !!this.havenShiftTriggered,
+      /* PHASE 32 — the Haven's final stage, during which the place is visibly being
+         removed. Asking a player to "Rest." while the room fades out around them would
+         be the objective system talking over the one moment the phase exists for. */
+      havenEnding: !!this.player.inFakeHaven && !this.havenShiftTriggered &&
+                   this.havenTimer >= HAVEN_ENDING_FROM,
       climax: !!this.climaxTriggered,
     };
   }
@@ -35445,7 +36285,7 @@ class Game {
       this.world.updateFakeHaven(dt);
       // PHASE 5B — either count down to the illusion collapse, or, once it has
       // happened, run the Void Sovereign encounter toward the climax.
-      if (!this.havenShiftTriggered) this._updateHavenCountdown(dt);
+      if (!this.havenShiftTriggered) this._updateHaven(dt);
       else this._updateHavenShift(dt);
     }
     // LEVEL 3 — STATIC SUBURBIA (PHASE 5A PART 2): while stationary >3s, silently

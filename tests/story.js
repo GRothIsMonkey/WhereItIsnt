@@ -177,10 +177,6 @@ const SCRIPT = gameScript();
     ['the opening instruction, line 2',   "'Go east.'"],
     ['the compass toast',                 'A brass compass, still true. North holds.'],
     ['the Farmlands rift toast',          'The Rift tears open'],
-    ['the Haven arrival toast',           'Somewhere safe. Somewhere warm.'],
-    ['the Haven shift line',              'The warmth was never yours.'],
-    ['the bed variant of the shift line', 'You close your eyes'],
-    ['the Home approach line',            'The room goes bright'],
     ['the Farmlands banner',              'THE SHATTERED FARMLANDS'],
     ['the Suburbia banner',               'STATIC SUBURBIA'],
     ['the Haven banner',                  'THE HAVEN'],
@@ -191,6 +187,47 @@ const SCRIPT = gameScript();
   chk(lost.length === 0,
       `all ${FRAGMENTS.length} audited narrative fragments are still in the build` +
       (lost.length ? ` — LOST: ${lost.join(', ')}` : ''));
+
+  /* =================================================================================
+     PHASE 32 DELETED FOUR OF THESE ON PURPOSE, AND THIS IS NOW THE STRONGER CHECK.
+
+     Until Phase 32 the four lines below were audited as fragments that must SURVIVE,
+     on the general principle that a story phase must not delete the story. Phase 32
+     deleted them anyway, because each one was the game telling the player how to feel
+     about a room it had just put them in:
+
+       'The room goes bright — and keeps going.'   narrating the transition
+       'Somewhere safe. Somewhere warm.'           TELLING the player they are safe
+       'The warmth was never yours.'               reframing the Haven as a betrayal
+       'You close your eyes — and it is already here.'   ditto, on the bed
+
+     The middle two are the load-bearing ones. STORY.md section 18 requires that the
+     safety be REAL and that the ending not be a betrayal — "Nothing turns on the
+     player. The Haven RUNS OUT, and what is underneath it was always underneath it."
+     A player who is told a room is safe has been asked to take the game's word for it;
+     a player who works it out over two silent minutes has invested something they can
+     then lose, which is the entire mechanism of the sequence.
+
+     So the audit is inverted rather than dropped: these must now stay OUT. Deleting
+     the story is still forbidden — the list above is what that rule protects. Putting
+     a caption back on the Haven is a different mistake and this catches it.
+
+     The search is over the script with comments stripped, because the phase's own
+     comments quote the lines they removed in order to explain why. */
+  const NO_COMMENTS = SCRIPT.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const REMOVED_BY_32 = [
+    ['the Haven arrival caption',         'Somewhere safe. Somewhere warm.'],
+    ['the Haven shift line',              'The warmth was never yours.'],
+    ['the bed variant of the shift line', 'You close your eyes'],
+    ['the white-wash caption',            'The room goes bright'],
+  ];
+  const returned = REMOVED_BY_32.filter(([, text]) => NO_COMMENTS.indexOf(text) >= 0)
+                                .map(([label]) => label);
+  chk(returned.length === 0,
+      'the four captions Phase 32 removed from the Haven have not come back' +
+      (returned.length ? ` — RETURNED: ${returned.join(', ')}` : ''));
+  chk(/STORY\.md section 18/.test(GAME) || /section 18/.test(GAME),
+      'and the build cites the canon section that required their removal');
 
   // The journey objective lines are the model Phase 25 must follow; they must survive.
   const JOURNEY = ['Explore the Shattered Farmlands.', 'Follow the old farm road.',

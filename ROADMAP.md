@@ -1999,11 +1999,36 @@ RULES THAT NOW HOLD
 - **Phase 15 was extended, not shadowed.** There is still exactly one Suburbia revision
   system.
 
-**Phase 32 is next** and builds Fake Haven.
+**Phase 32 is complete.** See section 50 and `PROGRESS.md` section 0.0000000000.
 
 ---
 
-# 50. PHASE 32 — FAKE HAVEN DREAM SEQUENCE
+# 50. PHASE 32 — FAKE HAVEN DREAM SEQUENCE — COMPLETE
+
+**DELIVERED. The record below is the original brief; what follows it is what was built and
+where the two disagree.**
+
+WHAT THE HAVEN IS NOW: six stages over 178 seconds, of which the first 82 contain nothing
+different at all. The horror vocabulary is REMOVAL and nothing else — the world outside the
+windows goes quiet, then the hearth stops sounding while it is still visibly burning, then
+the clouds stop and the music loses its bass, then the room tone goes and the place is
+removed over twenty-six seconds. Nothing is added to frighten the player, nothing turns on
+them, and the four captions that used to tell them how to feel are deleted.
+
+**THE LENGTH IS A KNOWN DISAGREEMENT AND THIS SECTION WAS NOT REWRITTEN TO HIDE IT.** The
+brief below says "approximately 30 seconds". The Phase 32 implementation brief asks for the
+first one to two minutes to be calm and for the wrongness to arrive gradually after that,
+and asks a human playtester whether there was enough time for the false safety to establish
+itself. Those cannot both be satisfied; the later, more specific document won. This is two
+briefs disagreeing, not a canon contradiction — STORY.md section 18 is silent on duration
+and is satisfied either way.
+
+Everything else below was implemented as written: the player wants to stay, the collapse is
+not revealed early, and the sequence hands to Phase 33 at one boundary.
+
+---
+
+*The original brief follows.*
 
 Fake Haven should become a genuine dreamlike refuge.
 
@@ -3427,7 +3452,7 @@ canon)
 
 Current next major phase:
 
-Phase 32 — Fake Haven Dream Sequence
+Phase 32 — Fake Haven Dream Sequence            COMPLETE
 
 Current game build baseline:
 

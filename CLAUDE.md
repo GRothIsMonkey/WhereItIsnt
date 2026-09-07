@@ -1416,7 +1416,7 @@ Phase 28 — Remove Tutorial / Organic Onboarding   (COMPLETE — see section 54
 Phase 29 — Main Menu Rebirth + UI Typography     (COMPLETE — see section 55)
 Phase 30 — Opening Lore Film                     (COMPLETE — see section 56)
 Phase 31 — Environmental Storytelling            (COMPLETE — see section 57)
-Phase 32 — Fake Haven Dream Sequence
+Phase 32 — Fake Haven Dream Sequence              (COMPLETE — see section 58)
 Phase 33 — Final Creature / Horror Finale
 Phase 34 — Final Audio / Visual Climax
 Phase 35 — Complete Dimension Cohesion
@@ -1958,9 +1958,14 @@ RULES THAT NOW HOLD:
   storytelling means adding a row to `ENVIRONMENT_STORY_EVENTS`, a site, and — only if it
   is genuinely new geometry — a stamper. It does not mean writing another `_farmStamp*`.
 
-# 58. PHASE 32 — FAKE HAVEN
+# 58. PHASE 32 — FAKE HAVEN — COMPLETE
 
-Fake Haven should initially be:
+PHASE 32 CARRIED THIS OUT. The Haven is six stages over 178 seconds, of which the first 82
+contain nothing different at all; the four captions that told the player how to feel are
+deleted; and the cabin can no longer be chopped down for timber. This section is now a
+statement about the code, not an intention. See `PROGRESS.md` section 0.0000000000.
+
+Fake Haven is still, and must remain:
 
 - beautiful
 - warm
@@ -1968,19 +1973,71 @@ Fake Haven should initially be:
 - safe
 - dreamlike
 
-The player should ideally WANT to remain there.
+The player should WANT to remain there. It must not scream "this is a trap."
 
-The intended structure:
+WHAT THE HAVEN IS NOW:
 
-Fake Haven
-→
-roughly 30 seconds of safety
-→
-blur/dissolve
-→
-separate final horror scene
+  HAVEN_STAGES  a frozen table of SIX stages tiling 0-178s with no gap: arrival, settled,
+                perfect, noticing, thinning, ending. NOTHING is scheduled — the stage and
+                the dissolve are pure functions of `havenTimer`, which is why settings can
+                pause it, why a test can drive it, and why there is nothing to leak.
+                `setTimeout` appears nowhere in the sequence.
 
-Fake Haven should not immediately scream "this is a trap."
+  THE ARC       comfort (0-82s, in which nothing whatsoever changes) -> one quiet
+                repetition -> stillness -> removal.
+
+  THE AMBIENCE  three layers on `musicBus` — room, outside, hearth — started and stopped
+                with the dimension on the same contract as Phase 30's film ambience.
+
+  THE ANOMALY   ONE. A second mug on the mantel, the same block id as the one already on
+                the low table, committed only while the hearth is out of shot and the
+                player is five blocks away.
+
+  THE DISSOLVE  26 seconds, one pure ramp, read independently by the shader (one uniform
+                on the existing pass), the sky, the cabin's own lamps and the objective.
+
+  THE EXITS     TWO, and both reach `_triggerHavenShift` through ONE line: the record
+                running out, and lying down. The bed is an ENDING, not a skip — it moves
+                the clock to the START of the removal, so the rest lands in full and the
+                player gets the whole dissolution.
+
+RULES THAT NOW HOLD:
+
+- **NOTHING IS ADDED TO FRIGHTEN THE PLAYER. THINGS STOP.** Removal is the only horror
+  vocabulary this dimension gets. A sting, a stinger, a whisper, a silhouette or a shadow
+  in the Haven is a different game. `tests/haven.js` fails if any ambience level or the
+  music state ever RISES between stages.
+- **THE HAVEN SAYS NOTHING.** No toast, no caption, no narration. "Somewhere safe.
+  Somewhere warm." told the player the conclusion the room has to earn; "The warmth was
+  never yours." reframed the whole sequence as a betrayal, which STORY.md section 18
+  explicitly forbids. Both are deleted and `tests/story.js` fails if either returns. The
+  objective is one word, "Rest.", and then nothing.
+- **THE SAFETY IS REAL AND SO IS THE REST.** The bed genuinely restores health and sanity,
+  from the first frame, and does not punish the player for using it.
+- **THE CABIN CANNOT BE TAKEN APART.** `_havenIsReadOnly()` refuses mining and placement,
+  silently. The bed and the storage chest still work — they are the two contextual
+  interactions the Haven allows. No mining, crafting, gathering, building or farming, and
+  no prompt may offer a verb the dimension refuses.
+- **NOTHING CHANGES WHILE IT IS BEING WATCHED.** STORY.md section 16 rule 1, obeyed here
+  as everywhere. The one committed change is DISCOVERED, never witnessed; a player who
+  never turns their back on the fireplace never gets it, and that is correct.
+- **NOTHING IS OVERTLY WRONG BEFORE THE SHIFT** (STORY.md section 23). The Haven's three
+  env-story events are a callback, a repetition and an absence. Not one of them is broken,
+  spooky, or addressed to the player.
+- **NO CREATURE, AND NO FORESHADOWING OF ONE.** No Stalker, no Behemoth, no final entity.
+  The entity is spawned from exactly one call site in the build and it is downstream of the
+  shift. Both test suites walk the entire intact sequence proving nothing has spawned.
+- **THE HAVEN IS NEVER SAVED.** Saving and loading are both refused; `SAVE_DIMENSIONS` does
+  not contain it. The save schema did NOT change in this phase.
+- **A NEW GAME PUTS THE POCKET BACK.** `_resetHavenPocket()` undoes everything the
+  generator did. Before it existed, a second visit in a later run arrived in an empty
+  pocket with no ground and no cabin, and the bed and fog ring were left in the new run's
+  Overworld. Anything a future phase adds to `generateFakeHaven` must be removed there.
+- **THE LENGTH IS A KNOWN DISAGREEMENT.** ROADMAP.md section 50 says ~30 seconds; the
+  Phase 32 brief asks for 1-2 minutes of calm and gradual wrongness after it. The build
+  follows the brief at 178s. ROADMAP.md was NOT rewritten; see PROGRESS.md.
+- **`_triggerHavenShift()` IS THE BOUNDARY.** Phase 32 ends there; Phase 33 owns everything
+  past it. Do not add a third caller.
 
 ---
 

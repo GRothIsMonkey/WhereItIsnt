@@ -1,8 +1,8 @@
 # WHERE IT ISN'T — PROJECT STATE
 
 ```
-Current phase              31 — ENVIRONMENTAL STORYTELLING (complete)
-Next phase                 32 — FAKE HAVEN DREAM SEQUENCE
+Current phase              32 — FAKE HAVEN DREAM SEQUENCE (complete)
+Next phase                 33 — FINAL CREATURE / HORROR FINALE
 Phase 19                   COMPLETE
 Phase 20                   COMPLETE
 Phase 20 journey revision  COMPLETE           (20.1 — see section 0)
@@ -18,11 +18,14 @@ Phase 28                   COMPLETE           (see section 0.000000)
 Phase 29                   COMPLETE           (see section 0.0000000)
 Phase 30                   COMPLETE           (see section 0.00000000)
 Phase 31                   COMPLETE           (see section 0.000000000)
+Phase 32                   COMPLETE           (see section 0.0000000000)
 XP                         REMOVED            (no runtime XP exists; see section 0.0000)
 Hearts / vital bars        REMOVED            (no runtime HUD bar exists; see section 0.00000)
 Tutorial                   REMOVED            (no tutorial exists; see section 0.000000)
 Courier New                REMOVED            (the HUD's blur was the typeface; section 0.0000000)
 Opening film               NEW GAME ONLY      (68s, in-world; CONTINUE never plays it)
+Fake Haven                 178s, SIX STAGES   (nothing differs for 82s; never saved)
+Haven mining               REFUSED            (the cabin cannot be taken apart)
 Save schema                VERSION 5          (4 -> 5 adds progression.noticed)
 Authoritative build        game.html          (there is no other game file)
 Canonical story            STORY.md           (read before writing ANY player text)
@@ -33,11 +36,300 @@ Phases 1–19 are as their sections in `ROADMAP.md` describe them. This file rec
 state of Phase 20 specifically: what was built, what was measured, what was found and
 fixed along the way, and what is honestly not verified.
 
-**Sections 0.000000000–0.5 describe the phases that followed (31, 30, 29, 28, 27, 26, 25, 23, 22, 21, 20.2). Sections 1–5
+**Sections 0.0000000000–0.5 describe the phases that followed (32, 31, 30, 29, 28, 27, 26, 25, 23, 22, 21, 20.2). Sections 1–5
 describe Phase 20 as it was first delivered, and Section 0 describes the 20.1 journey
 revision that followed a human playtest and supersedes them wherever they disagree** — principally the beat table, the landmark set, the distances, and the
 performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
 instruction and the compass and changed no world generation at all.
+
+---
+
+## 0.0000000000. PHASE 32 — FAKE HAVEN DREAM SEQUENCE
+
+The Haven was thirty seconds of a warm room and then a monster, with a caption telling the
+player they were safe and another one telling them they had been fooled.
+
+---
+
+# THE DECISION THIS PHASE TURNS ON
+
+**Nothing is added to frighten the player. Things stop.**
+
+The Haven arrived at this phase already beautiful — Phase 5A built the cabin, Phase 10
+dressed it, and the interior is genuinely the best-made room in the game, which is exactly
+what STORY.md section 18 asks for. What it did not have was TIME, or a SHAPE, or any idea
+what it was for. It ran a flat thirty-second timer and then snapped: blood-red sky, decayed
+voxels and an eight-metre entity, in one frame, from a bright and perfectly safe cabin.
+
+That is "surprise, monster", which the brief forbids in as many words. It also contradicts
+the canon by a second and more interesting route. STORY.md section 18:
+
+> **The transition is not a betrayal.** Nothing turns on the player. The Haven *runs out*,
+> and what is underneath it was always underneath it.
+
+A place that runs out cannot be depicted by a place that detonates. So the phase's whole
+horror vocabulary is REMOVAL — and once that decision is made, everything else follows from
+it, including what the audio does, what the renderer does, and why there is no scare in the
+sequence anywhere.
+
+## THE SIX STAGES
+
+`HAVEN_STAGES` is a frozen table and the stage is a PURE FUNCTION of one accumulating
+number, for the same reasons `FILM_BEATS` is (Phase 30): settings can pause it by not
+calling it, a test can drive it to any point in one assignment, and there is nothing
+scheduled that could outlive the dimension. `setTimeout` appears nowhere in the sequence and
+`tests/haven.js` fails if it ever does.
+
+| stage | ends | what changes |
+|---|---|---|
+| `arrival` | 14s | nothing. The longest stretch in which the game does absolutely nothing, because the player has to stop bracing before anything can be taken from them |
+| `settled` | 44s | nothing. The room is the room |
+| `perfect` | 82s | the world beyond the windows stops being audible. Reads as the room being cosy |
+| `noticing` | 118s | a second mug may appear on the mantel — the one committed change |
+| `thinning` | 152s | the hearth stops SOUNDING while it is still visibly burning; the clouds stop; the music loses its bass |
+| `ending` | 178s | the room tone goes, and the Haven is removed across twenty-six seconds |
+
+**Nothing whatsoever is different for the first 82 seconds.** The first subtraction is an
+ambience layer going quiet, which no one reads as horror.
+
+**THE LENGTH IS A KNOWN DISAGREEMENT, RECORDED RATHER THAN RESOLVED** — the same situation
+Phase 30 was in. `ROADMAP.md` section 50 says "approximately 30 seconds". The Phase 32 brief
+asks for the first one to two minutes to be calm, for the wrongness to arrive gradually
+after that, and for a human playtester to be asked whether there was enough time for the
+false safety to establish itself. Those cannot both be satisfied. The brief is the later and
+far more specific document, so the intact Haven runs 178s. **`ROADMAP.md` was NOT rewritten**
+— this is two briefs disagreeing, not a canon contradiction.
+
+## THE AUDIO IS SUBTRACTIVE
+
+`startHavenAmbience()` builds three layers on `musicBus` — `room` (the cabin's own tone),
+`outside` (the world past the windows) and `hearth` (the fire) — on exactly the contract
+Phase 30's `startFilmAmbience` is under: idempotent both ways, one teardown, every source
+stopped by name. The stage table names a target for each, the engine ramps with a 4.5s time
+constant so a stepped table cannot produce an audible edge, and **the entire progression is
+those targets going to zero one at a time.**
+
+The strongest beat in the phase is in `thinning`: **the fire stops making a sound while it
+is still visibly burning.** Nothing has gone wrong with it. It is simply not there any more,
+in the way the people are not there in the Farmlands.
+
+The music thins by the same logic. `havenMusicThin` makes `playHavenChiptunePhrase` skip the
+triangle bass — same tune, same tempo, same key, no floor under it — and `havenMusicSilent`
+stops new bars entirely, so the theme RUNS OUT rather than being cut off.
+
+## THE DISSOLUTION
+
+Twenty-six seconds, driven by one pure function (`havenDissolveAt`), which four systems read
+independently so they cannot disagree:
+
+- **the shader** — ONE uniform (`uHavenFade`) added to the full-screen pass that was already
+  running. Four taps of softening, a drain toward luma, and a recede toward pale from the
+  edges inward. No render target, no second pass, no new material: the brief's "do not build
+  a post-processing framework for this" taken literally.
+- **the sky** — fog closes from 0.006 to 0.075 (past the nightmare's own 0.055) and drains
+  toward grey; the sun and ambient go down; **the clouds stop drifting**, which is the
+  cheapest "time is wrong" beat available, since they are the only moving thing in that sky.
+- **the cabin's own lamps** — `setHavenLightLevel`, through the registry `_havenAddLight`
+  already kept. Without this the windows went grey while the inside stayed golden, which
+  reads as weather rather than as the place being removed.
+- **the objective line** — cleared at the START of the dissolution rather than at the shift.
+
+## WHAT THE HAVEN NOW SAYS TO THE PLAYER
+
+Nothing. Four captions were deleted:
+
+| removed | why |
+|---|---|
+| "The room goes bright — and keeps going." | narrating a transition the white wash already performs |
+| **"Somewhere safe. Somewhere warm."** | **TELLING the player they are safe** |
+| **"The warmth was never yours."** | **reframing the whole sequence as a betrayal** |
+| "You close your eyes — and it is already here." | the same, on the bed |
+
+The middle two are the load-bearing deletions. A player who is TOLD a room is safe has been
+asked to take the game's word for it; a player who works it out over eighty silent seconds
+has invested something they can then lose, and the loss is the only thing this phase is
+built to produce. `tests/story.js`'s fragment audit was INVERTED for these four rather than
+dropped: they must now stay out, and the rest of the audited narrative still must survive.
+
+The objective is one word — "Rest." — and then nothing.
+
+## THE ONE COMMITTED CHANGE
+
+A second mug appears on the mantel: the same block id as the one already on the low table.
+Mugs come in sets; nothing about it is broken. What it actually is, is the record's
+vocabulary (STORY.md section 13) turning up in the one dimension that was supposed to be
+above that.
+
+**STORY.md section 16 rule 1 is obeyed absolutely.** The commit is refused while the hearth
+is in shot or the player is within five blocks, on the same gate Suburbia's revisions use.
+A player who never turns their back on the fireplace during `noticing` never gets it, and
+that is a correct outcome rather than a missed one. It is DISCOVERED, never witnessed.
+
+STORY.md section 23 requires that **nothing be overtly wrong in the Haven before the shift**,
+and nothing is: the other two Haven events are a callback (the armchair, unchanged from
+Phase 31) and an absence (`haven_still_air` — the ambience going away, declared in the event
+table for the index's sake and owned by the stage machine, exactly as `sub_photograph` is
+declared there and owned by `_subStageEffect`).
+
+## THE BED IS AN ENDING, NOT A SKIP
+
+It used to fire the shift on the next frame: the player lay down, was told they felt better,
+and the world detonated before the sentence finished. That punishes the one kindness the
+game offers and makes a liar of the canon, which says resting genuinely restores and that
+this is what makes it cruel.
+
+Lying down now moves the clock to the START of the final stage. The rest lands in full, and
+then the player gets the entire dissolution — they close their eyes in a warm room and it
+goes quiet and pale and distant around them. Both exits reach `_triggerHavenShift` through
+**one line** in the build.
+
+## FOUR REAL DEFECTS FOUND, ALL FIXED
+
+These were found by building the tests, not by reading the code, and three of them predate
+this phase.
+
+**1. A SECOND VISIT TO THE HAVEN WAS EMPTY.** `generateFakeHaven()` is one-shot on
+`fakeHavenBuilt`, and nothing ever set that flag back. A New Game or a Load runs
+`wipeAllChunks()`, which disposes the nine chunks and clears the pin registry but left the
+flag true — so a player who visited the Haven, started a new run and reached it again
+arrived in a pocket with **no ground and no cabin**. Until then, the bed, the storage chest,
+the hearth fire, six warm lights and the whole fog ring were still sitting in the scene in
+the middle of the new run's Overworld. `VoxelWorld._resetHavenPocket()` now undoes
+everything the generator did — flags, props, lights, particles, the fog ring and the storage
+chest's contents — and the single teardown path calls it. This is exactly the replay
+behaviour the brief asked to be determined.
+
+**2. THE CABIN COULD BE STRIP-MINED.** Every block it is made of carries an ordinary
+hardness, so the player could chop the walls of the one room in the game rebuilt perfectly
+because somebody loved it, and carry the logs away. Found from a browser screenshot of the
+arrival, which caught the interaction prompt reading `LMB · CHOP` at a cabin wall.
+`_havenIsReadOnly()` now refuses mining and placement, silently — a denial toast here would
+be the game speaking, and this dimension does not speak. The bed and the chest still work:
+they are prop raycasts, they are the two contextual interactions the brief allows, and
+neither changes the room.
+
+**3. THE PROMPT OFFERED VERBS THE DIMENSION REFUSES.** Fixing (2) exposed that the look path
+resolved its prompt at three separate call sites, one of which (the no-target branch) was
+already offering the target-free CRAFT cue inside the cabin. All three now go through one
+policy function, `_lookPrompt`. Phase 28's rule is unchanged and still tested: a real
+affordance takes the line first, a cue is the last fallback.
+
+**4. THE VOID GLITCH SURVIVED A RESTORE.** `_triggerClimax` clears it on the way to the
+credits, so the ordinary route out was covered; a New Game or a Load taken from anywhere
+else after the shift was not, and left the datamosh tearing running over a freshly restored
+Overworld. Everything the finale writes to the renderer is now cleared in the one place a
+restore repaints from.
+
+## SAVE / LOAD
+
+**Unchanged, and that was already correct.** The Haven is the one place the game refuses to
+save: `saveBlockedReason()` covers `inFakeHaven`, `fakeHavenTriggered` and `climaxTriggered`,
+loading is refused separately, and `SAVE_DIMENSIONS` does not contain the Haven at all, so a
+forged save cannot name one. **The save schema did not change and there is no migration.**
+
+What Phase 32 added is proof rather than mechanism: `browser-haven.js` writes a real save
+from the Overworld, enters the Haven, attempts an explicit save, an autosave and a load, and
+asserts that not one byte of the stored save moved and that the player is still where they
+were. The Haven's storage chest is now emptied on a New Game, which it was not.
+
+## THE HANDOFF
+
+`_triggerHavenShift()` is the boundary. Phase 32 ends there and Phase 33 owns everything
+past it. **The collapse was not rebuilt** — the audio warp, the red snap, the cabin decay and
+the entity were all working, and a working system is not rewritten because a new phase
+arrived at it. What changed is WHEN it is reached and IN WHAT STATE: through twenty-six
+seconds of the Haven visibly running out, with the dissolve handed back on the first line so
+the two sequences never overlap by a frame, and with the warm ambience rig stopped
+explicitly (`fakeHavenMode` stays true through the collapse, so `setFakeHavenMode(false)`
+does not run there and the room tone would otherwise have played on under the void static).
+
+**The entity is spawned from exactly one call site in the whole build, and it is downstream
+of the shift.** `tests/haven.js` walks the entire intact sequence asserting nothing has
+spawned; `browser-haven.js` does the same against a live scene.
+
+## VALIDATION
+
+| suite | result |
+|---|---|
+| `haven.js` (new) | 145 checks, all pass |
+| `browser-haven.js` (new) | all pass, real Chromium + WebGL |
+| the other 19 offline suites | all pass |
+| the other 5 browser suites | all pass |
+
+**RUN THE BROWSER SUITES ONE AT A TIME.** Two findings came out of running them in
+parallel, and both are about the harness rather than the build:
+
+- `browser-haven.js` originally waited a fixed number of frames for the 2Hz anomaly sweep,
+  which is 1.3 seconds on a starved SwiftShader page and 0.13 seconds on a fast one — under
+  half a single sweep. It now waits on elapsed time AND on frames having run. It also
+  waited 400ms after the shift to read the renderer, which a single frame carrying a
+  multi-second `dt` can carry straight past the collapse into the credits, where the void
+  glitch is legitimately back to zero; it now waits on the condition, which cannot
+  overshoot.
+- `browser-opening.js` (Phase 30, untouched by this phase) samples the film's beats as it
+  plays. Under contention from another Chromium the sampler can skip the anomaly beat
+  entirely and the run fails on `a shape appears at the anomaly beat`. **Run alone on an
+  idle machine it passes**, which was verified on this exact build. This is a pre-existing
+  sampling flake in that file, recorded here rather than fixed, because Phase 32 changed
+  nothing in `OpeningFilm` and rewriting another phase's test on the strength of a
+  contention artefact is not this phase's call.
+
+Two existing suites were AMENDED, both deliberately and both toward a stronger claim:
+
+- `story.js` — the four Haven captions moved from "must survive" to "must stay out". The
+  rule that a story phase must not delete the story still guards everything else.
+- `onboarding.js` — the fallback assertion now tests the ORDER through `_lookPrompt` rather
+  than pinning one literal source expression, and adds the Haven case.
+- `environment.js` — the forty-block site-separation rule was narrowed to the thing it is
+  actually about (stamper clearings). The two Haven sites are eight blocks apart because
+  they are a chair and the mantel above the fire in the same 12x12 room, and neither clears
+  one cell of ground. Every site that DOES stamp terrain is still held to it, including
+  against the Haven's.
+
+### PERFORMANCE
+
+**Measured, on the real functions, in the offline harness:**
+
+| what the frame loop calls | cost |
+|---|---|
+| `havenStageAt` + `havenDissolveAt` (1M iterations) | **0.000399 ms/frame** |
+| `updateHavenAnomalies`, armed, worst case (200k frames) | **0.000103 ms/frame** |
+| `setHavenLightLevel`, changing every frame (200k frames) | **0.000297 ms/frame** |
+
+Under a thousandth of a millisecond in total, against a 16.7 ms frame budget. That is the
+whole of the Haven's per-frame cost: two clamped float writes, one integer compare for the
+stage, one light ramp, and — at 2Hz, only while an anomaly is armed, which is one stage in
+six — one distance and one dot product. The audio targets are written on stage TRANSITIONS
+only, six times in three minutes. The shader branch is skipped entirely while the fade is
+zero, which is the whole of the intact Haven and every other dimension in the game.
+
+Two `THREE.Color` allocations per frame were REMOVED from the Haven's environment path while
+adding the dissolve — they were being constructed fresh every frame for the ambient tint —
+and hoisted to module scope beside the existing cloud tint. The Haven is now cheaper per
+frame than it was before this phase, not merely no more expensive.
+
+`performance.js` reports the world generator unchanged: ordinary farmland -4.9% and the
+journey corridor -3.5% against the pre-Phase-20 baseline, every authored site inside the
+streamer's 4 ms budget, and **116 scene children after boot against a baseline of 116.**
+
+No world generation changed anywhere. `determinism.js` compares 374 chunks and passes;
+`regression.js` and `performance.js` are unchanged against their baselines.
+
+### WHAT IS NOT VALIDATED — READ THIS BEFORE CLAIMING THE PHASE WORKS
+
+**NO HUMAN HAS PLAYED THIS BUILD.** Everything above is structural or mechanical. Every
+question the brief actually cares about is open:
+
+- whether the cabin feels safer than the rest of the game
+- whether it feels familiar without saying whose it is
+- whether the perfection reads as unsettling or merely as pleasant
+- whether 82 seconds of nothing is right, too long, or not long enough
+- whether anyone notices a second mug, or the fire going quiet, or the clouds stopping
+- **whether losing it costs the player anything**, which is the only thing the phase is for
+
+The brief requires a human playtest and lists ten questions for one. None has been answered.
+The screenshots in `tests/renders/haven-*.png` are real frames from a real WebGL context and
+are the closest thing to an answer this session can offer, which is not close.
 
 ---
 

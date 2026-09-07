@@ -4,16 +4,30 @@ These are the checks Phase 20, its journey revision (20.1), the guidance pass (2
 item-contact pass (21), the settings pass (22), the save/load pass (23), the story
 foundation (24), the objective system (25), the XP removal (26), the HUD rebirth (27) and
 the tutorial removal (28), the main-menu rebirth + typography pass (29), the opening
-film (30) and the environmental-storytelling framework (31) were built against. They run the **real game code** — the
+film (30), the environmental-storytelling framework (31) and the Fake Haven sequence (32)
+were built against. They run the **real game code** — the
 `<script>` body of `game.html` is loaded into a Node VM with a small DOM stub, and a real
 `VoxelWorld` is constructed and asked to generate real chunks. Nothing here reimplements
 the generator, and nothing here asserts on metadata where a player-facing property could
 be measured instead.
 
 Everything here is offline **except `browser-save.js`, `browser-onboarding.js`,
-`browser-menu.js`, `browser-opening.js`, `browser-environment.js`, `preview-hud.js`,
-`preview-opening.js` and `preview-environment.js`**, which launch
-Chromium, serve `game.html` over HTTP and drive the real page. Where a file is offline it says so, and
+`browser-menu.js`, `browser-opening.js`, `browser-environment.js`, `browser-haven.js`,
+`preview-hud.js`, `preview-opening.js` and `preview-environment.js`**, which launch
+Chromium, serve `game.html` over HTTP and drive the real page.
+
+**The browser suites need `three.js` locally**, because the page loads it from a CDN that a
+sandboxed or offline machine cannot reach — without it `window.game` never appears and every
+browser suite times out after ninety seconds looking for it. Vendor it once:
+
+```
+mkdir -p tests/vendor
+cp tests/node_modules/three/build/three.min.js tests/vendor/three.min.js
+# ...or: curl -o tests/vendor/three.min.js https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js
+```
+
+Each suite routes `**/three.min.js` to that file when it exists, so the run is hermetic.
+`tests/vendor/` is gitignored. Where a file is offline it says so, and
 where a claim needs a browser it is made in that file and nowhere else.
 
 ## Running them
@@ -50,6 +64,8 @@ node render-journey.js             # writes PNGs into tests/renders/
 node preview-hud.js                # Phase 27 — REAL browser screenshots of the HUD
 node preview-opening.js            # Phase 30 — REAL screenshots of every beat of the film
 node preview-environment.js        # Phase 31 — REAL screenshots of every object it adds
+node haven.js                      # Phase 32 — the Haven stages, cabin, anomaly, save block
+node browser-haven.js              # Phase 32 — the sequence in a real Chromium
 ```
 
 `regression.js`, `journey.js`, `chain.js` and `performance.js` compare against the build
@@ -95,6 +111,8 @@ Both are gitignored: they are reproducible from git and each is over a megabyte.
 |---|---|
 | `determinism.js` | two independently booted worlds, and one world generating the same chunks in reverse order, produce byte-identical chunk data across the journey; a disposed chunk regenerates identically; the resolved journey sites and the Rift Core chest key agree across boots |
 | `core-disk.js` | the Level 2 Rift Core Disk is **reachable on foot** — a body with the player's real dimensions is walked from the field outside the property, through the house, down the cellar stair, along the corridor and into the room at the end, and back out again |
+| `haven.js` | Phase 32. The stage table tiles all 178s with no gap and resolves identically for the same second; the comfort is measured (nothing changes for 82s) and every stage is a subtraction — no ambience layer or music state may ever rise; the dissolve is a monotonic ramp reaching exactly 1; the real cabin is read out of real chunk data and found closed, floored, roofed, furnished and lit; the one committed change is driven from four camera positions and refused from three of them; the armchair callback is present with its prerequisite and absent without it, and is literally the same furniture id the Farmlands stamps; the cabin refuses mining and placement while the bed and chest still work; the finale entity is spawned from one call site downstream of the shift; the ambience rig is idempotent and stops all five of its sources; the save is refused and a forged Haven save never loads; and no string the sequence can show is longer than sixty characters |
+| `browser-haven.js` | Phase 32 in a real Chromium with a real WebGL context: a real New Game, the real entry point, the world genuinely flushed to the nine-chunk pocket, control and pointer lock returned, forty frames of holding the break button at a cabin wall removing nothing, a real save written from the Overworld and not moved by a byte from inside the Haven, all six stages walked against a live renderer, the mug appearing only once the player has looked away, the fog and shader and lights measurably collapsing, the handoff handing the renderer back on the same frame, and a New Game followed by a second visit leaving no duplicate light, chunk, audio loop or timer |
 | `journey.js` | the beats: spawn on the carriageway facing the journey, crop density in the opening field, livestock and farmsteads met, the spine still bends, the tower's height/structure/biome/sightlines, the isolation ramp against the baseline, the repetition and cross-dimensional marks, the missing-farm evidence, and that leaving the route breaks nothing |
 | `chain.js` | the journey **revision**: the five landmarks resolve in order with room between them, the route is unbroken and winding over all 1,950 blocks from arrival to the property, it is measurably the widest road in the region, the procedural lattice is suppressed inside the corridor and byte-identical outside it, the scale hierarchy is readable in blocks, the reveals are staged at four different distances, the dead land is a graded ramp with a non-circular rim, the woodland retreats from the great tree, and each new landmark is somewhere a player can actually walk to and into |
 | `compass.js` | Phase 20.2 guidance. That the compass's EAST is the journey's EAST, derived from the movement basis rather than assumed, and that the bearing matches the direction the player would actually walk at all 1081 headings tested (including past ±360°); that the tape is not mirrored — E right of centre facing north, and turning right slides the strip left; that it draws nothing but the eight compass points and reads nothing but the yaw; that it is earned once from the first Overworld chest, is not an inventory item, lives in the Game progression block, and is re-applied on every dimension crossing; that the opening instruction is the two required lines and names nothing; that the world does not start until it resolves; that the recall is latched and no HUD text repeats it; and that all four arms of the arrival crossroads are unbroken road for 400 blocks |
