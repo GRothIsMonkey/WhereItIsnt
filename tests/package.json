@@ -32,7 +32,11 @@
     "preview-opening": "node preview-opening.js",
     "environment": "node environment.js",
     "browser-environment": "node browser-environment.js",
-    "preview-environment": "node preview-environment.js"
+    "preview-environment": "node preview-environment.js",
+    "haven": "node haven.js",
+    "browser-haven": "node browser-haven.js",
+    "finale": "node finale.js",
+    "browser-finale": "node browser-finale.js"
   },
   "dependencies": {
     "three": "0.128.0"

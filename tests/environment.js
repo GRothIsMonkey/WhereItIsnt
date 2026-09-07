@@ -498,16 +498,42 @@ head('8. ONE EVENT DOES NOT REACH ANOTHER');
   chk(sys.notice('not_an_event') === false, 'and an unknown id cannot be latched at all');
 
   /* Every site is far enough from every other that one stamper's clearing can never
-     reach another's object. */
+     reach another's object.
+
+     PHASE 32 NARROWED THIS TO THE THING IT IS ACTUALLY ABOUT, which is clearings. The
+     two Haven sites are eight blocks apart because they are in the same 12x12 room —
+     a chair by the fire and the mantel above it — and neither of them clears so much as
+     one cell of ground: havenChair drops a furniture model onto an existing floor and
+     havenMantel writes a single voxel onto an existing shelf. The separation rule still
+     holds in full for every site that stamps terrain, and it still holds BETWEEN the
+     Haven and everywhere else; it is only two interior sites in one authored room that
+     are allowed to share it. If a future Haven site ever clears ground, it does not
+     belong in this exemption. */
+  const HAVEN_INTERIOR_SITES = new Set(['havenChair', 'havenMantel']);
   const pts = [];
   for (const k of Object.keys(SITES)) { const p = SITES[k](w); if (p) pts.push([k, p]); }
   let tooClose = null;
   for (let i = 0; i < pts.length; i++)
     for (let j = i + 1; j < pts.length; j++) {
+      if (HAVEN_INTERIOR_SITES.has(pts[i][0]) && HAVEN_INTERIOR_SITES.has(pts[j][0])) continue;
       const d = Math.hypot(pts[i][1].x - pts[j][1].x, pts[i][1].z - pts[j][1].z);
       if (d < 40) tooClose = `${pts[i][0]} and ${pts[j][0]} are ${d.toFixed(0)} blocks apart`;
     }
-  chk(!tooClose, 'no two sites are within forty blocks of each other' + (tooClose ? ' — ' + tooClose : ''));
+  chk(!tooClose, 'no two ground-clearing sites are within forty blocks of each other'
+      + (tooClose ? ' — ' + tooClose : ''));
+  /* ...and the exemption is not a hole: the Haven's own sites are still required to be a
+     dimension away from every site that does clear ground. */
+  let havenReach = null;
+  for (const [ka, pa] of pts) {
+    if (!HAVEN_INTERIOR_SITES.has(ka)) continue;
+    for (const [kb, pb] of pts) {
+      if (HAVEN_INTERIOR_SITES.has(kb)) continue;
+      const d = Math.hypot(pa.x - pb.x, pa.z - pb.z);
+      if (d < 40) havenReach = `${ka} and ${kb} are ${d.toFixed(0)} blocks apart`;
+    }
+  }
+  chk(!havenReach, 'and no Haven site is within forty blocks of a stamping site'
+      + (havenReach ? ' — ' + havenReach : ''));
 }
 
 // =====================================================================================

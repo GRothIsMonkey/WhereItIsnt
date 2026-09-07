@@ -393,9 +393,17 @@ head('7. INPUT');
       'movementLocked returns from update() before any physics, after syncing the camera');
   chk(/document\.addEventListener\('mousedown', \(e\) => \{\s*\n\s*if \(!this\.locked \|\| this\.ui\.menuOpen \|\| this\.dead \|\| this\.movementLocked\) return;/.test(LIVE),
       'so mining, attacking and placing cannot fire — mousedown checks it directly');
-  chk(/_playing\(\) \{ return !!\(this\.progression && this\.progression\.running\); \}/.test(LIVE),
+  /* PHASE 33 GREW `_playing()` FROM A ONE-LINER INTO A METHOD, so this reads the gate
+     rather than pinning its exact source. What Phase 29 and Phase 30 rely on is unchanged
+     and is what is checked: the predicate is false whenever `running` is false, which is
+     the whole of the film. Phase 33 added a second reason for it to be false — a terminal
+     cinematic — which can only make more things inert, never fewer. */
+  chk(/if \(!g \|\| !g\.running\) return false;/.test(LIVE),
       'and `running` is false for the whole film, which is what makes E, I, Tab, the slot ' +
       'keys and the wheel inert (Phase 29)');
+  chk(/g\.finale && g\.finale\.active/.test(LIVE) && /g\.climaxTriggered/.test(LIVE),
+      'and Phase 33 added a terminal-cinematic case to the same gate, which only ever ' +
+      'makes more keys inert');
 
   const start = methodBody(LIVE, '_start');
   chk(start && !/this\.running = true/.test(start),

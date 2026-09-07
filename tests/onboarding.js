@@ -318,11 +318,49 @@ head('5. THE WORLD WINS THE LINE');
       pf(BLOCK.TREASURE_CHEST).verb === 'OPEN',
       'doors, the Anchor and Ancient Chests still carry the affordances Phase 27 gave them');
 
-  const fn = methodBody(LIVE, '_updateTargetHighlight');
-  chk(/_setPrompt\(this\._promptForBlock\(id\) \|\| this\._havenPropPrompt\(\) \|\| this\._onboardingCue\(id\)\)/.test(fn),
+  /* PHASE 32 GATHERED THIS POLICY INTO ONE FUNCTION, `_lookPrompt`, because it was
+     previously spelled out at three call sites inside _updateTargetHighlight that could
+     drift apart — and one of them (the no-target branch) was already offering the CRAFT
+     cue inside the Haven. The Phase 28 rule is unchanged and is still what is checked
+     here: a real affordance takes the line first and a cue is the last fallback. */
+  const fn = methodBody(LIVE, '_lookPrompt');
+  chk(!!fn, 'the prompt policy lives in one function');
+  chk(/affordance \|\| this\._havenPropPrompt\(\) \|\| this\._onboardingCue\(/.test(fn),
       'and a cue is the LAST fallback: a real affordance always takes the line first');
-  const exits = (fn.match(/return;/g) || []).length;
-  const answers = (fn.match(/_setPrompt\(/g) || []).length;
+  chk(fn.indexOf('_havenIsReadOnly') < fn.indexOf('_onboardingCue'),
+      'in the Haven it returns before a cue can ever be reached');
+  chk(/_havenIsReadOnly\(\)\) return this\._havenPropPrompt\(\);/.test(fn),
+      'where the props are the whole vocabulary — a dimension that refuses a verb never offers it');
+
+  /* And the three call sites really do all go through it, so there is no fourth policy. */
+  const upd = methodBody(LIVE, '_updateTargetHighlight');
+  const routed = (upd.match(/_setPrompt\(this\._lookPrompt\(/g) || []).length;
+  chk(routed === 3, `all ${routed} prompt writes in the look path go through it`);
+  chk(!/_onboardingCue|_promptForBlock/.test(upd),
+      'and none of them resolves a prompt on its own');
+
+  /* Driven, not just read: the same resolver, once outside the Haven and once inside. */
+  const promptSelf = (inHaven) => ({
+    inFakeHaven: inHaven, world: {}, progression: { onboarding: new Set() },
+    inventory: new Inventory(), selectedSlot: 0,
+    _havenIsReadOnly: PlayerController.prototype._havenIsReadOnly,
+    _promptForBlock: PlayerController.prototype._promptForBlock,
+    _onboardingCue: PlayerController.prototype._onboardingCue,
+    _havenPropPrompt: () => null,
+  });
+  const lookAt = (self, id) => PlayerController.prototype._lookPrompt.call(self, id);
+  chk(lookAt(promptSelf(false), closedDoor).verb === 'OPEN',
+      'outside the Haven a door still answers with OPEN');
+  chk(lookAt(promptSelf(true), closedDoor) === null,
+      'and inside the Haven, with no prop under the crosshair, the line is empty');
+  chk(lookAt(promptSelf(true), BLOCK.OAK_LOG) === null,
+      'a cabin wall offers nothing — no CHOP, and no cue behind it');
+  /* PHASE 32 — `fn` is now the policy function, so this reads the LOOK PATH explicitly.
+     The invariant is unchanged: every way out of _updateTargetHighlight writes the prompt,
+     so neither a cue nor an affordance can be left stuck on screen after the thing that
+     put it there has gone. */
+  const exits = (upd.match(/return;/g) || []).length;
+  const answers = (upd.match(/_setPrompt\(/g) || []).length;
   chk(exits === answers && exits >= 4,
       `all ${exits} exit paths still answer the prompt — a cue can no more stick than an affordance can`);
 
