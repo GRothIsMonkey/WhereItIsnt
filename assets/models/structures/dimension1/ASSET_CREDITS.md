@@ -8,3 +8,5 @@ Log Cabin 2 credits
 "PSXprop - wooden Cabin" (https://skfb.ly/pwIrz) by Wardster is licensed under Creative Commons Attribution-NonCommercial (http://creativecommons.org/licenses/by-nc/4.0/).
 Log Cabin 3 credits
 "Scandinavian Log Cabin" (https://skfb.ly/pBJuN) by rivetech is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+Old COuntryside House 1 Credits
+"Old House" (https://skfb.ly/6WNYL) by rhcreations is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
