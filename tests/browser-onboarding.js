@@ -118,6 +118,14 @@ function aim(page, kind, dist) {
     const g = window.game, p = g.player;
     p.locked = true; p.dead = false;
     p.yaw = 0; p.pitch = 0;                       // facing -Z
+    /* AND THE CAMERA HAS TO BE TOLD. yaw/pitch are the player's; the ray is cast from the
+       CAMERA, which PlayerController.update syncs once a frame. Setting the fields and
+       raycasting in the same tick therefore aims the ray wherever the camera was last
+       left. This went unnoticed until Phase 30, whose film hands over facing east: before
+       it, the camera happened to already be at yaw 0 and the bug was invisible. */
+    p.camera.rotation.order = 'YXZ';
+    p.camera.rotation.y = p.yaw;
+    p.camera.rotation.x = p.pitch;
     const bx = Math.floor(p.position.x);
     const bz = Math.floor(p.position.z) - d0;
     const by = Math.floor(p.position.y + p.eyeHeight);
@@ -192,6 +200,12 @@ function aim(page, kind, dist) {
     head('2. BEGIN EXPEDITION GOES STRAIGHT TO THE GAME');
     // =================================================================================
     await page.click('#clickPlay');
+    /* PHASE 30 — past the opening film. NEW GAME now plays a sixty-eight second cinematic
+       before the crossroads instruction, so every fresh boot here skips it the way a
+       player would. film.skip() is the same path the SKIP control runs. */
+    await page.waitForFunction('window.game.film && window.game.film.active === true', null, { timeout: 30000 });
+    await page.evaluate(() => window.game.film.skip());
+    await page.waitForTimeout(150);
     {
       /* The opening instruction is the one thing between the click and the world, and it
          is Phase 20.2's, not a tutorial: black, one line, skippable by any key. */

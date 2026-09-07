@@ -403,6 +403,12 @@ async function setSize(page, w, h) {
     // =================================================================================
     {
       await page.click('#clickPlay');
+      /* PHASE 30 — past the opening film. NEW GAME now plays a sixty-eight second cinematic
+         before the crossroads instruction, so every fresh boot here skips it the way a
+         player would. film.skip() is the same path the SKIP control runs. */
+      await page.waitForFunction('window.game.film && window.game.film.active === true', null, { timeout: 30000 });
+      await page.evaluate(() => window.game.film.skip());
+      await page.waitForTimeout(150);
       await page.keyboard.press('Space');        // skip the opening instruction
       await page.waitForFunction('window.game && window.game.running === true', null, { timeout: 60000 });
       await page.waitForTimeout(600);

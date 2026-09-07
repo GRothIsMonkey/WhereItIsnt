@@ -566,6 +566,61 @@
     #clockWrap { top: 14px; right: 14px; }
   }
 
+  /* =================================================================================
+     PHASE 30 — THE OPENING FILM.
+
+     ONE OVERLAY, AND IT IS MOSTLY EMPTY. The film happens in the WORLD — the real scene,
+     the real camera, the real renderer — and this layer exists only to do the three
+     things a 3D scene cannot do for itself: wash to black, put two short lines on the
+     screen, and offer a way out. Everything else the player sees during those seventy
+     seconds is the game.
+
+     Z-INDEX 55 is the layer Phase 28 emptied when it deleted the tutorial screen, and it
+     is the right one: above the HUD (15) and the world, BELOW the settings panel (56) so
+     a player who opens settings mid-film gets the panel on top rather than under, and
+     below the opening instruction (60) which plays after this layer has already gone.
+
+     NOTHING HERE IS ANIMATED BY CSS. Every value is written by OpeningFilm from the frame
+     loop, because the film is advanced by dt rather than by timers — which is what lets
+     the settings panel genuinely pause it and what means there is nothing to leak. */
+  #openingFilm {
+    position: fixed; inset: 0; z-index: 55; display: none;
+    pointer-events: none;
+  }
+  #openingFilm.on { display: block; }
+  /* The wash. Opacity is assigned per frame; there is deliberately no transition on it,
+     or the film's own easing would be fighting the browser's. */
+  #filmWash { position: absolute; inset: 0; background: #000; opacity: 1; }
+  /* The two lines. Same treatment as the opening instruction they hand over to, so the
+     film and its closing beat read as one piece of writing rather than two. */
+  #filmLine {
+    position: absolute; left: 0; right: 0; bottom: 21vh; text-align: center;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(17px, 2.1vw, 23px); letter-spacing: 2.2px; color: #cbbc97;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.95), 0 0 26px rgba(0,0,0,0.85);
+    opacity: 0; padding: 0 8vw;
+  }
+  /* The way out. Small, quiet, bottom-right — an affordance, not a button. It is the one
+     thing on this layer that takes a pointer event. */
+  #filmSkip {
+    position: absolute; right: 26px; bottom: 22px;
+    display: flex; align-items: center; gap: 8px;
+    background: none; border: none; cursor: pointer; pointer-events: auto;
+    font-family: var(--ui-face); font-size: var(--t-label); font-weight: 600;
+    letter-spacing: 2.4px; color: var(--hud-ink-faint);
+    text-shadow: var(--hud-shadow); opacity: 0;
+    transition: color 200ms linear;
+  }
+  #filmSkip:hover, #filmSkip:focus-visible { color: var(--hud-ink); outline: none; }
+  #filmSkip .key {
+    font-size: var(--t-tertiary); font-weight: 700; letter-spacing: 1px;
+    border: 1px solid rgba(120,104,72,0.55); border-radius: 2px; padding: 2px 6px;
+    color: var(--hud-ink-dim); background: rgba(12,10,7,0.72);
+  }
+  /* PHASE 30 — the HUD is hidden for the film's duration by one class on its root,
+     restored by removing it. No element is rebuilt and no display value is remembered. */
+  #hud.film-hidden, #crosshair.film-hidden { display: none; }
+
   /* PHASE 20.2 — THE OPENING INSTRUCTION.
 
      THIS IS NOT THE PHASE 30 LORE FILM AND DOES NOT PRETEND TO BE. That film does not
@@ -1092,6 +1147,14 @@
 
     <button id="reenterBtn" class="action-btn">RE-ENTER OVERWORLD</button>
   </div>
+</div>
+
+<!-- PHASE 30 — THE OPENING FILM'S ONLY DOM. The film itself is the world; this is the
+     wash, two lines and the way out. See OpeningFilm. -->
+<div id="openingFilm">
+  <div id="filmWash"></div>
+  <div id="filmLine"></div>
+  <button id="filmSkip">SKIP<span class="key">ESC</span></button>
 </div>
 
 <div id="openingInstruction"><div id="openingLine"></div></div>
@@ -2052,6 +2115,9 @@ class SoundEngine {
     /* PHASE 29 — the main menu's ambience. One handle, so the pair below can be called
        any number of times without ever building a second copy of it. */
     this.menuAmbience = null;
+    /* PHASE 30 — the opening film's ambience, on exactly the same pattern and for exactly
+       the same reason: one handle, one creation site, one teardown site. */
+    this.filmAmbience = null;
   }
 
   start() {
@@ -2215,6 +2281,88 @@ class SoundEngine {
       try { a.src.stop(); } catch (e) { /* already stopped */ }
       try { a.drone.stop(); } catch (e) { /* already stopped */ }
       for (const n of [a.src, a.lp, a.noiseGain, a.drone, a.droneGain]) {
+        try { n.disconnect(); } catch (e) { /* already detached */ }
+      }
+    }, 900);
+    return true;
+  }
+
+  /* =================================================================================
+     PHASE 30 — THE OPENING FILM'S AMBIENCE.
+
+     A field at first light, and one thing under it that a field does not have.
+
+       wind    brown noise through a bandpass at 340Hz — air moving over open ground,
+               with none of the whistle a narrower Q would give it
+       air     a 31Hz sine so low it is felt rather than heard, and the only element
+               here that is not something the place would actually be doing
+
+     Both on `musicBus`, so Phase 22's Music and Master sliders reach them and a player
+     who has turned music off gets a silent film — none of which is re-implemented here.
+
+     `setLevel` is what the film's beats actually drive: the wind lifts as the world
+     appears and settles as it calms, and the low air comes up under the two moments the
+     film wants the player's chest to notice before their eyes do. There is no music cue,
+     no sting and no scored track anywhere in this sequence — the loudest thing in the
+     film is a bird, and the most important thing in it is silence.
+
+     IDEMPOTENT IN BOTH DIRECTIONS, like startMenuAmbience: start returns early if it is
+     already running, stop ramps down, nulls the handle and tears the nodes down 900ms
+     later. Skipping the film at any instant lands in stop(), so there is exactly one way
+     out and no way to leave a source running. */
+  startFilmAmbience() {
+    if (!this.ctx || this.filmAmbience) return false;
+    const now = this.ctx.currentTime;
+
+    const src = this.ctx.createBufferSource();
+    src.buffer = this._makeNoiseBuffer(4, 'brown');
+    src.loop = true;
+    const bp = this.ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 340; bp.Q.value = 0.45;
+    const windGain = this.ctx.createGain();
+    windGain.gain.value = 0;
+    src.connect(bp); bp.connect(windGain); windGain.connect(this.musicBus);
+    src.start();
+
+    const air = this.ctx.createOscillator();
+    air.type = 'sine'; air.frequency.value = 31;
+    const airGain = this.ctx.createGain();
+    airGain.gain.value = 0;
+    air.connect(airGain); airGain.connect(this.musicBus);
+    air.start();
+
+    this.filmAmbience = { src, bp, windGain, air, airGain };
+    return true;
+  }
+
+  /* Called from the film's beats. `wind` and `air` are 0..1; the ramp is deliberately
+     slow (1.2s) so no beat can produce an audible step. */
+  setFilmAmbienceLevel(wind, air) {
+    const a = this.filmAmbience;
+    if (!a || !this.ctx) return false;
+    const now = this.ctx.currentTime;
+    try {
+      a.windGain.gain.setTargetAtTime(Math.max(0, Math.min(1, wind)) * 0.085, now, 1.2);
+      a.airGain.gain.setTargetAtTime(Math.max(0, Math.min(1, air)) * 0.040, now, 1.2);
+    } catch (e) { /* the graph is already gone */ }
+    return true;
+  }
+
+  stopFilmAmbience() {
+    const a = this.filmAmbience;
+    if (!a) return false;
+    this.filmAmbience = null;
+    const now = this.ctx ? this.ctx.currentTime : 0;
+    try {
+      a.windGain.gain.cancelScheduledValues(now);
+      a.windGain.gain.setTargetAtTime(0, now, 0.25);
+      a.airGain.gain.cancelScheduledValues(now);
+      a.airGain.gain.setTargetAtTime(0, now, 0.25);
+    } catch (e) { /* already gone */ }
+    setTimeout(() => {
+      try { a.src.stop(); } catch (e) { /* already stopped */ }
+      try { a.air.stop(); } catch (e) { /* already stopped */ }
+      for (const n of [a.src, a.bp, a.windGain, a.air, a.airGain]) {
         try { n.disconnect(); } catch (e) { /* already detached */ }
       }
     }, 900);
@@ -29943,6 +30091,23 @@ class UIManager {
     }
   }
 
+  /* PHASE 30 — THE HUD, HIDDEN FOR THE FILM.
+
+     One class on each of the two roots, and nothing else. The HUD is not torn down, no
+     element is rebuilt, and no display value has to be remembered — which is why bringing
+     it back is one `remove` and why a second New Game cannot end up with two of anything.
+     The crosshair is separate from #hud in this document, so it is named separately. */
+  setHudVisible(visible) {
+    const hud = document.getElementById('hud');
+    const cross = document.getElementById('crosshair');
+    for (const el of [hud, cross]) {
+      if (!el || !el.classList) continue;
+      if (visible) el.classList.remove('film-hidden');
+      else el.classList.add('film-hidden');
+    }
+    return !!visible;
+  }
+
   /* =================================================================================
      PHASE 29 — FITTING A HUD CANVAS TO THE DISPLAY.
 
@@ -30898,6 +31063,582 @@ class MenuAtmosphere {
    by itself was the KEY — and that is now three cue lines in ONBOARDING_CUES, each shown
    once, in the moment the key becomes useful, and never again after it is pressed.
    --------------------------------------------------------------------------------- */
+
+
+/* =====================================================================================
+   PHASE 30 — THE OPENING FILM
+
+   THE FILM IS THE WORLD. There is no pre-rendered sequence, no second scene, no video and
+   no separate canvas. What the player watches is the real Overworld, from the exact spot
+   they are about to be standing in, through the real camera and the real renderer — and
+   they can look around the whole time. That is the difference between an opening a player
+   watches and an opening a player is IN, and it is the reason this phase builds a state
+   machine rather than a movie.
+
+   WHAT IT SAYS, AND WHAT IT REFUSES TO SAY. STORY.md section 25 asks for "normality, one
+   wrongness, glimpses, no answers", and section 22 lists what must never be told. So this
+   film never names the record, the reconstruction, the Rift, the Stalker, the Behemoth or
+   any dimension; it never explains the observation rule; it never says what is out there
+   or why. It shows an ordinary field at first light, lets the player believe it, and then
+   breaks the belief four times in ways that cannot be argued with and cannot be
+   understood. The player should leave it thinking "something is wrong", not "I see".
+
+   TWO LINES OF TEXT IN THE WHOLE SEQUENCE. "I know this place." and "Some of it is
+   right." Neither states a fact about the world. The first is recollection — the player
+   is not amnesiac, section 2 is explicit about that — and the second is an observation
+   that implies its own opposite without ever making it. Everything else is shown.
+
+   ---------------------------------------------------------------------------------
+   THE ARCHITECTURE, AND WHY IT IS A TICKED STATE MACHINE
+
+   ADVANCED BY dt FROM THE FRAME LOOP. Not one setTimeout anywhere in this class. That is
+   not a stylistic preference:
+
+     - opening the settings panel genuinely PAUSES the film, because the frame loop's
+       existing settings branch returns before the film is ticked. A timer-driven film
+       would run on behind the panel and the player would come back to a different beat.
+     - there is nothing to leak. Skipping does not have to hunt down eleven pending
+       callbacks, because none were ever created. The single `active` flag is the whole
+       lifetime, and `_teardown()` is the single exit.
+     - it is testable without a browser and without waiting seventy seconds: a test hands
+       it dt and asks what beat it is on.
+
+   BEATS ARE DECLARATIVE. `FILM_BEATS` is a table of { id, at, dur } and nothing else
+   reads a hardcoded time. `beatAt(t)` is a pure function of the clock, so "what is on
+   screen at t=41s" is answerable in a unit test.
+
+   ---------------------------------------------------------------------------------
+   INPUT, AND WHY THERE IS NO NEW INPUT SYSTEM
+
+   The film needs exactly one input state: the player may look, and may do nothing else.
+   That state already exists and is already tested.
+
+     `player.movementLocked = true`  — PlayerController.update returns early after syncing
+                                       the camera from yaw/pitch, so mouse-look works and
+                                       movement, mining, attacking, placing and item drops
+                                       do not. The mousedown handler checks it directly.
+     `game.running === false`        — Phase 29's `_playing()` gate makes E, I, Tab, the
+                                       hotbar keys, the scroll wheel and the canvas's
+                                       pointer-lock click inert.
+
+   Between them every gameplay verb is already blocked, by code that shipped two phases
+   ago and has tests of its own. This class adds no keydown handler except the one that
+   listens for Escape, and no mouse handler at all.
+
+   ---------------------------------------------------------------------------------
+   NEW GAME AND CONTINUE
+
+   `_start()` is the New Game path and it is the only caller of `begin()`. `continueFromSave()`
+   goes straight to `_beginPlay()` and always did — which means CONTINUE has never been
+   able to see this film, and no save field was needed to make that true. The save schema
+   is UNCHANGED by this phase. A flag that can be derived from which function was called
+   is not state, it is a duplicate.
+   ===================================================================================== */
+
+/* The two lines the film says, and the only text in it besides SKIP. Neither names
+   anything and neither answers anything — see STORY.md sections 22 and 26. */
+const FILM_LINES = Object.freeze({
+  know:  'I know this place.',
+  right: 'Some of it is right.',
+});
+
+/* THE BEATS. `at` is seconds from the film's start; `dur` is how long the beat owns the
+   screen. Nothing outside this table decides when anything happens, and the whole
+   sequence's length is FILM_DURATION below rather than a number written twice. */
+const FILM_BEATS = Object.freeze([
+  /* Black, and almost silent. Long enough that the player stops waiting for a logo. */
+  { id: 'dark',       at: 0,    dur: 5 },
+  /* The world arrives — a slow wash off black onto an ordinary field at first light.
+     Nothing is happening in it, and that is the point of the next two beats as well. */
+  { id: 'reveal',     at: 5,    dur: 10 },
+  /* NORMALITY, HELD. No event, no cue, no movement. Every later wrongness is measured
+     against these nine seconds, so they are not dead air — they are the baseline. */
+  { id: 'familiar',   at: 15,   dur: 9 },
+  /* ONE WRONGNESS. A shape stands at the edge of the field. It does not move while it is
+     being looked at, and it is somewhere else the moment it is not. Nothing says so. */
+  { id: 'anomaly',    at: 24,   dur: 10 },
+  /* It is closer. Same rule, same silence, no reveal — it never resolves into anything
+     that could be named, because naming it is Phase 33's job and not this film's. */
+  { id: 'closer',     at: 34,   dur: 7 },
+  /* Something the size of the weather. Felt in the low air before it is seen, and seen
+     only as an absence of horizon. It is never shown whole. */
+  { id: 'vast',       at: 41,   dur: 7 },
+  /* THE SEAM. Two of it, side by side, identical, for a moment — the world disagreeing
+     with itself. No portal, no glow, no geometry that announces itself as a mechanic. */
+  { id: 'seam',       at: 48,   dur: 7 },
+  /* The world briefly stops being held to a standard. Colour and detail go, then come
+     back. This is the closest the film comes to stating its premise, and it still does
+     not state it. */
+  { id: 'unresolved', at: 55,   dur: 3 },
+  /* CALM. Everything ordinary again, and quieter than before. The film does not end on
+     its loudest moment, because what it wants the player to carry into the game is doubt
+     rather than adrenaline. */
+  { id: 'calm',       at: 58,   dur: 8 },
+  /* Out, and into the crossroads instruction — which is Phase 20.2's, unchanged, and is
+     played by this film as its closing beat rather than reimplemented. */
+  { id: 'out',        at: 66,   dur: 2 },
+]);
+const FILM_DURATION = FILM_BEATS[FILM_BEATS.length - 1].at + FILM_BEATS[FILM_BEATS.length - 1].dur;
+
+/* Which beat owns second `t`. Pure, and the only place the table is searched. */
+function filmBeatAt(t) {
+  if (!(t >= 0)) return FILM_BEATS[0].id;
+  for (let i = FILM_BEATS.length - 1; i >= 0; i--) {
+    if (t >= FILM_BEATS[i].at) return FILM_BEATS[i].id;
+  }
+  return FILM_BEATS[0].id;
+}
+/* How far through its own beat `t` is, 0..1. Used for every fade in the film. */
+function filmBeatProgress(t) {
+  for (let i = FILM_BEATS.length - 1; i >= 0; i--) {
+    const b = FILM_BEATS[i];
+    if (t >= b.at) return Math.max(0, Math.min(1, (t - b.at) / b.dur));
+  }
+  return 0;
+}
+
+/* Cycle-seconds for each beat, on the 720-second day. 690-720 is the pre-dawn ramp and
+   0-45 is sunrise, so the film opens in the last of the dark and ends in early morning —
+   a real dawn, moving slowly enough across sixty-eight seconds that no single moment
+   reads as an effect. See SKY_KEYS. */
+const FILM_LIGHT = Object.freeze({
+  dark: 697, reveal: 703, familiar: 709, anomaly: 713, closer: 716,
+  vast: 718, seam: 2, unresolved: 5, calm: 12, out: 16,
+});
+
+class OpeningFilm {
+  constructor(game) {
+    this.game = game;
+    this.root = document.getElementById('openingFilm');
+    this.wash = document.getElementById('filmWash');
+    this.lineEl = document.getElementById('filmLine');
+    this.skipEl = document.getElementById('filmSkip');
+    this.active = false;
+    this.t = 0;
+    this.beat = null;
+    this._onDone = null;
+    this.props = null;          // the shapes the film owns, and the only ones it adds
+    this._restore = null;       // exactly what has to be put back, captured at begin()
+    this._lineKey = null;
+    this._washPainted = -1;
+    /* Bound once, in the constructor, and gated on `active` — so however many New Games
+       are started there is one of each and none of them does anything between films. */
+    /* ESCAPE, AND THE ORDERING BUG THAT MADE THIS A CAPTURE LISTENER.
+
+       Escape belongs to the settings panel while it is open, and only skips the film when
+       there is nothing else for it to close. That check is the obvious one — and on a
+       BUBBLE listener it does not work, because PlayerController binds its own Escape
+       handler on `document` and document bubbles before window. By the time this ran,
+       that handler had already called closeSettings(), `settingsOpen` was false, and one
+       press of Escape closed the panel AND skipped the film. Found by the browser suite.
+
+       Capture at `window` is the first phase of the first target, so this sees the panel
+       still open and stands down — which is what "the panel has first claim on the key"
+       has to mean if it is going to mean anything. */
+    this._onKey = (e) => {
+      if (!this.active) return;
+      if (this.game.ui && this.game.ui.settingsOpen) return;
+      if (e.code === 'Escape') this.skip();
+    };
+    this._onSkipClick = () => { if (this.active) this.skip(); };
+    if (typeof window !== 'undefined' && window.addEventListener) {
+      window.addEventListener('keydown', this._onKey, true);   // capture — see above
+    }
+    if (this.skipEl) this.skipEl.addEventListener('click', this._onSkipClick);
+  }
+
+  /* --------------------------------------------------------------------------------
+     BEGIN. Captures what it is about to change, puts the player into look-only, and
+     hands the frame loop something to tick. `onDone` is called exactly once, whether the
+     film ran out or was skipped from its first frame.
+     -------------------------------------------------------------------------------- */
+  begin(onDone) {
+    if (this.active) return false;
+    const g = this.game;
+    if (!this.root) { if (onDone) onDone(); return false; }
+    this.active = true;
+    this.t = 0;
+    this.beat = null;
+    this._lineKey = null;
+    this._washPainted = -1;
+    this._onDone = onDone || null;
+
+    const p = g.player;
+    /* EVERYTHING THIS FILM TOUCHES, WRITTEN DOWN BEFORE IT TOUCHES IT. _teardown puts
+       each of these back, and the test suite compares the two. The clock is in here
+       because the film chooses its own light and must not have advanced the day by the
+       time gameplay starts. */
+    this._restore = {
+      yaw: p.yaw, pitch: p.pitch,
+      movementLocked: !!p.movementLocked,
+      eyeHeight: p.eyeHeight,
+      envT: g.env ? g.env.t : 0,
+    };
+
+    /* LOOK-ONLY. See the header: between movementLocked and `running === false` every
+       gameplay verb is already blocked by code that shipped in earlier phases. */
+    p.movementLocked = true;
+    /* The bearing the film opens on is the bearing the game is about to ask for. Facing
+       east from the first frame means the instruction at the end names a direction the
+       player has already been looking in for a minute. */
+    p.yaw = -Math.PI / 2;
+    /* Slightly DOWN, not up. At +0.06 the horizon sat in the bottom third and two thirds
+       of every frame was empty sky; from eleven metres up the thing worth seeing is the
+       land. -0.08 puts the horizon near the middle and gives the silhouettes ground to
+       stand against instead of only sky. */
+    p.pitch = -0.08;
+
+    /* THE VANTAGE, AND WHY IT IS THE EYE AND NOT THE BODY.
+
+       The first capture of this film was taken from the spawn point at standing height,
+       and what it showed was the inside of a tree and a wall of dirt — because a spawn is
+       chosen to be somewhere a player can stand, not somewhere a camera should sit. But
+       moving the PLAYER would be moving where gameplay begins, which the brief forbids
+       and which would also make the crossroads instruction point from the wrong place.
+
+       So the film raises the EYE. `eyeHeight` is the one number PlayerController uses to
+       place the camera above the body, the body never moves, and _teardown puts the
+       number back — so the player is standing exactly where the film found them when the
+       film hands over, having spent it looking at their own landscape from above the
+       canopy. */
+    p.eyeHeight = this._restore.eyeHeight + 11.5;
+
+    /* FIRST LIGHT, AND IT MOVES. The sky is set per beat (see _enter) rather than once:
+       the film opens before dawn and ends in early morning, so "the environment emerges"
+       is something the light actually does rather than something the wash does alone.
+       The environment is never TICKED — the film's frame branch does not call env.update
+       — so nothing else about the day advances, and _teardown restores the exact second
+       the film borrowed. */
+    if (g.env) {
+      g.env.setFollowTarget(p.position);
+      this._setLight(FILM_LIGHT.dark);
+    }
+
+    this._buildProps();
+    this.root.className = 'on';
+    if (this.wash) this.wash.style.opacity = '1';
+    if (this.lineEl) { this.lineEl.style.opacity = '0'; this.lineEl.textContent = ''; }
+    if (this.skipEl) this.skipEl.style.opacity = '0';
+    if (g.ui && g.ui.setHudVisible) g.ui.setHudVisible(false);
+
+    try {
+      g.sound.startFilmAmbience();
+      g.sound.setFilmAmbienceLevel(0, 0.25);
+    } catch (e) { /* audio is optional; a silent film is still a film */ }
+
+    /* Pointer lock, so the player can look. It is requested rather than assumed: a
+       headless browser will refuse it, and the film is still watchable without it. */
+    try { g.canvas.requestPointerLock(); } catch (e) { /* refused; the film still runs */ }
+    return true;
+  }
+
+  /* One cycle-second, applied. Called from _enter and never from the frame loop, so the
+     sky is recomputed ten times across the film rather than sixty times a second. */
+  _setLight(cycleSecond) {
+    const g = this.game;
+    if (!g.env) return;
+    g.env.t = cycleSecond;
+    g.env.update(0);
+  }
+
+  /* --------------------------------------------------------------------------------
+     THE SHAPES THE FILM OWNS.
+
+     Two of them, and they are the same object twice: an unlit dark box, tall and narrow,
+     with no face, no limbs and no detail of any kind. It is deliberately NOT the Stalker
+     mesh and deliberately not anything else in this game — the moment a silhouette
+     resolves into a creature the player has met a creature, and STORY.md sections 5, 6
+     and 19 all want that meeting to happen later and elsewhere. What this is, is a shape
+     that does not behave.
+
+     Both share one geometry and one material, are added to the scene at begin() and
+     removed at _teardown(). They are positioned RELATIVE TO THE PLAYER at fixed bearings,
+     so the composition holds wherever the spawn happens to be and whatever the terrain
+     under it does.
+     -------------------------------------------------------------------------------- */
+  _buildProps() {
+    const g = this.game;
+    if (!g.scene || typeof THREE === 'undefined') return;
+    const mat = new THREE.MeshBasicMaterial({ color: 0x05060a, fog: true });
+    /* TWELVE METRES, AND WHY IT IS NOT HUMAN-SIZED.
+
+       The first version of this was a 2.35m box — a person. From the film's vantage,
+       eleven metres above a forest, a person standing forty metres out is four pixels
+       tall and behind the nearest oak, and the capture of the beat was an empty
+       landscape. A sweep of heights against the real spawn (2.5m to 20m, five bearings,
+       three distances) settled it: the canopy here tops out around nine metres, and
+       nothing shorter than about twelve clears it well enough to be seen at all.
+
+       So the shapes grew. Twelve metres reads against the sky from any bearing, and
+       something four times a person's height is unsettling in a way a person-shaped
+       smudge on a treeline is not. It is still featureless — no face, no limbs, no
+       detail — because the moment it resolves into a creature the player has MET a
+       creature, and STORY.md sections 5, 6 and 19 all want that meeting later and
+       elsewhere. It is a tapered five-sided column rather than a box for the reason
+       everything in this project is: a featureless rectangle standing in a field is the
+       one silhouette Where It Isn't is never allowed to have. */
+    const geo = new THREE.CylinderGeometry(0.42, 1.15, 12, 5, 1);
+    const figure = new THREE.Mesh(geo, mat);
+    const echo = new THREE.Mesh(geo, mat);        // the seam's second copy
+    figure.scale.set(1, 1, 0.72); echo.scale.set(1, 1, 0.72);
+    figure.rotation.y = 0.6; echo.rotation.y = -0.35;
+    /* THE VAST ONE, AND THE TWO THINGS THAT WENT WRONG WITH IT.
+
+       SIZE AND DISTANCE ARE A PAIR. The scene fog is FogExp2 at 0.008, which leaves about
+       six per cent of anything at 210m. The first version of this beat was a 46m box at
+       210m with its top BELOW eye level, and the capture of it showed an empty sunrise:
+       it was under the horizon and inside the haze. It is now large enough to break the
+       skyline and close enough that the haze only softens it.
+
+       IT MUST NOT BE A CUBE. The second version was in frame and read as a brown
+       rectangular slab — two flat faces, four hard vertical edges, fog-coloured. A
+       building, and worse, exactly the shape this project is never allowed to look like.
+       So the vast one is not the figures' geometry: it is a five-sided tapered mass,
+       leaning, squashed on one axis, on its OWN material with `fog: false` so it stays a
+       dark silhouette instead of dissolving into the colour of the sky it is supposed to
+       be interrupting. The slight transparency is the only concession to distance. */
+    const vastMat = new THREE.MeshBasicMaterial({
+      color: 0x0a0b12, fog: false, transparent: true, opacity: 0.86,
+    });
+    const vastGeo = new THREE.CylinderGeometry(7, 27, 88, 5, 1);
+    const vast = new THREE.Mesh(vastGeo, vastMat);
+    vast.scale.set(1, 1, 0.62);
+    vast.rotation.z = 0.07;                       // it does not stand straight
+    vast.rotation.y = 0.4;                        // and no facet faces the camera flat
+    for (const m of [figure, echo, vast]) { m.visible = false; m.frustumCulled = false; g.scene.add(m); }
+    this.props = { mat, vastMat, geo, vastGeo, figure, echo, vast };
+  }
+
+  /* Put a prop at a bearing and distance from the player.
+
+     `lift` is measured from the player's own feet and is what the vast one uses — it is
+     far enough away that the ground under it is haze. Everything nearer is placed with
+     `ground: true`, which asks the world for the top of that actual column so the shape
+     stands on the terrain it appears to be standing on rather than hanging above a slope.
+     That is one column scan per placement — nine of them across the whole film, on beat
+     entry and never per frame. If the column is not streamed yet the scan returns its
+     fallback and the shape sits at the player's own level, which is the old behaviour. */
+  _place(mesh, bearing, dist, lift, ground) {
+    const p = this.game.player;
+    const x = p.position.x + Math.sin(bearing) * dist;
+    const z = p.position.z + Math.cos(bearing) * dist;
+    let y = p.position.y + (lift || 0);
+    if (ground && this.game.world && this.game.world.findSpawnHeight) {
+      const g = this.game.world.findSpawnHeight(Math.floor(x), Math.floor(z));
+      if (isFinite(g)) y = g + (lift || 0);
+    }
+    // The mesh is centred on its own origin, so half its height puts its feet on `y`.
+    const h = (mesh.geometry && mesh.geometry.parameters && mesh.geometry.parameters.height) || 0;
+    mesh.position.set(x, y + h * 0.5, z);
+  }
+
+  /* Is the player looking at this bearing? One dot product against the camera's forward,
+     which is the same test the water tower's light already uses. This is the observation
+     rule, and the film never says a word about it. */
+  _looking(bearing, tolerance) {
+    const cam = this.game.camera;
+    if (!cam) return false;
+    const yaw = this.game.player.yaw;
+    let d = Math.atan2(Math.sin(bearing - (-yaw)), Math.cos(bearing - (-yaw)));
+    return Math.abs(d) < (tolerance === undefined ? 0.75 : tolerance);
+  }
+
+  /* --------------------------------------------------------------------------------
+     THE TICK. Called once per frame from Game._animate's film branch, with the same dt
+     the rest of the game would have had. Everything the film does happens here.
+     -------------------------------------------------------------------------------- */
+  update(dt) {
+    if (!this.active) return;
+    this.t += dt;
+    if (this.t >= FILM_DURATION) { this._finish(); return; }
+
+    const beat = filmBeatAt(this.t);
+    const u = filmBeatProgress(this.t);
+    if (beat !== this.beat) { this.beat = beat; this._enter(beat); }
+
+    this._paintWash(beat, u);
+    this._paintLine();
+    this._paintSkip();
+    this._runBeat(beat, u);
+  }
+
+  /* The black wash, as one number per frame. Only assigned when it actually moves by a
+     hundredth, so a still beat writes no style at all. */
+  _paintWash(beat, u) {
+    let a = 0;
+    if (beat === 'dark') a = 1;
+    else if (beat === 'reveal') a = 1 - Math.min(1, u * 1.15);   // off black, slowly
+    else if (beat === 'unresolved') a = 0.10 * Math.sin(u * Math.PI);
+    else if (beat === 'out') a = Math.min(1, u * 1.6);           // and back to black
+    if (this.wash && Math.abs(a - this._washPainted) > 0.01) {
+      this._washPainted = a;
+      this.wash.style.opacity = a.toFixed(3);
+    }
+  }
+
+  /* The two lines, each shown once, each for four seconds, each faded in and out by the
+     same curve. `_lineKey` is what stops a line being rewritten sixty times a second. */
+  _paintLine() {
+    let key = null, from = 0;
+    if (this.t >= 21 && this.t < 25.5) { key = 'know'; from = 21; }
+    else if (this.t >= 58.5 && this.t < 63) { key = 'right'; from = 58.5; }
+    if (key !== this._lineKey) {
+      this._lineKey = key;
+      if (this.lineEl) this.lineEl.textContent = key ? FILM_LINES[key] : '';
+    }
+    if (!this.lineEl) return;
+    const a = key ? Math.sin(Math.max(0, Math.min(1, (this.t - from) / 4.5)) * Math.PI) : 0;
+    this.lineEl.style.opacity = a.toFixed(3);
+  }
+
+  /* THE WAY OUT, AND WHEN IT ARRIVES.
+
+     Not at t=0: the first thing a player sees must not be a button offering to end the
+     thing they have not started watching. But not held back until the world appears
+     either — that would be six seconds of black with no visible way out, which is the
+     definition of feeling trapped even though the control has been clickable the whole
+     time. It fades in from 2.5s, over two seconds, and settles at 0.75 opacity: present
+     from early in the dark, and never the brightest thing on the screen. */
+  _paintSkip() {
+    if (!this.skipEl) return;
+    const a = this.t > 2.5 ? Math.min(0.75, (this.t - 2.5) * 0.38) : 0;
+    this.skipEl.style.opacity = a.toFixed(2);
+  }
+
+  /* Everything a beat does on the frame it becomes current. Audio levels live here so
+     each transition is one ramp rather than a per-frame assignment. */
+  _enter(beat) {
+    const snd = this.game.sound;
+    const level = (w, a) => { try { snd.setFilmAmbienceLevel(w, a); } catch (e) { /* optional */ } };
+    const P = this.props;
+    if (FILM_LIGHT[beat] !== undefined) this._setLight(FILM_LIGHT[beat]);
+    switch (beat) {
+      case 'dark':       level(0, 0.25); break;
+      case 'reveal':     level(0.55, 0.10); break;
+      case 'familiar':   level(0.7, 0.05); break;
+      case 'anomaly':
+        level(0.55, 0.18);
+        if (P) { this._place(P.figure, 1.98, 56, 0, true); P.figure.visible = true; }
+        break;
+      case 'closer':
+        level(0.45, 0.30);
+        /* Nearer than it was, on the frame the beat turns over — the approach itself is
+           never in view. _runBeat brings it nearer still, and only while unobserved. */
+        if (P) { this._place(P.figure, 1.30, 38, 0, true); P.figure.visible = true; }
+        break;
+      case 'vast':
+        /* The low air comes up before anything is visible. The player should feel it in
+           the room a second before they find it on the horizon. */
+        level(0.30, 0.85);
+        /* The near shape is gone before the far one arrives. Both at once reads as one
+           thing and its bigger brother, which makes the seam's PAIR mean nothing. */
+        if (P) { P.figure.visible = false; this._place(P.vast, 1.95, 122, -44); P.vast.visible = true; }
+        break;
+      case 'seam':
+        level(0.35, 0.45);
+        if (P) {
+          P.vast.visible = false;
+          this._place(P.figure, 1.75, 44, 0, true);
+          this._place(P.echo, 1.75, 44, 0, true);
+          P.echo.position.x += 5.5; P.echo.position.z += 3.2;
+          P.figure.visible = true; P.echo.visible = true;
+        }
+        break;
+      case 'unresolved':
+        level(0.15, 0.55);
+        break;
+      case 'calm':
+        /* Everything the film put there is gone, and nothing acknowledges that it was. */
+        level(0.6, 0.02);
+        if (P) { P.figure.visible = false; P.echo.visible = false; P.vast.visible = false; }
+        break;
+      case 'out':
+        level(0.25, 0.0);
+        break;
+      default: break;
+    }
+  }
+
+  /* Per-frame beat behaviour. Only three beats have any, and all three are the same idea:
+     the shape is somewhere else the moment it is not being watched. */
+  _runBeat(beat, u) {
+    const P = this.props;
+    if (!P) return;
+    if (beat === 'anomaly') {
+      /* It stands still while it is looked at. Look away, and the next time the player
+         comes back it is a third of the field further along. Nothing announces the move
+         and there is no sound on it — the player is left to decide whether it happened. */
+      if (!this._looking(1.98) && u > 0.35) { this._place(P.figure, 1.14, 50, 0, true); }
+    } else if (beat === 'closer') {
+      /* Closer still, and only ever while unobserved. It never crosses ground in view. */
+      if (!this._looking(1.30)) { this._place(P.figure, 1.42, 24, 0, true); }
+    }
+  }
+
+  /* --------------------------------------------------------------------------------
+     SKIP. Available from the first frame and identical to running out: both land in
+     _teardown, so there is exactly one restoration path and no way for a skipped film to
+     leave a different state behind than a watched one.
+     -------------------------------------------------------------------------------- */
+  skip() {
+    if (!this.active) return false;
+    this._finish();
+    return true;
+  }
+
+  _finish() {
+    const cb = this._onDone;
+    this._teardown();
+    this._onDone = null;
+    if (cb) cb();
+  }
+
+  /* --------------------------------------------------------------------------------
+     TEARDOWN. The single exit. Everything captured in begin() goes back, everything
+     created is disposed, and the class is inert afterwards.
+     -------------------------------------------------------------------------------- */
+  _teardown() {
+    if (!this.active) return false;
+    this.active = false;
+    const g = this.game;
+
+    if (this.root) this.root.className = '';
+    if (this.wash) this.wash.style.opacity = '1';       // ready for a second New Game
+    if (this.lineEl) { this.lineEl.style.opacity = '0'; this.lineEl.textContent = ''; }
+    if (this.skipEl) this.skipEl.style.opacity = '0';
+    this._lineKey = null;
+    this._washPainted = -1;
+
+    try { g.sound.stopFilmAmbience(); } catch (e) { /* nothing playing */ }
+
+    // The props: removed from the scene and their GPU resources released.
+    const P = this.props;
+    if (P && g.scene) {
+      for (const m of [P.figure, P.echo, P.vast]) { if (m) g.scene.remove(m); }
+      try { P.geo.dispose(); P.vastGeo.dispose(); P.mat.dispose(); P.vastMat.dispose(); } catch (e) { /* already gone */ }
+    }
+    this.props = null;
+
+    // And the state it borrowed.
+    const r = this._restore;
+    if (r) {
+      const p = g.player;
+      p.movementLocked = r.movementLocked;
+      p.eyeHeight = r.eyeHeight;
+      if (g.env) { g.env.t = r.envT; g.env.setFollowTarget(p.position); g.env.update(0); }
+      /* Orientation is deliberately NOT restored. The player spent the film looking east
+         because the film put them there, and the instruction that follows asks them to go
+         east — snapping the view back to a boot default at that exact moment would undo
+         the one piece of staging the whole sequence is building toward. */
+    }
+    this._restore = null;
+    this.t = 0;
+    this.beat = null;
+
+    if (g.ui && g.ui.setHudVisible) g.ui.setHudVisible(true);
+    return true;
+  }
+}
 
 /* =====================================================================================
    PHASE 20.2 — THE OPENING INSTRUCTION
@@ -32469,6 +33210,10 @@ class Game {
     // PHASE 20.2 — the closing beat of the (Phase 30) opening film, authored early
     // because the whole Farmland journey depends on the player having heard it.
     this.openingInstruction = new OpeningInstruction(this.sound);
+    /* PHASE 30 — the opening film, which plays the instruction above as its closing beat
+       rather than reimplementing it. Constructed once; begin() is called only from
+       _start(), which is the New Game path and the only one. */
+    this.film = new OpeningFilm(this);
     this.farmCrossroadsRecalled = false;   // one-shot latch for the Farmlands recall
     /* PHASE 29 — the menu, and the only one. A seed may be forced for testing so a run
        can be made to contain a walker; without one the schedule follows the wall clock
@@ -33021,15 +33766,23 @@ class Game {
                        Math.max(1, Math.round(window.innerHeight * rs)));
   }
 
-  /* PHASE 20.2 — _start() ends on the opening instruction rather than on the world, so
-     the phrase is the last thing the player sees before the world appears. The world does
-     not begin simulating until it is done: the clock is only started, and the frame loop
-     only entered, from _beginPlay().
+  /* PHASE 30 — THE NEW GAME PATH, AND THE WHOLE OF IT.
 
-     PHASE 28 — and this is now the ONLY route in from BEGIN EXPEDITION. There is no
-     tutorial screen to finish or skip, and nothing is shown between the click and the
-     instruction: the next thing after these eight seconds is gameplay, with the first
-     objective already resolved (see _beginPlay) and the HUD already painted. */
+       menu.hide()  ->  film.begin()  ->  openingInstruction.play()  ->  _beginPlay()
+
+     Three things in a row, each handing to the next, and each of them already the single
+     owner of what it does. The film is the world with gameplay suppressed; the instruction
+     is Phase 20.2's two lines, unchanged and not reimplemented; _beginPlay is where the
+     game actually starts and always was.
+
+     THE FILM NEEDS FRAMES BEFORE THE GAME NEEDS THEM. It is watched in the real scene, so
+     something has to be rendering it — hence _enterFrameLoop() here rather than only in
+     _beginPlay(). `running` stays FALSE throughout, which is what keeps every gameplay
+     key inert (Phase 29's `_playing()` gate) while the film is on screen.
+
+     CONTINUE DOES NOT COME THROUGH HERE and never did — continueFromSave() goes straight
+     to _beginPlay(). That is why this phase adds no save field: "has the film played" is
+     answerable from which function was called. */
   _start() {
     // PHASE 29 — one call takes the whole menu down: scene, ambience and screen.
     this.menu.hide();
@@ -33037,7 +33790,23 @@ class Game {
     // PHASE 22 — the AudioContext exists only now, so this is where the stored volumes
     // first reach real gain nodes. Before this the call is a no-op by design.
     this._applyAudioSettings();
-    this.openingInstruction.play(() => this._beginPlay());
+    this.clock.start();
+    this._enterFrameLoop();
+    this.film.begin(() => this.openingInstruction.play(() => this._beginPlay()));
+  }
+
+  /* PHASE 30 — ONE FRAME LOOP, HOWEVER MANY TIMES THIS IS CALLED.
+
+     Both _start() (for the film) and _beginPlay() (for gameplay) need the loop running,
+     and on the New Game path both run. Without this latch the second call would start a
+     second requestAnimationFrame chain and the world would simulate at double speed for
+     the rest of the session — a bug that would have been almost impossible to attribute
+     later. */
+  _enterFrameLoop() {
+    if (this._loopRunning) return false;
+    this._loopRunning = true;
+    requestAnimationFrame(this._animate);
+    return true;
   }
 
   _beginPlay() {
@@ -33049,7 +33818,7 @@ class Game {
     this._refreshObjective();
     this.canvas.requestPointerLock();
     this.clock.start();
-    requestAnimationFrame(this._animate);
+    this._enterFrameLoop();              // PHASE 30 — a no-op if the film already did
   }
 
   // Called from the win screen button. Escalates difficulty and sends the player
@@ -33587,8 +34356,32 @@ class Game {
 
   _animate() {
     requestAnimationFrame(this._animate);
-    let dt = this.clock.getDelta();
-    dt = Math.min(dt, 0.06);
+    /* PHASE 30 — TWO DELTAS, AND THE FILM NEEDS THE OTHER ONE.
+
+       `dt` is clamped to 0.06 because the simulation must never receive a frame big
+       enough to tunnel the player through a wall — that clamp is physics safety and it
+       stays. But it makes elapsed time a function of FRAME RATE rather than of the clock:
+       at 10fps the world advances 0.6 seconds per real second, which is invisible in
+       gameplay (everything slows together) and completely wrong for a cinematic. Under
+       SwiftShader the first draft of this film took over three minutes to reach a beat
+       fifteen seconds in, and a player on a weak machine would have had the same
+       experience.
+
+       So the film is given the REAL delta, clamped only against a pathological stall — a
+       tab that was backgrounded for a minute should resume the film, not skip four beats.
+       It is the only consumer of `rawDt`; nothing in the simulation sees it.
+
+       WHY THE STALL CLAMP IS A WHOLE SECOND AND NOT A QUARTER. It was 0.25 first, and on
+       the software renderer in the development container — which draws this scene at
+       about one frame per second — EVERY frame hit that clamp, so the film advanced a
+       quarter-second per second and a sixty-eight second sequence would have taken four
+       and a half minutes. A clamp low enough to be hit by an ordinary slow frame is not a
+       stall clamp, it is a frame-rate dependency wearing one. At 1.0 a machine drawing
+       one frame a second still tracks real time, and a backgrounded tab still cannot
+       resume by skipping a beat. */
+    const rawDt = this.clock.getDelta();
+    const filmDt = Math.min(rawDt, 1.0);
+    let dt = Math.min(rawDt, 0.06);
 
     // PHASE 5B — once the hard cut has fired the world stops simulating entirely.
     // Nothing behind the black screen should keep ticking while the credits roll.
@@ -33610,6 +34403,29 @@ class Game {
        enormous dt that teleports the player or advances the clock in a jump. */
     if (this.ui.settingsOpen) {
       this.postfx.render(dt, this.sanity ? this.sanity.fraction : 1.0);
+      return;
+    }
+
+    /* PHASE 30 — THE OPENING FILM, WHICH IS RENDERED AND NOT SIMULATED.
+
+       The same shape as the settings pause directly above, and for a related reason: the
+       film is watched in the real world, so the frame has to be drawn, but nothing in the
+       world may happen while it is. No clock, no mobs, no objective tick, no sanity, no
+       chunk streaming, no anchor burn.
+
+       player.update() IS called, and only that. With movementLocked set (see
+       OpeningFilm.begin) it syncs the camera from yaw and pitch and returns before any
+       physics — which is exactly the "the player may look and do nothing else" state the
+       brief asks for, using the gate that already existed rather than a new one.
+
+       The `sanityFraction` handed to the renderer is the film's, not the player's: the
+       'unresolved' beat drops it for three seconds so the existing horror shader takes
+       the colour and the detail out of the world and gives them back. That is the whole
+       effect — no new pass, no new shader, nothing added to the pipeline. */
+    if (this.film && this.film.active) {
+      this.player.update(dt);
+      this.film.update(filmDt);        // wall-clock, not frame-count — see above
+      this.postfx.render(dt, this.film.beat === 'unresolved' ? 0.14 : 1.0);
       return;
     }
 

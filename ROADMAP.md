@@ -924,9 +924,9 @@ reason and the means to act on it, and changes no world generation at all.
 
   THE INSTRUCTION.  The opening ends, on black and in near-silence, with
   "At the crossroads, go east." — a pause — "Go east." It names no landmark,
-  no destination and no mechanic. There is no opening lore film yet (Phase 30
-  builds it), so this is authored as the beat that film will END on, behind one
-  entry point Phase 30 can call as its last cue.
+  no destination and no mechanic. It was authored as the beat an opening film would
+  END on, behind one entry point that film could call as its last cue — and Phase 30
+  built that film and calls exactly that entry point.
 
   THE COMPASS.  A tape, not a dial — a strip of heading sliding behind a fixed
   mark, in the same panel material as the existing clock. It shows direction and
@@ -1805,7 +1805,7 @@ What it must keep being:
 - **Nothing is said twice.** The verbs the world teaches were taken off the start
   screen's legend; putting them back is duplicate onboarding.
 - The opening instruction ("At the crossroads, go east.") is **not** tutorial content and
-  stays. Phase 30 absorbs it as the closing beat of the opening film.
+  stays. Phase 30 absorbed it as the closing beat of the opening film.
 - A pre-Phase-28 save loads fully onboarded. Never re-teach a returning player.
 
 **Phase 29 delivered** and kept that rule: the start screen was rebuilt around a
@@ -1860,51 +1860,77 @@ What it must keep being:
   redesigned here; they were only made bigger and given readable captions.
 - The legend stays a footnote of keys with no crosshair target — Phase 28's rule.
 
-**Phase 30 is next** and builds the opening lore film. It absorbs the Phase 20.2 opening
-instruction as its closing beat, and it may not put a tutorial or a control screen in front
-of the player on the way through.
+**Phase 30 delivered** and kept that rule too: the film explains no mechanic, names no
+key, and hands over to the Phase 20.2 instruction exactly as that instruction was authored
+to be handed to. No tutorial and no control screen came back on the way through.
 
 ---
 
-# 48. PHASE 30 — OPENING LORE FILM
+# 48. PHASE 30 — OPENING LORE FILM  — **COMPLETE**
 
-Create an approximately 20-second horror film after New Game.
+Delivered. The full record is PROGRESS.md section 0.00000000; this is the shape of it and
+the rules that now hold.
 
-The player:
+NEW GAME plays a sixty-eight second film before the crossroads instruction. CONTINUE never
+does — a returning player has already seen it, and nothing in the save records that they
+have because the film is a property of starting a new game, not of a save.
 
-CAN:
-- look around
-- move the camera
+WHAT IT IS
 
-CANNOT:
-- walk
-- mine
-- attack
-- open inventory
-- manipulate the world
+  IN THE WORLD.  Not a video, not a second scene, not a new render path. The film is the
+  real Overworld at the real spawn, drawn by the real renderer, with the player in
+  look-only. It reuses `movementLocked` — the Fake Haven freeze, which already syncs the
+  camera from yaw and pitch and drops velocity, input and mining — and the fact that
+  `running` is still false, which is what every gameplay verb was already gated on. No
+  input layer was invented for it.
 
-The sequence should:
+  TEN BEATS, ONE TABLE.  `FILM_BEATS` is a frozen table that tiles 0-68s with no gap:
+  dark, reveal, familiar, anomaly, closer, vast, seam, unresolved, calm, out. Nothing in
+  the film is scheduled by a timer — everything is a function of `film.t`, which is why
+  settings can pause it, a test can drive it, and there is nothing to leak.
 
-1. begin in darkness
-2. establish silence
-3. reveal beautiful normal Overworld
-4. introduce subtle wrongness
-5. briefly show Stalker
-6. briefly show Behemoth
-7. show dimensional/Rift imagery
-8. show impossible architecture
-9. imply reality is being reconstructed
-10. imply why the player is here
-11. provide a final unexplained visual hint
-12. hard-cut into gameplay
+  A REAL DAWN.  `FILM_LIGHT` gives each beat one cycle-second on the 720-second day
+  (697 -> 16), so the light walks from the last of the dark into early morning across the
+  film. The day is never TICKED: the film sets the hour, and teardown puts the game's own
+  second back.
 
-Creature appearances should be flashes.
+  THREE SHAPES, AND NO CREATURE.  Two tapered five-sided columns and one enormous one.
+  Untextured, unlit, featureless — no face, no limbs, nothing that resolves into an
+  anatomy — because the player's first real meeting with a creature belongs to a later
+  phase. They are not the Stalker mesh and not the Behemoth mesh.
 
-Do not turn the opening into a monster montage.
+  THE RULE, SHOWN AND NEVER STATED.  The near shape moves only while it is NOT being
+  looked at. Nothing announces the move and no sound plays on it.
 
-Do not dump the lore.
+  TWO LINES.  "I know this place." and "Some of it is right." That is the whole script.
 
-The player should understand the premise and remain curious.
+  ITS CLOSING BEAT IS PHASE 20.2's.  The film hands to the existing opening instruction —
+  "At the crossroads, go east." / "Go east." — which keeps exactly one authority over
+  that text, as 20.2 authored it.
+
+  SKIP.  A quiet control, bottom-right, fading in from 2.5s and settling at 0.75 opacity;
+  Escape does the same when there is no settings panel to close first. A skipped film and
+  a watched one run the same teardown and land in the same state.
+
+RULES THAT NOW HOLD
+
+- **The film is presentation.** It may not tick the clock, advance an objective, stream a
+  chunk, spawn anything, damage the player or write a save. `opening.js` and
+  `browser-opening.js` both check.
+- **One teardown.** Five different exits all land in `_teardown()`, which puts back
+  movement lock, eye height and the borrowed hour and disposes every geometry and
+  material. Anything the film adds is added in `begin()` and removed there.
+- **No timers.** No `setTimeout` anywhere in it; listeners are bound once in the
+  constructor and gated on `active`.
+- **Escape belongs to the panel first.** The film's key listener is a CAPTURE listener on
+  `window` precisely so an open settings panel gets the key before the film does.
+- **Nothing resolves.** A silhouette that becomes a creature has spent a later phase's
+  reveal. Keep them shapes.
+- **A vantage is a composition, not a spawn.** The film raises the EYE, never the body —
+  the player is standing exactly where the film found them when it hands over, and the
+  crossroads instruction therefore still points from the right place.
+
+**Phase 31 is next** and makes the world itself carry the story.
 
 ---
 
@@ -3365,8 +3391,8 @@ Claude Code should inspect the repository before making assumptions.
 
 Current completed milestone:
 
-Phase 29 — Main Menu Rebirth + UI Typography
-(Phase 28 tutorial removal, Phase 27 HUD rebirth, Phase 26 XP removal, Phase 25
+Phase 30 — Opening Lore Film
+(Phase 29 main-menu rebirth + UI typography, Phase 28 tutorial removal, Phase 27 HUD rebirth, Phase 26 XP removal, Phase 25
 dynamic objectives, Phase 24 canonical story foundation, Phase 23 save/load, Phase 22
 settings, Phase 21 dropped item ground contact, and Phase 20 including the 20.1
 journey revision and the 20.2 guidance pass — see PROGRESS.md, and STORY.md for the
@@ -3374,7 +3400,7 @@ canon)
 
 Current next major phase:
 
-Phase 30 — Opening Lore Film
+Phase 31 — Environmental Storytelling
 
 Current game build baseline:
 

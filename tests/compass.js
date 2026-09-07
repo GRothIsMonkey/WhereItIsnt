@@ -20,6 +20,23 @@ const path = require('path');
 const { makeWorld } = require('./harness/util.js');
 const { w, ev, S } = makeWorld();
 const SRC = fs.readFileSync(path.join(__dirname, '..', 'game.html'), 'utf8');
+/* The whole of one method, brace-matched. It replaces a fixed-length slice, which is a
+   trap: each phase that adds a paragraph of comment to _animate pushes the token a later
+   check is looking for out of a hard-coded window, and the check then fails for a reason
+   that has nothing to do with the property it is about. Phase 30 did exactly that. */
+function methodBody(src, sig) {
+  const i = src.indexOf('\n  ' + sig);
+  if (i < 0) return '';
+  const open = src.indexOf('{', i);
+  let depth = 0;
+  for (let j = open; j < src.length; j++) {
+    const c = src[j];
+    if (c === '{') depth++;
+    else if (c === '}') { depth--; if (depth === 0) return src.slice(open, j + 1); }
+  }
+  return '';
+}
+
 let fail = 0;
 const chk = (ok, msg) => { console.log((ok ? 'PASS  ' : 'FAIL  ') + msg); if (!ok) fail++; };
 const g = (n) => vm.runInContext(n, S);
@@ -187,10 +204,26 @@ function fakeGame() {
   chk(vm.runInContext('typeof Game.prototype._beginPlay', S) === 'function',
       'Game._beginPlay exists — the world only starts after the instruction resolves');
   const start = SRC.slice(SRC.indexOf('  _start() {'), SRC.indexOf('  _beginPlay() {'));
-  chk(/openingInstruction\.play\(/.test(start),
-      'the last thing _start() does is play the instruction');
-  chk(!/requestAnimationFrame\(this\._animate\)/.test(start),
-      'and gameplay does not begin until it is finished — the frame loop moved to _beginPlay');
+  /* PHASE 30 — the instruction is now played BY THE FILM, as its closing beat, so _start()
+     hands to the film and the film hands to the instruction. The property this check has
+     always been about is unchanged: the instruction is the last thing before gameplay, and
+     the only thing after it is _beginPlay. */
+  chk(/film\.begin\(\(\) => this\.openingInstruction\.play\(\(\) => this\._beginPlay\(\)\)\)/.test(start),
+      'the last thing before gameplay is still the instruction — the film hands to it, and it hands to _beginPlay');
+
+  /* PHASE 30 CHANGED WHAT THIS ONE HAS TO MEASURE. It used to assert that _start()
+     contained no requestAnimationFrame, using "the loop has not started" as a proxy for
+     "the world is not simulating yet". The loop DOES start in _start() now, because the
+     film is watched in the real scene and something has to draw it — so the proxy is
+     gone and the actual property is asserted instead: `running` is still false, and the
+     frame loop returns before it simulates anything while the film is up. */
+  chk(!/this\.running = true/.test(start),
+      'and the world is still not RUNNING when _start() returns — the film draws, it does not play');
+  const anim = methodBody(SRC, '_animate() {');
+  chk(/if \(this\.film && this\.film\.active\) \{[\s\S]{0,400}?return;/.test(anim),
+      'the frame loop renders the film and returns before a single system is ticked');
+  chk(/_enterFrameLoop\(\) \{\s*\n\s*if \(this\._loopRunning\) return false;/.test(SRC),
+      'and the loop can only be entered once, however many of _start and _beginPlay call it');
   /* PHASE 28. There used to be two routes into gameplay — finishing the tutorial and
      skipping it — and this asserted that both funnelled through _start() so the opening
      instruction could not be lost by either. The tutorial is deleted, so the property is

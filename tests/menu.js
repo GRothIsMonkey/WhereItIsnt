@@ -27,6 +27,26 @@ const SRC = fs.readFileSync(path.join(ROOT, 'game.html'), 'utf8');
 const STORY = fs.readFileSync(path.join(ROOT, 'STORY.md'), 'utf8');
 const strip = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
 const LIVE = strip(SRC);
+
+/* PHASE 30 — EXACTLY ONE CLASS BODY, BRACE-MATCHED.
+
+   This used to be `LIVE.slice(indexOf('class X {'), indexOf(<whatever came next>))`, and
+   Phase 30 inserted a new class between the two markers — so the slice quietly grew to
+   include it and checks about one class started reading another's code. Matching braces
+   cannot drift: the body ends where the class ends, whatever is written after it. */
+function classBody(src, name) {
+  const i = src.indexOf('class ' + name + ' {');
+  if (i < 0) return '';
+  const open = src.indexOf('{', i);
+  let depth = 0;
+  for (let j = open; j < src.length; j++) {
+    const c = src[j];
+    if (c === '{') depth++;
+    else if (c === '}') { depth--; if (depth === 0) return src.slice(open, j + 1); }
+  }
+  return '';
+}
+
 /* From AFTER the opening tag, and with a leading `}` so the very first rule in the file
    has a boundary in front of it. Without that the rule parser folded `<style>` into the
    first selector and the whole :root block that declares --ui-face went missing — which
@@ -123,7 +143,7 @@ head('1. ONE MENU');
      second authority over the same three controls. */
   chk(/clickPlay'\)\.addEventListener\('click', \(\) => this\._start\(\)\)/.test(LIVE),
       'NEW GAME is still bound in Game, to _start() — the menu owns presentation, not verbs');
-  const menuBody = LIVE.slice(LIVE.indexOf('class MainMenu {'), LIVE.indexOf('class Game {'));
+  const menuBody = classBody(LIVE, 'MainMenu');
   chk(!/getElementById\('clickPlay'\)|getElementById\('startSettingsLink'\)/.test(menuBody),
       'and MainMenu binds none of them itself');
 }
@@ -133,8 +153,8 @@ head('1. ONE MENU');
 // =====================================================================================
 head('2. IT MUTATES NOTHING');
 {
-  const menuBody = LIVE.slice(LIVE.indexOf('class MainMenu {'), LIVE.indexOf('class Game {'));
-  const sceneBody = LIVE.slice(LIVE.indexOf('class MenuAtmosphere {'), LIVE.indexOf('const OPENING_INSTRUCTION_LINES'));
+  const menuBody = classBody(LIVE, 'MainMenu');
+  const sceneBody = classBody(LIVE, 'MenuAtmosphere');
   const both = menuBody + sceneBody;
 
   for (const [what, re] of [
@@ -182,7 +202,7 @@ head('3. THE LIFECYCLE');
 
   /* MainMenu binds its audio-arming listeners ONCE, in the constructor, and gates them on
      being open — rather than binding on show() and leaking one set per cycle. */
-  const menuBody = LIVE.slice(LIVE.indexOf('class MainMenu {'), LIVE.indexOf('class Game {'));
+  const menuBody = classBody(LIVE, 'MainMenu');
   const ctor = menuBody.slice(0, menuBody.indexOf('  _armAudio('));
   /* The invocations, not the `&& x.addEventListener` feature guards beside them. */
   chk((ctor.match(/addEventListener\('/g) || []).length === 3,
@@ -267,7 +287,7 @@ head('5. NO CREATURE, NO SPOILER');
       'no menu text uses the canon\'s internal vocabulary' + (leaked.length ? ': ' + leaked.join(', ') : ''));
   note('everything the menu says: "' + text.trim() + '"');
 
-  const sceneBody = LIVE.slice(LIVE.indexOf('class MenuAtmosphere {'), LIVE.indexOf('const OPENING_INSTRUCTION_LINES'));
+  const sceneBody = classBody(LIVE, 'MenuAtmosphere');
   chk(!/\b(creature|monster|mob|claw|limb|antler|jaw|teeth|skull)\b/i.test(sceneBody),
       'and the scene draws no creature — the only moving silhouette is 2px of rectangle');
   chk(/fillRect\(Math\.round\(x\), Math\.round\(this\.walkGround - hgt\), 2, hgt\)/.test(sceneBody),
@@ -473,7 +493,7 @@ head('9. PHASE 27 SURVIVES');
 // =====================================================================================
 head('10. COST');
 {
-  const sceneBody = LIVE.slice(LIVE.indexOf('class MenuAtmosphere {'), LIVE.indexOf('const OPENING_INSTRUCTION_LINES'));
+  const sceneBody = classBody(LIVE, 'MenuAtmosphere');
   chk(/if \(this\._acc >= 0\.033\)/.test(sceneBody),
       'the menu draws at ~30fps, not 60 — nothing on it resolves faster than that');
   chk(/if \(!this\.layer\) this\.layer = this\._buildLayer\(\);/.test(sceneBody),
