@@ -12,3 +12,5 @@ Old COuntryside House 1 Credits
 "Old House" (https://skfb.ly/6WNYL) by rhcreations is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
 Old COuntryside House 2 Credits
 "Old abandoned house" (https://skfb.ly/6WJYT) by nedo is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+Old Countryside House 3 Credits
+"Old Stash House" (https://skfb.ly/oCOFB) by Michael V is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
