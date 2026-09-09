@@ -960,6 +960,18 @@
   .settings-actions { display: flex; gap: 6px; }
   .settings-actions .settings-toggle { flex: 1; min-width: 0; padding: 6px 0; }
   .settings-note.warn { color: #d8483f; }
+  /* PHASE 34.3 — the audio transport notice. A technical fault report, not narrative
+     text and not part of the HUD: it appears on the start screen and in the settings
+     panel, never in the world, and only when the recorded library genuinely cannot
+     load. Built from the section 73 tokens like everything else in the interface. */
+  #audioNotice {
+    display: none; max-width: 460px; margin: 16px auto 0;
+    font-size: var(--t-tertiary); letter-spacing: 1.1px; line-height: 1.65;
+    color: var(--hud-ink-faint); text-transform: uppercase;
+    border-top: 1px solid var(--hud-rule); padding-top: 10px;
+  }
+  #audioNotice.shown { display: block; }
+  #audioNotice b { color: var(--hud-warn); font-weight: 600; }
 
   .settings-foot {
     display: flex; align-items: center; justify-content: space-between;
@@ -1193,6 +1205,8 @@
     WASD MOVE &nbsp;&bull;&nbsp; MOUSE LOOK &nbsp;&bull;&nbsp; SPACE JUMP/SWIM &nbsp;&bull;&nbsp; SHIFT SPRINT<br>
     1-9 / SCROLL SELECT SLOT &nbsp;&bull;&nbsp; I INVENTORY &nbsp;&bull;&nbsp; O SETTINGS
   </div>
+  <!-- PHASE 34.3 — empty and hidden unless the recorded audio library cannot load. -->
+  <div id="audioNotice"></div>
 </div>
 
 <div id="settingsOverlay">
@@ -1230,6 +1244,8 @@
     <div class="settings-group">
       <div class="settings-row"><span class="settings-label">AMBIENCE</span><span class="settings-value" id="setAmbVal">100%</span></div>
       <input class="settings-slider" id="setAmb" type="range" min="0" max="100" step="1">
+      <!-- PHASE 34.3 — why the sliders are not the problem, when they are not. -->
+      <div class="settings-note warn" id="setAudioNote"></div>
     </div>
     <div class="settings-group">
       <div class="settings-row"><span class="settings-label">MOUSE SENSITIVITY</span><span class="settings-value" id="setSensVal">1.00&times;</span></div>
@@ -2892,11 +2908,30 @@ class SoundEngine {
     // LEVEL 3 — Static Suburbia disables the ambient nature bed entirely (the
     // windy noise + binaural hum below are both "nature" ambience) in favor of
     // the CRT static hum, so force both to silence while suburbiaMode is on.
+    /* PHASE 34.3 — READ THE SWITCH FIRST, BECAUSE SUBURBIA RETURNS BEFORE IT.
+       34.1 built `_recordedBedLive()` as the recording-first gate and wired it into the
+       line below. It was never reachable from here: this branch returns above it. With
+       the recorded beds dead, Static Suburbia therefore had no environmental bed at all —
+       which is precisely what the playtest called "not even the AC/electrical ambience".
+       The gate does not change a served build by one decibel: when a recorded bed IS
+       live, `recorded` is true and every level here is the zero it has always been. */
+    /* PHASE 34.3 — AND THE FINALE STANDS THIS DOWN LIKE THE HAVEN ABOVE. Phase 33 owns
+       every sound in the last thirty-two seconds and section 59 is explicit that nothing
+       may be added to them. That was already true by accident — the finale's own beds
+       made `_recordedBedLive()` true — but only on a build whose files load, and a
+       fallback that appeared in the finale of a broken build would be the one place this
+       phase could do real harm. Stated rather than inherited. */
+    const recorded = !!this.finaleAudio || this._recordedBedCovering();
     if (this.suburbiaMode) {
-      this.nightGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.6);
+      /* A street of air-conditioning plant, synthesised, and ONLY when nothing recorded
+         is carrying the dimension. Below the recorded `bed.hum.mech` it stands in for,
+         because a fallback should never be the loudest thing the player has heard. */
+      const sub = recorded ? 0 : AUDIO_FALLBACK_BED * 0.7;
+      this.nightGain.gain.setTargetAtTime(sub, this.ctx.currentTime, 0.6);
       if (this.hum) {
-        this.hum.gainL.gain.setTargetAtTime(0, this.ctx.currentTime, 0.8);
-        this.hum.gainR.gain.setTargetAtTime(0, this.ctx.currentTime, 0.8);
+        const h = recorded ? 0 : AUDIO_FALLBACK_BED * 0.25;
+        this.hum.gainL.gain.setTargetAtTime(h, this.ctx.currentTime, 0.8);
+        this.hum.gainR.gain.setTargetAtTime(h, this.ctx.currentTime, 0.8);
       }
       return;
     }
@@ -2917,10 +2952,19 @@ class SoundEngine {
        The sub-bass hum is kept at a much reduced level even when a recording is playing:
        it is felt rather than heard, it carries the underground state that no recording
        covers, and it is the one part of this rig that the recorded beds do not duplicate. */
-    const recorded = this._recordedBedLive();
     const wobble = 500 + Math.sin(t * 0.3) * 220 + Math.sin(t * 1.7) * 60;
     this.nightFilter.frequency.setTargetAtTime(wobble, this.ctx.currentTime, 0.5);
-    this.nightGain.gain.setTargetAtTime(recorded ? 0 : amount * 0.22, this.ctx.currentTime, 0.6);
+    /* PHASE 34.3 — AND THE HOLE IN THE FALLBACK WAS THE SIZE OF DAYLIGHT.
+       `amount` is nightAmount, so `amount * 0.22` is ZERO at noon. The fallback contract
+       in CLAUDE.md section 61 — "the build is fully audible with assets/audio/runtime/
+       deleted" — was therefore only true after dark, and a daytime world with no recorded
+       beds had no air in it whatsoever. Measured from a file:// session before this fix:
+       -inf dBFS at master in the Overworld and the Farmlands, in daylight. Not quiet.
+       Silent. A floor, not a boost: it can only ever RAISE the quiet end, it is below the
+       night level it hands over to, and `recorded` still takes it to zero the instant a
+       real bed is sounding, so a correctly served build is unchanged. */
+    const wind = recorded ? 0 : Math.max(amount * 0.22, AUDIO_FALLBACK_BED);
+    this.nightGain.gain.setTargetAtTime(wind, this.ctx.currentTime, 0.6);
     const humAmt = Math.max(amount, undergroundAmount || 0) * (recorded ? 0.35 : 1);
     if (this.hum) {
       this.hum.gainL.gain.setTargetAtTime(humAmt * 0.14, this.ctx.currentTime, 0.8);
@@ -2937,6 +2981,42 @@ class SoundEngine {
     if (!lib || !lib.slots || !lib.slots.size) return false;
     for (const s of lib.slots.values()) if (s && s.src && !s.starting) return true;
     return false;
+  }
+
+  /* PHASE 34.3 — IS A RECORDING STILL ON ITS WAY? A slot that has been claimed but whose
+     buffer has not landed is a bed the player is ABOUT to get, and the synthesised
+     fallback must not fill that gap or every dimension change would swell a wind through
+     itself. Distinct from `failed`, which setBed now marks when the file will never
+     arrive — that one is not pending, it is gone, and the fallback is exactly what it is
+     for. A dead transport is never pending, because nothing on it is coming. */
+  _recordedBedPending() {
+    const lib = this.library;
+    if (!lib || !lib.slots || !lib.slots.size) return false;
+    if (lib.transportDead && lib.transportDead()) return false;
+    for (const s of lib.slots.values()) if (s && s.starting) return true;
+    return false;
+  }
+
+  /* PHASE 34.3 — THE ONE QUESTION THE FALLBACK ASKS, AND IT IS NOT "IS ONE PLAYING".
+
+     Two guards, because they cover two different gaps and neither covers both:
+
+       PENDING   a bed that is claimed and still decoding. Precise, and it is what makes
+                 an ordinary scene change silent-free without a timer.
+       THE HOLD  the moment between `stopAllBeds()` tearing every slot down on a dimension
+                 change and the next frame claiming new ones, when there is nothing to
+                 read as pending because nothing has been asked for yet. A dimension
+                 transition is slow enough that this really happens — the browser probe
+                 that measured it caught the fallback swelling to 0.218 across a teleport,
+                 which is how this method came to exist rather than the timer alone.
+
+     Seconds come off the context clock, so nothing drifts with the frame rate and there
+     is nothing to leak. */
+  _recordedBedCovering() {
+    const now = this.ctx ? this.ctx.currentTime : 0;
+    if (this._recordedBedLive() || this._recordedBedPending()) { this._bedGoneSince = -1; return true; }
+    if (this._bedGoneSince === undefined || this._bedGoneSince < 0) this._bedGoneSince = now;
+    return (now - this._bedGoneSince) < AUDIO_FALLBACK_SETTLE;
   }
 
   /* LEVEL 4 — THE FAKE HAVEN AUDIO RESET (PHASE 5A PART 3).
@@ -5394,6 +5474,39 @@ function buildCrackStageTextures(stages) {
    ===================================================================================== */
 const AUDIO_ROOT = 'assets/audio/runtime/';
 
+/* =====================================================================================
+   PHASE 34.3 — THE TRANSPORT, AND THE FAILURE THREE PHASES COULD NOT SEE.
+
+   The library has exactly one way to get bytes: fetch() into decodeAudioData. That works
+   over http:// and https:// and it CANNOT WORK AT ALL from a file:// page. Chrome refuses
+   fetch and XMLHttpRequest for a local file ("URL scheme file is not supported"), and the
+   one route that does load — an <audio> element — is cross-origin-tainted the moment it
+   reaches createMediaElementSource, so it plays into Web Audio as digital silence. There
+   is no fourth option. A player who opens game.html by double-clicking it gets every one
+   of the 274 runtime files failing, permanently.
+
+   WHY THAT WAS INVISIBLE. Failure is a NORMAL OUTCOME in this class by design: a bad key
+   returns false, latches, and never asks again. That is right for one asset and wrong for
+   all of them at once — losing the entire library is not a missing sound, it is a missing
+   subsystem, and nothing aggregated the per-key failures into that statement. Every suite
+   this project has ever run serves game.html over HTTP, so no test could see it either.
+
+   WHAT THE PLAYER HEARD, AND WHY IT LOOKED LIKE A MIX PROBLEM. Every sound that survived
+   has a SYNTHESISED twin that runs when the recording does not: the footstep, the menu
+   click, the Stalker's proximity pulse. Every sound that vanished is recording-only, and
+   ambience is all of it. Three consecutive playtests reported exactly the procedural
+   voices and never once a recording — which is why normalising every file (34.1) and
+   rewriting the distance curve (34.2) changed nothing a human could hear.
+
+   Detected up front rather than discovered 274 failures later: the origin is knowable
+   before an AudioContext exists, and short-circuiting keeps a blocked run from flooding
+   the console with one CORS error per asset. */
+const AUDIO_TRANSPORT_BLOCKED = (() => {
+  try {
+    return (typeof location !== 'undefined' && location && location.protocol === 'file:');
+  } catch (e) { return false; }         // an exotic embedding with no location at all
+})();
+
 /* One entry per sound the game can ask for. `k` is the encode class, `d` the runtime
    duration in seconds, `f` the file; a `step` entry carries its slices in `v` instead.
    GENERATED — regenerate with tests/tools/build_runtime.py, do not hand-edit. */
@@ -5618,6 +5731,9 @@ const AUDIO_LIMITS = Object.freeze({
   bedFade:   2.5,   // default seconds to swap one bed for another.
   maxLoad:    6,    // concurrent decodes. A dimension change asks for six beds at once and
                     // decodeAudioData is not free.
+  deadAfter: 12,    // PHASE 34.3 — consecutive failures with NO success before the whole
+                    // transport is declared dead. Above any one scene's bed count, so a
+                    // slow or partial start cannot trip it; far below the library's size.
 });
 
 /* =====================================================================================
@@ -5649,6 +5765,21 @@ class AudioLibrary {
     this.last = null;
     this._loading = 0;
     this._queue = [];
+    /* PHASE 34.3 — THE AGGREGATE. `failed` is per key and answers "is this sound dead";
+       nothing answered "is the LIBRARY dead", which is a different question with a
+       different remedy, and it is the one the player needed asking. Latched, because a
+       transport that has never once succeeded does not recover by being asked again. */
+    this.transportBlocked = AUDIO_TRANSPORT_BLOCKED;
+  }
+
+  /* Has the whole transport failed, rather than one asset? True when the origin cannot
+     fetch at all, or when enough consecutive attempts have failed with NOT ONE success —
+     which is a deployment fault (a missing `runtime/` directory, a bad path, a server
+     that 404s the folder), never a sound. `AUDIO_LIMITS.deadAfter` is well above the
+     number of assets any single scene asks for, so a slow start cannot trip it. */
+  transportDead() {
+    return this.transportBlocked ||
+           (this.stats.loaded === 0 && this.stats.failed >= AUDIO_LIMITS.deadAfter);
   }
 
   get ctx() { return this.engine ? this.engine.ctx : null; }
@@ -5689,7 +5820,16 @@ class AudioLibrary {
     if (this.pending.has(ck)) return this.pending.get(ck);
     const a = AUDIO_ASSETS[key];
     const ctx = this.ctx;
-    if (!a || !ctx || typeof fetch !== 'function') { this.failed.add(ck); return Promise.resolve(null); }
+    /* A BLOCKED TRANSPORT IS ANSWERED WITHOUT ASKING. Every one of these would fail, and
+       asking anyway costs 274 requests and 274 red console errors that bury the one line
+       that explains them. The counters still move, because `transportDead()` reads them
+       and because a report that says nothing was tried would be a lie. */
+    if (!a || !ctx || typeof fetch !== 'function' || this.transportBlocked) {
+      this.failed.add(ck);
+      this.stats.requested++;
+      this.stats.failed++;
+      return Promise.resolve(null);
+    }
 
     const p = this._gate(() => this._fetchDecode(this.url(key, variant)))
       .then((buf) => {
@@ -5975,7 +6115,14 @@ class AudioLibrary {
     this.slots.set(slot, { key, level, src: null, gain: null, stamp, starting: true });
     this.load(key).then((buf) => {
       const s = this.slots.get(slot);
-      if (!buf || !s || s.stamp !== stamp) return;
+      if (!s || s.stamp !== stamp) return;      // the slot moved on; not ours to touch
+      /* PHASE 34.3 — A BED THAT FAILED IS NOT STILL LOADING, AND SAYING SO MATTERS.
+         This used to return with `starting` still true, so a slot whose file 404s stayed
+         marked LOADING for the rest of the session — which is exactly what every trace of
+         the file:// failure showed, and it is a lie the rest of the engine then believes:
+         anything asking "is a recording on its way" got yes, forever, for a recording
+         that was never coming. One assignment, and the state becomes honest. */
+      if (!buf) { s.starting = false; s.failed = true; return; }
       /* s.level, not the captured `level`: setBedLevel may have moved it while the file
          was in flight, and starting at the stale value would step audibly on the next
          frame that corrects it. */
@@ -6324,6 +6471,31 @@ const AUDIO_EVENTS = Object.freeze({
 
 /* How long "there is something over my head" must hold before the mix believes it. */
 const AUDIO_INDOOR_SETTLE = 0.9;
+
+/* PHASE 34.3 — THE LEVEL THE SYNTHESISED BED HOLDS WHEN NO RECORDING IS SOUNDING.
+
+   This is a FLOOR ON AN EXISTING VOICE, not a new sound: the brown-noise wind bed built
+   in _buildNightBed has been in this engine since Phase 1 and 34.1 already made it stand
+   down for a recording. All this number does is stop it standing down for a recording
+   that is never going to arrive.
+
+   Chosen against the thing it replaces, not against silence: the recorded air bed sits at
+   0.85 through `ambienceBus` at unity, this is a bandpassed noise sweep on `musicBus` at
+   0.82, and it is deliberately well under the recording — a fallback that announced
+   itself would be worse than the fault. It is also under a footstep at 0.46, which keeps
+   the section 61 rule that nothing ambient exceeds the player's own feet. */
+const AUDIO_FALLBACK_BED = 0.26;
+
+/* AND HOW LONG NO RECORDING MUST BE SOUNDING BEFORE THE FALLBACK BELIEVES IT.
+
+   The same lesson as AUDIO_INDOOR_SETTLE, in a different place: a single frame's answer
+   is not enough to change the mix. `_recordedBedLive()` is false for a moment during
+   every ordinary scene change, because setBed claims each slot before its buffer lands —
+   so without a hold, a healthy build would swell a synthesised wind up and back down
+   every time night fell or the player walked through a door. Longer than the 2.5s bed
+   crossfade it has to sit through, short enough that a genuinely dead library is covered
+   before the player has walked anywhere. */
+const AUDIO_FALLBACK_SETTLE = 3.2;
 
 const AUDIO_PRELOAD = Object.freeze([
   /* EVERY PLAYER SURFACE, not a sample of them. The first build preloaded four sets and
@@ -33152,6 +33324,10 @@ class UIManager {
     this.objStatus = document.getElementById('objStatus');
     this.memStatus = document.getElementById('memStatus');
     this.stageStatus = document.getElementById('stageStatus');
+    /* PHASE 34.3 — the two surfaces the audio transport notice is allowed to use. Both
+       are interface, neither is the HUD, and both are empty in a healthy build. */
+    this.audioNotice = document.getElementById('audioNotice');
+    this.setAudioNote = document.getElementById('setAudioNote');
     this.journeyStep = document.getElementById('journeyStep');
     this._journeyText = null;
     this.dayLabel = document.getElementById('dayLabel');
@@ -33916,6 +34092,23 @@ class UIManager {
       if (this.dimensionBanner) this.dimensionBanner.classList.remove('active', 'haven');
     }
     return !!on;
+  }
+
+  /* PHASE 34.3 — PAINT THE AUDIO TRANSPORT NOTICE, AND NOTHING ELSE.
+
+     A RENDERER, exactly like every other method here (section 53): it is handed finished
+     text and writes it to two elements. It does not know what a transport is, does not
+     read the library, does not decide when to appear, and holds no state — Game decides,
+     once, and calls this. Deliberately NOT cleared by resetPresentation: the fault is a
+     property of how the page was opened, not of the run, so a New Game does not make the
+     audio files loadable and must not make the explanation go away. */
+  showAudioNotice(why, fix, how) {
+    if (this.audioNotice) {
+      this.audioNotice.innerHTML = '<b>' + why + '</b><br>' + fix + '<br>' + how;
+      this.audioNotice.classList.add('shown');
+    }
+    if (this.setAudioNote) this.setAudioNote.textContent = why + ' ' + fix;
+    return true;
   }
 
   resetPresentation() {
@@ -37237,6 +37430,11 @@ class Game {
        a suspended AudioContext is brought back. Both bind listeners only. */
     this._bindInterfaceAudio();
     this._watchAudioContext();
+    /* PHASE 34.3 — the origin case is knowable NOW, before an AudioContext exists and
+       before the player has pressed anything, so the notice is on the start screen
+       rather than arriving after they have already played a silent minute. The runtime
+       case (a served build whose files are missing) is caught later, in the frame path. */
+    this._reportAudioTransport();
 
     this.ui.updateVitals(this.player);
 
@@ -37980,6 +38178,10 @@ class Game {
                     suburbia:  ['sub.day', 'sub.night', 'in.sub', 'in.sub.night'] }[dim];
       if (pre) d.warm(pre);
     }
+    /* One boolean test per frame once it has been reported, and one cheap counter
+       comparison until then. The library cannot be asked before it exists, which is why
+       this is here and not only at boot. */
+    if (!this._audioReported) this._reportAudioTransport();
     return d.update(dt, {
       dimension: dim,
       night: !!this.env.isNight,
@@ -37998,6 +38200,46 @@ class Game {
                             this.settings.get('musicVolume'),
                             this.settings.get('sfxVolume'),
                             this.settings.get('ambienceVolume'));
+  }
+
+  /* =================================================================================
+     PHASE 34.3 — THE ONE PLACE A DEAD AUDIO LIBRARY IS REPORTED.
+
+     Silence is the only symptom a broken transport has, and silence is also what a
+     player who has turned the volume down has. Nothing in the build distinguished them,
+     so three playtests in a row read "the recorded library never loaded" as "the mix is
+     wrong" and three phases of level work were spent on files nobody was receiving.
+
+     IT SAYS THE CAUSE AND IT SAYS THE REMEDY. There is exactly one remedy — serve the
+     folder over http:// instead of opening the file — and a message that describes a
+     fault without naming its fix is only a better class of silence.
+
+     WHERE IT IS ALLOWED TO APPEAR. The start screen and the settings panel, which are
+     interface, and the console. NEVER the HUD and never the world: sections 53 and 57
+     are explicit that the objective line belongs to the objective system and that the
+     game does not address the player, and a technical notice is not an exception to
+     that — it is a reason to put it somewhere else. Latched, so it is written once.
+
+     IT IS ALSO NOT A GUESS. The origin case is known before an AudioContext exists; the
+     deployment case is read from the library's own counters once it has tried and
+     failed enough times to be certain. Both land here. */
+  _reportAudioTransport() {
+    if (this._audioReported) return false;
+    const lib = this.sound && this.sound.library;
+    const blocked = AUDIO_TRANSPORT_BLOCKED || (lib && lib.transportDead());
+    if (!blocked) return false;
+    this._audioReported = true;
+    const why = AUDIO_TRANSPORT_BLOCKED
+      ? 'THE PAGE WAS OPENED AS A FILE. BROWSERS BLOCK LOCAL AUDIO FILES.'
+      : 'THE RECORDED AUDIO FILES COULD NOT BE LOADED.';
+    const fix = 'RUN A SERVER IN THIS FOLDER AND OPEN IT OVER HTTP.';
+    const how = 'FOR EXAMPLE: python3 -m http.server 8000';
+    if (this.ui) this.ui.showAudioNotice(why, fix, how);
+    try {
+      console.warn('WHERE IT ISN\u2019T \u2014 ' + why + ' ' + fix + ' ' + how +
+                   '  Synthesised audio still plays; every recording is unavailable.');
+    } catch (e) { /* a console that refuses is not a reason to fail */ }
+    return true;
   }
 
   /* THE THREE KNOBS, and nothing else. No effect is disabled, no geometry is dropped and
@@ -40239,6 +40481,169 @@ class Game {
     return true;
   };
 
+  /* =====================================================================================
+     PHASE 34.3 — THE FORENSIC TRACE.
+
+     `debugAudioOverlay()` answers "what does the system think it is doing". This answers
+     the question that actually found the fault: "does any of it reach the listener", and
+     it separates the four claims that Phase 34.2 established are different — REQUESTED,
+     STARTED, CONNECTED and AUDIBLE.
+
+     IT MEASURES RATHER THAN INFERS. An AnalyserNode is hung off each bus for the length
+     of the call and removed again; an analyser whose output goes nowhere is a pure
+     observer and cannot change the mix. That is the difference between reading a gain
+     value — which was 0.85 and correct on every silent bed in every playtest — and
+     reading the signal, which was zero.
+
+     READ-ONLY AND SELF-CLEANING. It plays nothing, moves no level, and every node it
+     builds is disconnected before it returns. */
+  global.debugAudioTrace = function (seconds) {
+    const g = game(); if (!g) return console.warn('DEV: game not ready');
+    const s = g.sound, lib = s && s.library, d = s && s.director, c = s && s.ctx;
+    if (!c) return console.warn('DEV: no AudioContext yet — click something first');
+    const secs = Math.max(0.4, Math.min(8, seconds || 1.6));
+    const names = ['master', 'userGain', 'musicBus', 'sfxBus', 'sfxUnityBus', 'ambienceBus'];
+    const taps = {};
+    for (const n of names) {
+      if (!s[n]) continue;
+      try {
+        const an = c.createAnalyser(); an.fftSize = 2048;
+        s[n].connect(an);
+        taps[n] = { an, buf: new Float32Array(an.fftSize), rms: 0, peak: 0 };
+      } catch (e) { /* a bus that refuses a tap is simply not reported */ }
+    }
+    const dbfs = (v) => (!v || v <= 0) ? '  -inf' : (20 * Math.log10(v)).toFixed(1).padStart(6);
+    const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    const tick = () => {
+      for (const k in taps) {
+        const t = taps[k];
+        t.an.getFloatTimeDomainData(t.buf);
+        let sum = 0, pk = 0;
+        for (let i = 0; i < t.buf.length; i++) {
+          const v = t.buf[i]; sum += v * v;
+          if (Math.abs(v) > pk) pk = Math.abs(v);
+        }
+        const r = Math.sqrt(sum / t.buf.length);
+        if (r > t.rms) t.rms = r;
+        if (pk > t.peak) t.peak = pk;
+      }
+      const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+      if (now - t0 < secs * 1000) { requestAnimationFrame(tick); return; }
+      report();
+    };
+    const report = () => {
+      const L = [];
+      const busGain = (n) => (s[n] ? s[n].gain.value : 0);
+      L.push('WHERE IT ISN\u2019T \u2014 AUDIO FORENSIC TRACE (' + secs.toFixed(1) + 's)');
+      L.push('');
+      L.push('CONTEXT   state ' + c.state + '   rate ' + c.sampleRate +
+             '   time ' + c.currentTime.toFixed(1) + 's');
+      L.push('ORIGIN    ' + (typeof location !== 'undefined' ? location.protocol : '?') +
+             (AUDIO_TRANSPORT_BLOCKED ? '   TRANSPORT BLOCKED \u2014 no recording can load' : '   ok'));
+      if (lib) {
+        L.push('LIBRARY   requested ' + lib.stats.requested + '  loaded ' + lib.stats.loaded +
+               '  failed ' + lib.stats.failed + '  decoded ' + lib.stats.decoded +
+               '  played ' + lib.stats.played + '  dropped ' + lib.stats.dropped);
+        L.push('          transportDead() = ' + lib.transportDead());
+      }
+      L.push('');
+      L.push('BUS GAIN  master ' + dbfs(busGain('master')) + '   user ' + dbfs(busGain('userGain')));
+      L.push('          music  ' + dbfs(busGain('musicBus')) + '   sfx  ' + dbfs(busGain('sfxBus')) +
+             ' / ' + dbfs(busGain('sfxUnityBus')) + '   amb ' + dbfs(busGain('ambienceBus')));
+      L.push('');
+      L.push('MEASURED  (what actually flowed, not what was asked for)');
+      for (const n of names) {
+        if (!taps[n]) continue;
+        L.push('  ' + n.padEnd(12) + 'rms ' + dbfs(taps[n].rms) + '   peak ' + dbfs(taps[n].peak) +
+               (taps[n].rms > 0 ? '' : '   \u2190 SILENT'));
+      }
+      L.push('');
+      L.push('SCENE     ' + (d ? (d.scene || '(none)') : '-') +
+             '   dim ' + (g._audioDim || '?') + (g._audioIndoors ? '  indoors' : '  outdoors'));
+      if (lib) {
+        L.push('BEDS      ' + lib.slots.size + ' slot(s)');
+        for (const [slot, e] of lib.slots) {
+          const a = AUDIO_ASSETS[e.key];
+          const state = e.starting ? 'REQUESTED  (never started)'
+                      : (e.src && e.gain ? 'STARTED + CONNECTED' : 'CLAIMED, DEAD');
+          L.push('  ' + slot.padEnd(10) + (e.key + '').padEnd(22) +
+                 (a ? (a.f || 'steps') : '?').padEnd(14) + state);
+          L.push('      level ' + (e.gain ? e.gain.gain.value.toFixed(3) : 'n/a') +
+                 '   decoded ' + (lib.isLoaded(e.key) ? 'yes' : 'NO') +
+                 '   spatialised NO (beds are non-positional by construction)');
+        }
+      }
+      /* THE LAST ONE-SHOT, WITH THE WHOLE CHAIN SPELLED OUT. This is where a distance
+         actually applies, and where the arithmetic is worth printing rather than
+         trusting: authored gain, what the falloff left of it, and what the buses do. */
+      if (lib && lib.last) {
+        const l = lib.last;
+        const bus = l.bus === 'music' ? 'musicBus' : l.bus === 'sfx' ? 'sfxUnityBus' : 'ambienceBus';
+        const chain = l.gain * busGain(bus) * busGain('master') * busGain('userGain');
+        L.push('');
+        L.push('LAST CUE  ' + l.key + '   bus ' + l.bus + ' (' + bus + ')');
+        L.push('          source gain ' + l.gain + '  \u00d7 bus ' + busGain(bus).toFixed(3) +
+               '  \u00d7 master ' + busGain('master').toFixed(3) +
+               '  \u00d7 user ' + busGain('userGain').toFixed(3));
+        L.push('          estimated at the listener ' + dbfs(chain) + ' dBFS');
+      }
+      L.push('');
+      L.push('LISTENER  the recorded path uses NO PannerNode and NO AudioListener.');
+      L.push('          Beds are gain \u2192 bus. World one-shots are gain \u2192 lowpass \u2192');
+      L.push('          stereo pan \u2192 bus, with distance applied as an explicit');
+      L.push('          multiplier in playAt(). There is no listener position to be wrong.');
+      for (const k in taps) { try { s[k].disconnect(taps[k].an); } catch (e) { /* gone */ } }
+      console.log(L.join('\n'));
+    };
+    tick();
+    return 'measuring for ' + secs.toFixed(1) + 's\u2026';
+  };
+
+  /* =====================================================================================
+     PHASE 34.3 — THE A/B PROBE.
+
+     Plays ONE named asset two ways so the two can be compared by ear and by meter:
+
+       debugAudioProbe('bed.overworld.day')            flat   \u2014 no distance, no filter,
+                                                              no pan, at a clearly audible
+                                                              test gain
+       debugAudioProbe('sfx.crow', 'spatial')          spatial \u2014 exactly what the game
+                                                              does, at the game's own gain
+                                                              and a representative distance
+
+     DIAGNOSTIC ONLY. It calls the real library, changes no level, latches nothing, and
+     leaves no state behind: the sound plays out and the voice releases itself like any
+     other. Nothing about gameplay is altered by having used it. */
+  global.debugAudioProbe = function (key, mode, distance) {
+    const g = game(); if (!g) return console.warn('DEV: game not ready');
+    const s = g.sound, lib = s && s.library;
+    if (!lib) return console.warn('DEV: no audio library yet — click something first');
+    if (!key || !AUDIO_ASSETS[key]) {
+      console.log('DEV: usage debugAudioProbe(key[, "flat"|"spatial"][, metres])');
+      console.log('DEV: beds: ' + Object.keys(AUDIO_ASSETS).filter((k) => AUDIO_ASSETS[k].k === 'bed').slice(0, 8).join(', ') + ' \u2026');
+      return false;
+    }
+    const spatial = (mode === 'spatial');
+    const d = Math.max(1, distance || 60);
+    if (!lib.isLoaded(key)) {
+      lib.load(key).then((b) => console.log('DEV: ' + key + (b ? ' decoded — call again to hear it'
+                                                              : ' COULD NOT LOAD (transportDead=' + lib.transportDead() + ')')));
+      return 'loading ' + key + '\u2026';
+    }
+    let ok;
+    if (spatial) {
+      const ang = Math.random() * Math.PI * 2;
+      ok = lib.playAt(key, Math.sin(ang) * d, Math.cos(ang) * d, d,
+                      { gain: 0.3, ref: 26, max: 200, floor: 0.7, bus: 'amb' });
+      console.log('DEV: ' + key + ' SPATIAL at ' + d + 'm, the shipped curve, on ambienceBus');
+    } else {
+      ok = lib.play(key, { gain: 0.85, bus: 'amb' });
+      console.log('DEV: ' + key + ' FLAT — no distance, no lowpass, no pan, gain 0.85, ambienceBus');
+    }
+    console.log('DEV: started = ' + ok + (ok ? '' : '  (not loaded, a ceiling, or the library is off)'));
+    return ok;
+  };
+
   global.debugTeleportHelp = function () {
     console.log([
       'WHERE IT ISN\u2019T — DEV TELEPORTS',
@@ -40276,6 +40681,16 @@ class Game {
       '                                      footstep surface and family, the event',
       '                                      countdown, and any dead assets',
       '  debugAudioOverlay(false)            ...remove it',
+      '  debugAudioTrace()                   PHASE 34.3 — MEASURE what reaches the ear:',
+      '                                      taps every bus for a second and prints the',
+      '                                      signal, not the gain values. Separates',
+      '                                      requested / started / connected / audible,',
+      '                                      and reports the origin and transport state',
+      '  debugAudioTrace(secs)               ...over a longer window',
+      '  debugAudioProbe(key)                PHASE 34.3 — play one asset FLAT: no',
+      '                                      distance, no filter, no pan, clearly audible',
+      '  debugAudioProbe(key, "spatial", m)  ...and the same asset through the shipped',
+      '                                      distance curve, for comparison',
       '',
       'Both audits are READ-ONLY: they touch no voxel, spawn nothing, and allocate nothing',
       'that outlives the call, so they are safe to run mid-session without perturbing a',

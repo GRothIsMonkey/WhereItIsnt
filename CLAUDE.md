@@ -1421,6 +1421,7 @@ Phase 33 — Final Creature / Horror Finale         (COMPLETE — see section 59
 Phase 34 — Final Audio Integration                (COMPLETE — see section 61)
 Phase 34.1 — Audio Correction (human playtest)    (see section 61.05)
 Phase 34.2 — Audio Runtime Correction             (see section 61.06 — awaiting replay)
+Phase 34.3 — Audio Forensic Investigation         (see section 61.07 — awaiting replay)
 Phase 35 — Complete Dimension Cohesion
 Phase 36 — Complete Playable Alpha / Full Audit
 
@@ -2395,6 +2396,78 @@ RULES THAT NOW HOLD:
   been listened to.
 
 ---
+
+# 61.07. PHASE 34.3 — THE FORENSIC INVESTIGATION, AND THE ROOT CAUSE OF ALL THREE REPORTS
+
+Phase 34.2 traced the chain in a real browser and shipped green again. The same human
+played it again and reported: menu clicks work, some Stalker sounds work, and the
+Overworld, the Farmlands and Static Suburbia have no ambience at all. This time one sound
+was traced through the entire live path with a meter on every bus, and the fault was not
+in the audio system. See `PROGRESS.md` section 0.000000000000000 for the full record.
+
+**THE ROOT CAUSE: THE GAME WAS BEING OPENED AS A FILE, NOT SERVED.**
+
+From a `file://` page a browser refuses `fetch` and `XMLHttpRequest` for a local file, and
+taint-silences the one transport that does load (an `<audio>` element reaches
+`createMediaElementSource` as digital silence). All three were measured in Chromium during
+this phase. There is no fourth route: **Web Audio cannot receive a local file from a
+`file://` page**, and no amount of work inside this repository can change that.
+
+So every one of the 274 runtime files failed, permanently, in every session. Measured at
+the master bus before the fix, in daylight: the Overworld **-inf dBFS**, the Farmlands
+**-inf dBFS**, Static Suburbia **-59.9 dBFS**. Not quiet. Silent.
+
+**WHY IT LOOKED LIKE A MIX PROBLEM FOR THREE PHASES.** Every sound the player still heard
+has a SYNTHESISED twin that runs when the recording does not — the footstep, the menu
+click, the Stalker's proximity pulse. Every sound that vanished is recording-only, and
+environmental ambience is all of it. Three consecutive playtests reported exactly the
+procedural voices and never once a recording, which is why normalising every file (34.1)
+and rewriting the distance curve (34.2) changed nothing a human could hear: both were
+corrections to files that were never arriving.
+
+RULES THAT NOW HOLD:
+
+- **THE GAME MUST BE SERVED OVER HTTP. OPENING `game.html` FROM DISK CANNOT PLAY ANY
+  RECORDING.** `python3 -m http.server 8000` in the repository root, then
+  `http://localhost:8000/game.html`. This is a browser security property, not a bug, and
+  it is now the first thing `PROGRESS.md` and `tests/README.md` say.
+- **A DEAD TRANSPORT IS A DIFFERENT FAULT FROM A DEAD ASSET, AND IT IS REPORTED.** Failure
+  is a normal, latched, silent outcome per key — correct for one file and wrong for all of
+  them at once, because losing the whole library is a missing SUBSYSTEM. `transportDead()`
+  is the aggregate the library never had, and `Game._reportAudioTransport()` states the
+  cause AND the remedy, once, on the start screen, in the settings panel and in the
+  console. Never in the HUD and never in the world — sections 53 and 57 are not suspended
+  because a message is technical.
+- **A BED THAT FAILED IS NOT STILL LOADING.** `setBed` left a failed slot marked
+  `starting` forever, so the whole engine could ask "is a recording on its way" and get
+  yes, permanently, for a file that was never coming. One assignment; the state is honest
+  and the overlay's LOADING / DEAD distinction is now true.
+- **THE FALLBACK CONTRACT IN SECTION 61 WAS HALF TRUE AND IS NOW WHOLE.** "The build is
+  fully audible with `assets/audio/runtime/` deleted" held for one-shots and was FALSE for
+  ambience: the synthesised bed was scaled by `nightAmount`, which is zero at noon, and
+  Static Suburbia returned before reaching the switch at all. A build with no audio files
+  was silent in daylight. `AUDIO_FALLBACK_BED` closes both holes.
+- **A FALLBACK MUST BE INVISIBLE TO A HEALTHY BUILD.** It engages only when no recording
+  is live AND none is pending AND that has held for `AUDIO_FALLBACK_SETTLE`, and it stands
+  down through the Haven and the finale. Measured across five real bed crossfades and
+  three dimension teleports on a served build: peak **0.00000**. The first version used a
+  timer alone and swelled to 0.218 across a teleport — the browser probe caught it, which
+  is the whole argument for building the probe.
+- **AND THE LESSON, FOR THE THIRD TIME, IN ITS SHARPEST FORM.** `tests/audio.js` already
+  404ed every asset and asserted a footstep still sounded, and called that "fully
+  audible". It tested the one category that has a synthesised twin and never asked about
+  the category that does not. "Sparse" became cover for "silent" in Phase 34; "distant"
+  became cover for "silent" in 34.1; **"a footstep still sounds" became cover for "the
+  world is silent" in 34.2.** When a test stands in for a whole claim, ask which half of
+  the claim it actually covers.
+- **A GAIN VALUE IS NOT A SIGNAL.** Every silent bed in every playtest had `gain 0.85`,
+  a live source, a connected graph and a running context. Reading those proved nothing and
+  cost two phases. `debugAudioTrace()` hangs an AnalyserNode off every bus and reports what
+  FLOWED; `debugAudioProbe(key)` plays one asset flat and spatialised for comparison. Both
+  are read-only and leave nothing behind. Reach for them before reading source.
+- **AND THEN A HUMAN PLAYS IT.** Unchanged and permanent. Nothing in this repository has
+  been listened to. This phase changes what the game sounds like and is not complete until
+  someone has played it — **served over HTTP** — and said so.
 
 # 61.1. PHASE 34's ORIGINAL BRIEF — CLIMAX AUDIO / VISUAL INTEGRATION
 
