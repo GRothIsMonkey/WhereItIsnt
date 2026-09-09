@@ -21,8 +21,8 @@
 const vm = require('vm');
 const fs = require('fs');
 const path = require('path');
-const { makeWorld } = require('./harness/util.js');
-const { S } = makeWorld();
+const { makeWorld, genRegion } = require('./harness/util.js');
+const { S, w: WORLD, ev } = makeWorld();
 
 const ROOT = path.join(__dirname, '..');
 const SRC = fs.readFileSync(path.join(ROOT, 'game.html'), 'utf8');
@@ -35,6 +35,22 @@ const chk = (ok, msg) => { console.log((ok ? 'PASS  ' : 'FAIL  ') + msg); if (!o
 const note = (m) => console.log('      ' + m);
 const head = (t) => console.log('\n--- ' + t + ' ' + '-'.repeat(Math.max(0, 74 - t.length)));
 const g = (n) => vm.runInContext(n, S);
+
+/* The whole of one method, brace-matched. A fixed-length slice is a trap: each phase that
+   adds a paragraph of comment pushes the token a later check looks for out of the window,
+   and the check then fails for a reason unrelated to the property it is about. */
+function methodBody(src, sig) {
+  const i = src.indexOf('\n  ' + sig);
+  if (i < 0) return '';
+  const open = src.indexOf('{', i);
+  let depth = 0;
+  for (let j = open; j < src.length; j++) {
+    const c = src[j];
+    if (c === '{') depth++;
+    else if (c === '}') { depth--; if (depth === 0) return src.slice(open, j + 1); }
+  }
+  return '';
+}
 
 function classBody(src, name) {
   const i = src.indexOf('class ' + name + ' {');
@@ -277,14 +293,23 @@ head('2. THE MANIFEST AND THE FILES IT POINTS AT');
     if (gp[1] <= gp[0]) chk(false, 'event table ' + id + ' has a degenerate gap range');
   }
   chk(worst >= 15, `the busiest event table is '${worstId}' at one event per ${worst}s minimum`);
+  /* THESE TWO NUMBERS MOVED AFTER A HUMAN PLAYTEST, and the bound is now two-sided.
+     42-150s outdoors was defensible on paper and in play meant a player could cross a
+     whole region hearing nothing but their own feet. The floor stops the world becoming
+     busy; the CEILING is the new half, and it is what stops "sparse" being used as cover
+     for "silent" again. */
   const outdoor = ['out.day', 'out.night', 'farm.day', 'farm.night', 'sub.day', 'sub.night'];
-  const slowest = Math.min.apply(null, outdoor.map((id) => AUDIO_EVENTS[id].gap[0]));
-  chk(slowest >= 38,
-      `and no OUTDOOR table fires more often than one event per ${slowest}s — the world is ` +
-      'mostly silent, which is the point');
+  const gaps = outdoor.map((id) => AUDIO_EVENTS[id].gap);
+  const slowest = Math.min.apply(null, gaps.map((g) => g[0]));
+  const laziest = Math.max.apply(null, gaps.map((g) => g[1]));
+  chk(slowest >= 20,
+      `no OUTDOOR table fires more often than one event per ${slowest}s — the world is not busy`);
+  chk(laziest <= 85,
+      `and none is slower than one per ${laziest}s at worst — a player crossing a region ` +
+      'hears the world, which the first build did not deliver');
   const indoor = ['in.house', 'in.sub'];
-  chk(Math.min.apply(null, indoor.map((id) => AUDIO_EVENTS[id].gap[0])) >= 70,
-      'indoors is sparser still: a house creaks at most once in seventy seconds, so a ' +
+  chk(Math.min.apply(null, indoor.map((id) => AUDIO_EVENTS[id].gap[0])) >= 40,
+      'indoors is sparser still: a house answers at most once in forty seconds, so a ' +
       'structure is a structure rather than a haunted one');
   let close = Infinity;
   for (const id of Object.keys(AUDIO_EVENTS)) {
@@ -294,13 +319,28 @@ head('2. THE MANIFEST AND THE FILES IT POINTS AT');
   chk(close >= 12, `and nothing ambient is ever placed closer than ${close} metres — every one is elsewhere`);
 }
 {
-  const loudest = Math.max.apply(null, Object.keys(AUDIO_SCENES).map((id) => {
+  /* A LEVEL IN THIS TABLE IS NOW A REAL MIX DECISION, because build_runtime.py normalises
+     every asset of a class onto one reference. Before that it was a number applied to a
+     file nobody had measured, and the library spanned 64 dB — which is how the shipped
+     build reached a human playtester as "nearly silent". The check that matters is no
+     longer an absolute ceiling but the RELATIONSHIP between the slots. */
+  const rel = [];
+  for (const id of Object.keys(AUDIO_SCENES)) {
     const sc = AUDIO_SCENES[id];
-    return Math.max.apply(null, ['air', 'layer', 'tone', 'tension'].map((s) => sc[s] ? sc[s][1] : 0));
-  }));
-  chk(loudest <= 0.45,
-      `the loudest bed level in the whole table is ${loudest} — quieter than a footstep at ` +
-      `${AUDIO_STEP_SURFACES.grass.g}, so ambience never competes with an interaction`);
+    if (!sc.air) { chk(false, 'scene ' + id + ' has no air bed'); continue; }
+    for (const slot of ['layer', 'tone', 'tension']) {
+      if (sc[slot]) rel.push([id, slot, sc[slot][1] / sc.air[1]]);
+    }
+  }
+  const overs = rel.filter((r) => r[2] > 1);
+  chk(overs.length === 0,
+      overs.length ? 'A SUPPORTING SLOT IS LOUDER THAN THE AIR: ' + JSON.stringify(overs)
+                   : `in all ${Object.keys(AUDIO_SCENES).length} scenes the air bed is the loudest ` +
+                     'thing — every layer, tone and tension bed sits under it');
+  const air = Object.keys(AUDIO_SCENES).map((id) => AUDIO_SCENES[id].air[1]);
+  chk(Math.min.apply(null, air) >= 0.4,
+      `the quietest air bed in the table is ${Math.min.apply(null, air)} of reference — no ` +
+      'place in the game is given an ambience the player cannot hear');
   const withTension = Object.keys(AUDIO_SCENES).filter((id) => AUDIO_SCENES[id].tension).length;
   chk(withTension <= Object.keys(AUDIO_SCENES).length / 2,
       `only ${withTension} of ${Object.keys(AUDIO_SCENES).length} scenes carry a horror bed at all — ` +
@@ -589,7 +629,7 @@ head('7. SCENES: EVERY PLACE THE GAME CAN BE');
   d.update(0.016, { dimension: 'suburbia', night: true });
   await settle();
   await new Promise((r) => setTimeout(r, 3200));
-  chk(lib.bedKey('air') === 'bed.sub.night' && lib.bedKey('tone') === 'bed.hum.crt',
+  chk(lib.bedKey('air') === 'bed.sub.night' && lib.bedKey('tone') === 'bed.hum.buzz',
       'crossing into another dimension swaps every slot the new scene names');
   chk(ctx.live.sources === 3,
       `and leaves ${ctx.live.sources} beds running — the Farmland's do not follow the player out`);
@@ -611,7 +651,11 @@ head('7. SCENES: EVERY PLACE THE GAME CAN BE');
   const hours = 4, frames = (hours * 3600) / 0.05;
   for (let i = 0; i < frames; i++) d.update(0.05, { dimension: 'farmlands' });
   const perHour = d.stats.events / hours;
-  chk(perHour > 20 && perHour < 55,
+  /* THE WINDOW IS TWO-SIDED AND THE LOWER BOUND IS THE ONE THAT MATTERS. The first build
+     sat at 43 an hour and a human playtester described the world as nearly silent. Too
+     few is a failure exactly as much as too many, and only the upper bound was ever
+     checked before. */
+  chk(perHour > 55 && perHour < 130,
       `four simulated hours in the Farmlands produce ${d.stats.events} ambient events — ` +
       `${perHour.toFixed(0)} an hour, roughly one every ${(3600 / perHour).toFixed(0)} seconds`);
   chk(d.stats.scenes === 1, 'and the scene never changed once, because the player never moved');
@@ -662,7 +706,13 @@ head('8. FOOTSTEPS');
   const seen = new Set();
   const rates = [];
   const realPlay = lib.play.bind(lib);
-  lib.play = (k, o) => { seen.add(o.variant); rates.push(o.rate); return realPlay(k, o); };
+  /* Only the FOOTFALL is measured here. A footstep on grass now also plays a movement
+     overlay through the same method, and counting that as a slice made the set look one
+     variant wider than it is. */
+  lib.play = (k, o) => {
+    if (k === 'step.grass') { seen.add(o.variant); rates.push(o.rate); }
+    return realPlay(k, o);
+  };
   for (let i = 0; i < 60; i++) { d.footstep(1, 'grass'); lib._last.clear(); lib._perKey.clear(); lib.voices = 0; }
   chk(seen.size === AUDIO_ASSETS['step.grass'].v.length,
       `sixty footfalls on grass use all ${seen.size} recorded slices`);
@@ -676,6 +726,288 @@ head('8. FOOTSTEPS');
   const d2 = new AudioDirector(new AudioLibrary(stubEngine(fakeCtx())));
   chk(d2.footstep(1, 'not-a-surface') === false,
       'and an unknown surface falls back to the default set rather than throwing');
+}
+
+// =====================================================================================
+head('8b. THE CORRECTION: WHAT THE HUMAN PLAYTEST FOUND');
+// =====================================================================================
+{
+  /* 1. THE RETRO SOUNDTRACK. A human playtest of the first Phase 34 build heard "an old
+     retro/background music system from an early build" over the Overworld, the Farmlands
+     and Suburbia. It was a pentatonic arpeggio scheduled every 10-15 seconds of daylight
+     in every dimension. It is gone, and nothing replaced it. */
+  chk(!/playDayChord\s*\(/.test(LIVE),
+      'playDayChord is not defined or called anywhere in executable code — exploration is not scored');
+  chk(!/this\.dayTimer\s*-=/.test(LIVE) && !/dayMusicTimer\s*-=/.test(LIVE),
+      'and no day-music countdown survives, so nothing can schedule one back');
+  const upd = methodBody(SRC, 'updateDayTrack()');
+  chk(/return false/.test(upd) && upd.length < 120,
+      'updateDayTrack is an explicit documented no-op rather than a deleted name, so a ' +
+      'future phase has to remove a comment to get scored exploration back');
+  chk(!/pitchWobble/.test(LIVE),
+      'the shared pitch-wobble LFO went with it — it detuned those chords and fed nothing else');
+
+  /* Music still exists in exactly four places, and every one of them is a MOMENT. */
+  const music = ['startMenuAmbience', 'startFilmAmbience', 'playHavenChiptunePhrase', 'startFinaleAudio'];
+  chk(music.every((m) => LIVE.indexOf(m) > 0),
+      'the four authored music moments are untouched: the menu, the opening film, the ' +
+      "Haven's chiptune and the finale");
+}
+{
+  /* 2. THE PROCEDURAL NIGHT BED stood on musicBus under the recorded one, and its level
+     was tuned against silence, so it was the louder of the two. It now stands down — but
+     only when a recording is genuinely SOUNDING, not merely requested. */
+  const ni = methodBody(SRC, 'setNightIntensity(');
+  chk(/_recordedBedLive\(\)/.test(ni), 'the synthesised night bed asks whether a recorded bed is live');
+  const live = methodBody(SRC, '_recordedBedLive()');
+  chk(/s\.src && !s\.starting/.test(live),
+      'and "live" means a slot with a real source, not one that is still fetching — ' +
+      'otherwise the world would go silent for the length of a download');
+  const eng = new SoundEngine();
+  chk(eng._recordedBedLive() === false, 'with no library at all it reports false, so the synthesis still runs');
+  eng.library = { slots: new Map([['air', { key: 'x', src: null, starting: true }]]) };
+  chk(eng._recordedBedLive() === false, 'a bed that is still loading does not count');
+  eng.library.slots.set('air', { key: 'x', src: {}, starting: false });
+  chk(eng._recordedBedLive() === true, 'a bed that is actually sounding does');
+}
+{
+  /* 3. SURFACES. The playtest found footsteps "effectively the same across different
+     surfaces". Three separate causes, all asserted here. */
+  const names = Object.keys(AUDIO_STEP_SURFACES);
+  const gains = names.map((n) => AUDIO_STEP_SURFACES[n].g);
+  const spread = Math.max.apply(null, gains) / Math.min.apply(null, gains);
+  chk(spread >= 2,
+      `the surfaces span ${(20 * Math.log10(spread)).toFixed(1)} dB of level (${Math.min.apply(null, gains)} ` +
+      `to ${Math.max.apply(null, gains)}) — a step on stone is genuinely louder than one in mud`);
+  const rates = new Set(names.map((n) => AUDIO_STEP_SURFACES[n].r));
+  chk(rates.size >= 4, `and ${rates.size} distinct playback rates, not one`);
+  const filtered = names.filter((n) => AUDIO_STEP_SURFACES[n].lp);
+  chk(filtered.length >= 4 && filtered.length < names.length,
+      `${filtered.length} of ${names.length} surfaces are low-passed — soft ground has no top ` +
+      'end and a slab does, which widens a difference the recordings already have');
+  const keys = new Set(names.map((n) => AUDIO_STEP_SURFACES[n].key));
+  chk(keys.size >= 8,
+      `${keys.size} distinct recordings across ${names.length} surfaces — only carpet and crop ` +
+      'borrow, and both are voiced differently from what they borrow');
+
+  /* THE FARMLANDS WAS ONE SURFACE. Every soil state mapped to 'soil', so a walk across a
+     whole farm never changed family — which is most of why they sounded the same. */
+  const farm = [BLOCK.SOIL_DRY, BLOCK.SOIL_EXHAUSTED, BLOCK.SOIL_FERTILE, BLOCK.SOIL_TRAMPLED,
+                BLOCK.SOIL_WET, BLOCK.FARM_MUD, BLOCK.SOIL_OVERGROWN, BLOCK.TIRE_TRACK,
+                BLOCK.CROP_FLAT];
+  const fams = new Set(farm.map((id) => AUDIO_SURFACE_OF[id]));
+  chk(fams.size >= 4,
+      `the Farmland ground now classifies into ${fams.size} families (${Array.from(fams).join(', ')}) ` +
+      'where it previously produced exactly one');
+  chk(AUDIO_SURFACE_OF[BLOCK.CROP_FLAT] === 'crop',
+      'standing crop is its own surface — the most characteristic ground in the dimension ' +
+      'was previously classified as bare soil');
+
+  /* THE MOVEMENT LAYER. The brief lists "grass movement" separately from footsteps. */
+  const withOverlay = names.filter((n) => AUDIO_STEP_SURFACES[n].ov);
+  chk(withOverlay.length >= 3 && withOverlay.every((n) => AUDIO_CUES[AUDIO_STEP_SURFACES[n].ov]),
+      `${withOverlay.length} surfaces carry a movement overlay (${withOverlay.join(', ')}) and every ` +
+      'one names a real cue');
+  const hard = ['stone', 'pavement', 'wood', 'hollow'];
+  chk(hard.every((n) => !AUDIO_STEP_SURFACES[n].ov),
+      'and no hard surface has one — there is nothing on a slab to push through');
+}
+{
+  /* THE GROUND PROBE. Reading only downward is what classified a wheat field as soil:
+     crop stems are noclip decoration in the cell the player's feet are IN. */
+  const d = new AudioDirector(null);
+  const world = { getBlockWorld: (x, y, z) => (world._col[y] || 0) };
+  world._col = {}; world._col[39] = BLOCK.CROP_FLAT; world._col[38] = BLOCK.SOIL_DRY;
+  chk(d.surfaceAt(world, 0.5, 39.0, 0.5) === 'crop',
+      'a player standing in standing crop over dry soil reads as CROP, not as soil');
+  world._col = {}; world._col[38] = BLOCK.SOIL_DRY;
+  chk(d.surfaceAt(world, 0.5, 39.0, 0.5) === 'soil', 'and bare ground under the same feet reads as soil');
+  world._col = {}; world._col[39] = BLOCK.WEED_CLUMP; world._col[38] = BLOCK.SOIL_TRAMPLED;
+  chk(d.surfaceAt(world, 0.5, 39.0, 0.5) === 'grass', 'cover wins over the ground beneath it');
+}
+{
+  /* AN UNGENERATED COLUMN IS NOT A ROOM. hasSkyAbove returns false for a chunk that is
+     not resident, which is indistinguishable from a ceiling — so a fast traversal or a
+     fresh dimension could hand the player an interior room tone in an open field. */
+  const src = methodBody(SRC, '_updateEnvironmentAudio(dt)');
+  chk(/getChunk/.test(src) && /!!chunkHere && !this\.world\.hasSkyAbove/.test(src),
+      'the indoor test requires the chunk to be resident before it will believe a ceiling');
+  chk(/SEA_LEVEL - 3/.test(src),
+      "and 'deep' is measured against sea level rather than an absolute y, so a ground-floor " +
+      'room is never mistaken for a cellar');
+}
+{
+  /* PRELOAD. The first steps onto a new surface fell back to the synthesised burst,
+     which is exactly the moment the change of ground is meant to be audible. */
+  const surfaces = new Set(Object.keys(AUDIO_STEP_SURFACES).map((n) => AUDIO_STEP_SURFACES[n].key));
+  const missing = Array.from(surfaces).filter((k) => AUDIO_PRELOAD.indexOf(k) < 0);
+  chk(missing.length === 0,
+      missing.length ? 'SURFACES NOT PRELOADED: ' + missing.join(', ')
+                     : `all ${surfaces.size} player footstep sets are preloaded, so no surface ` +
+                       'change is ever heard as the fallback');
+  const overlays = Object.keys(AUDIO_STEP_SURFACES)
+    .map((n) => AUDIO_STEP_SURFACES[n].ov).filter(Boolean)
+    .reduce((a, n) => a.concat(AUDIO_CUES[n].k), []);
+  chk(overlays.every((k) => AUDIO_PRELOAD.indexOf(k) >= 0),
+      'and so is every movement overlay they can trigger');
+}
+{
+  /* THE FOOTFALL ACTUALLY CHANGES FAMILY. Driven, not asserted from the table. */
+  installFetch('ok');
+  const lib = new AudioLibrary(stubEngine(fakeCtx()));
+  const d = new AudioDirector(lib);
+  await lib.preload(AUDIO_PRELOAD);
+  const heard = [];
+  const realPlay = lib.play.bind(lib);
+  lib.play = (k, o) => { heard.push({ k, gain: o.gain, rate: o.rate, lp: o.lp }); return realPlay(k, o); };
+  const walk = ['grass', 'crop', 'gravel', 'pavement', 'wood', 'mud', 'stone', 'carpet', 'leaves'];
+  for (const surf of walk) {
+    lib._last.clear(); lib._perKey.clear(); lib.voices = 0;
+    d.footstep(1, surf);
+  }
+  const steps = heard.filter((h) => AUDIO_ASSETS[h.k] && AUDIO_ASSETS[h.k].k === 'step');
+  const fams = Array.from(new Set(steps.map((h) => h.k)));
+  chk(fams.length >= 6,
+      `walking across ${walk.length} surfaces produced ${fams.length} different footstep ` +
+      `recordings: ${fams.join(', ')}`);
+  const gainRange = Math.max.apply(null, steps.map((h) => h.gain)) /
+                    Math.min.apply(null, steps.map((h) => h.gain));
+  chk(gainRange > 1.8,
+      `and ${(20 * Math.log10(gainRange)).toFixed(1)} dB of level between the loudest and quietest of them`);
+  const lps = new Set(steps.map((h) => h.lp || 0));
+  chk(lps.size >= 3, `with ${lps.size} different filter settings across the walk`);
+  const rustles = heard.filter((h) => h.k === 'sfx.crop' || h.k === 'sfx.leaves' ||
+                                      h.k === 'sfx.bush' || h.k === 'sfx.grass');
+  chk(rustles.length > 0 && rustles.every((r) => r.gain < 0.25),
+      `${rustles.length} movement rustles were layered under the soft-ground steps, every one ` +
+      'well under the footfall itself');
+  chk(d.lastStepSurface() === walk[walk.length - 1],
+      `and the director reports the surface it last used ('${d.lastStepSurface()}')`);
+}
+
+// =====================================================================================
+head('8c. THE FAMILY ACTUALLY CHANGES ON REAL GROUND');
+// =====================================================================================
+{
+  /* THE ASSERTION THE FIRST BUILD NEEDED AND DID NOT HAVE. Everything above proves the
+     TABLE distinguishes surfaces. This walks the REAL generator and asks what the real
+     ground under a real player actually classifies as — which is the question a human
+     playtester answered with "they all sound the same", and the reason they were right:
+     every soil state in the Farmlands mapped to one family, so a walk across an entire
+     farm never changed recording once. */
+  const d = new AudioDirector(null);
+  const census = (cx, cz, r) => {
+    genRegion(WORLD, cx - r, cz - r, cx + r, cz + r);
+    const hist = {};
+    let n = 0;
+    for (let x = cx - r; x <= cx + r; x += 3) {
+      for (let z = cz - r; z <= cz + r; z += 3) {
+        const y = WORLD.findSpawnHeight(x, z);
+        if (y <= 0) continue;
+        const s = d.surfaceAt(WORLD, x + 0.5, y, z + 0.5);
+        hist[s] = (hist[s] || 0) + 1; n++;
+      }
+    }
+    return { hist, n };
+  };
+  const farm = census(ev('FARM_SPAWN_X'), ev('FARM_SPAWN_Z'), 110);
+  const rows = Object.entries(farm.hist).sort((a, b) => b[1] - a[1]);
+  const share = (k) => (farm.hist[k] || 0) / farm.n;
+  note('Farmland journey corridor, ' + farm.n + ' real ground columns: ' +
+       rows.map(([k, v]) => `${k} ${(100 * v / farm.n).toFixed(0)}%`).join('  '));
+  chk(rows.length >= 5,
+      `the real Farmland ground classifies into ${rows.length} footstep families — before this ` +
+      'correction the whole dimension produced exactly one');
+  chk(share(rows[0][0]) < 0.8,
+      `and no single family covers more than ${(100 * share(rows[0][0])).toFixed(0)}% of it, so a ` +
+      'walk across a farm genuinely changes recording');
+  chk(share('crop') > 0.04,
+      `standing crop is ${(100 * share('crop')).toFixed(0)}% of the corridor — the wheat the ` +
+      'journey is built around now sounds like wheat');
+  chk(['grass', 'gravel', 'mud'].every((k) => share(k) > 0.01),
+      'and grass, farmyard gravel and wet ground are all reachable rather than theoretical');
+
+  const over = census(0, 0, 110);
+  const orows = Object.entries(over.hist).sort((a, b) => b[1] - a[1]);
+  note('Overworld spawn, ' + over.n + ' columns: ' +
+       orows.map(([k, v]) => `${k} ${(100 * v / over.n).toFixed(0)}%`).join('  '));
+  chk(orows.length >= 3,
+      `the Overworld classifies into ${orows.length} families. It is a temporary dimension ` +
+      '(CLAUDE.md section 61) and gets a correct classification, not an authored one');
+}
+
+// =====================================================================================
+head('8d. THE CREATURES AND THE RIFT ARE ACTUALLY REACHABLE');
+// =====================================================================================
+{
+  /* Every one of these is driven, not read off a table: the question the playtest raised
+     is not "is there a code path" but "does a sound come out of it". */
+  installFetch('ok');
+  const lib = new AudioLibrary(stubEngine(fakeCtx()));
+  const d = new AudioDirector(lib);
+  await lib.preload(Object.keys(AUDIO_ASSETS).filter((k) => AUDIO_ASSETS[k].k !== 'step'));
+  await lib.preload(['step.stalker', 'step.stalker.near', 'step.cloth']);
+  const heard = [];
+  const realPlay = lib.play.bind(lib);
+  lib.play = (k, o) => { const ok = realPlay(k, o); if (ok) heard.push({ k, g: o.gain }); return ok; };
+  const clear = () => { lib._last.clear(); lib._perKey.clear(); lib.voices = 0; heard.length = 0; };
+
+  // --- THE STALKER, walked in from 34 metres to 4 --------------------------------
+  clear();
+  const byBand = { far: new Set(), mid: new Set(), near: new Set() };
+  for (let dist = 33; dist >= 3; dist -= 0.5) {
+    for (let i = 0; i < 30; i++) {          // enough frames to expire its countdown
+      lib._last.clear(); lib._perKey.clear(); lib.voices = 0;
+      d.stalker(0.25, dist, dist * 0.6, dist * 0.8);
+    }
+    const band = dist > 18 ? 'far' : dist > 9 ? 'mid' : 'near';
+    for (const h of heard) byBand[band].add(h.k);
+    heard.length = 0;
+  }
+  chk(byBand.far.size > 0 && byBand.mid.size > 0 && byBand.near.size > 0,
+      `the Stalker is audible at every range: far ${Array.from(byBand.far).join('/')}, ` +
+      `mid ${Array.from(byBand.mid).join('/')}, near ${Array.from(byBand.near).join('/')}`);
+  chk(byBand.far.has('step.stalker') || byBand.far.has('sfx.branch') || byBand.far.has('sfx.leaves'),
+      'at distance it is footfalls and things being pushed through cover');
+  chk(Array.from(byBand.near).some((k) => k.indexOf('breath') >= 0 || k === 'step.cloth'),
+      'and close in it is cloth and breathing — the approach is a thing arriving, not a display');
+  clear();
+  for (let i = 0; i < 200; i++) d.stalker(0.25, 60, 40, 40);
+  chk(heard.length === 0, 'beyond 34 metres it makes no sound at all');
+
+  // --- THE BEHEMOTH: one distant arrival ------------------------------------------
+  clear();
+  chk(d.behemothArrives(60, 60, 90) === true,
+      'the Behemoth announces itself once, from 90 metres');
+  chk(heard.length === 1 && heard[0].g < 0.1,
+      `and it arrives at ${heard[0] ? heard[0].g.toFixed(3) : '?'} after distance falloff — ` +
+      'enormous and far away, not a monster in the room');
+
+  // --- THE RIFT: a place with a bed and punctuation --------------------------------
+  clear();
+  d.setScene(null); d.update(0.25, { dimension: 'overworld', rift: true });
+  await settle();
+  chk(d.scene === 'rift' && lib.bedKey('air') === 'bed.rift.pulse' &&
+      lib.bedKey('layer') === 'bed.rift.static' && lib.bedKey('tension') === 'bed.rift.drone',
+      'the Rift is three layered beds — a pulse, interference and a drone — not a one-shot');
+  heard.length = 0;
+  for (let i = 0; i < 1200; i++) { lib._last.clear(); lib._perKey.clear(); lib.voices = 0;
+                                   d.update(0.25, { dimension: 'overworld', rift: true }); }
+  const riftKeys = new Set(heard.map((h) => h.k));
+  chk(riftKeys.size >= 3 && Array.from(riftKeys).every((k) => k.indexOf('sfx.rift.') === 0),
+      `and ${riftKeys.size} distinct distortion cues fire over it: ${Array.from(riftKeys).join(', ')}`);
+
+  // --- THE ANIMALS -----------------------------------------------------------------
+  clear();
+  const species = ['cow', 'sheep', 'chicken', 'horse'];
+  const got = species.filter((sp) => {
+    lib._last.clear(); lib._perKey.clear(); lib.voices = 0;
+    return d.cueAt('animal.' + sp, 6, 8, 10, { ref: 11, max: 70 });
+  });
+  chk(got.length === 4, `all four Farmland species have an audible call: ${got.join(', ')}`);
+  clear();
+  chk(d.cueAt('animal.cow', 40, 40, 120, { ref: 11, max: 70 }) === false,
+      'and a call from 120 metres is dropped rather than played inaudibly — the falloff is real');
 }
 
 // =====================================================================================
@@ -715,6 +1047,17 @@ head('9. THE HAVEN — REMOVAL, AND NOTHING ELSE');
   const first = seen[0];
   chk(first[0] > 0 && first[2] > 0,
       'while the first stage is a warm, occupied room — the comfort is real before it is removed');
+  /* AND IT IS ACTUALLY AUDIBLE. These multipliers were raised in the Phase 34.1 correction
+     for the same reason every other level in the build was: they were written against
+     unnormalised files, and at the original numbers the warmest room in the game was
+     quieter than standing in a field. The Haven has to be the most PRESENT place there is
+     — that is the whole point of it, and of what is then taken away. */
+  const outdoorAir = AUDIO_SCENES['farm.day'].air[1];
+  chk(first[2] >= outdoorAir,
+      `the hearth at its warmest is ${first[2].toFixed(2)} against an open field at ${outdoorAir} — ` +
+      'the fire is the most present thing in the game, as it should be');
+  chk(first[0] >= outdoorAir * 0.7,
+      `and the room tone under it is ${first[0].toFixed(2)}, within reach of the same reference`);
 
   d.havenEnd(0.01);
   await new Promise((r) => setTimeout(r, 450));
@@ -763,6 +1106,21 @@ head('10. THE FINALE — ONLY EVER THICKER');
              'the exact mirror of the Haven, which is the point of the pair');
   chk(rows[0][0] === 0 && rows[0][1] === 0 && rows[0][2] === 0,
       "and the 'silence' beat is genuinely silent — the finale opens on nothing");
+  /* THE LAST BEAT HAS TO BE THE LOUDEST THING IN THE GAME. Raised in the Phase 34.1
+     correction: at the original numbers the ending was quieter than a field, because these
+     were written against files nobody had measured. */
+  const last = rows[rows.length - 1];
+  /* COMPARED AT THE BUS, not at the level. The finale's layers are music (musicBus, 0.82
+     in the shipped mix) and a field is ambience (ambienceBus, 1.0), so the raw numbers in
+     the two tables are not on the same scale and comparing them directly understates the
+     finale by two decibels. */
+  const MUSIC_BUS = 0.82, AMB_BUS = 1.0;
+  const field = AUDIO_SCENES['farm.day'].air[1] * AMB_BUS;
+  chk(last[0] * MUSIC_BUS > field,
+      `the final beat's floor reaches ${(last[0] * MUSIC_BUS).toFixed(2)} at the bus against an ` +
+      `open field at ${field.toFixed(2)} — the ending is the largest sound in the game`);
+  chk(last[1] * MUSIC_BUS > field * 0.5 && last[2] > 0,
+      'and all three layers carry it, rather than one loud one doing the work alone');
   const covered = rows.map((r) => r[3]);
   chk(FINALE_BEATS.every((b) => covered.indexOf(b.id) >= 0),
       'every beat in the real table has a row — none falls through to zero by accident');
@@ -816,6 +1174,9 @@ head('11. TEARDOWN: NOTHING SURVIVES A NEW GAME');
 {
   chk(/if \(this\.sound && this\.sound\.director\) this\.sound\.director\.reset\(\);/.test(LIVE),
       'the teardown is called from Game\'s one reset path, beside ui.resetPresentation and envStory.reset');
+  chk(/this\._audioDim = null;/.test(LIVE) && /this\._audioIndoors = false;/.test(LIVE),
+      'and the frame path\'s own memory goes with it — a New Game does not inherit the ' +
+      'previous run\'s dimension or its indoor latch');
   chk(/if \(this\.director\) \{ try \{ this\.director\.reset\(\); \} catch \(e\)/.test(LIVE),
       'and again from silenceAll(), so the credits hard-cut genuinely stops the beds rather than ducking them');
 }

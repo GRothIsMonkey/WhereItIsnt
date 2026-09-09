@@ -1,7 +1,7 @@
 # WHERE IT ISN'T — PROJECT STATE
 
 ```
-Current phase              34 — FINAL AUDIO INTEGRATION (complete)
+Current phase              34.1 — AUDIO CORRECTION (needs a human replay)
 Next phase                 35 — COMPLETE DIMENSION COHESION
 Phase 19                   COMPLETE
 Phase 20                   COMPLETE
@@ -21,6 +21,8 @@ Phase 31                   COMPLETE           (see section 0.000000000)
 Phase 32                   COMPLETE           (see section 0.0000000000)
 Phase 33                   COMPLETE           (see section 0.00000000000)
 Phase 34                   COMPLETE           (see section 0.000000000000)
+Phase 34.1 correction      IMPLEMENTED        (see section 0.0000000000000 — NOT yet replayed)
+Exploration music          REMOVED            (34.1; four authored music moments remain)
 XP                         REMOVED            (no runtime XP exists; see section 0.0000)
 Hearts / vital bars        REMOVED            (no runtime HUD bar exists; see section 0.00000)
 Tutorial                   REMOVED            (no tutorial exists; see section 0.000000)
@@ -48,6 +50,188 @@ describe Phase 20 as it was first delivered, and Section 0 describes the 20.1 jo
 revision that followed a human playtest and supersedes them wherever they disagree** — principally the beat table, the landmark set, the distances, and the
 performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
 instruction and the compass and changed no world generation at all.
+
+---
+
+## 0.0000000000000. PHASE 34.1 — AUDIO CORRECTION AFTER A HUMAN PLAYTEST
+
+Phase 34 shipped with 117 offline checks and 42 browser checks green. A person then played
+it and reported the game nearly silent apart from footsteps, over an unwanted retro music
+loop. Both things were true, and both suites had proved the wrong claim: that the system
+CAN select and play a sound, which is not the same question as whether a player hears one.
+
+---
+
+# THE FIVE FINDINGS, AND WHAT EACH TURNED OUT TO BE
+
+**1. "An old retro/background music system from an early build."** Correct. `playDayChord()`
+scheduled a warm pentatonic arpeggio every ten to fifteen seconds of daylight, in every
+dimension, and had done since the first prototype. It is deleted. So is the shared
+pitch-wobble LFO that existed only to detune it as sanity fell. **Nothing replaced it.**
+
+**2. "The collected environmental audio is barely heard."** Correct, and this is the root
+cause of the whole failure. Measured after the fact, the bed library spanned **64 dB** from
+quietest to loudest — a room tone at −67 dBFS RMS next to a drone at −3 — and every level
+in `AUDIO_SCENES` had been hand-written between 0.05 and 0.42 as if the files were all the
+same loudness. What that produced:
+
+| bed | recorded at | × level | × master | reached the player at |
+|---|---|---|---|---|
+| `bed.overworld.day` | −42.9 dBFS | 0.42 | 0.55 | **−56 dBFS** |
+| `bed.interior.house` | −67.3 dBFS | 0.34 | 0.55 | **−82 dBFS** |
+| `bed.hum.powerline` | −56.3 dBFS | 0.09 | 0.55 | **−77 dBFS** |
+
+Those are not quiet mixes, they are silence. Meanwhile the footsteps were peak-normalised
+to −1 dBFS and the day chords were tuned by ear against nothing, so the two things the
+playtester DID hear are exactly the two things that had never been through this arithmetic.
+
+**3. "Footsteps sound effectively the same across surfaces."** Correct, for three separate
+reasons, none of which was the recordings — measured, their spectral centroids span 361 Hz
+to 4168 Hz, an elevenfold range. The causes were that every slice had been PEAK-normalised
+to one ceiling (throwing away the loudness half of what tells you the ground changed); that
+the voicing table gave every surface the same gain and rate; and that **the entire
+Farmlands classified as a single surface** — every soil state mapped to `soil`, so a walk
+across a whole farm never changed recording once.
+
+**4. "In Suburbia I heard an AC/electrical hum and a light buzz."** Correct, and revealing:
+those are the Phase 5A *procedural* CRT static and hum, not the new library. The only new
+audio the playtester could hear was the part that had never needed a level decision.
+
+**5. "The vast majority of collected sounds are not contributing."** Correct, and now
+measured rather than asserted — see the runtime audit below.
+
+---
+
+# THE AUDIT THAT SHOULD HAVE EXISTED
+
+`tests/audio-audit.js` is new, and it is a MEASUREMENT rather than a test. It boots the
+real game in a real Chromium, wraps every method in the build that can make a sound, walks
+each dimension and prints what actually happened. It asserts nothing; it is the thing to
+run when the question is "what does the player get".
+
+Its first run, against the shipped Phase 34 build, is the evidence for everything above:
+`playDayChord` firing twice in seventy seconds of walking, six of nine pavement footfalls
+falling back to the synthesised burst because only four step sets were preloaded, `soil`
+covering almost every sample in two dimensions, and beds present at levels that could not
+be heard.
+
+---
+
+# WHAT WAS DONE
+
+**LOUDNESS IS NOW MEASURED AND CORRECTED AT BUILD TIME.** `build_runtime.py` measures every
+asset and bakes a gain that puts it on its class reference (−26 dBFS beds, −20 one-shots,
+−22 footfalls), capped so nothing clips.
+
+```
+                     before            after
+beds        64.3 dB spread     9.3 dB spread
+one-shots   50.3 dB spread    11.5 dB spread
+```
+
+Two subtleties the first attempt got wrong and the second fixes. **One-shots are measured
+over their loudest 300 ms, not their whole duration** — a two-second file holding one 80 ms
+door click is mostly silence, and whole-file RMS put fifty of the hundred and ten cues
+twenty decibels too quiet. **Footfalls are normalised per SET, not per slice** — levelling
+each footfall individually would make every step in a set exactly as loud as every other,
+which deletes the heavy-step/light-step dynamic that makes a walk sound like a person; the
+sets now sit at a common level and keep 4 to 13 dB of internal dynamics each.
+
+A number in `AUDIO_SCENES` is now a real mix decision instead of a guess about an unmeasured
+file, and the levels were re-tuned on that basis: air beds 0.66–0.85 where they were
+0.30–0.42, the Haven's fire 0.86 where it was 0.34, and the finale's last beat 0.78 where
+it was 0.26.
+
+**THE SURFACE SYSTEM WAS REBUILT AROUND THE DIMENSION IT SERVES.**
+
+- The Farmland soils are split five ways — dry/exhausted stay `soil`, fertile and overgrown
+  become `grass`, trampled and tyre-tracked become `gravel`, wet and mud become `mud`.
+- `crop` is a new surface and it includes the standing crop blocks (`CROP_TALL`,
+  `WITHERED_CROP`, `STUBBLE`, `DRY_TUSSOCK`, `REEDS`), which is the sound the entire
+  Farmland journey is built around and which was previously classified as bare soil.
+- **The ground probe reads the cell the feet are IN before the ones below it.** Crop stems
+  and weeds are noclip decoration occupying the player's own cell; reading only downward is
+  literally why a wheat field sounded like a ploughed one.
+- The voicing table gained three columns: a per-surface low-pass, a per-surface random
+  spread, and an optional movement overlay. Level now spans 7.5 dB across surfaces and six
+  distinct playback rates, against 1.6 dB and two before.
+- A **movement layer** — the player's legs going through the cover they are standing in,
+  at a fifth of the footfall, on soft surfaces only. This is the brief's "grass movement",
+  which is listed separately from footsteps because it is a different thing.
+- Every player surface is preloaded. Nine sets, about 3 MB, fetched once.
+
+Measured against the real generator, the Farmland journey corridor now classifies into
+**nine** footstep families — soil 65%, crop 13%, grass 7%, gravel 6%, leaves 5%, mud 3% —
+where before the correction it produced exactly one.
+
+**EXPLORATION IS PRESENT.** Outdoor event tables went from one per 42–150 s to one per
+22–70 s, and `tests/audio.js` now bounds them on BOTH sides: the old test only checked
+that events were rare enough, which is how "sparse" became cover for "silent". Four
+simulated hours of Farmland now produce 92 events an hour against 43 before.
+
+**TWO DEFECTS THE AUDIT FOUND ON ITS OWN.** An ungenerated chunk reads as "no sky", which
+is indistinguishable from a ceiling, so a fast traversal could hand the player an interior
+room tone in an open field — the chunk is now checked first. And a single frame's reading
+was enough to swap every bed in the mix, so a tree, a porch or a bridge crossfaded the
+whole room in and straight back out; the reading now has to hold for 0.9 s.
+
+**THE PROCEDURAL NIGHT BED STANDS DOWN** when a recorded bed is genuinely sounding — not
+when one is merely requested, because a slot that is still fetching would leave the world
+silent for the length of the download. It is kept, because it is still the entire night
+ambience of a build whose files are missing.
+
+---
+
+# WHAT WAS DELIBERATELY KEPT
+
+The Suburbia CRT static, because Phase 5A spatialises it to the nearest window and a bed
+never could — the recorded CRT hum was removed from the scene table instead, so there is
+one hum and it is the positioned one. The Haven's chiptune, because Phase 32 authored it
+and its warmth is the point of the dimension. The menu ambience, the opening film's, and
+the finale's three layers. Four music moments, and every one of them is a MOMENT.
+
+---
+
+# VALIDATION
+
+```
+tests/audio.js         169 checks   +52 on the correction alone
+tests/browser-audio.js  46 checks   +5
+tests/audio-audit.js     —          measurement, asserts nothing
+```
+
+The final audit run, with nothing else competing for the machine:
+
+```
+FOOTSTEP SURFACES CROSSED IN ONE WALK   grass, soil, stone, crop, pavement, gravel
+FALLBACKS TO THE SYNTHESISED BURST      0 of 68
+RETRO MUSIC SCHEDULED                   0 (was 2 in seventy seconds)
+AMBIENT EVENTS   overworld day 38s   night 52s   farm day 40s   night 59s
+                 suburbia day 36s    night 49s   indoors 73-86s   rift 27s
+PAGE ERRORS                             none
+```
+
+Every offline suite passes (23 files, 1,605 checks) and every browser suite passes
+unchanged: `browser-audio` 46, `browser-finale` 72, `browser-haven` 73, `browser-menu` 70,
+`browser-opening` 72, `browser-environment` 41, `browser-onboarding` 48, `browser-save` 102.
+
+Every other suite unchanged and passing. The new checks that matter are the ones that would
+have caught this: that no bed in the table is quieter than 0.4 of reference; that outdoor
+events have a CEILING as well as a floor; that the real Farmland ground classifies into at
+least five families with none over 80%; that walking nine surfaces produces at least six
+different recordings with 7.3 dB between the loudest and quietest; and that `playDayChord`
+does not exist on the live engine.
+
+---
+
+# WHAT IS STILL NOT VERIFIED
+
+**Nothing has been listened to, and this correction does not change that.** No playback
+device and no content-analysis tool was available. Everything above is measured in
+decibels, hertz and event counts, which is the right way to catch what went wrong — the
+failure was arithmetic — but whether the Farmlands now sounds *right* is a judgement only a
+person with speakers can make. **The correction is not complete until a human plays it
+again.** That is the standard the brief set and it is the correct one.
 
 ---
 

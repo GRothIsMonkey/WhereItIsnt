@@ -2144,6 +2144,23 @@ animals, a restrained Stalker, a real fire in the Haven and three thickening lay
 the finale. Neither the Haven's timing nor the finale's was touched: both were handed the
 numbers they already compute.
 
+**A HUMAN PLAYTEST THEN FAILED IT, AND THE CORRECTION IS PHASE 34.1.** The player reported
+the game nearly silent apart from footsteps, under an unwanted retro music loop from an
+early build. Both were true. The cause was that the collected library spans 64 dB and every
+mix level had been hand-written as if it did not, so the recorded environment reached the
+player between -56 and -82 dBFS while the one thing that had never needed a level decision
+— a pentatonic arpeggio scheduled every ten seconds of daylight since the prototype — was
+the loudest thing in the game.
+
+The correction removed the exploration music entirely, made loudness a measured build-time
+step, split the Farmland ground from one footstep surface into nine, and added
+`tests/audio-audit.js` — a measurement rather than a test, which boots the real game and
+prints what a player actually gets. See `CLAUDE.md` section 61.05 and `PROGRESS.md` section
+0.0000000000000.
+
+**IT IS NOT SIGNED OFF.** Nothing in this repository has been listened to, and a phase that
+changes what the game sounds like is not complete until a person has played it and said so.
+
 WHAT REMAINS OF THIS SECTION'S ORIGINAL BRIEF is the climax standard below, which the
 phase met structurally and which nobody has yet heard.
 

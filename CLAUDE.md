@@ -1419,6 +1419,7 @@ Phase 31 — Environmental Storytelling            (COMPLETE — see section 57)
 Phase 32 — Fake Haven Dream Sequence              (COMPLETE — see section 58)
 Phase 33 — Final Creature / Horror Finale         (COMPLETE — see section 59)
 Phase 34 — Final Audio Integration                (COMPLETE — see section 61)
+Phase 34.1 — Audio Correction (human playtest)    (see section 61.05 — awaiting replay)
 Phase 35 — Complete Dimension Cohesion
 Phase 36 — Complete Playable Alpha / Full Audit
 
@@ -2262,6 +2263,55 @@ was available, so every classification comes from filenames, AUDIO_CREDITS title
 ffprobe metadata); no human has played the build; weather and water are loaded but placed
 by no scene, because the game has no weather state and no cheap water-proximity query —
 both are Phase 35 work.
+
+---
+
+# 61.05. PHASE 34.1 — THE AUDIO CORRECTION, AND THE RULE IT PRODUCED
+
+Phase 34 passed 117 offline and 42 browser checks. A human then played it and found the
+game nearly silent apart from footsteps, over an unwanted retro music loop. Both suites had
+proved that the system CAN select and play a sound. Neither had asked whether a player
+hears one. See `PROGRESS.md` section 0.0000000000000 for the full record.
+
+THE RULE THAT CAME OUT OF IT, and it applies to more than audio:
+
+  A TEST THAT ONLY BOUNDS ONE SIDE IS HALF A TEST. Every sparseness check in this phase
+  asserted that events were rare ENOUGH. None asserted they were frequent enough, and
+  "sparse" quietly became cover for "silent". Both event tables and bed levels now carry
+  a floor as well as a ceiling.
+
+RULES THAT NOW HOLD FOR AUDIO, in addition to section 61:
+
+- **EXPLORATION IS NOT SCORED.** `playDayChord` is deleted. Music exists in exactly four
+  places and every one is a MOMENT: the menu, the opening film, the Haven's chiptune and
+  the finale. `tests/audio.js` fails if a scheduler for exploration music reappears, and
+  `browser-audio.js` checks the live engine rather than the source.
+- **A LEVEL IS ONLY MEANINGFUL IF THE FILE WAS MEASURED.** `build_runtime.py` normalises
+  every asset onto a class reference (−26 dBFS beds, −20 one-shots, −22 footfalls). Before
+  it did, the library spanned 64 dB and the hand-written mix reached the player at −56 to
+  −82 dBFS. Never hand-tune a level against an unmeasured recording; rebuild instead.
+- **ONE-SHOTS ARE MEASURED OVER THEIR LOUDEST 300ms**, not their whole duration, or every
+  transient cue lands twenty decibels too quiet. **FOOTFALLS ARE NORMALISED PER SET**, not
+  per slice, or every step in a set becomes exactly as loud as every other and a walk stops
+  sounding like a person.
+- **NEVER PEAK-NORMALISE A FOOTSTEP.** Loudness is half of what tells a player the ground
+  changed; peak-normalising throws it away and was a direct cause of "they all sound the
+  same".
+- **THE GROUND PROBE READS THE CELL THE FEET ARE IN FIRST.** Crop, weeds and litter are
+  noclip decoration in the player's own cell. Reading only downward classified a wheat
+  field as bare soil, which is how the whole Farmlands became one surface.
+- **AN UNGENERATED CHUNK IS NOT A ROOM**, and a single frame is not enough to swap the mix.
+  `hasSkyAbove` returns false for a chunk that is not resident; the chunk is checked first,
+  and the reading must hold for `AUDIO_INDOOR_SETTLE` before the beds move — a tree, a
+  porch and a bridge are not rooms.
+- **RUN `tests/audio-audit.js` BEFORE CLAIMING AUDIO WORK IS DONE.** It asserts nothing. It
+  boots the real game, wraps every method that can make a sound, walks every dimension and
+  prints what actually happened. It is the tool that would have caught all of this, and it
+  is the tool to reach for when the question is "what does the player get" rather than
+  "does the code run".
+- **AND THEN A HUMAN PLAYS IT.** Neither suite can hear. Nothing in this repository has
+  been listened to. A phase that changes what the game sounds like is not complete until
+  someone has played it and said so.
 
 ---
 

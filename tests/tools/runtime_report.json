@@ -6,7 +6,9 @@
   "dur": 30.0,
   "srcdur": 61.44,
   "capped": true,
-  "src": "511688__jerryberumen__inside_hacienda_house.wav"
+  "src": "511688__jerryberumen__inside_hacienda_house.wav",
+  "gain_db": 42.0,
+  "src_rms": -70.3
  },
  "bed.interior.quiet": {
   "id": "751329",
@@ -15,7 +17,9 @@
   "dur": 30.0,
   "srcdur": 66.0,
   "capped": true,
-  "src": "751329__klankbeeld__room-tone-apartment-656-am-240215_0663.ogg"
+  "src": "751329__klankbeeld__room-tone-apartment-656-am-240215_0663.ogg",
+  "gain_db": 16.9,
+  "src_rms": -42.9
  },
  "bed.interior.basement": {
   "id": "714170",
@@ -24,7 +28,9 @@
   "dur": 30.0,
   "srcdur": 35.09,
   "capped": true,
-  "src": "714170__klankbeeld__basement-room-tone-638-220811_0491.wav"
+  "src": "714170__klankbeeld__basement-room-tone-638-220811_0491.wav",
+  "gain_db": 28.3,
+  "src_rms": -54.3
  },
  "bed.interior.clock": {
   "id": "416002",
@@ -33,7 +39,9 @@
   "dur": 30.0,
   "srcdur": 39.99,
   "capped": true,
-  "src": "416002__nixeno__nixeno-house-ambiance-with-clock-tik-tak (1).mp3"
+  "src": "416002__nixeno__nixeno-house-ambiance-with-clock-tik-tak (1).mp3",
+  "gain_db": 15.8,
+  "src_rms": -41.8
  },
  "bed.haven.room": {
   "id": "805394",
@@ -42,7 +50,9 @@
   "dur": 17.97,
   "srcdur": 17.97,
   "capped": false,
-  "src": "805394__designerschoice__ambroom_room-tone-distant-heavy-rain-or-wind-on-window_nicholas-judy_tdc.wav"
+  "src": "805394__designerschoice__ambroom_room-tone-distant-heavy-rain-or-wind-on-window_nicholas-judy_tdc.wav",
+  "gain_db": 23.4,
+  "src_rms": -49.4
  },
  "bed.interior.tick": {
   "id": "790019",
@@ -51,7 +61,9 @@
   "dur": 16.4,
   "srcdur": 16.4,
   "capped": false,
-  "src": "790019__nox_sound__foley_object_clock_old_tick_sequence_stereo.wav"
+  "src": "790019__nox_sound__foley_object_clock_old_tick_sequence_stereo.wav",
+  "gain_db": 4.6,
+  "src_rms": -33.9
  },
  "sfx.clock.wrong": {
   "id": "328067",
@@ -60,7 +72,9 @@
   "dur": 20.0,
   "srcdur": 27.5,
   "capped": true,
-  "src": "328067__guntherdorksen__old-clock-ticking_-broken-antique-grandfather-clock-ticking-inconsistent-tickingsfx.wav"
+  "src": "328067__guntherdorksen__old-clock-ticking_-broken-antique-grandfather-clock-ticking-inconsistent-tickingsfx.wav",
+  "gain_db": 14.31,
+  "src_rms": -37.909879050398196
  },
  "sfx.clock.pendulum": {
   "id": "342926",
@@ -69,7 +83,9 @@
   "dur": 9.64,
   "srcdur": 9.64,
   "capped": false,
-  "src": "342926__robinhood76__06583-old-clock-pendulum-ticking.wav"
+  "src": "342926__robinhood76__06583-old-clock-pendulum-ticking.wav",
+  "gain_db": 2.13,
+  "src_rms": -24.155052749721495
  },
  "bed.haven.hearth": {
   "id": "387128",
@@ -78,7 +94,9 @@
   "dur": 30.0,
   "srcdur": 93.5,
   "capped": true,
-  "src": "387128__nooneisreal__the-fireplace-3.wav"
+  "src": "387128__nooneisreal__the-fireplace-3.wav",
+  "gain_db": 6.1,
+  "src_rms": -40.5
  },
  "bed.haven.outside": {
   "id": "259228",
@@ -87,7 +105,9 @@
   "dur": 30.0,
   "srcdur": 106.0,
   "capped": true,
-  "src": "259228__decembered__outdoors-cabin-substation.wav"
+  "src": "259228__decembered__outdoors-cabin-substation.wav",
+  "gain_db": 14.7,
+  "src_rms": -40.7
  },
  "bed.air.still": {
   "id": "829081",
@@ -96,7 +116,9 @@
   "dur": 12.2,
   "srcdur": 12.2,
   "capped": false,
-  "src": "829081__geoff-bremner-audio__still-outdoor-air-2-loop.wav"
+  "src": "829081__geoff-bremner-audio__still-outdoor-air-2-loop.wav",
+  "gain_db": 24.3,
+  "src_rms": -50.3
  },
  "step.soft": {
   "id": "813621",
@@ -261,21 +283,27 @@
   "kind": "sfx",
   "file": "213406.wav",
   "dur": 1.7,
-  "src": "213406__chewiesmissus__wooddooropen.wav"
+  "src": "213406__chewiesmissus__wooddooropen.wav",
+  "gain_db": 2.02,
+  "src_rms": -25.03506027049319
  },
  "sfx.door.close": {
   "id": "213404",
   "kind": "sfx",
   "file": "213404.wav",
   "dur": 1.02,
-  "src": "213404__chewiesmissus__wooddoorcloselatch.wav"
+  "src": "213404__chewiesmissus__wooddoorcloselatch.wav",
+  "gain_db": 0.33,
+  "src_rms": -20.334000791821182
  },
  "sfx.door.open2": {
   "id": "432562",
   "kind": "sfx",
   "file": "432562.wav",
   "dur": 7.38,
-  "src": "432562__alessnox__dooropening.flac"
+  "src": "432562__alessnox__dooropening.flac",
+  "gain_db": 13.18,
+  "src_rms": -33.177987779335886
  },
  "sfx.door.close2": {
   "id": "340046",
@@ -284,7 +312,9 @@
   "dur": 19.0,
   "srcdur": 19.0,
   "capped": false,
-  "src": "340046__iesp__wood-door-closing.wav"
+  "src": "340046__iesp__wood-door-closing.wav",
+  "gain_db": -13.65,
+  "src_rms": -6.350020813544953
  },
  "sfx.door.squeak": {
   "id": "858958",
@@ -293,7 +323,9 @@
   "dur": 20.0,
   "srcdur": 35.75,
   "capped": true,
-  "src": "858958__moulaythami__sfx-squeaky-door-opening-and-closing.wav"
+  "src": "858958__moulaythami__sfx-squeaky-door-opening-and-closing.wav",
+  "gain_db": -6.65,
+  "src_rms": -13.345749571845932
  },
  "sfx.door.screen": {
   "id": "848616",
@@ -302,7 +334,9 @@
   "dur": 11.88,
   "srcdur": 11.88,
   "capped": false,
-  "src": "848616__richtone59__wooden-screen-door-opening-and-closing.m4a"
+  "src": "848616__richtone59__wooden-screen-door-opening-and-closing.m4a",
+  "gain_db": -0.88,
+  "src_rms": -19.226024848635305
  },
  "sfx.creak.long": {
   "id": "583119",
@@ -311,7 +345,9 @@
   "dur": 20.0,
   "srcdur": 77.89,
   "capped": true,
-  "src": "583119__sfxafrik__the-door-creak.wav"
+  "src": "583119__sfxafrik__the-door-creak.wav",
+  "gain_db": -2.96,
+  "src_rms": -17.038643226757692
  },
  "sfx.creak.door": {
   "id": "704612",
@@ -320,7 +356,9 @@
   "dur": 8.5,
   "srcdur": 8.5,
   "capped": false,
-  "src": "704612__lilmati__the-door-creaks-youre-not-alone.wav"
+  "src": "704612__lilmati__the-door-creaks-youre-not-alone.wav",
+  "gain_db": 5.55,
+  "src_rms": -25.545777770464326
  },
  "sfx.door.handle": {
   "id": "534337",
@@ -329,14 +367,18 @@
   "dur": 20.0,
   "srcdur": 33.2,
   "capped": true,
-  "src": "534337__defaultv__door_interaction1.mp3"
+  "src": "534337__defaultv__door_interaction1.mp3",
+  "gain_db": 8.21,
+  "src_rms": -28.206921688329878
  },
  "sfx.knock.near": {
   "id": "841281",
   "kind": "sfx",
   "file": "841281.wav",
   "dur": 0.71,
-  "src": "841281__blou27__door-knock-1.wav"
+  "src": "841281__blou27__door-knock-1.wav",
+  "gain_db": -9.94,
+  "src_rms": -10.055532166644417
  },
  "sfx.knock.seq": {
   "id": "728214",
@@ -345,7 +387,9 @@
   "dur": 13.53,
   "srcdur": 13.53,
   "capped": false,
-  "src": "728214__tcurless__knock-on-door.mp3"
+  "src": "728214__tcurless__knock-on-door.mp3",
+  "gain_db": -8.36,
+  "src_rms": -11.639526754960581
  },
  "sfx.knock.distant": {
   "id": "186517",
@@ -354,7 +398,9 @@
   "dur": 20.0,
   "srcdur": 23.8,
   "capped": true,
-  "src": "186517__ragamuffin__door-knock-open-wooden_distant.wav"
+  "src": "186517__ragamuffin__door-knock-open-wooden_distant.wav",
+  "gain_db": 9.47,
+  "src_rms": -29.466260328734467
  },
  "sfx.door.slam": {
   "id": "450791",
@@ -363,7 +409,9 @@
   "dur": 20.0,
   "srcdur": 21.69,
   "capped": true,
-  "src": "450791__kyles__door-slam-distant-roomy-boom.wav"
+  "src": "450791__kyles__door-slam-distant-roomy-boom.wav",
+  "gain_db": -5.97,
+  "src_rms": -14.026319130706263
  },
  "sfx.doorbell": {
   "id": "440869",
@@ -372,42 +420,54 @@
   "dur": 16.49,
   "srcdur": 16.49,
   "capped": false,
-  "src": "440869__v23__doorbell-ringing-far1-d15.wav"
+  "src": "440869__v23__doorbell-ringing-far1-d15.wav",
+  "gain_db": 21.95,
+  "src_rms": -41.94982942430036
  },
  "sfx.drawer": {
   "id": "364106",
   "kind": "sfx",
   "file": "364106.wav",
   "dur": 4.62,
-  "src": "364106__rudmer_rotteveel__wooden_drawer_open_close_1-of-2.wav"
+  "src": "364106__rudmer_rotteveel__wooden_drawer_open_close_1-of-2.wav",
+  "gain_db": 3.22,
+  "src_rms": -23.216464442913143
  },
  "sfx.cabinet": {
   "id": "421033",
   "kind": "sfx",
   "file": "421033.wav",
   "dur": 3.38,
-  "src": "421033__soundslikefoley__desk-cabinet-door-close.wav"
+  "src": "421033__soundslikefoley__desk-cabinet-door-close.wav",
+  "gain_db": -1.57,
+  "src_rms": -23.423365962558083
  },
  "sfx.cabinet2": {
   "id": "470619",
   "kind": "sfx",
   "file": "470619.wav",
   "dur": 5.55,
-  "src": "470619__mrrap4food__bathroom-cabinet-opening.wav"
+  "src": "470619__mrrap4food__bathroom-cabinet-opening.wav",
+  "gain_db": 26.0,
+  "src_rms": -47.5151667120484
  },
  "sfx.chair": {
   "id": "415939",
   "kind": "sfx",
   "file": "415939.wav",
   "dur": 1.4,
-  "src": "415939__aiwha__wooden-chair-4.wav"
+  "src": "415939__aiwha__wooden-chair-4.wav",
+  "gain_db": 8.96,
+  "src_rms": -28.961860321945213
  },
  "sfx.chair.drag": {
   "id": "654148",
   "kind": "sfx",
   "file": "654148.wav",
   "dur": 8.0,
-  "src": "654148__glen_dorner__plastic_chair_scraping_over_bricks_1.wav"
+  "src": "654148__glen_dorner__plastic_chair_scraping_over_bricks_1.wav",
+  "gain_db": 13.82,
+  "src_rms": -33.81788377284805
  },
  "sfx.couch": {
   "id": "766645",
@@ -416,28 +476,36 @@
   "dur": 20.0,
   "srcdur": 27.81,
   "capped": true,
-  "src": "766645__dianeleroux__couch-creak.wav"
+  "src": "766645__dianeleroux__couch-creak.wav",
+  "gain_db": 0.13,
+  "src_rms": -20.13374612631548
  },
  "sfx.creak.quiet": {
   "id": "238288",
   "kind": "sfx",
   "file": "238288.wav",
   "dur": 3.04,
-  "src": "238288__loafdv__quiet-creak.flac"
+  "src": "238288__loafdv__quiet-creak.flac",
+  "gain_db": 16.59,
+  "src_rms": -40.962134353062886
  },
  "sfx.creak.a": {
   "id": "502505",
   "kind": "sfx",
   "file": "502505.wav",
   "dur": 0.99,
-  "src": "502505__rudmer_rotteveel__wood-creak-single-v1.wav"
+  "src": "502505__rudmer_rotteveel__wood-creak-single-v1.wav",
+  "gain_db": 9.55,
+  "src_rms": -34.008988337329946
  },
  "sfx.creak.b": {
   "id": "506665",
   "kind": "sfx",
   "file": "506665.wav",
   "dur": 1.19,
-  "src": "506665__rudmer_rotteveel__wood-creak-single-v10.wav"
+  "src": "506665__rudmer_rotteveel__wood-creak-single-v10.wav",
+  "gain_db": 0.74,
+  "src_rms": -20.744460414107206
  },
  "sfx.creak.c": {
   "id": "796507",
@@ -446,14 +514,18 @@
   "dur": 14.09,
   "srcdur": 14.09,
   "capped": false,
-  "src": "796507__kvv_audio__woodfric_wood-creak-01_kvv-audio_free.wav"
+  "src": "796507__kvv_audio__woodfric_wood-creak-01_kvv-audio_free.wav",
+  "gain_db": 5.19,
+  "src_rms": -25.193704162313935
  },
  "sfx.floor.single": {
   "id": "261371",
   "kind": "sfx",
   "file": "261371.wav",
   "dur": 0.22,
-  "src": "261371__f4kf4ce__creak-wood-floor-single-06.wav"
+  "src": "261371__f4kf4ce__creak-wood-floor-single-06.wav",
+  "gain_db": 15.67,
+  "src_rms": -38.127166732190574
  },
  "sfx.floor.seq": {
   "id": "822745",
@@ -462,7 +534,9 @@
   "dur": 20.0,
   "srcdur": 20.67,
   "capped": true,
-  "src": "822745__nox_sound__foley_creak_wood_floor_sequence_stereo.wav"
+  "src": "822745__nox_sound__foley_creak_wood_floor_sequence_stereo.wav",
+  "gain_db": -5.84,
+  "src_rms": -14.155027937156856
  },
  "sfx.floor.boards": {
   "id": "570864",
@@ -471,7 +545,9 @@
   "dur": 20.0,
   "srcdur": 31.13,
   "capped": true,
-  "src": "570864__tosha73__creaking-boards.wav"
+  "src": "570864__tosha73__creaking-boards.wav",
+  "gain_db": 1.53,
+  "src_rms": -21.534178276828637
  },
  "sfx.metal.groan": {
   "id": "264014",
@@ -480,14 +556,18 @@
   "dur": 20.0,
   "srcdur": 21.51,
   "capped": true,
-  "src": "264014__cell31_sound_productions__door_metal_groans_ext.wav"
+  "src": "264014__cell31_sound_productions__door_metal_groans_ext.wav",
+  "gain_db": -14.09,
+  "src_rms": -5.91485882159859
  },
  "sfx.metal.groan2": {
   "id": "481787",
   "kind": "sfx",
   "file": "481787.wav",
   "dur": 1.65,
-  "src": "481787__crinkem__metallic-groan-long.wav"
+  "src": "481787__crinkem__metallic-groan-long.wav",
+  "gain_db": 14.38,
+  "src_rms": -35.73736646644487
  },
  "sfx.metal.knock": {
   "id": "863059",
@@ -496,21 +576,27 @@
   "dur": 11.74,
   "srcdur": 11.74,
   "capped": false,
-  "src": "863059__bassimat__knuckles-hitting-a-metal-box.wav"
+  "src": "863059__bassimat__knuckles-hitting-a-metal-box.wav",
+  "gain_db": -2.42,
+  "src_rms": -21.40227825742773
  },
  "sfx.switch": {
   "id": "617608",
   "kind": "sfx",
   "file": "617608.wav",
   "dur": 2.57,
-  "src": "617608__cpfcfan10__light-switch-click.wav"
+  "src": "617608__cpfcfan10__light-switch-click.wav",
+  "gain_db": 7.31,
+  "src_rms": -38.299227727716
  },
  "sfx.switch2": {
   "id": "423512",
   "kind": "sfx",
   "file": "423512.wav",
   "dur": 4.07,
-  "src": "423512__someonecool15__light-switch-click-on-and-off.mp3"
+  "src": "423512__someonecool15__light-switch-click-on-and-off.mp3",
+  "gain_db": -1.45,
+  "src_rms": -25.84409201966362
  },
  "bed.overworld.day": {
   "id": "803224",
@@ -519,7 +605,9 @@
   "dur": 30.0,
   "srcdur": 71.09,
   "capped": true,
-  "src": "803224__designerschoice__ambrurl_birds-faint-room-tone-buzzing-light-breeze-through-trees_nicholas-judy_tdc.wav"
+  "src": "803224__designerschoice__ambrurl_birds-faint-room-tone-buzzing-light-breeze-through-trees_nicholas-judy_tdc.wav",
+  "gain_db": 18.4,
+  "src_rms": -44.5
  },
  "bed.overworld.calm": {
   "id": "496512",
@@ -528,7 +616,9 @@
   "dur": 7.99,
   "srcdur": 7.99,
   "capped": false,
-  "src": "496512__deanobamos__happy-forest-ambience.wav"
+  "src": "496512__deanobamos__happy-forest-ambience.wav",
+  "gain_db": 6.9,
+  "src_rms": -32.9
  },
  "bed.overworld.night": {
   "id": "62489",
@@ -537,7 +627,9 @@
   "dur": 30.0,
   "srcdur": 53.04,
   "capped": true,
-  "src": "62489__moxobna__1103octobernight2.wav"
+  "src": "62489__moxobna__1103octobernight2.wav",
+  "gain_db": 15.5,
+  "src_rms": -41.5
  },
  "bed.overworld.night2": {
   "id": "520959",
@@ -546,7 +638,9 @@
   "dur": 8.35,
   "srcdur": 8.35,
   "capped": false,
-  "src": "520959__andersmmg__night-ambience-2.wav"
+  "src": "520959__andersmmg__night-ambience-2.wav",
+  "gain_db": 28.7,
+  "src_rms": -54.7
  },
  "bed.border": {
   "id": "638404",
@@ -555,7 +649,9 @@
   "dur": 30.0,
   "srcdur": 70.17,
   "capped": true,
-  "src": "638404__klankbeeld__border-forestfarmfield-734am-nl-eu-220515_0345.wav"
+  "src": "638404__klankbeeld__border-forestfarmfield-734am-nl-eu-220515_0345.wav",
+  "gain_db": 5.5,
+  "src_rms": -31.5
  },
  "sfx.leaves": {
   "id": "758395",
@@ -564,7 +660,9 @@
   "dur": 9.9,
   "srcdur": 9.9,
   "capped": false,
-  "src": "758395__sarahgb55__leaves-rustling.wav"
+  "src": "758395__sarahgb55__leaves-rustling.wav",
+  "gain_db": -5.48,
+  "src_rms": -14.516739072436977
  },
  "sfx.bush": {
   "id": "765491",
@@ -573,7 +671,9 @@
   "dur": 9.61,
   "srcdur": 9.61,
   "capped": false,
-  "src": "765491__ismailbulbulia__rustling-bush-leaves.wav"
+  "src": "765491__ismailbulbulia__rustling-bush-leaves.wav",
+  "gain_db": 26.0,
+  "src_rms": -47.613359149626504
  },
  "sfx.tree.creak": {
   "id": "95263",
@@ -582,14 +682,18 @@
   "dur": 13.17,
   "srcdur": 13.17,
   "capped": false,
-  "src": "95263__department64__tree_creak_05.wav"
+  "src": "95263__department64__tree_creak_05.wav",
+  "gain_db": 15.15,
+  "src_rms": -35.15128792366835
  },
  "sfx.branch": {
   "id": "85433",
   "kind": "sfx",
   "file": "85433.wav",
   "dur": 2.2,
-  "src": "85433__jasonelrod__branch-snap.aiff"
+  "src": "85433__jasonelrod__branch-snap.aiff",
+  "gain_db": -2.27,
+  "src_rms": -26.857221453791283
  },
  "sfx.branch.crackle": {
   "id": "811529",
@@ -598,14 +702,18 @@
   "dur": 11.68,
   "srcdur": 11.68,
   "capped": false,
-  "src": "811529__designerschoice__woodbrk-blue-snowball-microphone-cu_branch-snaps-crackles_nicholas-judy_tdc.wav"
+  "src": "811529__designerschoice__woodbrk-blue-snowball-microphone-cu_branch-snaps-crackles_nicholas-judy_tdc.wav",
+  "gain_db": -7.2,
+  "src_rms": -18.185817772961368
  },
  "sfx.grass": {
   "id": "396012",
   "kind": "sfx",
   "file": "396012.wav",
   "dur": 0.54,
-  "src": "396012__morganpurkis__rustling-grass-3.wav"
+  "src": "396012__morganpurkis__rustling-grass-3.wav",
+  "gain_db": 13.86,
+  "src_rms": -37.43920999573727
  },
  "bed.farm.day": {
   "id": "488067",
@@ -614,7 +722,9 @@
   "dur": 30.0,
   "srcdur": 59.53,
   "capped": true,
-  "src": "488067__bendrain__ambience_farm_04.wav"
+  "src": "488067__bendrain__ambience_farm_04.wav",
+  "gain_db": 2.2,
+  "src_rms": -28.2
  },
  "bed.farm.day2": {
   "id": "488066",
@@ -623,7 +733,9 @@
   "dur": 28.6,
   "srcdur": 28.6,
   "capped": false,
-  "src": "488066__bendrain__ambience_farm_05.wav"
+  "src": "488066__bendrain__ambience_farm_05.wav",
+  "gain_db": 0.4,
+  "src_rms": -26.4
  },
  "bed.farm.night": {
   "id": "584590",
@@ -632,7 +744,9 @@
   "dur": 30.0,
   "srcdur": 50.24,
   "capped": true,
-  "src": "584590__klankbeeld__night-farmfields-943pm-210811_0307.wav"
+  "src": "584590__klankbeeld__night-farmfields-943pm-210811_0307.wav",
+  "gain_db": 16.9,
+  "src_rms": -42.9
  },
  "bed.farm.wind": {
   "id": "523374",
@@ -641,7 +755,9 @@
   "dur": 27.85,
   "srcdur": 27.85,
   "capped": false,
-  "src": "523374__nickmaysoundmusic__open_field_winds_summer_ambience.wav"
+  "src": "523374__nickmaysoundmusic__open_field_winds_summer_ambience.wav",
+  "gain_db": 13.5,
+  "src_rms": -40.7
  },
  "bed.farm.crop": {
   "id": "454364",
@@ -650,7 +766,9 @@
   "dur": 30.0,
   "srcdur": 60.35,
   "capped": true,
-  "src": "454364__kyles__wind-medium-brisk-breeze-through-stiff-dry-corn-stalks-or-grass-sharp-whistle.flac"
+  "src": "454364__kyles__wind-medium-brisk-breeze-through-stiff-dry-corn-stalks-or-grass-sharp-whistle.flac",
+  "gain_db": 18.7,
+  "src_rms": -44.7
  },
  "sfx.crop": {
   "id": "542254",
@@ -659,7 +777,9 @@
   "dur": 20.0,
   "srcdur": 33.71,
   "capped": true,
-  "src": "542254__jerryberumen__tall-grass-rustling-2.wav"
+  "src": "542254__jerryberumen__tall-grass-rustling-2.wav",
+  "gain_db": 23.61,
+  "src_rms": -46.14427222003059
  },
  "sfx.crows": {
   "id": "403978",
@@ -668,7 +788,9 @@
   "dur": 17.27,
   "srcdur": 17.27,
   "capped": false,
-  "src": "403978__arundasstp__crows-call-from-distant-woods.wav"
+  "src": "403978__arundasstp__crows-call-from-distant-woods.wav",
+  "gain_db": 8.82,
+  "src_rms": -28.81947526352773
  },
  "sfx.birds.road": {
   "id": "464764",
@@ -677,14 +799,18 @@
   "dur": 17.31,
   "srcdur": 17.31,
   "capped": false,
-  "src": "464764__breviceps__field-recording-birds-crow-distant-road.wav"
+  "src": "464764__breviceps__field-recording-birds-crow-distant-road.wav",
+  "gain_db": 11.97,
+  "src_rms": -31.973847812227362
  },
  "sfx.crow": {
   "id": "813114",
   "kind": "sfx",
   "file": "813114.wav",
   "dur": 0.84,
-  "src": "813114__qubodup__crow-call.flac"
+  "src": "813114__qubodup__crow-call.flac",
+  "gain_db": -8.44,
+  "src_rms": -11.558937035152553
  },
  "sfx.tractor": {
   "id": "344984",
@@ -693,7 +819,9 @@
   "dur": 20.0,
   "srcdur": 41.05,
   "capped": true,
-  "src": "344984__bluesy1905__old-tractor-passing-hatz.wav"
+  "src": "344984__bluesy1905__old-tractor-passing-hatz.wav",
+  "gain_db": 7.12,
+  "src_rms": -27.12022964267712
  },
  "sfx.tractor2": {
   "id": "570376",
@@ -702,7 +830,9 @@
   "dur": 10.5,
   "srcdur": 10.5,
   "capped": false,
-  "src": "570376__garuda1982__tractor-drive-past-sound-effect.wav"
+  "src": "570376__garuda1982__tractor-drive-past-sound-effect.wav",
+  "gain_db": -4.41,
+  "src_rms": -15.59261724214656
  },
  "sfx.dogs": {
   "id": "820267",
@@ -711,7 +841,9 @@
   "dur": 15.57,
   "srcdur": 15.57,
   "capped": false,
-  "src": "820267__ienba__distant-dogs.wav"
+  "src": "820267__ienba__distant-dogs.wav",
+  "gain_db": 13.35,
+  "src_rms": -33.34662038313239
  },
  "sfx.clang.far": {
   "id": "507465",
@@ -720,7 +852,9 @@
   "dur": 15.39,
   "srcdur": 15.39,
   "capped": false,
-  "src": "507465__danjocross__four-quiet-distant-clangs.aiff"
+  "src": "507465__danjocross__four-quiet-distant-clangs.aiff",
+  "gain_db": -3.5,
+  "src_rms": -16.49568703150143
  },
  "sfx.clang.low": {
   "id": "507469",
@@ -729,7 +863,9 @@
   "dur": 15.43,
   "srcdur": 15.43,
   "capped": false,
-  "src": "507469__danjocross__three-low-metal-clangs-with-reverb.aiff"
+  "src": "507469__danjocross__three-low-metal-clangs-with-reverb.aiff",
+  "gain_db": -9.8,
+  "src_rms": -10.201136239258332
  },
  "sfx.collapse.far": {
   "id": "333988",
@@ -738,14 +874,18 @@
   "dur": 20.0,
   "srcdur": 26.55,
   "capped": true,
-  "src": "333988__kostrava__distant-falling-glassmetal.wav"
+  "src": "333988__kostrava__distant-falling-glassmetal.wav",
+  "gain_db": 17.34,
+  "src_rms": -37.34367155838885
  },
  "sfx.metal.fall": {
   "id": "80450",
   "kind": "sfx",
   "file": "80450.wav",
   "dur": 5.17,
-  "src": "80450__turtlelg__metalcreakingandfalling.wav"
+  "src": "80450__turtlelg__metalcreakingandfalling.wav",
+  "gain_db": -13.58,
+  "src_rms": -6.415846193104131
  },
  "sfx.rust.turn": {
   "id": "124122",
@@ -754,21 +894,27 @@
   "dur": 14.65,
   "srcdur": 14.65,
   "capped": false,
-  "src": "124122__timbre__remix-of-108732__klankbeeld__creaking_metal_spokes_of_the_bicycle_wheel_06.flac"
+  "src": "124122__timbre__remix-of-108732__klankbeeld__creaking_metal_spokes_of_the_bicycle_wheel_06.flac",
+  "gain_db": -9.16,
+  "src_rms": -10.840336235084365
  },
  "sfx.animal.cow": {
   "id": "867553",
   "kind": "sfx",
   "file": "867553.wav",
   "dur": 5.39,
-  "src": "867553__calebmills99__cow_moo.wav"
+  "src": "867553__calebmills99__cow_moo.wav",
+  "gain_db": -1.81,
+  "src_rms": -18.189649846392527
  },
  "sfx.animal.sheep": {
   "id": "692900",
   "kind": "sfx",
   "file": "692900.wav",
   "dur": 3.77,
-  "src": "692900__satoristudios3__ewe-shetland-sheep-baa.mp3"
+  "src": "692900__satoristudios3__ewe-shetland-sheep-baa.mp3",
+  "gain_db": -2.37,
+  "src_rms": -17.632834726984942
  },
  "sfx.animal.chicken": {
   "id": "456803",
@@ -777,14 +923,18 @@
   "dur": 14.95,
   "srcdur": 14.95,
   "capped": false,
-  "src": "456803__breviceps__chicken-clucking.wav"
+  "src": "456803__breviceps__chicken-clucking.wav",
+  "gain_db": -7.72,
+  "src_rms": -12.280346398628769
  },
  "sfx.animal.horse": {
   "id": "418428",
   "kind": "sfx",
   "file": "418428.wav",
   "dur": 7.59,
-  "src": "418428__soundslikewillem__neighing-horse.wav"
+  "src": "418428__soundslikewillem__neighing-horse.wav",
+  "gain_db": -6.46,
+  "src_rms": -13.536288917932154
  },
  "bed.rain.light": {
   "id": "96729",
@@ -793,7 +943,9 @@
   "dur": 30.0,
   "srcdur": 54.88,
   "capped": true,
-  "src": "96729__ryding__light-rain.wav"
+  "src": "96729__ryding__light-rain.wav",
+  "gain_db": 14.1,
+  "src_rms": -40.1
  },
  "bed.rain.heavy": {
   "id": "640651",
@@ -802,7 +954,9 @@
   "dur": 30.0,
   "srcdur": 39.75,
   "capped": true,
-  "src": "640651__barkenov__heavy-rain-and-gutter.wav"
+  "src": "640651__barkenov__heavy-rain-and-gutter.wav",
+  "gain_db": 4.2,
+  "src_rms": -38.9
  },
  "bed.rain.roof": {
   "id": "823199",
@@ -811,7 +965,9 @@
   "dur": 22.26,
   "srcdur": 22.26,
   "capped": false,
-  "src": "823199__curious_world_on_youtube__rain-on-a-plastic-roof.wav"
+  "src": "823199__curious_world_on_youtube__rain-on-a-plastic-roof.wav",
+  "gain_db": 18.5,
+  "src_rms": -45.9
  },
  "bed.storm.room": {
   "id": "751720",
@@ -820,7 +976,9 @@
   "dur": 30.0,
   "srcdur": 90.0,
   "capped": true,
-  "src": "751720__klankbeeld__storm-wind-room-tone-414-pm-231102_0633.wav"
+  "src": "751720__klankbeeld__storm-wind-room-tone-414-pm-231102_0633.wav",
+  "gain_db": 6.9,
+  "src_rms": -32.9
  },
  "sfx.thunder.sub": {
   "id": "238743",
@@ -829,7 +987,9 @@
   "dur": 20.0,
   "srcdur": 34.74,
   "capped": true,
-  "src": "238743__csengeri__distant-thunder-in-suburban-area.wav"
+  "src": "238743__csengeri__distant-thunder-in-suburban-area.wav",
+  "gain_db": 3.0,
+  "src_rms": -23.002211883662333
  },
  "sfx.thunder.far": {
   "id": "398206",
@@ -838,7 +998,9 @@
   "dur": 20.0,
   "srcdur": 43.73,
   "capped": true,
-  "src": "398206__tnk__distant-thunder-2-july-23rd-2017.wav"
+  "src": "398206__tnk__distant-thunder-2-july-23rd-2017.wav",
+  "gain_db": -8.89,
+  "src_rms": -11.105142112643392
  },
  "bed.wind.open": {
   "id": "16950",
@@ -847,7 +1009,9 @@
   "dur": 30.0,
   "srcdur": 63.39,
   "capped": true,
-  "src": "16950__finnbuster__wind.wav"
+  "src": "16950__finnbuster__wind.wav",
+  "gain_db": -4.9,
+  "src_rms": -21.1
  },
  "sfx.gust": {
   "id": "361487",
@@ -856,7 +1020,9 @@
   "dur": 20.0,
   "srcdur": 27.68,
   "capped": true,
-  "src": "361487__funwithsound__wind-whipping-by.wav"
+  "src": "361487__funwithsound__wind-whipping-by.wav",
+  "gain_db": -13.59,
+  "src_rms": -6.405291671719131
  },
  "bed.water.stream": {
   "id": "325324",
@@ -865,7 +1031,9 @@
   "dur": 30.0,
   "srcdur": 57.44,
   "capped": true,
-  "src": "325324__inspectorj__stream-water-a.wav"
+  "src": "325324__inspectorj__stream-water-a.wav",
+  "gain_db": 7.6,
+  "src_rms": -33.6
  },
  "bed.water.stream2": {
   "id": "536124",
@@ -874,7 +1042,9 @@
   "dur": 27.61,
   "srcdur": 27.61,
   "capped": false,
-  "src": "536124__babelfishtank__27stream.wav"
+  "src": "536124__babelfishtank__27stream.wav",
+  "gain_db": 10.3,
+  "src_rms": -37.1
  },
  "sfx.drip.fast": {
   "id": "271336",
@@ -883,7 +1053,9 @@
   "dur": 20.0,
   "srcdur": 27.14,
   "capped": true,
-  "src": "271336__inspectorj__water-dripping-fast-a.wav"
+  "src": "271336__inspectorj__water-dripping-fast-a.wav",
+  "gain_db": 3.67,
+  "src_rms": -30.545620289992975
  },
  "sfx.drip.slow": {
   "id": "442480",
@@ -892,14 +1064,18 @@
   "dur": 20.0,
   "srcdur": 31.42,
   "capped": true,
-  "src": "442480__bonnyorbit__water-dripping-under-bridge-in-small-town.wav"
+  "src": "442480__bonnyorbit__water-dripping-under-bridge-in-small-town.wav",
+  "gain_db": 8.28,
+  "src_rms": -33.66925496732944
  },
  "sfx.steam": {
   "id": "666290",
   "kind": "sfx",
   "file": "666290.wav",
   "dur": 7.0,
-  "src": "666290__ekrcoaster__water-steaming-on-hot-surface-1.ogg"
+  "src": "666290__ekrcoaster__water-steaming-on-hot-surface-1.ogg",
+  "gain_db": -8.92,
+  "src_rms": -11.08446901908103
  },
  "bed.sub.day": {
   "id": "481964",
@@ -908,7 +1084,9 @@
   "dur": 30.0,
   "srcdur": 39.04,
   "capped": true,
-  "src": "481964__ahriik__quiet-neighborhood-ambience-light-wind-no-people.wav"
+  "src": "481964__ahriik__quiet-neighborhood-ambience-light-wind-no-people.wav",
+  "gain_db": 26.7,
+  "src_rms": -52.7
  },
  "bed.sub.day2": {
   "id": "135074",
@@ -917,7 +1095,9 @@
   "dur": 30.0,
   "srcdur": 75.33,
   "capped": true,
-  "src": "135074__mzui__residential-street-ambience-quiet-birds.wav"
+  "src": "135074__mzui__residential-street-ambience-quiet-birds.wav",
+  "gain_db": 26.7,
+  "src_rms": -52.7
  },
  "bed.sub.night": {
   "id": "535761",
@@ -926,7 +1106,9 @@
   "dur": 24.24,
   "srcdur": 24.24,
   "capped": false,
-  "src": "535761__postproddog__sketchy-neighborhood-night-crickets-and-electrical-hum-ambience.mp3"
+  "src": "535761__postproddog__sketchy-neighborhood-night-crickets-and-electrical-hum-ambience.mp3",
+  "gain_db": 17.0,
+  "src_rms": -43.0
  },
  "bed.sub.traffic": {
   "id": "428844",
@@ -935,14 +1117,18 @@
   "dur": 30.0,
   "srcdur": 111.0,
   "capped": true,
-  "src": "428844__splushionsindasky__roof-top-distant-traffic.wav"
+  "src": "428844__splushionsindasky__roof-top-distant-traffic.wav",
+  "gain_db": 20.3,
+  "src_rms": -50.6
  },
  "sfx.car.pass": {
   "id": "669729",
   "kind": "sfx",
   "file": "669729.wav",
   "dur": 6.27,
-  "src": "669729__geoff-bremner-audio__distant-car-pass.wav"
+  "src": "669729__geoff-bremner-audio__distant-car-pass.wav",
+  "gain_db": 1.73,
+  "src_rms": -21.7336433366724
  },
  "sfx.voices.muffled": {
   "id": "614573",
@@ -951,7 +1137,9 @@
   "dur": 20.0,
   "srcdur": 31.84,
   "capped": true,
-  "src": "614573__lavenderlux__muffled-voices.mp3"
+  "src": "614573__lavenderlux__muffled-voices.mp3",
+  "gain_db": 8.54,
+  "src_rms": -28.539677680548678
  },
  "bed.hum.buzz": {
   "id": "553075",
@@ -960,7 +1148,9 @@
   "dur": 19.99,
   "srcdur": 19.99,
   "capped": false,
-  "src": "553075__nox_sound__foley_mechanism_light_buzz_short_loop_mono_dr05.wav"
+  "src": "553075__nox_sound__foley_mechanism_light_buzz_short_loop_mono_dr05.wav",
+  "gain_db": 20.3,
+  "src_rms": -46.3
  },
  "bed.hum.fridge": {
   "id": "740110",
@@ -969,7 +1159,9 @@
   "dur": 11.81,
   "srcdur": 11.81,
   "capped": false,
-  "src": "740110__fossarts__large-refrigerator-compressor-hum-1.wav"
+  "src": "740110__fossarts__large-refrigerator-compressor-hum-1.wav",
+  "gain_db": 16.7,
+  "src_rms": -42.7
  },
  "bed.hum.low": {
   "id": "72091",
@@ -978,7 +1170,9 @@
   "dur": 10.0,
   "srcdur": 10.0,
   "capped": false,
-  "src": "72091__joedinessound__low-frequency-humming-noise.wav"
+  "src": "72091__joedinessound__low-frequency-humming-noise.wav",
+  "gain_db": -23.0,
+  "src_rms": -3.0
  },
  "bed.hum.mech": {
   "id": "865628",
@@ -987,7 +1181,9 @@
   "dur": 5.99,
   "srcdur": 5.99,
   "capped": false,
-  "src": "865628__kkenny101__mechanical-drone-texture-seamless-loop.wav"
+  "src": "865628__kkenny101__mechanical-drone-texture-seamless-loop.wav",
+  "gain_db": -13.0,
+  "src_rms": -13.0
  },
  "bed.hum.powerline": {
   "id": "816619",
@@ -996,14 +1192,18 @@
   "dur": 30.0,
   "srcdur": 66.0,
   "capped": true,
-  "src": "816619__nicotep__ligne-haute-tension-6.wav"
+  "src": "816619__nicotep__ligne-haute-tension-6.wav",
+  "gain_db": 21.9,
+  "src_rms": -56.1
  },
  "sfx.electric": {
   "id": "407233",
   "kind": "sfx",
   "file": "407233.wav",
   "dur": 5.67,
-  "src": "407233__pointparkcinema__electricity-2.wav"
+  "src": "407233__pointparkcinema__electricity-2.wav",
+  "gain_db": 8.33,
+  "src_rms": -28.325713280450127
  },
  "bed.hum.crt": {
   "id": "799662",
@@ -1012,7 +1212,9 @@
   "dur": 10.23,
   "srcdur": 10.23,
   "capped": false,
-  "src": "799662__lukacafuka__analog-video-hum-2.wav"
+  "src": "799662__lukacafuka__analog-video-hum-2.wav",
+  "gain_db": 0.9,
+  "src_rms": -26.9
  },
  "bed.rift.static": {
   "id": "745231",
@@ -1021,7 +1223,9 @@
   "dur": 30.0,
   "srcdur": 52.82,
   "capped": true,
-  "src": "745231__jamielynchpost__radio-static.wav"
+  "src": "745231__jamielynchpost__radio-static.wav",
+  "gain_db": 7.0,
+  "src_rms": -33.0
  },
  "bed.rift.pulse": {
   "id": "852315",
@@ -1030,7 +1234,9 @@
   "dur": 30.0,
   "srcdur": 81.0,
   "capped": true,
-  "src": "852315__tommasomotteran__sci-fi-horror-ambience-living-alien-ship-interior-with-organic-pulsing-drone-loop.wav"
+  "src": "852315__tommasomotteran__sci-fi-horror-ambience-living-alien-ship-interior-with-organic-pulsing-drone-loop.wav",
+  "gain_db": 13.2,
+  "src_rms": -39.2
  },
  "bed.rift.drone": {
   "id": "344612",
@@ -1039,7 +1245,9 @@
   "dur": 30.0,
   "srcdur": 41.35,
   "capped": true,
-  "src": "344612__waveplaysfx__synth-drone-short-distorted-drone-like-fade-in-fade-out.wav"
+  "src": "344612__waveplaysfx__synth-drone-short-distorted-drone-like-fade-in-fade-out.wav",
+  "gain_db": -16.2,
+  "src_rms": -9.8
  },
  "bed.rift.space": {
   "id": "211603",
@@ -1048,7 +1256,9 @@
   "dur": 30.0,
   "srcdur": 58.85,
   "capped": true,
-  "src": "211603__littlecloudcinema__eerie-background-space-sound.wav"
+  "src": "211603__littlecloudcinema__eerie-background-space-sound.wav",
+  "gain_db": 11.8,
+  "src_rms": -37.8
  },
  "sfx.rift.transition": {
   "id": "826582",
@@ -1057,7 +1267,9 @@
   "dur": 20.0,
   "srcdur": 84.46,
   "capped": true,
-  "src": "826582__newlocknew__dsgnerie_a-far-dark-otherworldly-transitions-2-x4_em.mp3"
+  "src": "826582__newlocknew__dsgnerie_a-far-dark-otherworldly-transitions-2-x4_em.mp3",
+  "gain_db": 5.65,
+  "src_rms": -25.649856538488404
  },
  "sfx.rift.distort": {
   "id": "562643",
@@ -1066,7 +1278,9 @@
   "dur": 11.05,
   "srcdur": 11.05,
   "capped": false,
-  "src": "562643__juanpbueno7__instrument-distortion.wav"
+  "src": "562643__juanpbueno7__instrument-distortion.wav",
+  "gain_db": -6.13,
+  "src_rms": -13.86874183162213
  },
  "sfx.rift.scrape": {
   "id": "381223",
@@ -1075,21 +1289,27 @@
   "dur": 8.44,
   "srcdur": 8.44,
   "capped": false,
-  "src": "381223__ticktockgj__distorted-scraping.wav"
+  "src": "381223__ticktockgj__distorted-scraping.wav",
+  "gain_db": -6.26,
+  "src_rms": -13.735868354480472
  },
  "sfx.rift.glitch": {
   "id": "90335",
   "kind": "sfx",
   "file": "90335.wav",
   "dur": 1.72,
-  "src": "90335__greysound__freakenfurby_glitch_37.wav"
+  "src": "90335__greysound__freakenfurby_glitch_37.wav",
+  "gain_db": -2.51,
+  "src_rms": -17.48902513423205
  },
  "sfx.rift.musicbox": {
   "id": "30611",
   "kind": "sfx",
   "file": "30611.wav",
   "dur": 7.97,
-  "src": "30611__erh__distorted-music-box-3.wav"
+  "src": "30611__erh__distorted-music-box-3.wav",
+  "gain_db": -3.54,
+  "src_rms": -16.458917587069575
  },
  "sfx.rift.knack": {
   "id": "61617",
@@ -1098,7 +1318,9 @@
   "dur": 20.0,
   "srcdur": 58.0,
   "capped": true,
-  "src": "61617__shimsewn__thwushyknack.wav"
+  "src": "61617__shimsewn__thwushyknack.wav",
+  "gain_db": -18.32,
+  "src_rms": -1.679470257216308
  },
  "step.stalker": {
   "id": "383724",
@@ -1150,7 +1372,9 @@
   "kind": "sfx",
   "file": "195572.wav",
   "dur": 3.5,
-  "src": "195572__jacobalcook__creature-breath-2.wav"
+  "src": "195572__jacobalcook__creature-breath-2.wav",
+  "gain_db": -4.7,
+  "src_rms": -15.304463575958938
  },
  "sfx.stalker.breath2": {
   "id": "369294",
@@ -1159,7 +1383,9 @@
   "dur": 20.0,
   "srcdur": 23.45,
   "capped": true,
-  "src": "369294__georgisound__creepy_breathing.wav"
+  "src": "369294__georgisound__creepy_breathing.wav",
+  "gain_db": 16.93,
+  "src_rms": -36.93139355220391
  },
  "sfx.stalker.breath3": {
   "id": "121584",
@@ -1168,7 +1394,9 @@
   "dur": 10.47,
   "srcdur": 10.47,
   "capped": false,
-  "src": "121584__slugzilla__ghostbreath1.wav"
+  "src": "121584__slugzilla__ghostbreath1.wav",
+  "gain_db": -9.28,
+  "src_rms": -10.718197265081633
  },
  "sfx.stalker.creature": {
   "id": "528506",
@@ -1177,7 +1405,9 @@
   "dur": 20.0,
   "srcdur": 27.77,
   "capped": true,
-  "src": "528506__audio_dread__creepy-creature-horror-2.wav"
+  "src": "528506__audio_dread__creepy-creature-horror-2.wav",
+  "gain_db": -11.12,
+  "src_rms": -8.877332186477961
  },
  "bed.tension.dark": {
   "id": "826597",
@@ -1186,7 +1416,9 @@
   "dur": 19.2,
   "srcdur": 19.2,
   "capped": false,
-  "src": "826597__harmonicmess__dark-tension-drone.wav"
+  "src": "826597__harmonicmess__dark-tension-drone.wav",
+  "gain_db": -15.7,
+  "src_rms": -10.3
  },
  "bed.tension.pulse": {
   "id": "845551",
@@ -1195,7 +1427,9 @@
   "dur": 26.48,
   "srcdur": 26.48,
   "capped": false,
-  "src": "845551__skyspeira__high-tension-pulsing-drone-suspense-soundscape.wav"
+  "src": "845551__skyspeira__high-tension-pulsing-drone-suspense-soundscape.wav",
+  "gain_db": -5.0,
+  "src_rms": -21.0
  },
  "bed.tension.long": {
   "id": "744080",
@@ -1204,7 +1438,9 @@
   "dur": 30.0,
   "srcdur": 73.98,
   "capped": true,
-  "src": "744080__moulaythami__drone-horror-a.wav"
+  "src": "744080__moulaythami__drone-horror-a.wav",
+  "gain_db": 6.5,
+  "src_rms": -32.5
  },
  "bed.tension.slow": {
   "id": "628917",
@@ -1213,7 +1449,9 @@
   "dur": 30.0,
   "srcdur": 120.05,
   "capped": true,
-  "src": "628917__bernhoftbret__drone-003.mp3"
+  "src": "628917__bernhoftbret__drone-003.mp3",
+  "gain_db": -6.0,
+  "src_rms": -20.0
  },
  "bed.tension.cello": {
   "id": "81034",
@@ -1222,7 +1460,9 @@
   "dur": 25.34,
   "srcdur": 25.34,
   "capped": false,
-  "src": "81034__juskiddink__cello-bass-drone-4.wav"
+  "src": "81034__juskiddink__cello-bass-drone-4.wav",
+  "gain_db": -9.1,
+  "src_rms": -16.9
  },
  "bed.tension.deep": {
   "id": "355738",
@@ -1231,7 +1471,9 @@
   "dur": 30.0,
   "srcdur": 208.46,
   "capped": true,
-  "src": "355738__supercolio__drone5 (1).mp3"
+  "src": "355738__supercolio__drone5 (1).mp3",
+  "gain_db": -9.8,
+  "src_rms": -16.2
  },
  "bed.tension.chime": {
   "id": "867568",
@@ -1240,7 +1482,9 @@
   "dur": 30.0,
   "srcdur": 67.95,
   "capped": true,
-  "src": "867568__bassimat__echoing-wind-chimes-over-a-deep-low-frequency-ambient-drone.wav"
+  "src": "867568__bassimat__echoing-wind-chimes-over-a-deep-low-frequency-ambient-drone.wav",
+  "gain_db": -15.3,
+  "src_rms": -10.7
  },
  "bed.tension.piano": {
   "id": "548621",
@@ -1249,7 +1493,9 @@
   "dur": 30.0,
   "srcdur": 170.81,
   "capped": true,
-  "src": "548621__zhr__horror-reversed-piano.mp3"
+  "src": "548621__zhr__horror-reversed-piano.mp3",
+  "gain_db": 4.1,
+  "src_rms": -32.3
  },
  "bed.tension.pulsedrum": {
   "id": "529138",
@@ -1258,7 +1504,9 @@
   "dur": 21.33,
   "srcdur": 21.33,
   "capped": false,
-  "src": "529138__waveplaysfx__ambient-loop-deep-ambient-pulses-3-added-drums.wav"
+  "src": "529138__waveplaysfx__ambient-loop-deep-ambient-pulses-3-added-drums.wav",
+  "gain_db": -10.8,
+  "src_rms": -15.2
  },
  "sfx.eerie": {
   "id": "540967",
@@ -1267,7 +1515,9 @@
   "dur": 9.21,
   "srcdur": 9.21,
   "capped": false,
-  "src": "540967__univ_lyon3__meyer_thomas_2020_2021_eerieatmosphere.wav"
+  "src": "540967__univ_lyon3__meyer_thomas_2020_2021_eerieatmosphere.wav",
+  "gain_db": -9.82,
+  "src_rms": -10.177654462740977
  },
  "bed.tension.nc1": {
   "id": "554110",
@@ -1276,7 +1526,9 @@
   "dur": 30.0,
   "srcdur": 68.4,
   "capped": true,
-  "src": "554110__audio_dread__long-horror-ambiance-drone.wav"
+  "src": "554110__audio_dread__long-horror-ambiance-drone.wav",
+  "gain_db": -7.2,
+  "src_rms": -18.8
  },
  "bed.tension.nc2": {
   "id": "555179",
@@ -1285,7 +1537,9 @@
   "dur": 30.0,
   "srcdur": 39.63,
   "capped": true,
-  "src": "555179__audio_dread__creepy-horror-ambient-drone.wav"
+  "src": "555179__audio_dread__creepy-horror-ambient-drone.wav",
+  "gain_db": -12.7,
+  "src_rms": -13.3
  },
  "sfx.swell.odd": {
   "id": "567662",
@@ -1294,7 +1548,9 @@
   "dur": 20.0,
   "srcdur": 30.07,
   "capped": true,
-  "src": "567662__badoink__odd-bass-swell.wav"
+  "src": "567662__badoink__odd-bass-swell.wav",
+  "gain_db": -9.25,
+  "src_rms": -10.746389402234357
  },
  "sfx.swell.long": {
   "id": "192574",
@@ -1303,14 +1559,18 @@
   "dur": 20.0,
   "srcdur": 21.82,
   "capped": true,
-  "src": "192574__aishabag23__bass_swell_long_01_16bitmono_154bpm.aiff"
+  "src": "192574__aishabag23__bass_swell_long_01_16bitmono_154bpm.aiff",
+  "gain_db": -12.16,
+  "src_rms": -7.8367499466079495
  },
  "sfx.swell.short": {
   "id": "218354",
   "kind": "sfx",
   "file": "218354.wav",
   "dur": 8.0,
-  "src": "218354__jordivburgel__movie-short-swell.wav"
+  "src": "218354__jordivburgel__movie-short-swell.wav",
+  "gain_db": -11.01,
+  "src_rms": -8.989386904016719
  },
  "sfx.swell.piano": {
   "id": "443968",
@@ -1319,7 +1579,9 @@
   "dur": 12.0,
   "srcdur": 12.0,
   "capped": false,
-  "src": "443968__richheard__piano-d-swellecho-distortedgated.wav"
+  "src": "443968__richheard__piano-d-swellecho-distortedgated.wav",
+  "gain_db": -10.8,
+  "src_rms": -9.201463096728618
  },
  "bed.heartbeat": {
   "id": "612641",
@@ -1328,7 +1590,9 @@
   "dur": 30.0,
   "srcdur": 56.74,
   "capped": true,
-  "src": "612641__newlocknew__heart-beat-2frightthe-increase-and-decrease-in-heart-rate6lrs.wav"
+  "src": "612641__newlocknew__heart-beat-2frightthe-increase-and-decrease-in-heart-rate6lrs.wav",
+  "gain_db": -2.8,
+  "src_rms": -23.2
  },
  "bed.blood.rumble": {
   "id": "473725",
@@ -1337,7 +1601,9 @@
   "dur": 26.08,
   "srcdur": 26.08,
   "capped": false,
-  "src": "473725__majortonic__20190530_low_noise_rumble.wav"
+  "src": "473725__majortonic__20190530_low_noise_rumble.wav",
+  "gain_db": -9.2,
+  "src_rms": -16.8
  },
  "bed.blood.earth": {
   "id": "16947",
@@ -1346,7 +1612,9 @@
   "dur": 30.0,
   "srcdur": 35.41,
   "capped": true,
-  "src": "16947__finnbuster__earth.wav"
+  "src": "16947__finnbuster__earth.wav",
+  "gain_db": -9.6,
+  "src_rms": -16.4
  },
  "bed.blood.far": {
   "id": "320788",
@@ -1355,7 +1623,9 @@
   "dur": 30.0,
   "srcdur": 64.0,
   "capped": true,
-  "src": "320788__kostrava__distant-explosions.wav"
+  "src": "320788__kostrava__distant-explosions.wav",
+  "gain_db": 0.1,
+  "src_rms": -26.1
  },
  "sfx.blast.far": {
   "id": "324277",
@@ -1364,14 +1634,18 @@
   "dur": 8.61,
   "srcdur": 8.61,
   "capped": false,
-  "src": "324277__kostrava__distant-explosion.mp3"
+  "src": "324277__kostrava__distant-explosion.mp3",
+  "gain_db": 0.2,
+  "src_rms": -20.195409297017353
  },
  "sfx.rumble.short": {
   "id": "529566",
   "kind": "sfx",
   "file": "529566.wav",
   "dur": 1.57,
-  "src": "529566__drmrsir__distantrumble.wav"
+  "src": "529566__drmrsir__distantrumble.wav",
+  "gain_db": 11.54,
+  "src_rms": -31.541061691987768
  },
  "sfx.behemoth.far": {
   "id": "456854",
@@ -1380,7 +1654,9 @@
   "dur": 12.19,
   "srcdur": 12.19,
   "capped": false,
-  "src": "456854__slaking_97__dragon-growl-04-far.wav"
+  "src": "456854__slaking_97__dragon-growl-04-far.wav",
+  "gain_db": -0.11,
+  "src_rms": -19.893380483281238
  },
  "sfx.behemoth.roar": {
   "id": "837799",
@@ -1389,28 +1665,36 @@
   "dur": 10.97,
   "srcdur": 10.97,
   "capped": false,
-  "src": "837799__bikkit99__sea-creature-roar.wav"
+  "src": "837799__bikkit99__sea-creature-roar.wav",
+  "gain_db": -17.38,
+  "src_rms": -2.616907537150775
  },
  "sfx.behemoth.roar2": {
   "id": "841961",
   "kind": "sfx",
   "file": "841961.wav",
   "dur": 7.16,
-  "src": "841961__artninja__monster_berserker_reverbrance_roar_sound_01122026.wav"
+  "src": "841961__artninja__monster_berserker_reverbrance_roar_sound_01122026.wav",
+  "gain_db": -11.28,
+  "src_rms": -8.723534798828164
  },
  "sfx.behemoth.dist": {
   "id": "261147",
   "kind": "sfx",
   "file": "261147.wav",
   "dur": 1.8,
-  "src": "261147__chobiboko__monster-roar-in-distance.mp3"
+  "src": "261147__chobiboko__monster-roar-in-distance.mp3",
+  "gain_db": -11.2,
+  "src_rms": -8.803419878880671
  },
  "sfx.behemoth.voice": {
   "id": "181374",
   "kind": "sfx",
   "file": "181374.wav",
   "dur": 3.84,
-  "src": "181374__l4red0__zombie-tries-to-talk.wav"
+  "src": "181374__l4red0__zombie-tries-to-talk.wav",
+  "gain_db": -8.38,
+  "src_rms": -11.61960881430566
  },
  "bed.vanish.low": {
   "id": "853575",
@@ -1419,21 +1703,27 @@
   "dur": 12.72,
   "srcdur": 12.72,
   "capped": false,
-  "src": "853575__bassimat__low-frequency-drone-deep-sub-bass-rumble-slowly-shifting-metallic-resonance.wav"
+  "src": "853575__bassimat__low-frequency-drone-deep-sub-bass-rumble-slowly-shifting-metallic-resonance.wav",
+  "gain_db": -19.2,
+  "src_rms": -6.8
  },
  "sfx.vanish.air": {
   "id": "810737",
   "kind": "sfx",
   "file": "810737.wav",
   "dur": 5.04,
-  "src": "810737__mokasza__long-airy-whoosh.mp3"
+  "src": "810737__mokasza__long-airy-whoosh.mp3",
+  "gain_db": 14.63,
+  "src_rms": -34.63045190906379
  },
  "sfx.whoosh.soft": {
   "id": "73263",
   "kind": "sfx",
   "file": "73263.wav",
   "dur": 0.37,
-  "src": "73263__junggle__whooshsoft.wav"
+  "src": "73263__junggle__whooshsoft.wav",
+  "gain_db": 12.72,
+  "src_rms": -32.72034582559064
  },
  "bed.finale.deep": {
   "id": "867251",
@@ -1442,7 +1732,9 @@
   "dur": 30.0,
   "srcdur": 63.0,
   "capped": true,
-  "src": "867251__bassimat__deep-rumbling-drone-with-expansive-reverberating-echoes.wav"
+  "src": "867251__bassimat__deep-rumbling-drone-with-expansive-reverberating-echoes.wav",
+  "gain_db": -7.0,
+  "src_rms": -19.0
  },
  "bed.finale.rumble": {
   "id": "321812",
@@ -1451,7 +1743,9 @@
   "dur": 28.24,
   "srcdur": 28.24,
   "capped": false,
-  "src": "321812__mmasonghi__cinematic-deep-bass-rumble.wav"
+  "src": "321812__mmasonghi__cinematic-deep-bass-rumble.wav",
+  "gain_db": -4.6,
+  "src_rms": -21.4
  },
  "sfx.finale.bend": {
   "id": "529620",
@@ -1460,14 +1754,18 @@
   "dur": 18.0,
   "srcdur": 18.0,
   "capped": false,
-  "src": "529620__kostas17__massive-structure-bend.wav"
+  "src": "529620__kostas17__massive-structure-bend.wav",
+  "gain_db": -7.06,
+  "src_rms": -12.9397071049401
  },
  "sfx.finale.collide": {
   "id": "653294",
   "kind": "sfx",
   "file": "653294.wav",
   "dur": 6.49,
-  "src": "653294__osvoldon__big-structure-collision-heard-from-inside (1).wav"
+  "src": "653294__osvoldon__big-structure-collision-heard-from-inside (1).wav",
+  "gain_db": -12.89,
+  "src_rms": -7.106021110585035
  },
  "bed.finale.air": {
   "id": "845339",
@@ -1476,63 +1774,81 @@
   "dur": 30.0,
   "srcdur": 48.46,
   "capped": true,
-  "src": "845339__artninja__air_bending_burst_sounds_02132026.wav"
+  "src": "845339__artninja__air_bending_burst_sounds_02132026.wav",
+  "gain_db": -9.1,
+  "src_rms": -16.9
  },
  "sfx.finale.drop": {
   "id": "856174",
   "kind": "sfx",
   "file": "856174.wav",
   "dur": 4.05,
-  "src": "856174__brktkrgll__subterranean-deep-sub-bass-rumble-drop.mp3"
+  "src": "856174__brktkrgll__subterranean-deep-sub-bass-rumble-drop.mp3",
+  "gain_db": -18.75,
+  "src_rms": -1.2504728403968637
  },
  "sfx.finale.strike": {
   "id": "754422",
   "kind": "sfx",
   "file": "754422.wav",
   "dur": 7.91,
-  "src": "754422__zazzsounddesign__dsgnimpt_deep-cinematic-impact-3_zazz.wav"
+  "src": "754422__zazzsounddesign__dsgnimpt_deep-cinematic-impact-3_zazz.wav",
+  "gain_db": -2.97,
+  "src_rms": -17.032503709745654
  },
  "sfx.finale.strike2": {
   "id": "754424",
   "kind": "sfx",
   "file": "754424.wav",
   "dur": 6.85,
-  "src": "754424__zazzsounddesign__dsgnimpt_deep-cinematic-impact-5_zazz.wav"
+  "src": "754424__zazzsounddesign__dsgnimpt_deep-cinematic-impact-5_zazz.wav",
+  "gain_db": -3.84,
+  "src_rms": -16.157923414526994
  },
  "sfx.ui.click": {
   "id": "342898",
   "kind": "sfx",
   "file": "342898.wav",
   "dur": 0.94,
-  "src": "342898__kickhat__menu-click-hat.wav"
+  "src": "342898__kickhat__menu-click-hat.wav",
+  "gain_db": -0.52,
+  "src_rms": -24.022699036064765
  },
  "sfx.ui.click2": {
   "id": "687108",
   "kind": "sfx",
   "file": "687108.wav",
   "dur": 1.32,
-  "src": "687108__aphom000__mouse-2-button-long-click.wav"
+  "src": "687108__aphom000__mouse-2-button-long-click.wav",
+  "gain_db": 8.66,
+  "src_rms": -38.460934443167176
  },
  "sfx.ui.deny": {
   "id": "327738",
   "kind": "sfx",
   "file": "327738.wav",
   "dur": 0.99,
-  "src": "327738__distillerystudio__error_01.wav"
+  "src": "327738__distillerystudio__error_01.wav",
+  "gain_db": -4.87,
+  "src_rms": -15.129112905548215
  },
  "sfx.ui.pickup": {
   "id": "868506",
   "kind": "sfx",
   "file": "868506.wav",
   "dur": 0.04,
-  "src": "868506__lspec__pickup_item_pop_effect.wav"
+  "src": "868506__lspec__pickup_item_pop_effect.wav",
+  "gain_db": 8.97,
+  "src_rms": -28.965296029455956
  },
  "sfx.ui.pop": {
   "id": "761011",
   "kind": "sfx",
   "file": "761011.wav",
   "dur": 0.59,
-  "src": "761011__geoff-bremner-audio__marker-cap-open-3.wav"
+  "src": "761011__geoff-bremner-audio__marker-cap-open-3.wav",
+  "gain_db": 0.58,
+  "src_rms": -25.83608630786324
  },
  "sfx.impact.boom": {
   "id": "162850",
@@ -1541,21 +1857,27 @@
   "dur": 8.78,
   "srcdur": 8.78,
   "capped": false,
-  "src": "162850__beman87__cinema-boom-impact-1.wav"
+  "src": "162850__beman87__cinema-boom-impact-1.wav",
+  "gain_db": -14.94,
+  "src_rms": -5.05906258269942
  },
  "sfx.impact.drop": {
   "id": "475005",
   "kind": "sfx",
   "file": "475005.wav",
   "dur": 2.79,
-  "src": "475005__alexlane__synth-bass-drop-impact.wav"
+  "src": "475005__alexlane__synth-bass-drop-impact.wav",
+  "gain_db": -17.2,
+  "src_rms": -2.7958552897030486
  },
  "sfx.impact.perc": {
   "id": "475040",
   "kind": "sfx",
   "file": "475040.wav",
   "dur": 4.98,
-  "src": "475040__tyops__percussion-hit.wav"
+  "src": "475040__tyops__percussion-hit.wav",
+  "gain_db": -9.28,
+  "src_rms": -10.717386761835947
  },
  "sfx.impact.soft": {
   "id": "388950",
@@ -1564,7 +1886,9 @@
   "dur": 15.42,
   "srcdur": 15.42,
   "capped": false,
-  "src": "388950__waveplaysfx__ambient-bass-deep-soft-bassy-hit-alternate.wav"
+  "src": "388950__waveplaysfx__ambient-bass-deep-soft-bassy-hit-alternate.wav",
+  "gain_db": -3.16,
+  "src_rms": -16.837972595026574
  },
  "sfx.impact.kick": {
   "id": "825797",
@@ -1573,14 +1897,18 @@
   "dur": 20.0,
   "srcdur": 22.75,
   "capped": true,
-  "src": "825797__artninja__yasomasa_or_akazawa_inspired_bass_kick_explosion_drum_09082025.wav"
+  "src": "825797__artninja__yasomasa_or_akazawa_inspired_bass_kick_explosion_drum_09082025.wav",
+  "gain_db": -18.95,
+  "src_rms": -1.0532669552791392
  },
  "sfx.impact.drum": {
   "id": "177126",
   "kind": "sfx",
   "file": "177126.wav",
   "dur": 5.55,
-  "src": "177126__robinhood76__04050-cinematic-drum-hit.wav"
+  "src": "177126__robinhood76__04050-cinematic-drum-hit.wav",
+  "gain_db": -16.01,
+  "src_rms": -3.990526844294422
  },
  "sfx.whisper.four": {
   "id": "193818",
@@ -1589,7 +1917,9 @@
   "dur": 13.62,
   "srcdur": 13.62,
   "capped": false,
-  "src": "193818__geoneo0__four_voices_whispering_6_wecho.wav"
+  "src": "193818__geoneo0__four_voices_whispering_6_wecho.wav",
+  "gain_db": 10.05,
+  "src_rms": -30.052352769554624
  },
  "sfx.whisper.close": {
   "id": "730965",
@@ -1598,7 +1928,9 @@
   "dur": 20.0,
   "srcdur": 26.75,
   "capped": true,
-  "src": "730965__soundbitersfx__whisper-evil-little-nothings-to-me.wav"
+  "src": "730965__soundbitersfx__whisper-evil-little-nothings-to-me.wav",
+  "gain_db": -3.67,
+  "src_rms": -16.32713238227907
  },
  "sfx.breath.player": {
   "id": "7998",
@@ -1607,7 +1939,9 @@
   "dur": 20.0,
   "srcdur": 62.62,
   "capped": true,
-  "src": "7998__schluppipuppie__breath.wav"
+  "src": "7998__schluppipuppie__breath.wav",
+  "gain_db": -6.12,
+  "src_rms": -13.879312476328593
  },
  "sfx.breath.fast": {
   "id": "512741",
@@ -1616,7 +1950,9 @@
   "dur": 16.23,
   "srcdur": 16.23,
   "capped": false,
-  "src": "512741__exe2be__man-breathing-regularly-then-faster.wav"
+  "src": "512741__exe2be__man-breathing-regularly-then-faster.wav",
+  "gain_db": 12.11,
+  "src_rms": -32.10672375901641
  },
  "sfx.breath.quiet": {
   "id": "554735",
@@ -1625,6 +1961,8 @@
   "dur": 16.85,
   "srcdur": 16.85,
   "capped": false,
-  "src": "554735__dynamique__quiet-respiration-woman.wav"
+  "src": "554735__dynamique__quiet-respiration-woman.wav",
+  "gain_db": 26.0,
+  "src_rms": -46.84625414377458
  }
 }

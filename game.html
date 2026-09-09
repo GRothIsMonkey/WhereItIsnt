@@ -2206,17 +2206,9 @@ class SoundEngine {
     // exists once the engine has started, rather than only after the first play call.
     this._ensureMusicRegistry();
 
-    // Shared slow LFO driving the "tape wobble" pitch-wobble applied to Day Phase
-    // chord oscillators once Sanity < 50. Its depth (wobbleGain) is silent until
-    // updateSanityAudio() ramps it up, and any number of oscillators can tap the
-    // same wobbleGain output for their detune.
-    this.pitchWobbleLFO = this.ctx.createOscillator();
-    this.pitchWobbleLFO.type = 'sine';
-    this.pitchWobbleLFO.frequency.value = 0.35;
-    this.pitchWobbleGain = this.ctx.createGain();
-    this.pitchWobbleGain.gain.value = 0;
-    this.pitchWobbleLFO.connect(this.pitchWobbleGain);
-    this.pitchWobbleLFO.start();
+    /* PHASE 34.1 — the shared "tape wobble" LFO stood here. It existed to detune the day
+       chords as sanity fell; with those gone it was an oscillator running for the life of
+       the session and feeding nothing. */
 
     // Persistent sub-bass Stalker Proximity Pulse oscillator: silent until the
     // Stalker closes within range, then throbs faster/louder as it approaches.
@@ -2828,14 +2820,43 @@ class SoundEngine {
       }
       return;
     }
+    /* =================================================================================
+       PHASE 34.1 — THIS BED STANDS DOWN WHEN A RECORDED ONE IS PLAYING.
+
+       The synthesised wind is a bandpassed noise sweep and the hum is two detuned sines.
+       Both were written when the game had no recorded ambience at all, and both sit on
+       `musicBus` — so once Phase 34 put a real night field on `ambienceBus` underneath
+       them, the player was hearing two night ambiences at once, and the synthesised one
+       was the louder because its level was tuned against silence.
+
+       It is NOT deleted, because it is still the whole night ambience of a build whose
+       audio files are missing, and the fallback contract is the same one the footsteps
+       keep: recording first, synthesis when there is no recording. `_recordedBedLive()`
+       is the switch, and it asks the library rather than assuming.
+
+       The sub-bass hum is kept at a much reduced level even when a recording is playing:
+       it is felt rather than heard, it carries the underground state that no recording
+       covers, and it is the one part of this rig that the recorded beds do not duplicate. */
+    const recorded = this._recordedBedLive();
     const wobble = 500 + Math.sin(t * 0.3) * 220 + Math.sin(t * 1.7) * 60;
     this.nightFilter.frequency.setTargetAtTime(wobble, this.ctx.currentTime, 0.5);
-    this.nightGain.gain.setTargetAtTime(amount * 0.22, this.ctx.currentTime, 0.6);
-    const humAmt = Math.max(amount, undergroundAmount || 0);
+    this.nightGain.gain.setTargetAtTime(recorded ? 0 : amount * 0.22, this.ctx.currentTime, 0.6);
+    const humAmt = Math.max(amount, undergroundAmount || 0) * (recorded ? 0.35 : 1);
     if (this.hum) {
       this.hum.gainL.gain.setTargetAtTime(humAmt * 0.14, this.ctx.currentTime, 0.8);
       this.hum.gainR.gain.setTargetAtTime(humAmt * 0.14, this.ctx.currentTime, 0.8);
     }
+  }
+
+  /* Is a recorded environment bed actually SOUNDING right now? Not "is the library
+     present" and not "was one requested" — a slot that is still fetching its file has a
+     key but no source, and standing the synthesised bed down for it would leave the world
+     silent for as long as the download takes. */
+  _recordedBedLive() {
+    const lib = this.library;
+    if (!lib || !lib.slots || !lib.slots.size) return false;
+    for (const s of lib.slots.values()) if (s && s.src && !s.starting) return true;
+    return false;
   }
 
   /* LEVEL 4 — THE FAKE HAVEN AUDIO RESET (PHASE 5A PART 3).
@@ -2870,7 +2891,6 @@ class SoundEngine {
       }
       if (this.stalkerGain) this.stalkerGain.gain.setTargetAtTime(0, now, 0.05);
       // Kill the sanity tape-wobble so the chiptune can never be detuned by it.
-      if (this.pitchWobbleGain) this.pitchWobbleGain.gain.setTargetAtTime(0, now, 0.05);
       this.sanityFrac = 1.0;
 
       // PHASE 10 — started through the music abstraction rather than by poking the
@@ -3395,115 +3415,49 @@ class SoundEngine {
 
   // Called every frame with the SanitySystem's 0-1 fraction. Drives the shared
   // pitch-wobble LFO depth (tape-wobble effect on the Day Phase chord below 50
-  // Sanity) and remembers the fraction for the next playDayChord() call.
+  /* PHASE 34.1 — this used to open the pitch-wobble LFO that warped the day chords. Those
+     are gone, so this now only records the fraction. It is kept because Game calls it
+     every frame and because sanity is still read by the whisper systems. */
   setSanityFraction(frac) {
-    if (this.fakeHavenMode) return; // LEVEL 4 — no sanity-driven tape wobble in the Haven
+    if (this.fakeHavenMode) return;
     this.sanityFrac = frac;
-    if (!this.ctx || !this.pitchWobbleGain) return;
-    const lowSanity = frac < 0.5;
-    // Wobble depth ramps in smoothly from 0 to ~18 cents as Sanity falls toward 0.
-    const targetDepth = lowSanity ? 4 + (0.5 - frac) * 28 : 0;
-    this.pitchWobbleGain.gain.setTargetAtTime(targetDepth, this.ctx.currentTime, 0.8);
   }
 
-  playDayChord() {
-    if (!this.ctx) return;
-    const now = this.ctx.currentTime;
-    const frac = this.sanityFrac;
-    const lowSanity = frac < 0.5;   // DYNAMIC MUSIC WARP: Sanity < 50
-    const veryLowSanity = frac < 0.2; // DYNAMIC MUSIC WARP: Sanity < 20
+  /* =================================================================================
+     PHASE 34.1 — `playDayChord()` STOOD HERE, AND EXPLORATION IS NOT SCORED ANY MORE.
 
-    // Warm pentatonic arpeggio: a short randomized run across C4 D4 E4 G4 A4 C5,
-    // sine/triangle voices routed through a shared 800Hz low-pass for a soft, nostalgic tone.
-    const lp = this.ctx.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.frequency.value = 800;
-    lp.Q.value = 0.4;
+     It scheduled a warm pentatonic arpeggio every ten to fifteen seconds of daylight, in
+     every dimension, for the entire game. It was written early, when the world had no
+     recorded ambience of its own and silence would have read as a bug, and by Phase 34 it
+     was the loudest thing a player heard while walking through a field.
 
-    // --- Sanity warp chain: BiquadFilterNode (muffling) + WaveShaperNode (grit) ---
-    const warpFilter = this.ctx.createBiquadFilter();
-    warpFilter.type = 'lowpass';
-    // Cutoff sweeps down to 300Hz only once Sanity < 20; otherwise left wide open.
-    const warpCutoff = veryLowSanity ? (300 + (frac / 0.2) * 250) : 12000;
-    warpFilter.frequency.value = warpCutoff;
-    warpFilter.Q.value = veryLowSanity ? 1.1 : 0.3;
+     A HUMAN PLAYTEST OF THE PHASE 34 BUILD REPORTED IT AS "an old retro/background music
+     system from an early build", heard over the Overworld, the Farmlands and Suburbia,
+     and that is the whole reason this method is not here. Nothing replaced it. The
+     replacement is the recorded environment plus the silence between its events, which is
+     what sections 2, 5 and 71 of CLAUDE.md asked for in the first place.
 
-    const warpShaper = this.ctx.createWaveShaper();
-    const curveLen = 1024;
-    const curve = new Float32Array(curveLen);
-    // Mild warmth normally; noticeably grittier once Sanity is critically low.
-    const driveAmount = veryLowSanity ? 14 : 2;
-    for (let i = 0; i < curveLen; i++) {
-      const x = (i / (curveLen - 1)) * 2 - 1;
-      curve[i] = Math.tanh(x * driveAmount) / Math.tanh(driveAmount);
-    }
-    warpShaper.curve = curve;
-    warpShaper.oversample = '2x';
+     WHAT WENT WITH IT: the shared pitch-wobble LFO and `sanityFrac`, which existed only to
+     warp these chords as sanity fell. Sanity still drives the whispers, the darkness
+     whispers and the post-processing; it no longer drives a melody, because there is no
+     longer a melody.
 
-    lp.connect(warpFilter); warpFilter.connect(warpShaper); warpShaper.connect(this.musicBus);
+     WHERE MUSIC STILL LIVES, deliberately and in exactly four places: the main menu
+     (Phase 29), the opening film (Phase 30), the Haven's chiptune (Phase 32 — the one
+     scored sequence in the game, and its warmth is the point), and the finale's three low
+     layers (Phase 33). Every one of those is a MOMENT. None of them is exploration.
 
-    const noteCount = 3 + Math.floor(Math.random() * 3);
-    const order = [...this.pentatonic].sort(() => Math.random() - 0.5).slice(0, noteCount);
-    order.forEach((freq, idx) => {
-      // Sanity < 20: randomly drop chord notes mid-phrase.
-      if (veryLowSanity && Math.random() < 0.35) return;
+     Do not reintroduce an exploration soundtrack. `tests/audio.js` fails if a scheduler
+     for one reappears.
+     ================================================================================= */
 
-      const t = now + idx * 0.42;
-      const osc = this.ctx.createOscillator();
-      osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
-      osc.frequency.value = freq;
 
-      // Sanity < 50: detune downward 50-150 cents, plus the shared slow tape-wobble LFO.
-      if (lowSanity) {
-        const baseDetune = -(50 + Math.random() * 100);
-        osc.detune.setValueAtTime(baseDetune, t);
-      }
-      if (this.pitchWobbleGain) {
-        this.pitchWobbleGain.connect(osc.detune);
-        // Detach from the shared wobble LFO once this short-lived note voice ends,
-        // so stopped oscillators don't linger connected (and un-collectable) forever.
-        osc.onended = () => { try { this.pitchWobbleGain.disconnect(osc.detune); } catch (e) {} };
-      }
+  /* PHASE 34.1 — the day-chord scheduler stood here. Game still calls updateDayTrack once
+     a frame, so the name is kept as an explicit, documented no-op rather than removed:
+     that way a future phase that wants scored exploration has to delete this comment to
+     get it, instead of quietly re-adding a call. */
+  updateDayTrack() { return false; }
 
-      const g = this.ctx.createGain();
-      g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(0.07, t + 0.15);
-      g.gain.linearRampToValueAtTime(0.05, t + 0.6);
-      g.gain.linearRampToValueAtTime(0, t + 1.6);
-      osc.connect(g); g.connect(lp);
-      osc.start(t); osc.stop(t + 1.7);
-    });
-
-    // Sanity < 20: inject low-frequency thuds into the phrase.
-    if (veryLowSanity) {
-      const thudCount = 1 + Math.floor(Math.random() * 2);
-      for (let i = 0; i < thudCount; i++) {
-        const t = now + Math.random() * (noteCount * 0.42 + 0.8);
-        const thudOsc = this.ctx.createOscillator();
-        thudOsc.type = 'sine';
-        thudOsc.frequency.setValueAtTime(65, t);
-        thudOsc.frequency.exponentialRampToValueAtTime(32, t + 0.3);
-        const thudGain = this.ctx.createGain();
-        thudGain.gain.setValueAtTime(0.001, t);
-        thudGain.gain.exponentialRampToValueAtTime(0.22, t + 0.03);
-        thudGain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
-        thudOsc.connect(thudGain); thudGain.connect(this.musicBus);
-        thudOsc.start(t); thudOsc.stop(t + 0.42);
-      }
-    }
-  }
-
-  updateDayTrack(dt, isDay) {
-    // LEVEL 4 — the Haven runs its own chiptune loop (updateHavenMusic); the
-    // overworld's sanity-warped pentatonic day chords must not play over it.
-    if (this.fakeHavenMode) { this.dayTimer = 0; return; }
-    if (!isDay) { this.dayTimer = 0; return; }
-    this.dayTimer -= dt;
-    if (this.dayTimer <= 0) {
-      this.playDayChord();
-      this.dayTimer = 10 + Math.random() * 5; // every 10-15s
-    }
-  }
 
   updateWhispers(dt, sanityFrac) {
     if (this.fakeHavenMode) { this.whisperTimer = 3; return; } // LEVEL 4 — no whispers in the Haven
@@ -5989,13 +5943,24 @@ class AudioLibrary {
    two things that go; everything else takes a surface NAME and does not care where it
    came from. */
 const AUDIO_SURFACE_GROUPS = [
-  ['grass',    [BLOCK.GRASS, BLOCK.LAWN, BLOCK.LAWN_DRY, BLOCK.FOLIAGE, BLOCK.HEDGE_MAT,
-                BLOCK.SOIL_OVERGROWN, BLOCK.WEED_CLUMP, BLOCK.CROP_FLAT]],
+  /* GRASS is living cover, and it is deliberately NOT the same row as bare soil. The
+     Farmlands' fertile and overgrown soils belong here rather than with the dry ones: a
+     field with something growing in it does not sound like a ploughed one. */
+  ['grass',    [BLOCK.GRASS, BLOCK.LAWN, BLOCK.FOLIAGE, BLOCK.HEDGE_MAT,
+                BLOCK.SOIL_FERTILE, BLOCK.SOIL_OVERGROWN, BLOCK.WEED_CLUMP]],
+  /* CROP is its own surface and not a variant of grass. Walking through standing dead
+     wheat is the single most characteristic sound of the Farmland journey and it was
+     previously classified as 'soil' along with everything else in the dimension. */
+  ['crop',     [BLOCK.CROP_TALL, BLOCK.WITHERED_CROP, BLOCK.STUBBLE, BLOCK.DRY_TUSSOCK,
+                BLOCK.REEDS, BLOCK.CROP_FLAT, BLOCK.LAWN_DRY]],
+  /* SOIL is bare, dry, worked earth. */
   ['soil',     [BLOCK.DIRT, BLOCK.ROTTED_SOIL, BLOCK.SOIL_DRY, BLOCK.SOIL_EXHAUSTED,
-                BLOCK.SOIL_FERTILE, BLOCK.SOIL_TRAMPLED, BLOCK.GRAVE_SOIL, BLOCK.MULCH,
-                BLOCK.ASH_GROUND]],
+                BLOCK.GRAVE_SOIL, BLOCK.MULCH, BLOCK.ASH_GROUND]],
   ['mud',      [BLOCK.SOIL_WET, BLOCK.FARM_MUD, BLOCK.WATER_SHALLOW]],
-  ['gravel',   [BLOCK.TIRE_TRACK, BLOCK.SMALL_STONES, BLOCK.DRIVEWAY, BLOCK.SLAB_DRIVEWAY]],
+  /* GRAVEL now includes the trampled and tracked ground, which is most of a farmyard and
+     every driveway. Before this it was three block ids and the player almost never hit it. */
+  ['gravel',   [BLOCK.TIRE_TRACK, BLOCK.SMALL_STONES, BLOCK.DRIVEWAY, BLOCK.SLAB_DRIVEWAY,
+                BLOCK.SOIL_TRAMPLED]],
   ['leaves',   [BLOCK.LEAVES, BLOCK.LEAF_LITTER, BLOCK.BLACK_CANOPY, BLOCK.STICKS,
                 BLOCK.ASH_DRIFT, BLOCK.CHARRED_BRANCH]],
   ['stone',    [BLOCK.STONE, BLOCK.COBBLESTONE, BLOCK.ANDESITE, BLOCK.GRANITE,
@@ -6020,156 +5985,179 @@ const AUDIO_SURFACE_OF = (() => {
   return Object.freeze(m);
 })();
 
-/* Which footfall set a surface uses, and how it is voiced. `g` is gain, `r` a playback
-   rate so two surfaces sharing a recording are not the same sound. Two surfaces have no
-   recording of their own and borrow one deliberately: carpet is a quiet indoor step, and
-   'mud' is the only one that keeps its own take because a wet step is unmistakable. */
+/* =====================================================================================
+   HOW EACH SURFACE IS VOICED, AND WHY THIS TABLE HAS FIVE COLUMNS INSTEAD OF TWO.
+
+   A human playtest of the first Phase 34 build reported that footsteps "sound effectively
+   the same across different surfaces". Measuring the slices showed the recordings were
+   fine — their spectral centroids span 361Hz to 4168Hz, an eleven-fold range — so the
+   fault was entirely in how they were played:
+
+     * every slice had been PEAK-normalised to the same ceiling, which throws away the
+       loudness difference between stone and mud, and loudness is most of what tells a
+       player the ground changed. The build now normalises footfalls by RMS instead.
+     * this table gave every surface the same gain (0.40-0.55) and the same playback rate
+       (0.92-1.00), so nothing here reinforced the difference either.
+     * and the entire Farmlands classified as one surface, so a walk across a farm never
+       actually changed row.
+
+   The columns now are:
+     g   gain. Hard surfaces are genuinely louder than soft ones.
+     r   playback rate. Also changes the body of the sound, not just its pitch.
+     lp  low-pass in Hz, or 0 for none. Soft, absorbent ground has no top end; a board or
+         a slab does. This is the cheapest honest way to widen a difference the
+         recordings already have.
+     v   how much the per-step random gain varies. Loose ground varies more than a slab.
+     ov  an optional MOVEMENT overlay: the sound of the player's legs passing through
+         cover, layered under the footfall at a fraction of its level. Only surfaces that
+         have something to push through get one, and it is the brief's "grass movement"
+         rather than a second footstep.
+   ===================================================================================== */
 const AUDIO_STEP_SURFACES = Object.freeze({
-  grass:    { key: 'step.grass',    g: 0.50, r: 1.00 },
-  soil:     { key: 'step.soft',     g: 0.50, r: 1.00 },
-  mud:      { key: 'step.mud',      g: 0.55, r: 1.00 },
-  gravel:   { key: 'step.gravel',   g: 0.46, r: 1.00 },
-  leaves:   { key: 'step.leaves',   g: 0.46, r: 1.00 },
-  stone:    { key: 'step.stone',    g: 0.42, r: 1.00 },
-  pavement: { key: 'step.pavement', g: 0.40, r: 1.00 },
-  wood:     { key: 'step.wood',     g: 0.44, r: 1.00 },
-  hollow:   { key: 'step.hollow',   g: 0.44, r: 0.97 },
-  carpet:   { key: 'step.wood',     g: 0.22, r: 0.92 },
+  grass:    { key: 'step.grass',    g: 0.46, r: 1.00, lp: 6500,  v: 0.22, ov: 'leaves' },
+  crop:     { key: 'step.grass',    g: 0.40, r: 0.90, lp: 5000,  v: 0.26, ov: 'crop' },
+  soil:     { key: 'step.soft',     g: 0.44, r: 1.00, lp: 5500,  v: 0.20, ov: null },
+  mud:      { key: 'step.mud',      g: 0.50, r: 0.94, lp: 4000,  v: 0.24, ov: null },
+  gravel:   { key: 'step.gravel',   g: 0.56, r: 1.02, lp: 0,     v: 0.26, ov: null },
+  leaves:   { key: 'step.leaves',   g: 0.48, r: 1.00, lp: 0,     v: 0.28, ov: 'leaves' },
+  stone:    { key: 'step.stone',    g: 0.62, r: 1.00, lp: 0,     v: 0.14, ov: null },
+  pavement: { key: 'step.pavement', g: 0.60, r: 1.04, lp: 0,     v: 0.12, ov: null },
+  wood:     { key: 'step.wood',     g: 0.58, r: 1.00, lp: 0,     v: 0.16, ov: null },
+  hollow:   { key: 'step.hollow',   g: 0.62, r: 0.95, lp: 0,     v: 0.18, ov: null },
+  /* Carpet is the one surface with no recording of its own: it is the indoor board take,
+     dulled and dropped, which is physically what a rug over floorboards does. */
+  carpet:   { key: 'step.wood',     g: 0.26, r: 0.90, lp: 2200,  v: 0.14, ov: null },
 });
 
-/* =====================================================================================
-   AUDIO_SCENES — WHERE EACH BED BELONGS. This table is the phase's actual sound design,
-   and everything about the way it is written is aimed at one thing: making it possible
-   to see the whole mix of a place at a glance and change it without reading any code.
-
-   Four slots, and the reason there are exactly four:
-
-     air      the place itself. Always present, always the loudest thing.
-     layer    what the place is doing. Wind through a crop, traffic four streets away,
-              a power line. Roughly a third of the air, and often absent.
-     tone     machinery and electricity. Small, close, and the only slot that is allowed
-              to be slightly unpleasant.
-     tension  the horror bed. EMPTY in nine scenes out of fourteen, and that is the
-              point — a drone that is always there is not a drone, it is a room tone,
-              and the game has spent thirty-three phases making silence mean something.
-
-   LEVELS ARE LOW ON PURPOSE. The loudest bed in this table is 0.5, against a footstep at
-   0.5 and a door at 0.6. Ambience that competes with an interaction is ambience the
-   player stops hearing. */
 const AUDIO_SCENES = Object.freeze({
-  'overworld.day':    { air: ['bed.overworld.day',   0.42], layer: ['bed.air.still',     0.18], ev: 'out.day'   },
-  'overworld.night':  { air: ['bed.overworld.night', 0.40], layer: ['bed.wind.open',     0.14], ev: 'out.night' },
-  'overworld.blood':  { air: ['bed.overworld.night', 0.24], layer: ['bed.blood.rumble',  0.30],
-                        tension: ['bed.blood.earth', 0.16], ev: 'out.blood' },
-  'farm.day':         { air: ['bed.farm.day',        0.42], layer: ['bed.farm.crop',     0.20], ev: 'farm.day'  },
-  'farm.night':       { air: ['bed.farm.night',      0.40], layer: ['bed.farm.wind',     0.14], ev: 'farm.night'},
-  'farm.blood':       { air: ['bed.farm.night',      0.24], layer: ['bed.blood.rumble',  0.28],
-                        tension: ['bed.blood.far',   0.12], ev: 'farm.night' },
-  'sub.day':          { air: ['bed.sub.day',         0.40], layer: ['bed.sub.traffic',   0.13],
-                        tone: ['bed.hum.crt',        0.07], ev: 'sub.day'   },
-  'sub.night':        { air: ['bed.sub.night',       0.40], layer: ['bed.hum.powerline', 0.09],
-                        tone: ['bed.hum.crt',        0.09], ev: 'sub.night' },
-  'sub.blood':        { air: ['bed.sub.night',       0.22], layer: ['bed.blood.rumble',  0.26],
-                        tone: ['bed.hum.crt',        0.09], ev: 'sub.night' },
-  /* INDOORS. The outside does not vanish, it is muffled: the air slot becomes the room
-     and the layer slot keeps a thin memory of the weather. A house is quieter than a
-     field, which is why every level here is lower than every level above. */
-  'in.house':         { air: ['bed.interior.house',  0.34], tone: ['bed.hum.buzz',       0.05], ev: 'in.house'  },
-  'in.sub':           { air: ['bed.interior.quiet',  0.32], tone: ['bed.hum.fridge',     0.06], ev: 'in.sub'    },
-  'in.sub.night':     { air: ['bed.interior.clock',  0.30], tone: ['bed.hum.fridge',     0.06], ev: 'in.sub'    },
-  'in.deep':          { air: ['bed.interior.basement', 0.30], ev: 'in.house' },
-  /* THE RIFT. The one scene with a tension bed as a matter of course, because it is the
-     one place the game has already told the player is wrong. */
-  'rift':             { air: ['bed.rift.pulse',      0.30], layer: ['bed.rift.static',   0.12],
-                        tension: ['bed.rift.drone',  0.14], ev: 'rift' },
+  'overworld.day':    { air: ['bed.overworld.day',   0.85], layer: ['bed.air.still',     0.34], ev: 'out.day'   },
+  'overworld.night':  { air: ['bed.overworld.night', 0.80], layer: ['bed.wind.open',     0.26], ev: 'out.night' },
+  'overworld.blood':  { air: ['bed.overworld.night', 0.50], layer: ['bed.blood.rumble',  0.44],
+                        tension: ['bed.blood.earth', 0.26], ev: 'out.blood' },
+  'farm.day':         { air: ['bed.farm.day',        0.85], layer: ['bed.farm.crop',     0.42], ev: 'farm.day'  },
+  'farm.night':       { air: ['bed.farm.night',      0.80], layer: ['bed.farm.wind',     0.28], ev: 'farm.night'},
+  'farm.blood':       { air: ['bed.farm.night',      0.48], layer: ['bed.blood.rumble',  0.42],
+                        tension: ['bed.blood.far',   0.20], ev: 'farm.night' },
+  /* SUBURBIA'S `tone` SLOT IS EMPTY BY DAY AND HOLDS A STREET-LIGHT BUZZ AT NIGHT. It
+     used to hold a recorded CRT hum, which doubled the Phase 5A procedural CRT static —
+     and that one is SPATIALISED to the nearest window, which the bed could never be. One
+     hum, and it is the positioned one. */
+  'sub.day':          { air: ['bed.sub.day',         0.85], layer: ['bed.sub.traffic',   0.34], ev: 'sub.day'   },
+  'sub.night':        { air: ['bed.sub.night',       0.80], layer: ['bed.hum.powerline', 0.30],
+                        tone: ['bed.hum.buzz',       0.20], ev: 'sub.night' },
+  'sub.blood':        { air: ['bed.sub.night',       0.46], layer: ['bed.blood.rumble',  0.40], ev: 'sub.night' },
+  /* INDOORS. The outside does not vanish, it is muffled — but "muffled" is a level
+     BELOW the outdoor bed, not a level near silence, which is what the first version's
+     0.34 against an unnormalised -67 dBFS recording actually produced. */
+  'in.house':         { air: ['bed.interior.house',  0.75], tone: ['bed.hum.buzz',       0.14], ev: 'in.house'  },
+  'in.sub':           { air: ['bed.interior.quiet',  0.70], tone: ['bed.hum.fridge',     0.20], ev: 'in.sub'    },
+  'in.sub.night':     { air: ['bed.interior.clock',  0.66], tone: ['bed.hum.fridge',     0.20], ev: 'in.sub'    },
+  'in.deep':          { air: ['bed.interior.basement', 0.70], ev: 'in.house' },
+  'rift':             { air: ['bed.rift.pulse',      0.58], layer: ['bed.rift.static',   0.26],
+                        tension: ['bed.rift.drone',  0.24], ev: 'rift' },
 });
 
 /* =====================================================================================
-   AUDIO_EVENTS — THE SPARSE ONE-SHOTS, AND THE RULE THAT KEEPS THEM RARE.
+   AUDIO_EVENTS — THE SPARSE ONE-SHOTS.
 
-   `gap` is [min, max] SECONDS between two events. The smallest number in this table is
-   34, and outdoors at night it is 55: this is not a randomiser sprinkling noises, it is
-   something happening about once a minute and usually further away than the player can
-   see. The brief asks for "occasional distant environmental sounds" and "sparse
-   unsettling distant sounds", and the difference between those and set dressing is
-   entirely in these two numbers.
+   `gap` is [min, max] SECONDS between two events. These numbers moved after a human
+   playtest: the first version's outdoor tables were 42-150s, which on paper is "sparse"
+   and in practice meant a player could cross a whole region and hear nothing but their
+   own feet. The world is supposed to sound alive without sounding busy, and one distant
+   thing every half-minute or so is where that line actually sits — the events are quiet,
+   they are placed at real distance, and most of them are behind the player.
 
    `d` is the distance range the sound is placed at, which is what makes it read as
-   somewhere else rather than as a cue. Nothing in this table is ever placed closer than
-   20 metres and most of it is beyond 40.
+   somewhere else rather than as a cue. Nothing is placed closer than 12 metres.
 
-   NOTHING HERE IS A STINGER, and nothing here is triggered by anything. No entry
-   responds to the player's position, the Stalker, sanity, or being looked at. They are
-   weather, in the sense that they happen whether or not anyone is there. */
+   NOTHING HERE IS A STINGER, and nothing here is triggered by anything. No entry responds
+   to the player's position, the Stalker, sanity, or being looked at. They are weather, in
+   the sense that they happen whether or not anyone is there. */
 const AUDIO_EVENTS = Object.freeze({
-  'out.day':   { gap: [42, 120], picks: [
+  'out.day':   { gap: [22, 52], picks: [
                    ['sfx.crow',        0.55, [30, 90]],
-                   ['sfx.birds.road',  0.30, [45, 110]],
+                   ['sfx.birds.road',  0.34, [45, 110]],
                    ['sfx.branch',      0.40, [18, 45]],
-                   ['sfx.tree.creak',  0.30, [16, 40]],
-                   ['sfx.leaves',      0.28, [12, 30]] ] },
-  'out.night': { gap: [58, 150], picks: [
-                   ['sfx.branch',      0.30, [22, 60]],
-                   ['sfx.tree.creak',  0.26, [18, 46]],
-                   ['sfx.dogs',        0.28, [70, 130]],
-                   ['sfx.thunder.far', 0.22, [90, 140]] ] },
-  'out.blood': { gap: [50, 130], picks: [
-                   ['sfx.blast.far',   0.24, [90, 140]],
-                   ['sfx.rumble.short',0.26, [70, 130]],
-                   ['sfx.collapse.far',0.20, [80, 135]] ] },
-  'farm.day':  { gap: [46, 125], picks: [
-                   ['sfx.crows',       0.34, [55, 120]],
-                   ['sfx.crow',        0.45, [35, 95]],
-                   ['sfx.tractor',     0.22, [95, 140]],
-                   ['sfx.tractor2',    0.20, [95, 140]],
-                   ['sfx.clang.far',   0.26, [50, 110]],
-                   ['sfx.rust.turn',   0.22, [30, 70]],
-                   ['sfx.crop',        0.26, [14, 34]] ] },
-  'farm.night':{ gap: [62, 165], picks: [
-                   ['sfx.dogs',        0.26, [80, 135]],
-                   ['sfx.clang.low',   0.24, [60, 125]],
-                   ['sfx.metal.fall',  0.20, [55, 115]],
-                   ['sfx.crop',        0.20, [14, 34]],
-                   ['sfx.thunder.far', 0.20, [95, 140]] ] },
-  'sub.day':   { gap: [40, 110], picks: [
-                   ['sfx.car.pass',    0.26, [60, 130]],
-                   ['sfx.dogs',        0.24, [55, 120]],
-                   ['sfx.birds.road',  0.26, [40, 100]] ] },
-  'sub.night': { gap: [56, 150], picks: [
-                   ['sfx.car.pass',    0.18, [85, 140]],
-                   ['sfx.dogs',        0.20, [80, 135]],
+                   ['sfx.tree.creak',  0.32, [16, 40]],
+                   ['sfx.leaves',      0.30, [12, 30]],
+                   ['sfx.grass',       0.26, [12, 26]] ] },
+  'out.night': { gap: [30, 70], picks: [
+                   ['sfx.branch',      0.32, [22, 60]],
+                   ['sfx.tree.creak',  0.28, [18, 46]],
+                   ['sfx.dogs',        0.30, [70, 130]],
+                   ['sfx.thunder.far', 0.24, [90, 140]],
+                   ['sfx.leaves',      0.22, [14, 34]] ] },
+  'out.blood': { gap: [34, 78], picks: [
+                   ['sfx.blast.far',   0.26, [90, 140]],
+                   ['sfx.rumble.short',0.28, [70, 130]],
+                   ['sfx.collapse.far',0.22, [80, 135]] ] },
+  'farm.day':  { gap: [24, 55], picks: [
+                   ['sfx.crows',       0.36, [55, 120]],
+                   ['sfx.crow',        0.46, [35, 95]],
+                   ['sfx.tractor',     0.24, [95, 140]],
+                   ['sfx.tractor2',    0.22, [95, 140]],
+                   ['sfx.clang.far',   0.28, [50, 110]],
+                   ['sfx.rust.turn',   0.24, [30, 70]],
+                   ['sfx.crop',        0.28, [14, 34]],
+                   ['sfx.birds.road',  0.28, [50, 110]] ] },
+  'farm.night':{ gap: [34, 80], picks: [
+                   ['sfx.dogs',        0.28, [80, 135]],
+                   ['sfx.clang.low',   0.26, [60, 125]],
+                   ['sfx.metal.fall',  0.22, [55, 115]],
+                   ['sfx.crop',        0.22, [14, 34]],
+                   ['sfx.thunder.far', 0.22, [95, 140]],
+                   ['sfx.rust.turn',   0.20, [30, 70]] ] },
+  'sub.day':   { gap: [22, 50], picks: [
+                   ['sfx.car.pass',    0.28, [60, 130]],
+                   ['sfx.dogs',        0.26, [55, 120]],
+                   ['sfx.birds.road',  0.28, [40, 100]],
+                   ['sfx.voices.muffled', 0.16, [26, 55]] ] },
+  'sub.night': { gap: [30, 68], picks: [
+                   ['sfx.car.pass',    0.20, [85, 140]],
+                   ['sfx.dogs',        0.22, [80, 135]],
                    ['sfx.doorbell',    0.16, [55, 120]],
-                   ['sfx.door.slam',   0.18, [50, 115]],
-                   ['sfx.thunder.sub', 0.20, [95, 140]] ] },
-  /* INDOORS IS THE SPARSEST TABLE IN THE GAME and every entry in it is the building,
-     not a person. A house that creaks once every two minutes is a house; a house that
-     creaks every twenty seconds is a haunted house, and section 25 of CLAUDE.md is
-     explicit that not every structure is haunted. */
-  'in.house':  { gap: [70, 190], picks: [
+                   ['sfx.door.slam',   0.20, [50, 115]],
+                   ['sfx.thunder.sub', 0.22, [95, 140]],
+                   ['sfx.electric',    0.16, [30, 70]] ] },
+  /* INDOORS IS STILL THE SPARSEST TABLE IN THE GAME and every entry in it is the
+     building, not a person. A house that answers once a minute is a house; one that
+     answers every twenty seconds is a haunted house, and CLAUDE.md section 25 is explicit
+     that not every structure is haunted. */
+  'in.house':  { gap: [42, 105], picks: [
+                   ['sfx.creak.quiet', 0.34, [3, 9]],
+                   ['sfx.creak.a',     0.30, [3, 10]],
+                   ['sfx.creak.b',     0.30, [3, 10]],
+                   ['sfx.floor.single',0.24, [4, 11]],
+                   ['sfx.creak.long',  0.20, [5, 12]] ] },
+  'in.sub':    { gap: [46, 115], picks: [
                    ['sfx.creak.quiet', 0.30, [3, 9]],
-                   ['sfx.creak.a',     0.26, [3, 10]],
-                   ['sfx.creak.b',     0.26, [3, 10]],
-                   ['sfx.floor.single',0.22, [4, 11]] ] },
+                   ['sfx.creak.c',     0.26, [3, 10]],
+                   ['sfx.switch',      0.16, [6, 14]],
+                   ['sfx.voices.muffled', 0.14, [8, 18]] ] },
   /* THE RIFT is the one place a table is allowed to be busy, and it is still fifteen
      seconds between events. Layers and fades carry this scene — the bed does the work —
      and these are punctuation on top of it, never the substance. */
   'rift':      { gap: [15, 38], picks: [
-                   ['sfx.rift.glitch',  0.22, [2, 9]],
-                   ['sfx.rift.distort', 0.20, [4, 14]],
-                   ['sfx.rift.scrape',  0.18, [4, 14]],
-                   ['sfx.rift.musicbox',0.16, [6, 18]] ] },
-  'in.sub':    { gap: [75, 200], picks: [
-                   ['sfx.creak.quiet', 0.26, [3, 9]],
-                   ['sfx.creak.c',     0.22, [3, 10]],
-                   ['sfx.switch',      0.14, [6, 14]] ] },
+                   ['sfx.rift.glitch',  0.26, [2, 9]],
+                   ['sfx.rift.distort', 0.24, [4, 14]],
+                   ['sfx.rift.scrape',  0.22, [4, 14]],
+                   ['sfx.rift.musicbox',0.18, [6, 18]] ] },
 });
 
-/* The cues that must never be late the first time. Everything else is lazy: a door the
-   player has not reached, a tractor a hundred metres away and a finale forty minutes off
-   are all fetched the moment something asks for them and not before. */
+/* How long "there is something over my head" must hold before the mix believes it. */
+const AUDIO_INDOOR_SETTLE = 0.9;
+
 const AUDIO_PRELOAD = Object.freeze([
-  'step.soft', 'step.grass', 'step.stone', 'step.wood',
+  /* EVERY PLAYER SURFACE, not a sample of them. The first build preloaded four sets and
+     lazily loaded the rest, so the first few steps onto gravel, pavement, mud or a barn
+     floor fell back to the synthesised burst — which is precisely the moment the change
+     of ground is supposed to be audible. Eleven sets is about 3MB and it is fetched once. */
+  'step.soft', 'step.grass', 'step.stone', 'step.wood', 'step.gravel', 'step.pavement',
+  'step.mud', 'step.leaves', 'step.hollow',
   'sfx.door.open', 'sfx.door.close', 'sfx.ui.pickup', 'sfx.ui.click', 'sfx.ui.pop',
+  /* The movement overlay is played on the same frame as a footstep; loading it lazily
+     means the first field the player walks through is the one that has no rustle in it. */
+  'sfx.crop', 'sfx.leaves', 'sfx.grass', 'sfx.bush',
 ]);
 
 /* =====================================================================================
@@ -6205,6 +6193,25 @@ class AudioDirector {
      finished, and a failure to preload is indistinguishable from a slow network. */
   prime() { if (this.lib) this.lib.preload(AUDIO_PRELOAD); return true; }
 
+  /* THE BEDS OF THE PLACES NEXT DOOR. A scene change crossfades over two and a half
+     seconds, which is only silent-free if the new bed is already decoded — otherwise the
+     fade begins when the download ends and the player walks into a gap. Called on a
+     dimension change with the scenes that dimension can produce, so night falling or a
+     door closing swaps into something that is already in memory.
+
+     It is a HINT and nothing waits on it: every one of these is also loaded on demand. */
+  warm(sceneIds) {
+    if (!this.lib) return false;
+    const keys = [];
+    for (const id of sceneIds || []) {
+      const sc = AUDIO_SCENES[id];
+      if (!sc) continue;
+      for (const slot of ['air', 'layer', 'tone', 'tension']) if (sc[slot]) keys.push(sc[slot][0]);
+    }
+    if (keys.length) this.lib.preload(keys);
+    return true;
+  }
+
   // ---------------------------------------------------------------------------------
   // SURFACES
   // ---------------------------------------------------------------------------------
@@ -6213,10 +6220,18 @@ class AudioDirector {
   surfaceAt(world, x, y, z) {
     if (!world || !world.getBlockWorld) return 'soil';
     const bx = Math.floor(x), bz = Math.floor(z);
-    let by = Math.floor(y - 0.12);
-    let id = world.getBlockWorld(bx, by, bz);
-    if (!id) id = world.getBlockWorld(bx, by - 1, bz);
-    return AUDIO_SURFACE_OF[id] || 'soil';
+    const base = Math.floor(y - 0.12);
+    /* THE COVER THE PLAYER IS STANDING IN WINS OVER THE GROUND UNDER IT. Crop stems,
+       weeds, leaf litter and small stones are noclip decoration occupying the cell the
+       player's feet are IN, not the one below; reading only downward classified a wheat
+       field as bare soil, which is how the entire Farmlands came to be one surface.
+       Probed in order: the cell at the feet, then the two below it for the ground. */
+    for (let i = 0; i < 3; i++) {
+      const id = world.getBlockWorld(bx, base + 1 - i, bz);
+      const name = id ? AUDIO_SURFACE_OF[id] : null;
+      if (name) return name;
+    }
+    return 'soil';
   }
 
   /* ONE FOOTSTEP. Returns true if a recorded footfall played and false if it did not, and
@@ -6228,22 +6243,44 @@ class AudioDirector {
      ±6%, and a gain within ±12% multiplied by how fast the player is moving. */
   footstep(speedFactor, surface) {
     if (!this.enabled || !this.lib) return false;
-    const s = AUDIO_STEP_SURFACES[surface || this._surface] || AUDIO_STEP_SURFACES.soil;
+    const name = (surface && AUDIO_STEP_SURFACES[surface]) ? surface : 'soil';
+    const s = AUDIO_STEP_SURFACES[name];
     const a = AUDIO_ASSETS[s.key];
     if (!a || a.k !== 'step') return false;
     let v = (Math.random() * a.v.length) | 0;
     if (a.v.length > 1 && v === this._stepPhase) v = (v + 1) % a.v.length;
     this._stepPhase = v;
+    const speed = Math.max(0.35, Math.min(1.5, speedFactor || 1));
     const ok = this.lib.play(s.key, {
       variant: v,
-      gain: s.g * (0.88 + Math.random() * 0.24) * Math.max(0.35, Math.min(1.5, speedFactor || 1)),
-      rate: s.r * (0.94 + Math.random() * 0.12),
+      /* The random spread is PER SURFACE (s.v): loose ground varies step to step, a
+         concrete slab barely does, and a fixed ±12% on everything made gravel sound as
+         mechanical as pavement. */
+      gain: s.g * (1 - s.v / 2 + Math.random() * s.v) * speed,
+      rate: s.r * (0.95 + Math.random() * 0.10),
+      lp: s.lp || undefined,
       bus: 'sfx',
       minGap: 0.1,
     });
-    if (ok) this.stats.steps++;
+    if (ok) {
+      this.stats.steps++;
+      this._stepSurface = name;
+      /* THE MOVEMENT LAYER. Not a second footstep — the player's legs going through the
+         cover they are standing in, at a fifth of the footfall and only sometimes, so it
+         reads as continuous movement rather than as a repeated event. Silent on every
+         hard surface, because there is nothing there to push through. */
+      if (s.ov && speed > 0.5 && Math.random() < 0.45) {
+        this.cue(s.ov, { gain: (s.ov === 'crop' ? 0.16 : 0.11) * speed, minGap: 0.22,
+                         rate: 0.9 + Math.random() * 0.25 });
+      }
+    }
     return ok;
   }
+
+  /* Which surface the last footfall actually used. Read by the audit and the tests; it is
+     the only way to prove from outside that the family CHANGED rather than that a
+     different slice of the same family was picked. */
+  lastStepSurface() { return this._stepSurface || null; }
 
   // ---------------------------------------------------------------------------------
   // SCENES
@@ -6345,13 +6382,21 @@ class AudioDirector {
   }
   havenLevels(room, outside, hearth) {
     if (!this.lib || !this._havenOn) return false;
-    this.lib.setBedLevel('haven.room', Math.max(0, room) * 0.30, 2.4);
-    this.lib.setBedLevel('haven.out', Math.max(0, outside) * 0.20, 2.4);
-    this.lib.setBedLevel('haven.fire', Math.max(0, hearth) * 0.34, 2.4);
+    /* THESE FOUR MULTIPLIERS WERE RAISED IN THE PHASE 34 CORRECTION, for the same reason
+       every other level in the build was: they were written against unnormalised files.
+       The Haven has to be the warmest, most present room in the game — that is the entire
+       point of the dimension and of what is then taken away — and at the original numbers
+       it was quieter than standing in a field. The fire is the loudest of the four
+       because it is the emotional centre of the room and because its recording is the
+       most peak-limited in the library, so it needs the most gain to sit where the
+       others do. */
+    this.lib.setBedLevel('haven.room', Math.max(0, room) * 0.72, 2.4);
+    this.lib.setBedLevel('haven.out', Math.max(0, outside) * 0.34, 2.4);
+    this.lib.setBedLevel('haven.fire', Math.max(0, hearth) * 0.86, 2.4);
     /* The clock rides the ROOM, not its own number. It is part of the room tone, so when
        the room goes the clock goes with it — and it is the quietest layer in the cabin so
        that noticing it has stopped takes a moment longer than noticing the fire has. */
-    this.lib.setBedLevel('haven.tick', Math.max(0, room) * 0.09, 2.4);
+    this.lib.setBedLevel('haven.tick', Math.max(0, room) * 0.20, 2.4);
     return true;
   }
   havenEnd(fade) {
@@ -6386,20 +6431,24 @@ class AudioDirector {
      image of the Haven's. */
   finaleBeat(beat) {
     if (!this.lib || !this._finaleOn) return false;
+    /* RAISED WITH EVERYTHING ELSE IN THE CORRECTION. At the original numbers the last
+       beat of the game was quieter than standing in a field, because these were written
+       against files nobody had measured. The shape is unchanged and so is the rule: the
+       first beat is silent and no column ever falls. */
     const L = {
       silence:    [0.000, 0.000, 0.000],
-      impression: [0.050, 0.000, 0.000],
-      scale:      [0.090, 0.040, 0.000],
-      movement:   [0.130, 0.075, 0.020],
-      face:       [0.165, 0.110, 0.040],
-      impossible: [0.220, 0.165, 0.080],
-      cut:        [0.260, 0.200, 0.105],
+      impression: [0.220, 0.000, 0.000],
+      scale:      [0.420, 0.180, 0.000],
+      movement:   [0.600, 0.340, 0.090],
+      face:       [0.750, 0.490, 0.180],
+      impossible: [0.980, 0.740, 0.360],
+      cut:        [1.160, 0.900, 0.480],
     }[beat];
     if (!L) return false;
     this.lib.setBedLevel('fin.deep', L[0], 2.2);
     this.lib.setBedLevel('fin.rumble', L[1], 2.2);
     this.lib.setBedLevel('fin.air', L[2], 2.2);
-    if (beat === 'face') this.lib.play('sfx.finale.bend', { gain: 0.42, bus: 'music' });
+    if (beat === 'face') this.lib.play('sfx.finale.bend', { gain: 0.95, bus: 'music' });
     return true;
   }
   finaleEnd(fade) {
@@ -6525,6 +6574,7 @@ const AUDIO_CUES = Object.freeze({
   'metal.knock':  { k: ['sfx.metal.knock'],                            g: 0.34 },
   'branch':       { k: ['sfx.branch', 'sfx.branch.crackle'],           g: 0.34 },
   'leaves':       { k: ['sfx.leaves', 'sfx.bush', 'sfx.grass'],        g: 0.28 },
+  'crop':         { k: ['sfx.crop'],                                   g: 0.26 },
   'water.drip':   { k: ['sfx.drip.fast', 'sfx.drip.slow'],             g: 0.24 },
   'animal.cow':     { k: ['sfx.animal.cow'],                           g: 0.30 },
   'animal.sheep':   { k: ['sfx.animal.sheep'],                         g: 0.30 },
@@ -37267,6 +37317,14 @@ class Game {
        frame rebuilds it from where the player has actually landed. Decoded buffers are
        deliberately kept: re-entering a dimension should not re-download it. */
     if (this.sound && this.sound.director) this.sound.director.reset();
+    /* PHASE 34.1 — and the frame path's own memory of where the player was. Without this a
+       New Game inherits the previous run's dimension (so the neighbouring beds are never
+       warmed) and its indoor latch (so a player who saved inside a house starts the next
+       run hearing a room). */
+    this._audioDim = null;
+    this._audioIndoors = false;
+    this._audioIndoorRaw = undefined;
+    this._audioIndoorHold = 0;
 
     // Player body: no residual motion, mining, lock or death.
     const p = this.player;
@@ -37641,7 +37699,31 @@ class Game {
     let indoors = false, deep = false;
     if (this.world && this.world.hasSkyAbove) {
       const hx = Math.floor(pos.x), hy = Math.floor(pos.y + p.eyeHeight), hz = Math.floor(pos.z);
-      indoors = !this.world.hasSkyAbove(hx, hy, hz);
+      /* AN UNGENERATED COLUMN IS NOT A ROOM. hasSkyAbove returns false when the chunk is
+         not resident, which is indistinguishable from a ceiling — so on a fast traversal,
+         or at the moment a dimension is entered, the player could be handed the interior
+         room tone while standing in an open field. The chunk is checked first and a
+         missing one is treated as outdoors, which is the safe answer: the outdoor bed in
+         a barn is a smaller error than a room tone in a wheat field. */
+      const chunkHere = this.world.getChunk
+        ? this.world.getChunk(Math.floor(hx / CHUNK_SX), Math.floor(hz / CHUNK_SZ)) : null;
+      const raw = !!chunkHere && !this.world.hasSkyAbove(hx, hy, hz);
+      /* AND IT HAS TO STAY TRUE. A single frame's answer is not enough to swap every bed
+         in the mix: a tree, a porch, a bridge, an overhang and a doorway all read as
+         "indoors" for as long as it takes to cross them, and a crossfade in and straight
+         back out is far more noticeable than either state would have been. The reading
+         must hold for AUDIO_INDOOR_SETTLE seconds before the mix acts on it — short
+         enough that walking into a barn is immediate, long enough that walking under one
+         tree is not. The runtime audit caught this as a stray interior room tone in the
+         middle of an open Overworld night. */
+      if (raw === this._audioIndoorRaw) {
+        this._audioIndoorHold = (this._audioIndoorHold || 0) + Math.max(0, Math.min(0.25, dt || 0));
+      } else {
+        this._audioIndoorRaw = raw;
+        this._audioIndoorHold = 0;
+      }
+      if (this._audioIndoorHold >= AUDIO_INDOOR_SETTLE) this._audioIndoors = raw;
+      indoors = !!this._audioIndoors;
       /* 'DEEP' MEANS UNDER THE GROUND, NOT MERELY LOW. The first version of this line
          read `pos.y < 26`, which is above SEA_LEVEL: the browser test caught it
          immediately by walking into an ordinary ground-floor room at y 24 and getting the
@@ -37661,8 +37743,18 @@ class Game {
       const dx = a.x - pos.x, dz = a.z - pos.z;
       rift = (dx * dx + dz * dz) < 400;
     }
+    const dim = EnvironmentStorySystem.dimensionOf(p);
+    if (dim !== this._audioDim) {
+      this._audioDim = dim;
+      /* Fetch the beds of every scene THIS dimension can produce, so night falling or a
+         door closing crossfades into something already decoded instead of into a gap. */
+      const pre = { overworld: ['overworld.day', 'overworld.night', 'in.house'],
+                    farmlands: ['farm.day', 'farm.night', 'in.house'],
+                    suburbia:  ['sub.day', 'sub.night', 'in.sub', 'in.sub.night'] }[dim];
+      if (pre) d.warm(pre);
+    }
     return d.update(dt, {
-      dimension: EnvironmentStorySystem.dimensionOf(p),
+      dimension: dim,
       night: !!this.env.isNight,
       blood: !!this.env.isNight && this.stage >= 2,
       indoors, deep, rift,
