@@ -1,0 +1,1311 @@
+[
+ {
+  "path": "assets/audio/118083__pintsogin87__file0310.wav",
+  "size": 1260676,
+  "dur": 8.7,
+  "codec": "pcm_s24le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/121584__slugzilla__ghostbreath1.wav",
+  "size": 923258,
+  "dur": 10.47,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/124122__timbre__remix-of-108732__klankbeeld__creaking_metal_spokes_of_the_bicycle_wheel_06.flac",
+  "size": 588450,
+  "dur": 14.65,
+  "codec": "flac",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/135074__mzui__residential-street-ambience-quiet-birds.wav",
+  "size": 14463520,
+  "dur": 75.33,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/152004__serithi__creepy9.ogg",
+  "size": 102578,
+  "dur": 17.87,
+  "codec": "vorbis",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/162850__beman87__cinema-boom-impact-1.wav",
+  "size": 1687772,
+  "dur": 8.78,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/16947__finnbuster__earth.wav",
+  "size": 6245956,
+  "dur": 35.41,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/16950__finnbuster__wind.wav",
+  "size": 11182776,
+  "dur": 63.39,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/177126__robinhood76__04050-cinematic-drum-hit.wav",
+  "size": 984478,
+  "dur": 5.55,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/181374__l4red0__zombie-tries-to-talk.wav",
+  "size": 744328,
+  "dur": 3.84,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/186517__ragamuffin__door-knock-open-wooden_distant.wav",
+  "size": 13712558,
+  "dur": 23.8,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/192574__aishabag23__bass_swell_long_01_16bitmono_154bpm.aiff",
+  "size": 1924426,
+  "dur": 21.82,
+  "codec": "pcm_s16be",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/19263__martian__steps (1).aiff",
+  "size": 10214624,
+  "dur": 53.18,
+  "codec": "pcm_s16be",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/193818__geoneo0__four_voices_whispering_6_wecho.wav",
+  "size": 4803682,
+  "dur": 13.62,
+  "codec": "pcm_f32le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/195572__jacobalcook__creature-breath-2.wav",
+  "size": 618136,
+  "dur": 3.5,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/211603__littlecloudcinema__eerie-background-space-sound.wav",
+  "size": 10381356,
+  "dur": 58.85,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/213404__chewiesmissus__wooddoorcloselatch.wav",
+  "size": 590476,
+  "dur": 1.02,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/213406__chewiesmissus__wooddooropen.wav",
+  "size": 981556,
+  "dur": 1.7,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/218354__jordivburgel__movie-short-swell.wav",
+  "size": 1411930,
+  "dur": 8.0,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/238288__loafdv__quiet-creak.flac",
+  "size": 186546,
+  "dur": 3.04,
+  "codec": "flac",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/238743__csengeri__distant-thunder-in-suburban-area.wav",
+  "size": 6128472,
+  "dur": 34.74,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/259228__decembered__outdoors-cabin-substation.wav",
+  "size": 18699054,
+  "dur": 106.0,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/261147__chobiboko__monster-roar-in-distance.mp3",
+  "size": 29256,
+  "dur": 1.8,
+  "codec": "mp3",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/261371__f4kf4ce__creak-wood-floor-single-06.wav",
+  "size": 34444,
+  "dur": 0.22,
+  "codec": "pcm_s24le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/271336__inspectorj__water-dripping-fast-a.wav",
+  "size": 4787866,
+  "dur": 27.14,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/30611__erh__distorted-music-box-3.wav",
+  "size": 1405484,
+  "dur": 7.97,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/320788__kostrava__distant-explosions.wav",
+  "size": 11289724,
+  "dur": 64.0,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/321812__mmasonghi__cinematic-deep-bass-rumble.wav",
+  "size": 5426290,
+  "dur": 28.24,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/324277__kostrava__distant-explosion.mp3",
+  "size": 212875,
+  "dur": 8.61,
+  "codec": "mp3",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/325324__inspectorj__stream-water-a.wav",
+  "size": 10132180,
+  "dur": 57.44,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/328067__guntherdorksen__old-clock-ticking_-broken-antique-grandfather-clock-ticking-inconsistent-tickingsfx.wav",
+  "size": 7920736,
+  "dur": 27.5,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/333988__kostrava__distant-falling-glassmetal.wav",
+  "size": 9369396,
+  "dur": 26.55,
+  "codec": "pcm_f32le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/340046__iesp__wood-door-closing.wav",
+  "size": 5473150,
+  "dur": 19.0,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/342898__kickhat__menu-click-hat.wav",
+  "size": 332618,
+  "dur": 0.94,
+  "codec": "pcm_f32le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/342926__robinhood76__06583-old-clock-pendulum-ticking.wav",
+  "size": 1701844,
+  "dur": 9.64,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/344612__waveplaysfx__synth-drone-short-distorted-drone-like-fade-in-fade-out.wav",
+  "size": 14589402,
+  "dur": 41.35,
+  "codec": "pcm_f32le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/344984__bluesy1905__old-tractor-passing-hatz.wav",
+  "size": 7249922,
+  "dur": 41.05,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/352870__potatokingxii__footsteps-dirt-gravel.wav",
+  "size": 5040736,
+  "dur": 35.0,
+  "codec": "pcm_s24le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/355738__supercolio__drone5 (1).mp3",
+  "size": 4462846,
+  "dur": 208.46,
+  "codec": "mp3",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/361487__funwithsound__wind-whipping-by.wav",
+  "size": 4882798,
+  "dur": 27.68,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/364106__rudmer_rotteveel__wooden_drawer_open_close_1-of-2.wav",
+  "size": 814272,
+  "dur": 4.62,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/366111__wakuwakuwakuwaku__indoor-footsteps.wav",
+  "size": 2935456,
+  "dur": 3.82,
+  "codec": "pcm_f32le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/381223__ticktockgj__distorted-scraping.wav",
+  "size": 1488132,
+  "dur": 8.44,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/383724__deleted_user_7146007__heavy-footsteps-walking.wav",
+  "size": 4091116,
+  "dur": 21.21,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/387128__nooneisreal__the-fireplace-3.wav",
+  "size": 8246744,
+  "dur": 93.5,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/388950__waveplaysfx__ambient-bass-deep-soft-bassy-hit-alternate.wav",
+  "size": 5438618,
+  "dur": 15.42,
+  "codec": "pcm_f32le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/396012__morganpurkis__rustling-grass-3.wav",
+  "size": 52046,
+  "dur": 0.54,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/398206__tnk__distant-thunder-2-july-23rd-2017.wav",
+  "size": 7713424,
+  "dur": 43.73,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/403978__arundasstp__crows-call-from-distant-woods.wav",
+  "size": 140348,
+  "dur": 17.27,
+  "codec": "adpcm_ima_wav",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/407233__pointparkcinema__electricity-2.wav",
+  "size": 829258,
+  "dur": 5.67,
+  "codec": "pcm_s24le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/416002__nixeno__nixeno-house-ambiance-with-clock-tik-tak (1).mp3",
+  "size": 639967,
+  "dur": 39.99,
+  "codec": "mp3",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/421033__soundslikefoley__desk-cabinet-door-close.wav",
+  "size": 981400,
+  "dur": 3.38,
+  "codec": "pcm_s24le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/423512__someonecool15__light-switch-click-on-and-off.mp3",
+  "size": 104453,
+  "dur": 4.07,
+  "codec": "mp3",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/428844__splushionsindasky__roof-top-distant-traffic.wav",
+  "size": 15984910,
+  "dur": 111.0,
+  "codec": "pcm_s24le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/432562__alessnox__dooropening.flac",
+  "size": 543852,
+  "dur": 7.38,
+  "codec": "flac",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/440869__v23__doorbell-ringing-far1-d15.wav",
+  "size": 9547948,
+  "dur": 16.49,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/442480__bonnyorbit__water-dripping-under-bridge-in-small-town.wav",
+  "size": 9088528,
+  "dur": 31.42,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/443968__richheard__piano-d-swellecho-distortedgated.wav",
+  "size": 3180082,
+  "dur": 12.0,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/450791__kyles__door-slam-distant-roomy-boom.wav",
+  "size": 3174302,
+  "dur": 21.69,
+  "codec": "pcm_s24le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/454364__kyles__wind-medium-brisk-breeze-through-stiff-dry-corn-stalks-or-grass-sharp-whistle.flac",
+  "size": 11691848,
+  "dur": 60.35,
+  "codec": "flac",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/456854__slaking_97__dragon-growl-04-far.wav",
+  "size": 3224858,
+  "dur": 12.19,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/459970__florianreichelt__footsteps-on-hollow-wood.mp3",
+  "size": 1079527,
+  "dur": 26.98,
+  "codec": "mp3",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/464764__breviceps__field-recording-birds-crow-distant-road.wav",
+  "size": 3322988,
+  "dur": 17.31,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/470619__mrrap4food__bathroom-cabinet-opening.wav",
+  "size": 1599886,
+  "dur": 5.55,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/473725__majortonic__20190530_low_noise_rumble.wav",
+  "size": 7512366,
+  "dur": 26.08,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/475005__alexlane__synth-bass-drop-impact.wav",
+  "size": 1621212,
+  "dur": 2.79,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/475040__tyops__percussion-hit.wav",
+  "size": 2872188,
+  "dur": 4.98,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/481964__ahriik__quiet-neighborhood-ambience-light-wind-no-people.wav",
+  "size": 5659890,
+  "dur": 39.04,
+  "codec": "pcm_s24le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/488066__bendrain__ambience_farm_05.wav",
+  "size": 7582090,
+  "dur": 28.6,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/488067__bendrain__ambience_farm_04.wav",
+  "size": 22875084,
+  "dur": 59.53,
+  "codec": "pcm_f32le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/496512__deanobamos__happy-forest-ambience.wav",
+  "size": 1408796,
+  "dur": 7.99,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/502505__rudmer_rotteveel__wood-creak-single-v1.wav",
+  "size": 174064,
+  "dur": 0.99,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/506665__rudmer_rotteveel__wood-creak-single-v10.wav",
+  "size": 210220,
+  "dur": 1.19,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/507465__danjocross__four-quiet-distant-clangs.aiff",
+  "size": 4436524,
+  "dur": 15.39,
+  "codec": "pcm_s24be",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/507469__danjocross__three-low-metal-clangs-with-reverb.aiff",
+  "size": 4448536,
+  "dur": 15.43,
+  "codec": "pcm_s24be",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/511688__jerryberumen__inside_hacienda_house.wav",
+  "size": 17693648,
+  "dur": 61.44,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/520959__andersmmg__night-ambience-2.wav",
+  "size": 1604192,
+  "dur": 8.35,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/523374__nickmaysoundmusic__open_field_winds_summer_ambience.wav",
+  "size": 8032516,
+  "dur": 27.85,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/528506__audio_dread__creepy-creature-horror-2.wav",
+  "size": 5332044,
+  "dur": 27.77,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/529138__waveplaysfx__ambient-loop-deep-ambient-pulses-3-added-drums.wav",
+  "size": 5644878,
+  "dur": 21.33,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/529566__drmrsir__distantrumble.wav",
+  "size": 277268,
+  "dur": 1.57,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/529620__kostas17__massive-structure-bend.wav",
+  "size": 3456900,
+  "dur": 18.0,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/530384__nox_sound__footsteps_boots_gritty_ground_stones_leaves_mono.wav",
+  "size": 1577764,
+  "dur": 10.95,
+  "codec": "pcm_s24le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/535761__postproddog__sketchy-neighborhood-night-crickets-and-electrical-hum-ambience.mp3",
+  "size": 782136,
+  "dur": 24.24,
+  "codec": "mp3",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/536124__babelfishtank__27stream.wav",
+  "size": 7307152,
+  "dur": 27.61,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/540967__univ_lyon3__meyer_thomas_2020_2021_eerieatmosphere.wav",
+  "size": 812454,
+  "dur": 9.21,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/542254__jerryberumen__tall-grass-rustling-2.wav",
+  "size": 19415950,
+  "dur": 33.71,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/548384__nox_sound__footsteps_mountain_boots_mud_mono.wav",
+  "size": 1406570,
+  "dur": 14.64,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/548621__zhr__horror-reversed-piano.mp3",
+  "size": 6833748,
+  "dur": 170.81,
+  "codec": "mp3",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/553075__nox_sound__foley_mechanism_light_buzz_short_loop_mono_dr05.wav",
+  "size": 2878706,
+  "dur": 19.99,
+  "codec": "pcm_s24le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/554110__audio_dread__long-horror-ambiance-drone.wav",
+  "size": 6033364,
+  "dur": 68.4,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/555179__audio_dread__creepy-horror-ambient-drone.wav",
+  "size": 6991604,
+  "dur": 39.63,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/562643__juanpbueno7__instrument-distortion.wav",
+  "size": 2924566,
+  "dur": 11.05,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/567662__badoink__odd-bass-swell.wav",
+  "size": 2652956,
+  "dur": 30.07,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/570376__garuda1982__tractor-drive-past-sound-effect.wav",
+  "size": 8063734,
+  "dur": 10.5,
+  "codec": "pcm_s32le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/583119__sfxafrik__the-door-creak.wav",
+  "size": 22945284,
+  "dur": 77.89,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/584590__klankbeeld__night-farmfields-943pm-210811_0307.wav",
+  "size": 14468942,
+  "dur": 50.24,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/61617__shimsewn__thwushyknack.wav",
+  "size": 10231320,
+  "dur": 58.0,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/617608__cpfcfan10__light-switch-click.wav",
+  "size": 227050,
+  "dur": 2.57,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/62489__moxobna__1103octobernight2.wav",
+  "size": 9355908,
+  "dur": 53.04,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/628917__bernhoftbret__drone-003.mp3",
+  "size": 2888829,
+  "dur": 120.05,
+  "codec": "mp3",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/636777__kevp888__r4_00328-2_exp.wav",
+  "size": 1443140,
+  "dur": 10.02,
+  "codec": "pcm_s24le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/638404__klankbeeld__border-forestfarmfield-734am-nl-eu-220515_0345.wav",
+  "size": 20208160,
+  "dur": 70.17,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/640651__barkenov__heavy-rain-and-gutter.wav",
+  "size": 10519792,
+  "dur": 39.75,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/653294__osvoldon__big-structure-collision-heard-from-inside (1).wav",
+  "size": 1869746,
+  "dur": 6.49,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/666290__ekrcoaster__water-steaming-on-hot-surface-1.ogg",
+  "size": 288383,
+  "dur": 7.0,
+  "codec": "vorbis",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/669729__geoff-bremner-audio__distant-car-pass.wav",
+  "size": 2213852,
+  "dur": 6.27,
+  "codec": "pcm_f32le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/687108__aphom000__mouse-2-button-long-click.wav",
+  "size": 116524,
+  "dur": 1.32,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/704612__lilmati__the-door-creaks-youre-not-alone.wav",
+  "size": 1632230,
+  "dur": 8.5,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/714170__klankbeeld__basement-room-tone-638-220811_0491.wav",
+  "size": 10106414,
+  "dur": 35.09,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/72091__joedinessound__low-frequency-humming-noise.wav",
+  "size": 882044,
+  "dur": 10.0,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/728214__tcurless__knock-on-door.mp3",
+  "size": 325380,
+  "dur": 13.53,
+  "codec": "mp3",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/730965__soundbitersfx__whisper-evil-little-nothings-to-me.wav",
+  "size": 4719050,
+  "dur": 26.75,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/73263__junggle__whooshsoft.wav",
+  "size": 32492,
+  "dur": 0.37,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/740110__fossarts__large-refrigerator-compressor-hum-1.wav",
+  "size": 9100288,
+  "dur": 11.81,
+  "codec": "pcm_f32le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/744080__moulaythami__drone-horror-a.wav",
+  "size": 7101744,
+  "dur": 73.98,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/745231__jamielynchpost__radio-static.wav",
+  "size": 20284252,
+  "dur": 52.82,
+  "codec": "pcm_s32le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/751329__klankbeeld__room-tone-apartment-656-am-240215_0663.ogg",
+  "size": 3947119,
+  "dur": 66.0,
+  "codec": "vorbis",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/751720__klankbeeld__storm-wind-room-tone-414-pm-231102_0633.wav",
+  "size": 25920274,
+  "dur": 90.0,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/754422__zazzsounddesign__dsgnimpt_deep-cinematic-impact-3_zazz.wav",
+  "size": 4555316,
+  "dur": 7.91,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/754424__zazzsounddesign__dsgnimpt_deep-cinematic-impact-5_zazz.wav",
+  "size": 3943166,
+  "dur": 6.85,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/758395__sarahgb55__leaves-rustling.wav",
+  "size": 1786098,
+  "dur": 9.9,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/761011__geoff-bremner-audio__marker-cap-open-3.wav",
+  "size": 56518,
+  "dur": 0.59,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/765491__ismailbulbulia__rustling-bush-leaves.wav",
+  "size": 2769036,
+  "dur": 9.61,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/766645__dianeleroux__couch-creak.wav",
+  "size": 8011386,
+  "dur": 27.81,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/788342__xkeril__clothes-movements-walking-foley.wav",
+  "size": 4732292,
+  "dur": 49.29,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/790019__nox_sound__foley_object_clock_old_tick_sequence_stereo.wav",
+  "size": 9447586,
+  "dur": 16.4,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/796507__kvv_audio__woodfric_wood-creak-01_kvv-audio_free.wav",
+  "size": 8117644,
+  "dur": 14.09,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/799662__lukacafuka__analog-video-hum-2.wav",
+  "size": 2945220,
+  "dur": 10.23,
+  "codec": "pcm_s24le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/7998__schluppipuppie__breath.wav",
+  "size": 5544290,
+  "dur": 62.62,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/803224__designerschoice__ambrurl_birds-faint-room-tone-buzzing-light-breeze-through-trees_nicholas-judy_tdc.wav",
+  "size": 12542138,
+  "dur": 71.09,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/80450__turtlelg__metalcreakingandfalling.wav",
+  "size": 1489532,
+  "dur": 5.17,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/805394__designerschoice__ambroom_room-tone-distant-heavy-rain-or-wind-on-window_nicholas-judy_tdc.wav",
+  "size": 3171112,
+  "dur": 17.97,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/807862__designerschoice__feethmn-mcu_footsteps-on-grass_nicholas-judy_tdc.wav",
+  "size": 1368124,
+  "dur": 7.75,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/810737__mokasza__long-airy-whoosh.mp3",
+  "size": 80711,
+  "dur": 5.04,
+  "codec": "mp3",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/811529__designerschoice__woodbrk-blue-snowball-microphone-cu_branch-snaps-crackles_nicholas-judy_tdc.wav",
+  "size": 2061512,
+  "dur": 11.68,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/813114__qubodup__crow-call.flac",
+  "size": 36765,
+  "dur": 0.84,
+  "codec": "flac",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/813621__securesubset__footsteps-dirt-grass-ground-nature.wav",
+  "size": 542044,
+  "dur": 3.73,
+  "codec": "pcm_s24le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/813622__securesubset__footsteps-stone-rock-concrete-cement.wav",
+  "size": 973118,
+  "dur": 6.71,
+  "codec": "pcm_s24le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/816619__nicotep__ligne-haute-tension-6.wav",
+  "size": 25344044,
+  "dur": 66.0,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/820267__ienba__distant-dogs.wav",
+  "size": 4497072,
+  "dur": 15.57,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/822745__nox_sound__foley_creak_wood_floor_sequence_stereo.wav",
+  "size": 11907034,
+  "dur": 20.67,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/823199__curious_world_on_youtube__rain-on-a-plastic-roof.wav",
+  "size": 6413698,
+  "dur": 22.26,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/825797__artninja__yasomasa_or_akazawa_inspired_bass_kick_explosion_drum_09082025.wav",
+  "size": 4013366,
+  "dur": 22.75,
+  "codec": "pcm_s32le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/826582__newlocknew__dsgnerie_a-far-dark-otherworldly-transitions-2-x4_em.mp3",
+  "size": 3378391,
+  "dur": 84.46,
+  "codec": "mp3",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/826597__harmonicmess__dark-tension-drone.wav",
+  "size": 3686480,
+  "dur": 19.2,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/829081__geoff-bremner-audio__still-outdoor-air-2-loop.wav",
+  "size": 1170904,
+  "dur": 12.2,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/830503__shaunhillyard__walking-upstairs.wav",
+  "size": 4241438,
+  "dur": 11.02,
+  "codec": "pcm_f32le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/837799__bikkit99__sea-creature-roar.wav",
+  "size": 2107326,
+  "dur": 10.97,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/841961__artninja__monster_berserker_reverbrance_roar_sound_01122026.wav",
+  "size": 2526668,
+  "dur": 7.16,
+  "codec": "pcm_s32le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/845551__skyspeira__high-tension-pulsing-drone-suspense-soundscape.wav",
+  "size": 5084844,
+  "dur": 26.48,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/848616__richtone59__wooden-screen-door-opening-and-closing.m4a",
+  "size": 100536,
+  "dur": 11.88,
+  "codec": "aac",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/852315__tommasomotteran__sci-fi-horror-ambience-living-alien-ship-interior-with-organic-pulsing-drone-loop.wav",
+  "size": 21433336,
+  "dur": 81.0,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/853575__bassimat__low-frequency-drone-deep-sub-bass-rumble-slowly-shifting-metallic-resonance.wav",
+  "size": 2446336,
+  "dur": 12.72,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/85433__jasonelrod__branch-snap.aiff",
+  "size": 212088,
+  "dur": 2.2,
+  "codec": "pcm_s16be",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/856174__brktkrgll__subterranean-deep-sub-bass-rumble-drop.mp3",
+  "size": 65245,
+  "dur": 4.05,
+  "codec": "mp3",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/858958__moulaythami__sfx-squeaky-door-opening-and-closing.wav",
+  "size": 5147918,
+  "dur": 35.75,
+  "codec": "pcm_s24le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/863059__bassimat__knuckles-hitting-a-metal-box.wav",
+  "size": 4507636,
+  "dur": 11.74,
+  "codec": "pcm_s32le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/865628__kkenny101__mechanical-drone-texture-seamless-loop.wav",
+  "size": 575420,
+  "dur": 5.99,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/867251__bassimat__deep-rumbling-drone-with-expansive-reverberating-echoes.wav",
+  "size": 16669880,
+  "dur": 63.0,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/867568__bassimat__echoing-wind-chimes-over-a-deep-low-frequency-ambient-drone.wav",
+  "size": 23974048,
+  "dur": 67.95,
+  "codec": "pcm_f32le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/868506__lspec__pickup_item_pop_effect.wav",
+  "size": 3494,
+  "dur": 0.04,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/90335__greysound__freakenfurby_glitch_37.wav",
+  "size": 152082,
+  "dur": 1.72,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/95263__department64__tree_creak_05.wav",
+  "size": 2323000,
+  "dur": 13.17,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/96729__ryding__light-rain.wav",
+  "size": 10536448,
+  "dur": 54.88,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/audio continued/242933__obxjohn__child-laughing-mp3-file.mp3",
+  "size": 214991,
+  "dur": 13.4,
+  "codec": "mp3",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/audio continued/264014__cell31_sound_productions__door_metal_groans_ext.wav",
+  "size": 6196852,
+  "dur": 21.51,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/audio continued/327738__distillerystudio__error_01.wav",
+  "size": 97496,
+  "dur": 0.99,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/audio continued/369294__georgisound__creepy_breathing.wav",
+  "size": 2068556,
+  "dur": 23.45,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/audio continued/415939__aiwha__wooden-chair-4.wav",
+  "size": 249104,
+  "dur": 1.4,
+  "codec": "pcm_s24le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/audio continued/418428__soundslikewillem__neighing-horse.wav",
+  "size": 729504,
+  "dur": 7.59,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/audio continued/456803__breviceps__chicken-clucking.wav",
+  "size": 478560,
+  "dur": 14.95,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/audio continued/481787__crinkem__metallic-groan-long.wav",
+  "size": 290356,
+  "dur": 1.65,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/audio continued/503270__ladyimperatrix__come-back-alive-whisper.mp3",
+  "size": 304819,
+  "dur": 26.51,
+  "codec": "mp3",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/audio continued/512741__exe2be__man-breathing-regularly-then-faster.wav",
+  "size": 1439036,
+  "dur": 16.23,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/audio continued/534337__defaultv__door_interaction1.mp3",
+  "size": 265970,
+  "dur": 33.2,
+  "codec": "mp3",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/audio continued/554735__dynamique__quiet-respiration-woman.wav",
+  "size": 1617452,
+  "dur": 16.85,
+  "codec": "pcm_s16le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/audio continued/570864__tosha73__creaking-boards.wav",
+  "size": 8966764,
+  "dur": 31.13,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/audio continued/612641__newlocknew__heart-beat-2frightthe-increase-and-decrease-in-heart-rate6lrs.wav",
+  "size": 10894308,
+  "dur": 56.74,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/audio continued/614573__lavenderlux__muffled-voices.mp3",
+  "size": 276211,
+  "dur": 31.84,
+  "codec": "mp3",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/audio continued/654148__glen_dorner__plastic_chair_scraping_over_bricks_1.wav",
+  "size": 2304736,
+  "dur": 8.0,
+  "codec": "pcm_s24le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/audio continued/682773__thomasanthony321__walking-footsteps-on-pavement.wav",
+  "size": 2876512,
+  "dur": 19.95,
+  "codec": "pcm_s24le",
+  "ch": 1
+ },
+ {
+  "path": "assets/audio/audio continued/692900__satoristudios3__ewe-shetland-sheep-baa.mp3",
+  "size": 90432,
+  "dur": 3.77,
+  "codec": "mp3",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/audio continued/81034__juskiddink__cello-bass-drone-4.wav",
+  "size": 4469682,
+  "dur": 25.34,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/audio continued/841281__blou27__door-knock-1.wav",
+  "size": 135636,
+  "dur": 0.71,
+  "codec": "pcm_s16le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/audio continued/845339__artninja__air_bending_burst_sounds_02132026.wav",
+  "size": 17098876,
+  "dur": 48.46,
+  "codec": "pcm_s32le",
+  "ch": 2
+ },
+ {
+  "path": "assets/audio/audio continued/867553__calebmills99__cow_moo.wav",
+  "size": 1035308,
+  "dur": 5.39,
+  "codec": "pcm_s16le",
+  "ch": 2
+ }
+]

@@ -1418,7 +1418,7 @@ Phase 30 — Opening Lore Film                     (COMPLETE — see section 56)
 Phase 31 — Environmental Storytelling            (COMPLETE — see section 57)
 Phase 32 — Fake Haven Dream Sequence              (COMPLETE — see section 58)
 Phase 33 — Final Creature / Horror Finale         (COMPLETE — see section 59)
-Phase 34 — Final Audio / Visual Climax
+Phase 34 — Final Audio Integration                (COMPLETE — see section 61)
 Phase 35 — Complete Dimension Cohesion
 Phase 36 — Complete Playable Alpha / Full Audit
 
@@ -2171,7 +2171,103 @@ Their rarity gives them power.
 
 ---
 
-# 61. PHASE 34 — CLIMAX AUDIO / VISUAL INTEGRATION
+# 61. PHASE 34 — FINAL AUDIO INTEGRATION — COMPLETE
+
+PHASE 34 CARRIED THIS OUT. The collected library is audited, indexed and wired through one
+centralized system; the game has recorded footsteps, ambience, doors, animals, a Stalker,
+a Haven and a finale. This section is now a statement about the code, not an intention.
+See `PROGRESS.md` section 0.000000000000 for the full record.
+
+THE THREE LAYERS. This split is PERMANENT and it is what lets Era 2 replace a dimension
+without touching the audio system:
+
+  SoundEngine    the AudioContext, the buses, and every synthesised voice Phases 1-33
+                 built. UNCHANGED by this phase. It is the only thing that talks to the
+                 hardware.
+  AudioLibrary   FILES. Fetching, decoding, caching, voice limits, panning, distance,
+                 looping beds, fades, and failing safely. It knows nothing about
+                 dimensions, blocks, chunks, meshes or the player.
+  AudioDirector  POLICY. Which bed belongs to which place, which surface a footstep is on,
+                 how rarely a distant sound may happen. It reads game state and calls the
+                 library. It never touches an AudioNode.
+
+`tests/audio.js` fails if the director grows the ability to create an AudioNode, or the
+library the ability to read a block id.
+
+WHAT THE TABLES ARE. Adding a sound means adding a ROW, not a playback call:
+
+  AUDIO_ASSETS         the manifest. GENERATED — regenerate with
+                       tests/tools/build_runtime.py, do not hand-edit.
+  AUDIO_SCENES         fourteen scenes over four slots (air / layer / tone / tension).
+  AUDIO_EVENTS         nine sparse one-shot tables, each with a gap in SECONDS.
+  AUDIO_CUES           the interaction vocabulary. No call site holds a Freesound id.
+  AUDIO_STEP_SURFACES  ten ground materials.
+  AUDIO_SURFACE_OF     the ONLY place the audio system knows a block id exists. This and
+                       AudioDirector.surfaceAt() are the two things Era 2 replaces.
+
+RULES THAT NOW HOLD:
+
+- THE SYNTHESISED ENGINE IS THE FALLBACK, NOT AN ALTERNATIVE. Where a recording exists it
+  is tried first and the procedural voice runs when it does not sound. The build is fully
+  audible with `assets/audio/runtime/` deleted, and `tests/audio.js` proves it by 404ing
+  every asset and asserting a footstep still makes a sound. Never remove a synthesised
+  voice because a recording covers it.
+- ORIGINALS ARE NEVER TOUCHED. `assets/audio/` holds 187 source assets and the game never
+  reads one. `assets/audio/runtime/` holds browser-ready copies and is ENTIRELY
+  DISPOSABLE — delete it and re-run `tests/tools/build_runtime.py`.
+- FILENAMES ARE NEVER REWRITTEN. The Freesound id is the first field of every filename and
+  it is the join key between the file, `AUDIO_CREDITS` and `AUDIO_INDEX.md`.
+- AN ASSET WITHOUT AN ATTRIBUTION LINE IS A LICENCE BREACH, not untidiness.
+  `tests/audio.js` fails if any file on disk lacks one. Eighteen assets are NonCommercial
+  or Sampling+; they are legal here and illegal in a paid, monetised or ad-supported
+  release, and AUDIO_INDEX.md's LICENCE QUARANTINE section lists every one. The test fails
+  if that list falls out of date.
+- BEDS ARE CAPPED AT 30 SECONDS, AND IT IS A MEMORY RULE. `decodeAudioData` expands to
+  32-bit float at the context rate, so a 208-second drone is 73MB resident. The loop join
+  is BAKED at decode (the tail mixed back over the head, buffer shortened by the fade) so
+  a bed loops seamlessly with `loop = true` and NO SCHEDULER. Do not add one.
+- THE DIRECTOR SCHEDULES NOTHING. Every countdown in it is a number `dt` is subtracted
+  from, which is why a test can drive four hours of it and why it cannot leak.
+  `tests/audio.js` fails on a `setTimeout` in the director. The library uses exactly two,
+  both for deferred teardown.
+- SILENCE IS A STATE AND IT IS ASSERTED. No outdoor event table fires more often than once
+  per 40 seconds, indoors is once per 70, nothing ambient is placed closer than 12 metres,
+  the loudest bed level is 0.42 against a footstep at 0.5, and 11 of 14 scenes carry NO
+  horror bed at all — including all four ordinary daytime places. A drone that is always
+  there is a room tone, not a drone.
+- A SCENE CHANGE MUST NEVER FIRE AN EVENT. Walking through a door and immediately hearing
+  a creak reads as a reaction to the player, which nothing in these tables may be.
+- THE HAVEN AND THE FINALE ARE MIRRORS AND NEITHER'S TIMING WAS TOUCHED. The Haven's
+  recorded layers ride the SAME three numbers `HAVEN_STAGES` hands the synthesised rig,
+  from the same call, on the same frame: they can never rise. The finale's ride
+  `FINALE_BEATS` and can never fall. Both suites drive the real tables and assert it.
+- NO ROAR IN THE FINALE. There is exactly ONE one-shot in the sequence and it is a massive
+  structure flexing. `tests/audio.js` greps for the word.
+- THE STALKER IS ALWAYS QUIETER THAN THE PLAYER. Its loudest cue is 0.34 against a
+  footstep at 0.5. It stops completely beyond 34 metres and inside the Haven and the
+  finale. `playStalkerScreech` remains Phase 5's ONE loud Stalker event; the recorded path
+  cannot reach it.
+- NO LEGIBLE HUMAN SPEECH IS REACHABLE (STORY.md section 13). The two assets in the
+  library that are sentences are catalogued and deliberately NOT wired.
+- ONE SETTINGS SYSTEM. `ambienceVolume` is the seventh key in the EXISTING Phase 22
+  schema and `ambienceBus` the fourth and last bus, at unity, so the mix at default
+  settings is unchanged. The fourth argument to `applyVolumes` DEFAULTS, so every
+  pre-Phase-34 call site still lands on the shipped mix. The save schema did not change.
+- DIMENSION 1's AUDIO IS DELIBERATELY THIN, per the brief: the current Overworld is
+  scheduled for replacement, so it gets a correct bed set and none of the hand-authored
+  placement the Farmlands got. That is compatibility work, not final sound design.
+
+WHAT IS HONESTLY NOT DONE: nothing was listened to (no playback or content-analysis tool
+was available, so every classification comes from filenames, AUDIO_CREDITS titles and
+ffprobe metadata); no human has played the build; weather and water are loaded but placed
+by no scene, because the game has no weather state and no cheap water-proximity query —
+both are Phase 35 work.
+
+---
+
+# 61.1. PHASE 34's ORIGINAL BRIEF — CLIMAX AUDIO / VISUAL INTEGRATION
+
+Kept because it is still the standard the climax is held to.
 
 Fake Haven and the final scene should feel like one connected experience.
 

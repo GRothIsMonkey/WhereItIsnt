@@ -1,8 +1,8 @@
 # WHERE IT ISN'T — PROJECT STATE
 
 ```
-Current phase              33 — FINAL CREATURE / HORROR FINALE (complete)
-Next phase                 34 — FINAL AUDIO / VISUAL CLIMAX
+Current phase              34 — FINAL AUDIO INTEGRATION (complete)
+Next phase                 35 — COMPLETE DIMENSION COHESION
 Phase 19                   COMPLETE
 Phase 20                   COMPLETE
 Phase 20 journey revision  COMPLETE           (20.1 — see section 0)
@@ -20,6 +20,7 @@ Phase 30                   COMPLETE           (see section 0.00000000)
 Phase 31                   COMPLETE           (see section 0.000000000)
 Phase 32                   COMPLETE           (see section 0.0000000000)
 Phase 33                   COMPLETE           (see section 0.00000000000)
+Phase 34                   COMPLETE           (see section 0.000000000000)
 XP                         REMOVED            (no runtime XP exists; see section 0.0000)
 Hearts / vital bars        REMOVED            (no runtime HUD bar exists; see section 0.00000)
 Tutorial                   REMOVED            (no tutorial exists; see section 0.000000)
@@ -29,7 +30,10 @@ Fake Haven                 178s, SIX STAGES   (nothing differs for 82s; never sa
 Haven mining               REFUSED            (the cabin cannot be taken apart)
 Final creature             185m, 7 BEATS      (32s; a silhouette, never lit, never named)
 Void Sovereign             REMOVED            (the 8m monolith was a boss; section 0.00000000000)
-Save schema                VERSION 5          (4 -> 5 adds progression.noticed)
+Audio library              187 ASSETS         (assets/audio/AUDIO_INDEX.md is the map)
+Audio runtime copies       assets/audio/runtime/  DISPOSABLE (rebuild: tests/tools/build_runtime.py)
+Settings                   SEVEN              (34 added ambienceVolume)
+Save schema                VERSION 5          (4 -> 5 adds progression.noticed; 34 did NOT change it)
 Authoritative build        game.html          (there is no other game file)
 Canonical story            STORY.md           (read before writing ANY player text)
 Validation suite           tests/             (see tests/README.md)
@@ -39,11 +43,350 @@ Phases 1–19 are as their sections in `ROADMAP.md` describe them. This file rec
 state of Phase 20 specifically: what was built, what was measured, what was found and
 fixed along the way, and what is honestly not verified.
 
-**Sections 0.00000000000–0.5 describe the phases that followed (33, 32, 31, 30, 29, 28, 27, 26, 25, 23, 22, 21, 20.2). Sections 1–5
+**Sections 0.000000000000–0.5 describe the phases that followed (34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 23, 22, 21, 20.2). Sections 1–5
 describe Phase 20 as it was first delivered, and Section 0 describes the 20.1 journey
 revision that followed a human playtest and supersedes them wherever they disagree** — principally the beat table, the landmark set, the distances, and the
 performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
 instruction and the compass and changed no world generation at all.
+
+---
+
+## 0.000000000000. PHASE 34 — FINAL AUDIO INTEGRATION
+
+Nine hundred and eighty-two megabytes of collected sound, and the game played every note
+of its soundtrack on an oscillator.
+
+---
+
+# THE DECISION THIS PHASE TURNS ON
+
+**The library is not the deliverable. The place a sound goes when someone adds one is.**
+
+Two hundred files had been collected, and the obvious phase — wire them up — would have
+produced two hundred playback calls scattered through thirty-eight thousand lines, welded
+to the voxel Overworld that the project has already decided to delete. Phases 17–20 did
+exactly that with environmental storytelling and Phase 31 had to unpick it.
+
+So the phase built a three-layer system and spent the assets demonstrating it:
+
+```
+SoundEngine     the AudioContext, the buses, the synthesised voices.   UNCHANGED.
+AudioLibrary    files: fetch, decode, cache, voice limits, panning,
+                distance, looping beds, fades, failing safely.
+                Knows nothing about dimensions, blocks or the player.
+AudioDirector   policy: which bed belongs to which place, which surface
+                a footstep is on, how rarely a distant sound may happen.
+                Reads game state, calls the library, never touches a node.
+```
+
+Adding a sound is now a row in a table. `AUDIO_SCENES` says where a bed belongs,
+`AUDIO_EVENTS` how rarely a distant thing happens, `AUDIO_CUES` what an interaction
+sounds like, `AUDIO_STEP_SURFACES` what the ground sounds like. **No call site anywhere in
+the game holds a Freesound id.** `tests/audio.js` fails if the director grows the ability
+to create an AudioNode, or the library the ability to read a block id.
+
+**THE SYNTHESISED ENGINE IS NOT REPLACED AND NOT DELETED.** Every procedural voice Phases
+1–33 built still exists and still runs. Where a recording exists it is tried first and the
+synthesised voice is the FALLBACK, not an alternative — which is why the build is fully
+audible with `assets/audio/runtime/` deleted, and why the first few footsteps of a session
+still sound while the slices are still in flight. The offline suite proves this by 404ing
+every asset and asserting a footstep still makes a sound.
+
+---
+
+# THE AUDIT
+
+```
+Files on disk before          200
+Exact duplicate copies         13     byte-identical, MD5-verified, removed
+Unique Freesound ids          187     one file per id, no id appears twice
+Wired into the manifest       183
+Catalogued, not wired           4     see below
+```
+
+The thirteen duplicates were all the same shape: a root asset re-uploaded into
+`audio continued/`. Every one was verified identical by MD5 before deletion and the root
+copy was kept. Four filenames carry a ` (1)` suffix (`19263`, `355738`, `416002`,
+`653294`) — those are the ONLY copies of those sounds, because the originals were deleted
+and re-added during collection, so the suffix is not evidence of a duplicate. They were
+left alone: the Freesound id, which is the part that matters, is intact.
+
+**AUDIO_CREDITS gained exactly one line and lost none.** `867251` was on disk with no
+attribution at all, which is a licence problem rather than a tidiness one; the line was
+written in the file's existing format after confirming the title, author and CC0 licence
+on Freesound. Two other discrepancies were found and DELIBERATELY NOT corrected, because
+neither is a problem and the brief asks for the file to be left alone: fourteen credited
+ids were never downloaded (crediting a sound you did not ship is harmless), and three
+lines are repeated verbatim. Both are recorded in AUDIO_INDEX.md so nobody re-derives them.
+
+`tests/audio.js` now fails if any asset on disk lacks an attribution line. That is the
+strictest assertion in the file, because an unattributed asset is not untidy — it is a
+licence breach the moment the build is published.
+
+# FORMATS
+
+| format | count | verdict |
+|---|---|---|
+| AIFF | 5 | **Cannot be used.** Chrome and Firefox do not decode it. Conversion mandatory. |
+| FLAC | 5 | Converted defensively — Safari's support is inconsistent. |
+| M4A/AAC | 1 | Converted defensively, same reason. |
+| WAV / MP3 / OGG | 176 | Decodable everywhere. |
+
+**No original was modified or deleted.** `assets/audio/runtime/` holds browser-ready
+copies built by `tests/tools/build_runtime.py`, and the whole directory is disposable —
+delete it and re-run the script. The browser suite asserts the game only ever fetches
+`runtime/`: the 926MB of originals are never served.
+
+Three encodes, each one a decision:
+
+- **footfalls** (`runtime/steps/<id>_NN.wav`, 105 slices across 14 sets). The footstep
+  recordings are five-to-ten-step SEQUENCES, which is unusable as a one-shot. They are
+  onset-sliced into single footfalls. The first pass aligned to a 10ms RMS envelope and
+  put the transient a median 21ms in with a p90 of 148ms — on soft surfaces the envelope
+  latched onto the shoe-leather rustle before the heel. Refining forward onto the actual
+  peak brought it to a median of 14ms with 102 of 105 inside 60ms.
+- **cues under 8 seconds** (`runtime/<id>.wav`, 16-bit 44.1k). WAV rather than MP3 because
+  every MP3 decoder prepends its own silence and a cue that answers a key press cannot
+  start late.
+- **beds and long cues** (`runtime/<id>.mp3`, VBR ~112k). MP3 rather than Ogg because
+  Safari could not decode Vorbis until 17.4.
+
+**BEDS ARE CUT TO 30 SECONDS AND THAT IS A MEMORY DECISION, NOT A BANDWIDTH ONE.**
+`decodeAudioData` expands to 32-bit float at the context rate whatever the file was: the
+208-second drone would have been 73MB of RAM decoded, and three of those live at once
+would be the entire budget. Thirty seconds is 12MB. The seam that cut leaves is not
+hidden — see below.
+
+Total: 274 files, 55.6MB, none of it loaded at startup.
+
+---
+
+# THE LOOP JOIN
+
+Two things make an ambience bed click at its loop point: the recording's own seam (a field
+recording does not end where it began) and, for an MP3, the encoder's padding. The usual
+fixes are a scheduler that overlaps two sources every N seconds, or `loopStart`/`loopEnd`
+guesswork. Both are wrong here — a scheduler is a timer, and this codebase has spent four
+phases removing timers because they leak and cannot be driven by a test.
+
+So the join is **constructed once, at decode**: the last 1.2 seconds are mixed back over
+the first 1.2 seconds and the buffer is shortened by exactly that much. The result loops
+on itself perfectly with `loop = true` and **no scheduling of any kind**. Cost is one
+buffer allocation per bed, paid once, replacing the decoded one. A bed shorter than three
+fades is left alone — those are the authored seamless loops (553075, 865628, 829081) and
+cutting them would do harm.
+
+The browser suite verifies it against a real decoder: `bed.farm.day` comes back at 28.8s
+from a 30s file, which is the fade length exactly.
+
+---
+
+# WHAT NOW MAKES A SOUND
+
+| | |
+|---|---|
+| **Footsteps** | Ten surfaces classified from the real block under the player — grass, soil, mud, gravel, leaves, stone, pavement, wood, hollow, carpet. Three axes of variation at once (a different slice every time, ±6% rate, ±12% gain × speed) because one is not enough to stop the ear hearing a loop. |
+| **Overworld** | A day bed of birds and breeze, a night bed of open country, still air under both. Distant crows, branches, tree creaks: one event per 42–120s. |
+| **Farmlands** | Farm ambience by day, night fields after dark, wind through dry corn stalks as the crop layer of the journey. Crows, a tractor two fields over, distant metal: one event per 46–125s. |
+| **Suburbia** | A quiet neighbourhood by day; crickets and an electrical hum by night; distant traffic under both, and the CRT layer. A car, a dog, a doorbell, a door slamming somewhere else: one per 40–150s. |
+| **Indoors** | Three room tones (house, quiet, basement) chosen from the world's own `hasSkyAbove`. The sparsest table in the game: a house creaks at most once in seventy seconds, because a structure that creaks every twenty is a haunted house and section 25 is explicit that not every farm is haunted. |
+| **Blood Night** | The night beds drop by a third and a low rumble comes up under them. Nothing is added; the world gets quieter and heavier. |
+| **The Rift** | A place, not an event: it comes up when the player walks toward a powered Anchor and goes when they walk away, on the bed crossfade like every other scene. Static, an organic pulse, a distorted drone, and glitches every 15–38s. |
+| **The Stalker** | Incidental, never announced. Footfalls and things pushed through cover beyond eighteen metres; cloth inside that; rarely a breath inside nine. Stops completely at 34m and in the Haven. **The loudest Stalker cue is 0.34 against the player's own footstep at 0.5 — it is always the quieter of the two.** |
+| **The Behemoth** | ONE distant call at spawn, placed at the real spawn bearing and the real spawn distance. Never again from that path. |
+| **Animals** | A real cow, sheep, chicken and horse, at the same bearing and distance and the same restraint Phase 18 authored. |
+| **Doors and objects** | Two takes per direction picked at random, because a corridor of identical doors is a corridor of one door. Drawers, cabinets, chairs, switches, gates, floorboards. |
+| **The Haven** | A real room tone, a real fire, a real outside, and a clock riding the room. |
+| **The finale** | Three low layers that only ever thicken, and one structural event. |
+| **Phase 31's occupancy footfall** | A single recorded floorboard (261371) — precisely the sound Phase 31 described and could not have. |
+
+# THE HAVEN AND THE FINALE ARE MIRRORS, AND THE TESTS SAY SO
+
+Neither sequence's timing was touched. Both were handed the numbers they already compute.
+
+The Haven's recorded layers ride the SAME three stage numbers the synthesised rig gets,
+from the same call, on the same frame — so they cannot drift and cannot rise while it
+falls. Both suites drive the REAL `HAVEN_STAGES` and assert **no recorded layer ever
+rises**, that the first stage is a warm occupied room, and that the last leaves every
+layer at zero.
+
+The finale's table is the exact mirror: driven through the REAL `FINALE_BEATS`, **every
+layer only ever rises**, and the `silence` beat is genuinely silent. There is exactly ONE
+one-shot in the whole sequence and it is `sfx.finale.bend` — a massive structure flexing.
+**No roar is reachable from the finale**, and the test greps for the word.
+
+---
+
+# THE SPARSENESS IS A NUMBER
+
+"Silence is important to Where It Isn't" is the brief's last quality rule, so it is
+asserted rather than asserted-to:
+
+- the busiest table in the game is the Rift at one event per 15s;
+- no OUTDOOR table fires more often than one per 40s;
+- indoors is one per 70s;
+- nothing ambient is ever placed closer than 12 metres — every one is elsewhere;
+- the loudest bed level in the whole table is 0.42, against a footstep at 0.5, so ambience
+  never competes with an interaction;
+- **11 of 14 scenes carry no horror bed at all**, including all four ordinary daytime
+  places. A drone that is always there is not a drone, it is a room tone.
+
+Four simulated hours of standing in a Farmland field produce 170 ambient events — one
+every 85 seconds. Two hundred scene changes produce zero events in the ten seconds after
+each, because walking through a door and immediately hearing a creak reads as a reaction
+to the player, which nothing in these tables is allowed to be.
+
+---
+
+# THE SEVENTH SETTING
+
+`ambienceVolume`, and the existing Phase 22 system was extended rather than duplicated —
+one `GameSettings`, one storage key, one `applyVolumes`, one AudioContext in the whole
+build. Ambience is neither music nor an effect: a player who silences music wants to keep
+the wind, and a player who lowers effects wants the footsteps quieter and not the field.
+`ambienceBus` is the fourth and last bus, at unity, so **the mix at default settings is
+unchanged**. The fourth argument to `applyVolumes` defaults, so every pre-Phase-34 call
+site — and every browser test that is one — still lands on the shipped mix.
+
+The save schema did NOT change. A save written before this phase has no `ambienceVolume`
+in its settings block and loads at the default.
+
+---
+
+# DEFECTS FOUND AND FIXED
+
+**`deep` MEANT "LOW", NOT "UNDERGROUND".** The indoor scene picker read
+`pos.y < 26`, which is above `SEA_LEVEL` (22). The browser suite walked into an ordinary
+ground-floor room at y 24 and got the basement room tone. Now `SEA_LEVEL - 3`, which is
+unambiguously a cave or a cellar and cannot be a living room. **This is the defect that
+justifies the browser suite existing** — no offline test would have caught it, because
+offline there is no real terrain to stand on.
+
+**THE OCCUPANCY FOOTFALL WOULD HAVE REPEATED FOREVER.** The first attempt at wiring the
+recorded floorboard into Phase 31's two-footfall effect set `_occStep = 1` on the cue
+path, restarting the countdown instead of ending it — the second footfall would have
+fired every 1 second for the life of the session. Both footfalls now go through one
+`_occFootfall` helper, which is also the reason they sound alike.
+
+**THE EVENT COUNTER MEASURED THE MIXER, NOT THE SCHEDULE.** `stats.events` only counted
+events that got a voice, so a four-hour drive with the voice ceiling saturated reported 7
+events instead of 170 and made the sparseness figure a function of an unrelated limit. It
+now counts what the schedule decided; whether a voice was available is the library's own
+`dropped`.
+
+**A BED REPLACED WHILE STILL LOADING CAME BACK.** `setBed` claims its slot immediately and
+starts the source when the decode lands; without a stamp, a slot that changed its mind
+mid-fetch got overwritten by the bed the player had already left. Each claim now carries a
+monotonic stamp checked on arrival. Both suites drive the race directly.
+
+**A VOICE COULD BE RELEASED TWICE.** `onended` and the stuck-voice deadline are not
+mutually exclusive — a voice that ends normally fires the callback and the deadline still
+arrives afterwards — so the counters were decremented twice for one voice. Clamped at
+zero it never went negative, which is exactly why it would never have been noticed: the
+ceiling simply drifted upward under load and the protection this whole mechanism exists
+for quietly stopped working. Release is now latched.
+
+**SWAPPING A BED TORE THE OLD ONE DOWN TWICE**, once immediately and once when the new
+buffer landed, and a level written while a bed was still loading was discarded when it
+started. Both were found reading the diff back rather than by a test; the teardown now
+happens in exactly one place and the start reads the slot's current level.
+
+**VOICES WOULD HAVE STUCK IN ANY ENGINE THAT DOES NOT FIRE `onended`.** The harness stub
+does not, and neither do some real engines reliably. Without the deadline the counter
+climbs to the ceiling and every later cue is refused for the rest of the session.
+
+---
+
+# VALIDATION
+
+```
+tests/audio.js              117 checks   the manifest against the files on disk, a real
+                                         AudioLibrary against a recording AudioContext and a
+                                         controllable fetch, the director frame by frame
+                                         through every reachable scene and four simulated
+                                         hours of one, the real Haven and finale tables
+tests/browser-audio.js       42 checks   a real Chromium, a real AudioContext at 44.1kHz, a
+                                         real HTTP server, the real files and a real decoder
+```
+
+Every browser suite in the repository was re-run and passes unchanged: `browser-menu` 70,
+`browser-opening` 72, `browser-haven` 73, `browser-finale` 72, `browser-environment` 41,
+`browser-onboarding` 48, `browser-save` 102.
+
+Every previously-passing suite still passes, unchanged except where this phase genuinely
+changed the thing being asserted:
+
+```
+determinism 8   core-disk 16   journey 37   red-light 10   runtime 21   regression 13
+items 41   compass 71   chain 40   save 157   story 37   objectives 78   progression 77
+hud 100   onboarding 125   menu 126   opening 107   haven 146   finale 201
+settings 112   environment 112   performance 8
+```
+
+`tests/settings.js` was edited in two places and both are the assertion moving with the
+build rather than being weakened: the settings ceiling went from six to seven, and the
+"only N buses connect straight to master" count went from three to four. Its point is
+unchanged — nothing that makes a sound may connect to master directly, because master is
+not under any slider — and four new checks were ADDED for the fourth channel.
+
+**WHAT THE BROWSER RUN PROVED THAT NOTHING ELSE COULD:** every encode the build ships was
+fetched over HTTP and decoded by a real decoder, including all five assets whose originals
+were AIFF, all five that were FLAC and the one that was AAC. The bed came back
+crossfade-joined. The beds swapped by themselves across four scene changes driven through
+the REAL frame path (night falling, the escalation, stepping under a roof, walking back
+out into the morning). The settings panel moved a live gain node. The Haven and finale ran
+through their own real entry points. Not one page error was raised, and the library
+recorded exactly one failed load in the session — the 404 the test asked for on purpose.
+
+---
+
+# KNOWN LIMITATIONS — HONEST LIST
+
+**NOTHING WAS LISTENED TO.** No playback device and no content-analysis tool capable of
+judging a recording was available. Every classification in AUDIO_INDEX.md is derived from
+the filename, the AUDIO_CREDITS title, and `ffprobe` duration and channel metadata.
+Whether `488067` is a good Farmland bed, whether the corn-stalk wind reads as a wheat
+field, whether the Stalker's cloth is unsettling or silly, and whether the finale feels
+enormous are judgements for a person with speakers. **Two assets are labelled in the index
+as content-unknown** (`118083`, `636777`) because nothing in their metadata identifies
+them.
+
+**NO HUMAN HAS PLAYED THIS BUILD.** The full Era 1 playthrough remains deferred to Phase
+36, as Phases 31–33 also deferred it. The mix — whether the beds sit under the interaction
+cues at real listening levels, whether the event frequency is right, whether the ambience
+slider lands where a player expects — is the first thing that needs a person.
+
+**FOUR ASSETS ARE CATALOGUED AND NOT WIRED**, each with a row in the index saying why:
+`503270` (a whispered English sentence — STORY.md section 13 forbids legible speech),
+`242933` (a laughing child — too explicit a horror signal for this game), `118083`
+(Sampling+ and unidentifiable), `636777` (unidentifiable). Seventy-one further manifest
+entries are wired to a key but named by no table yet — weather, water, tension beds,
+impacts and swells held in reserve for Phase 35 and the Dimension 1 replacement.
+
+**EIGHTEEN ASSETS ARE NONCOMMERCIAL OR SAMPLING+** and are listed in AUDIO_INDEX.md's
+LICENCE QUARANTINE section, which `tests/audio.js` verifies is complete. They are legal in
+this build and illegal in a paid, monetised or ad-supported release. Four are load-bearing:
+`418428` is the only horse in the library, `816619` is the power-line hum, `16950` is one
+of two open-wind beds, and `612641` is the heartbeat bed (which nothing in Era 1 plays).
+The horse falls back to Phase 18's synthesised call if removed; the others fall back to
+silence in one layer.
+
+**WEATHER AND WATER ARE LOADED BUT NOT PLACED.** Rain, thunder, storm-room-tone and the
+two stream beds are in the manifest and reach no scene, because the game has no weather
+state to drive them from and the Farmland water system has no proximity query the audio
+layer could use without adding a per-frame world scan. Both are Phase 35 work and are
+called out here rather than half-wired.
+
+**DIMENSION 1's AUDIO IS DELIBERATELY THIN.** Per the phase brief, the current Overworld
+is scheduled for replacement, so it gets a correct, atmospheric bed set and none of the
+hand-authored placement the Farmlands got. That is compatibility work, not final sound
+design.
+
+**THE MP3 ENCODER'S LEADING SILENCE IS REAL AND IS ROUTED AROUND, NOT ELIMINATED.** Cues
+under eight seconds are WAV for exactly this reason. A cue OVER eight seconds is an MP3
+and does start a few milliseconds late; every one of them is an atmospheric or distant
+sound where that is inaudible, but if a future phase needs a long, tight, transient cue it
+must not simply add it to the MP3 branch.
 
 ---
 

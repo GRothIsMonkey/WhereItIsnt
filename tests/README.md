@@ -68,6 +68,8 @@ node haven.js                      # Phase 32 — the Haven stages, cabin, anoma
 node browser-haven.js              # Phase 32 — the sequence in a real Chromium
 node finale.js                     # Phase 33 — the beats, the creature, the scale, the cut
 node browser-finale.js             # Phase 33 — the whole ending in a real Chromium
+node audio.js                      # Phase 34 — the library, the manifest, the scenes, the mix
+node browser-audio.js              # Phase 34 — real files through a real decoder, see below
 ```
 
 **Run the browser suites ONE AT A TIME.** They wait on rendered state, and two Chromium
@@ -117,6 +119,8 @@ Both are gitignored: they are reproducible from git and each is over a megabyte.
 |---|---|
 | `determinism.js` | two independently booted worlds, and one world generating the same chunks in reverse order, produce byte-identical chunk data across the journey; a disposed chunk regenerates identically; the resolved journey sites and the Rift Core chest key agree across boots |
 | `core-disk.js` | the Level 2 Rift Core Disk is **reachable on foot** — a body with the player's real dimensions is walked from the field outside the property, through the house, down the cellar stair, along the corridor and into the room at the end, and back out again |
+| `audio.js` | Phase 34. Two halves. The **library on disk**: 187 assets and 187 distinct Freesound ids with no duplicate copy, every asset carrying an attribution line in `AUDIO_CREDITS` (an unattributed file is a licence breach, not untidiness — this is the strictest assertion in the file), every asset carrying a row in `AUDIO_INDEX.md`, the index not duplicating the credits, and every NonCommercial/Sampling+ asset listed in the index's quarantine section. Then the **system**, driven for real: every manifest entry resolving to a file that exists and no bed longer than the 30s memory ceiling; every scene, event, cue, surface and preload key resolving to a real asset; sparseness asserted as numbers (no outdoor table faster than one event per 40s, indoors 70s, nothing placed closer than 12m, no bed louder than a footstep, 11 of 14 scenes with no horror bed at all); a real `AudioLibrary` against a recording AudioContext and a controllable fetch — a 404 fetched once and latched through fifty plays, a file that will not decode latched identically, a network error resolving rather than rejecting, and **with every asset 404ing a footstep still sounds**, because the synthesised voice is the fallback; the crossfade loop join measured on a real buffer; two hundred immediate plays of one sound producing three voices; forty sounds producing twenty; a bed named thirty times starting once; a bed replaced mid-load not coming back; all sixteen game states mapping to the scene they should and every scene being reachable; four simulated hours of one field producing 170 events and two hundred scene changes producing none in the ten seconds after each; ten ground materials classifying and an unknown one falling through; the REAL Phase 32 stage table proving no recorded layer ever rises and the REAL Phase 33 beat table proving none ever falls; one one-shot in the finale and no roar reachable from it; the teardown; and the architecture — the director unable to touch an AudioContext, the library unable to read a block id, exactly one place in the build that knows a block id exists, and no scheduler in either |
+| `browser-audio.js` | Phase 34 in a real Chromium with a real AudioContext at 44.1kHz, a real HTTP server and a real decoder: the menu fetching zero audio files and no library existing until the player clicks; all five buses in the live graph at their shipped values; fourteen probe assets fetched and decoded, **including every one whose original was AIFF, FLAC or AAC**, so the conversion is validated rather than assumed; a bed coming back crossfade-joined at 28.8s from a 30s file; a real 404 against a real server latched after one request; four scene changes driven through the REAL frame path (night falling, the escalation, stepping under a roof, walking back out into the morning) each swapping the beds by itself and never accumulating; the AMBIENCE slider silencing its bus and leaving music and effects alone, and the settings panel's own input moving a live gain node; twelve footfalls on two surfaces sounding through the real graph and the ground under the player classifying from the real generated world; the real `startHavenAmbience`/`setHavenAmbienceLevels`/`stopHavenAmbience` and the real `startFinaleAudio`/`setFinaleBeat`/`stopFinaleAudio`; the teardown observed and the loop's rebuild after it; and the whole run raising no page error and exactly one failed load — the one the test asked for. **It found the defect that no offline test could**: `deep` was written as an absolute `y < 26`, which is above sea level, so an ordinary ground-floor room got the basement room tone |
 | `finale.js` | Phase 33. The beat table tiles all 32s with no gap and every beat's duration sits inside the brief's own window; the creature is BUILT and MEASURED — 150m tall, 10.7:1 slender, arms ending below the knee, a head 4.5% of the body, every material unlit and exactly one of them pale; no RingGeometry, TetrahedronGeometry, PointLight or emissive anywhere in it; the landmark ladder marches outward and the creature subtends more of the screen than any of it despite being the furthest thing in the shot; the fog curve is checked against `exp(-(density*d)^2)` so the creature is 0.3% visible at the silence beat and never more than 77%; the camera drift is driven and a shoved yaw is proved not to snap; gameplay keys are gated through a terminal cinematic; the audio rig is idempotent, starts three sources, stops all three by name and never gets quieter; the sequence is begun from one call site downstream of the shift, spawns nothing hostile, writes no text, touches no save, tears down before handing to the credits, and costs 0.00165 ms/frame |
 | `browser-finale.js` | Phase 33 in a real Chromium with a real WebGL context: a real New Game, the real Haven run out, the real handoff, the renderer measured clean at the boundary, the creature measured at 145m in world units with zero lit materials, all seven beats walked live, the fog measured opening and the eye measured lifting, the arm and head measured moving and staying moved, leaning on the keyboard proved to move nothing and open nothing, the hard cut, the credits exactly once, the save byte-identical, and a New Game followed by a second full ending leaving no duplicate mesh, audio rig or scene object |
 | `haven.js` | Phase 32. The stage table tiles all 178s with no gap and resolves identically for the same second; the comfort is measured (nothing changes for 82s) and every stage is a subtraction — no ambience layer or music state may ever rise; the dissolve is a monotonic ramp reaching exactly 1; the real cabin is read out of real chunk data and found closed, floored, roofed, furnished and lit; the one committed change is driven from four camera positions and refused from three of them; the armchair callback is present with its prerequisite and absent without it, and is literally the same furniture id the Farmlands stamps; the cabin refuses mining and placement while the bed and chest still work; the finale entity is spawned from one call site downstream of the shift; the ambience rig is idempotent and stops all five of its sources; the save is refused and a forged Haven save never loads; and no string the sequence can show is longer than sixty characters |
@@ -184,6 +188,26 @@ and 600 KB.
 Headless Chromium renders through SwiftShader, so this run proves that the game **boots,
 simulates and restores** in a browser. It does not prove anything about GPU performance
 and does not claim to.
+
+## About the audio (Phase 34)
+
+The game plays files from `assets/audio/runtime/`, which is **built, not authored**. It
+holds browser-ready copies of the collected originals and is entirely disposable:
+
+```
+python3 tests/tools/build_runtime.py          # rebuilds every runtime copy and footstep slice
+python3 tests/tools/gen_audio_index.py        # regenerates assets/audio/AUDIO_INDEX.md
+```
+
+Both need `ffmpeg` on the path. `tests/tools/audio_inventory.py` is the single source of
+truth for what each asset is and what it is for — a new sound is a row there, then a
+rebuild, then a row in `AUDIO_SCENES`/`AUDIO_EVENTS`/`AUDIO_CUES` in `game.html`.
+**Nothing in these tools ever writes to an original**, and `assets/audio/` is never read
+by the game.
+
+Headless Chromium renders audio to a null device, so `browser-audio.js` proves the files
+**fetch, decode and reach a live graph**. Nothing in this repository has been listened to
+and no test claims otherwise.
 
 ## About the renders
 

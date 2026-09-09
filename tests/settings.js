@@ -55,15 +55,22 @@ function memStore(initial) {
 const throwingStore = { getItem() { throw new Error('blocked'); }, setItem() { throw new Error('blocked'); } };
 
 // =====================================================================================
-// 1. THE SIX SETTINGS, AND THEIR DEFAULTS
+// 1. THE SEVEN SETTINGS, AND THEIR DEFAULTS
 // =====================================================================================
 {
-  const want = ['masterVolume', 'musicVolume', 'sfxVolume', 'mouseSensitivity',
-                'graphicsQuality', 'fullscreen'];
+  /* PHASE 34 ADDED THE SEVENTH, and the ceiling moved with it rather than being removed:
+     `ambienceVolume`. Phase 22 shipped six because there was nothing on an ambience bus
+     to control; the sample library put every recorded bed, room tone and distant event
+     there, and none of the other three sliders is the right one for it — a player who
+     silences music should keep the wind, and a player who lowers effects should not lose
+     the field with the footsteps. Seven is still a focused menu; the assertion below is
+     the thing that stops it becoming twelve. */
+  const want = ['masterVolume', 'musicVolume', 'sfxVolume', 'ambienceVolume',
+                'mouseSensitivity', 'graphicsQuality', 'fullscreen'];
   const have = Object.keys(SCHEMA);
-  chk(want.every(k => have.includes(k)), `all six required settings exist: ${have.join(', ')}`);
+  chk(want.every(k => have.includes(k)), `all seven required settings exist: ${have.join(', ')}`);
   chk(have.length === want.length,
-      `and no more than six — the menu stays focused (${have.length} settings)`);
+      `and no more than seven — the menu stays focused (${have.length} settings)`);
 }
 {
   const s = new GameSettings(memStore());
@@ -257,6 +264,7 @@ const throwingStore = { getItem() { throw new Error('blocked'); }, setItem() { t
   eng.musicBus = ctx.createGain(); eng.musicBus.gain.value = 0.82;
   eng.sfxBus = ctx.createGain(); eng.sfxBus.gain.value = 1.35;
   eng.sfxUnityBus = ctx.createGain(); eng.sfxUnityBus.gain.value = 1.0;
+  eng.ambienceBus = ctx.createGain(); eng.ambienceBus.gain.value = 1.0;   // PHASE 34
 
   chk(eng.applyVolumes(1, 1, 1) === true, 'with a context, applyVolumes reports that it applied');
   chk(eng.userGain._target === 1 && Math.abs(eng.musicBus._target - 0.82) < 1e-12 &&
@@ -274,6 +282,16 @@ const throwingStore = { getItem() { throw new Error('blocked'); }, setItem() { t
   chk(eng.sfxBus._target === 0 && eng.sfxUnityBus._target === 0 &&
       Math.abs(eng.musicBus._target - 0.82) < 1e-12,
       'SFX at zero silences BOTH SFX buses and does not touch music');
+  /* PHASE 34 — the fourth channel is genuinely independent of the other three, and it
+     DEFAULTS: a caller written before this phase (there are several, and every browser
+     test is one) still lands the ambience bus on its shipped unity gain. */
+  eng.applyVolumes(1, 1, 1, 0);
+  chk(eng.ambienceBus._target === 0 && Math.abs(eng.musicBus._target - 0.82) < 1e-12 &&
+      Math.abs(eng.sfxBus._target - 1.35) < 1e-12,
+      'ambience at zero silences the ambience bus and touches neither music nor SFX');
+  eng.applyVolumes(1, 1, 1);
+  chk(eng.ambienceBus._target === 1,
+      'and a three-argument call — every pre-Phase-34 call site — leaves ambience at unity');
 
   const before = ctx.nodes.length;
   for (let i = 0; i < 200; i++) eng.applyVolumes(i / 200, 1, 1);
@@ -286,7 +304,7 @@ const throwingStore = { getItem() { throw new Error('blocked'); }, setItem() { t
       /ramp\(this\.userGain, master\)/.test(SRC),
       'master volume drives a separate userGain node, so it cannot undo the climax duck ' +
       'that latches master.gain to zero');
-  const applyFn = SRC.slice(SRC.indexOf('  applyVolumes(master, music, sfx) {'),
+  const applyFn = SRC.slice(SRC.indexOf('  applyVolumes(master, music, sfx, ambience) {'),
                             SRC.indexOf('  setMusicVolume(v) {'));
   chk(!/createGain|new \(/.test(applyFn), 'and applyVolumes creates nothing');
 }
@@ -294,9 +312,13 @@ const throwingStore = { getItem() { throw new Error('blocked'); }, setItem() { t
   // Every SFX cue reaches an SFX bus; nothing gameplay-audible is left on master alone.
   const engStart = SRC.slice(SRC.indexOf('  start() {'), SRC.indexOf('  applyVolumes('));
   const stray = (SRC.match(/connect\(this\.master\)/g) || []).length;
-  chk(stray === 3,
-      `only the three buses connect straight to master (${stray} sites); every gameplay ` +
-      `cue now goes through sfxBus or sfxUnityBus and answers to the SFX slider`);
+  /* PHASE 34: FOUR, not three. `ambienceBus` is the fourth and last bus — the recorded
+     environment — and it connects to master exactly as the other three do. The point of
+     this assertion is unchanged: nothing that makes a sound may connect to master
+     DIRECTLY, because master is not under any slider. */
+  chk(stray === 4,
+      `only the four buses connect straight to master (${stray} sites); every gameplay ` +
+      `cue goes through sfxBus, sfxUnityBus, musicBus or ambienceBus and answers to a slider`);
 }
 
 // =====================================================================================
