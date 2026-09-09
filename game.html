@@ -1228,6 +1228,10 @@
       <input class="settings-slider" id="setSfx" type="range" min="0" max="100" step="1">
     </div>
     <div class="settings-group">
+      <div class="settings-row"><span class="settings-label">AMBIENCE</span><span class="settings-value" id="setAmbVal">100%</span></div>
+      <input class="settings-slider" id="setAmb" type="range" min="0" max="100" step="1">
+    </div>
+    <div class="settings-group">
       <div class="settings-row"><span class="settings-label">MOUSE SENSITIVITY</span><span class="settings-value" id="setSensVal">1.00&times;</span></div>
       <input class="settings-slider" id="setSens" type="range" min="25" max="300" step="5">
     </div>
@@ -1882,6 +1886,15 @@ const SETTINGS_SCHEMA = {
   masterVolume:     { kind: 'num', def: 1.0, min: 0, max: 1 },
   musicVolume:      { kind: 'num', def: 1.0, min: 0, max: 1 },
   sfxVolume:        { kind: 'num', def: 1.0, min: 0, max: 1 },
+  /* PHASE 34 — THE FOURTH VOLUME, AND WHY THE THREE WERE NOT ENOUGH.
+
+     Ambience is neither music nor an effect. A player who turns music off wants to keep
+     the wind; a player who turns effects down wants the footsteps quieter, not the field.
+     Before the sample library there was nothing on this bus so the question never came
+     up; now every recorded room tone, bed and distant event goes through `ambienceBus`
+     and answers to this. Defaults to 1.0 like the other three, so an existing save's
+     settings block — which does not contain this key — loads at the shipped mix. */
+  ambienceVolume:   { kind: 'num', def: 1.0, min: 0, max: 1 },
   /* A MULTIPLIER, NOT A RAW RATE. 1.0 reproduces the 0.0022 rad/px the game has always
      used; the bounds are deliberately modest — a quarter speed is still usable and three
      times is already very fast, and anything wider is a way to make the game unplayable
@@ -2126,6 +2139,12 @@ class SoundEngine {
     /* PHASE 30 — the opening film's ambience, on exactly the same pattern and for exactly
        the same reason: one handle, one creation site, one teardown site. */
     this.filmAmbience = null;
+    /* PHASE 34 — THE SAMPLE SIDE. Both are built in start(), because neither can exist
+       before there is an AudioContext to decode into, and both are nullable for the whole
+       life of the engine: every call site tests for them and every synthesised voice above
+       still works with both of them missing. */
+    this.library = null;
+    this.director = null;
   }
 
   start() {
@@ -2171,6 +2190,18 @@ class SoundEngine {
     this.sfxUnityBus = this.ctx.createGain();
     this.sfxUnityBus.gain.value = 1.0;
     this.sfxUnityBus.connect(this.master);
+    /* PHASE 34 — THE FOURTH BUS, AND WHY THE ENVIRONMENT NEEDED ITS OWN.
+
+       Ambience is not music and it is not an effect. A player who turns music off wants
+       the wind to stay; a player who turns effects down wants the footsteps quieter and
+       not the field. Before this phase there was nowhere for a recorded room tone to go
+       that did not answer to one of those two sliders wrongly, so it gets a bus and a
+       slider of its own — the fourth, and the last: `ambienceVolume` in SETTINGS_SCHEMA.
+
+       Unity gain, like sfxUnityBus, so the mix at default settings is unchanged. */
+    this.ambienceBus = this.ctx.createGain();
+    this.ambienceBus.gain.value = 1.0;
+    this.ambienceBus.connect(this.master);
     // PHASE 10 — build the music track registry up front so activeMusicIds always
     // exists once the engine has started, rather than only after the first play call.
     this._ensureMusicRegistry();
@@ -2201,6 +2232,16 @@ class SoundEngine {
     this.stalkerOsc.start();
 
     this._buildNightBed();
+
+    /* PHASE 34 — the sampler and its policy layer, built once, here, because this is the
+       first moment a context exists. Both are entirely optional to the rest of the engine:
+       if either constructor threw, or if every file 404s, the game above still sounds
+       exactly as it did before this phase. */
+    try {
+      this.library = new AudioLibrary(this);
+      this.director = new AudioDirector(this.library);
+      this.director.prime();
+    } catch (e) { this.library = null; this.director = null; }
   }
 
   _makeNoiseBuffer(seconds, type) {
@@ -2450,6 +2491,7 @@ class SoundEngine {
     crackle.connect(crackleGain); crackleGain.connect(hearthGain.gain);
     crackle.start();
 
+    if (this.director) { try { this.director.havenBegin(); } catch (e) { /* optional */ } }
     this.havenAmbience = {
       room, roomLp, roomGain, outside, outBp, outGain, wander, wanderGain,
       hearth, hearthBp, hearthGain, crackle, crackleGain,
@@ -2479,10 +2521,16 @@ class SoundEngine {
       // still modulating a gain of zero.
       a.crackleGain.gain.setTargetAtTime(clamp(hearth) * 0.5, now, 4.5);
     } catch (e) { /* the graph is already gone */ }
+    /* PHASE 34 — the recorded layers ride the SAME three stage numbers, from the same
+       call, on the same frame. They cannot drift from the synthesised rig and they cannot
+       rise while it falls, because there is only one source of truth and it is
+       HAVEN_STAGES. */
+    if (this.director) { try { this.director.havenLevels(clamp(room), clamp(outside), clamp(hearth)); } catch (e) { /* optional */ } }
     return true;
   }
 
   stopHavenAmbience() {
+    if (this.director) { try { this.director.havenEnd(); } catch (e) { /* optional */ } }
     const a = this.havenAmbience;
     if (!a) return false;
     this.havenAmbience = null;
@@ -2639,7 +2687,7 @@ class SoundEngine {
 
      setTargetAtTime rather than a direct assignment so dragging a slider ramps instead of
      stepping; a hard write to an AudioParam mid-drag is audible as a click. */
-  applyVolumes(master, music, sfx) {
+  applyVolumes(master, music, sfx, ambience) {
     if (!this.ctx) return false;
     const now = this.ctx.currentTime;
     const ramp = (node, target) => {
@@ -2651,6 +2699,9 @@ class SoundEngine {
     ramp(this.musicBus, 0.82 * music);               // 0.82 is the shipped music mix
     ramp(this.sfxBus, 1.35 * sfx);                   // 1.35 is the shipped SFX lift
     ramp(this.sfxUnityBus, 1.0 * sfx);               // ...and the cues that had no bus
+    /* PHASE 34 — the fourth channel. Defaulted rather than required, so a caller written
+       before this phase (and every test that was) still lands on the shipped mix. */
+    ramp(this.ambienceBus, 1.0 * (ambience === undefined ? 1 : ambience));
     return true;
   }
 
@@ -3104,6 +3155,7 @@ class SoundEngine {
     press.connect(pressLp); pressLp.connect(pressGain); pressGain.connect(bus);
     press.start(now);
 
+    if (this.director) { try { this.director.finaleBegin(); } catch (e) { /* optional */ } }
     this.finaleAudio = { sub, subGain, air, airGain, press, pressLp, pressGain };
     return true;
   }
@@ -3133,6 +3185,10 @@ class SoundEngine {
       a.airGain.gain.setTargetAtTime(L[2], now, 1.6);
     } catch (e) { /* the graph is already gone */ }
     if (beat === 'face') this.playFinaleImpact();
+    /* PHASE 34 — recorded weight under the same beat, from the same call. The sample
+       table is monotone across the seven beats exactly as the table above is: the finale's
+       one permitted direction is thicker. */
+    if (this.director) { try { this.director.finaleBeat(beat); } catch (e) { /* optional */ } }
     return true;
   }
 
@@ -3155,6 +3211,7 @@ class SoundEngine {
   }
 
   stopFinaleAudio() {
+    if (this.director) { try { this.director.finaleEnd(); } catch (e) { /* optional */ } }
     const a = this.finaleAudio;
     if (!a) return false;
     this.finaleAudio = null;
@@ -3188,6 +3245,10 @@ class SoundEngine {
     }
     // PHASE 10 — clear the registry's view too so nothing is left marked as playing.
     if (this.activeMusicIds) this.activeMusicIds.clear();
+    /* PHASE 34 — ducking master silences the sample beds too (they hang off it like
+       everything else), but a silent looping source is still a looping source. The hard
+       cut genuinely stops them, so nothing survives into the credits holding a buffer. */
+    if (this.director) { try { this.director.reset(); } catch (e) { /* optional */ } }
     if (this.master) {
       this.master.gain.cancelScheduledValues(now);
       this.master.gain.setTargetAtTime(0, now, 0.1);
@@ -3544,6 +3605,14 @@ class SoundEngine {
     this.stalkerGain.gain.setTargetAtTime(pulse * peakGain, this.ctx.currentTime, 0.05);
   }
 
+  /* PHASE 34 — the recorded half of the Stalker, on the same frame and the same distance
+     as the pulse above. A forwarder and nothing else: the policy is the director's, so
+     that this class keeps knowing only about nodes. */
+  updateStalkerPresence(dt, distance, relRight, relForward) {
+    if (!this.ctx || this.fakeHavenMode || !this.director) return false;
+    return this.director.stalker(dt, distance, relRight, relForward);
+  }
+
   playWhisper() {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
@@ -3775,6 +3844,7 @@ class SoundEngine {
 
   playItemPickup() {
     if (!this.ctx) return;
+    if (this.director && this.director.cue('pickup')) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     osc.type = 'sine';
@@ -3811,8 +3881,13 @@ class SoundEngine {
     src.start(now);
   }
 
+  /* PHASE 34 — the recorded lid, and then the chime UNDERNEATH it rather than instead of
+     it. The three-note chime is the only reward flourish the game has and removing it
+     would be a design change this phase has no business making, so the cue is layered on
+     top: a real object opening, then the small warm confirmation that was always there. */
   playChestOpen() {
     if (!this.ctx) return;
+    if (this.director) this.director.cue('chest.open');
     const now = this.ctx.currentTime;
     // Rising three-note chime + a soft creak underneath
     const notes = [392.0, 523.25, 659.25]; // G4, C5, E5
@@ -3839,8 +3914,20 @@ class SoundEngine {
     creak.start(now); creak.stop(now + 0.41);
   }
 
-  playFootstep(speedFactor) {
+  /* PHASE 34 — THE RECORDING FIRST, THE SYNTH AS THE FALLBACK, AND NOT AS AN OPTION.
+
+     `surface` is a NAME ('grass', 'pavement', 'hollow'…), not a block id — the engine has
+     never known what a block is and does not start now. PlayerController works the name
+     out from the ground under the player and hands it over; every other caller (the Phase
+     31 occupancy footfall) passes nothing and gets the default.
+
+     The director returns false whenever it did not actually make a sound — the slice is
+     still loading, a ceiling was hit, the file 404'd — and the procedural burst below
+     runs in exactly those cases. That is why the first few steps of a session still sound
+     and why a build with assets/audio/runtime/ deleted is still fully playable. */
+  playFootstep(speedFactor, surface) {
     if (!this.ctx) return;
+    if (this.director && this.director.footstep(speedFactor, surface)) return;
     const now = this.ctx.currentTime;
     const dur = 0.05;
     // PROCEDURAL INTERACTION SFX - Footsteps: short, low-frequency (~150Hz)
@@ -3897,6 +3984,22 @@ class SoundEngine {
   playAnimalCall(species, relRight, relForward, distance) {
     if (!this.ctx) return;
     if (this.fakeHavenMode) return;
+    /* PHASE 34 — a real cow, sheep, chicken or horse, placed at the same bearing and the
+       same distance the procedural voice would have used, and kept at the SAME restraint:
+       the recorded call peaks well under a footstep and falls off on the library's own
+       distance curve, so a call from the far side of a field is still barely there. If
+       the recording is not loaded the four synthesised voices below still answer, which
+       is why nothing about Phase 18's behaviour changes.
+
+       THE HORSE IS THE ONE THAT MATTERS FOR LICENSING: 418428 is NonCommercial and is the
+       only horse in the library. A commercial build losing it falls back to this method's
+       synthesised horse rather than to silence. See AUDIO_INDEX.md. */
+    if (this.director) {
+      const name = { cow: 'animal.cow', sheep: 'animal.sheep',
+                     chicken: 'animal.chicken', horse: 'animal.horse' }[species];
+      if (name && this.director.cueAt(name, relRight, relForward, Math.max(1, distance || 1),
+                                      { ref: 11, max: 70 })) return;
+    }
     const now = this.ctx.currentTime;
     const dist = Math.max(1, distance || 1);
     // Inverse-ish falloff, floored so a nearby animal is still restrained.
@@ -5183,6 +5286,1270 @@ function buildCrackStageTextures(stages) {
   }
   return textures;
 }
+
+/* =====================================================================================
+   PHASE 34 — THE SAMPLE LIBRARY.
+
+   WHAT THIS IS AND WHAT IT IS NOT. Everything above this line is SYNTHESIS: the night
+   bed, the chiptune, the CRT static, the whispers, the proximity pulse. None of it is
+   replaced and none of it is deleted. This is a second source of sound — recorded
+   material — sitting on the same buses, answering the same sliders, torn down by the
+   same calls. SoundEngine stays the mixer and the synthesiser; AudioLibrary is the
+   sampler; AudioDirector is the only thing that decides WHAT should be sounding.
+
+   THE THREE-LAYER SPLIT IS THE WHOLE DESIGN, and it is the answer to the brief's
+   "implement a proper centralized audio system rather than scattering audio playback
+   calls throughout the game":
+
+     SoundEngine    owns the AudioContext, the buses and the synthesised voices.
+                    It is the only thing that talks to the hardware.
+     AudioLibrary   owns files: fetching, decoding, caching, voice limits, panning,
+                    distance, looping beds, fades, and failing safely. It knows nothing
+                    about dimensions, blocks, time of day or the player.
+     AudioDirector  owns policy: which bed belongs to which place, which surface a
+                    footstep is on, how rarely a distant sound may happen. It reads game
+                    state and calls the library. It never touches an AudioNode.
+
+   That split is why Era 2 can throw away the voxel Overworld without touching a line of
+   the library, and why a new dimension is a row in AUDIO_SCENES rather than a new rig.
+
+   THE MANIFEST IS THE INDEX. Every id below has a row in assets/audio/AUDIO_INDEX.md and
+   an attribution line in assets/audio/AUDIO_CREDITS, joined by the Freesound id that is
+   the first field of every filename — which is why filenames are never rewritten and why
+   the manifest points at a numeric name rather than a descriptive one.
+
+   FILES ARE RUNTIME COPIES, NOT SOURCES. assets/audio/runtime/ is built from the
+   originals by tests/tools/build_runtime.py and is entirely disposable; the originals in
+   assets/audio/ are never read by the game and never written to by anything. Three
+   encodes, and each one is a decision:
+
+     steps/<id>_NN.wav   the footstep recordings are five-to-ten-step SEQUENCES, useless
+                         as a one-shot. Sliced on onset into single footfalls, peak
+                         aligned to within 14ms, normalised, fade-tailed.
+     <id>.wav            cues under 8 seconds. WAV because every MP3 decoder prepends its
+                         own silence and a cue that answers a key press cannot start late.
+     <id>.mp3            beds and long cues. MP3 rather than Ogg because Safari could not
+                         decode Vorbis until 17.4. Beds are cut to 30 seconds AS A MEMORY
+                         DECISION — decodeAudioData expands to 32-bit float at the context
+                         rate, so the 208-second drone would have been 73MB decoded — and
+                         the seam that cut leaves is removed by _loopify below, not hidden.
+   ===================================================================================== */
+const AUDIO_ROOT = 'assets/audio/runtime/';
+
+/* One entry per sound the game can ask for. `k` is the encode class, `d` the runtime
+   duration in seconds, `f` the file; a `step` entry carries its slices in `v` instead.
+   GENERATED — regenerate with tests/tools/build_runtime.py, do not hand-edit. */
+const AUDIO_ASSETS = Object.freeze({
+  // --- Interior / home ambience ------------------------------------------
+  'bed.interior.house': { k:'bed', d:30.0, f:'511688.mp3' },
+  'bed.interior.quiet': { k:'bed', d:30.0, f:'751329.mp3' },
+  'bed.interior.basement': { k:'bed', d:30.0, f:'714170.mp3' },
+  'bed.interior.clock': { k:'bed', d:30.0, f:'416002.mp3' },
+  'bed.haven.room': { k:'bed', d:18.0, f:'805394.mp3' },
+  'bed.interior.tick': { k:'bed', d:16.4, f:'790019.mp3' },
+  'sfx.clock.wrong': { k:'sfx', d:20.0, f:'328067.mp3' },
+  'sfx.clock.pendulum': { k:'sfx', d:9.6, f:'342926.mp3' },
+  // --- Haven -------------------------------------------------------------
+  'bed.haven.hearth': { k:'bed', d:30.0, f:'387128.mp3' },
+  'bed.haven.outside': { k:'bed', d:30.0, f:'259228.mp3' },
+  'bed.air.still': { k:'bed', d:12.2, f:'829081.mp3' },
+  // --- Footsteps ---------------------------------------------------------
+  'step.soft': { k:'step', n:6, v:['813621_00.wav', '813621_01.wav', '813621_02.wav', '813621_03.wav', '813621_04.wav', '813621_05.wav'] },
+  'step.grass': { k:'step', n:8, v:['807862_00.wav', '807862_01.wav', '807862_02.wav', '807862_03.wav', '807862_04.wav', '807862_05.wav', '807862_06.wav', '807862_07.wav'] },
+  'step.gravel': { k:'step', n:8, v:['352870_00.wav', '352870_01.wav', '352870_02.wav', '352870_03.wav', '352870_04.wav', '352870_05.wav', '352870_06.wav', '352870_07.wav'] },
+  'step.leaves': { k:'step', n:8, v:['530384_00.wav', '530384_01.wav', '530384_02.wav', '530384_03.wav', '530384_04.wav', '530384_05.wav', '530384_06.wav', '530384_07.wav'] },
+  'step.mud': { k:'step', n:8, v:['548384_00.wav', '548384_01.wav', '548384_02.wav', '548384_03.wav', '548384_04.wav', '548384_05.wav', '548384_06.wav', '548384_07.wav'] },
+  'step.stone': { k:'step', n:6, v:['813622_00.wav', '813622_01.wav', '813622_02.wav', '813622_03.wav', '813622_04.wav', '813622_05.wav'] },
+  'step.pavement': { k:'step', n:8, v:['682773_00.wav', '682773_01.wav', '682773_02.wav', '682773_03.wav', '682773_04.wav', '682773_05.wav', '682773_06.wav', '682773_07.wav'] },
+  'step.wood': { k:'step', n:5, v:['366111_00.wav', '366111_01.wav', '366111_02.wav', '366111_03.wav', '366111_04.wav'] },
+  'step.hollow': { k:'step', n:8, v:['459970_00.wav', '459970_01.wav', '459970_02.wav', '459970_03.wav', '459970_04.wav', '459970_05.wav', '459970_06.wav', '459970_07.wav'] },
+  'step.stairs': { k:'step', n:8, v:['830503_00.wav', '830503_01.wav', '830503_02.wav', '830503_03.wav', '830503_04.wav', '830503_05.wav', '830503_06.wav', '830503_07.wav'] },
+  'step.plain': { k:'step', n:8, v:['19263_00.wav', '19263_01.wav', '19263_02.wav', '19263_03.wav', '19263_04.wav', '19263_05.wav', '19263_06.wav', '19263_07.wav'] },
+  // --- Doors, furniture and objects --------------------------------------
+  'sfx.door.open': { k:'sfx', d:1.7, f:'213406.wav' },
+  'sfx.door.close': { k:'sfx', d:1.0, f:'213404.wav' },
+  'sfx.door.open2': { k:'sfx', d:7.4, f:'432562.wav' },
+  'sfx.door.close2': { k:'sfx', d:19.0, f:'340046.mp3' },
+  'sfx.door.squeak': { k:'sfx', d:20.0, f:'858958.mp3' },
+  'sfx.door.screen': { k:'sfx', d:11.9, f:'848616.mp3' },
+  'sfx.creak.long': { k:'sfx', d:20.0, f:'583119.mp3' },
+  'sfx.creak.door': { k:'sfx', d:8.5, f:'704612.mp3' },
+  'sfx.door.handle': { k:'sfx', d:20.0, f:'534337.mp3' },
+  'sfx.knock.near': { k:'sfx', d:0.7, f:'841281.wav' },
+  'sfx.knock.seq': { k:'sfx', d:13.5, f:'728214.mp3' },
+  'sfx.knock.distant': { k:'sfx', d:20.0, f:'186517.mp3' },
+  'sfx.door.slam': { k:'sfx', d:20.0, f:'450791.mp3' },
+  'sfx.doorbell': { k:'sfx', d:16.5, f:'440869.mp3' },
+  'sfx.drawer': { k:'sfx', d:4.6, f:'364106.wav' },
+  'sfx.cabinet': { k:'sfx', d:3.4, f:'421033.wav' },
+  'sfx.cabinet2': { k:'sfx', d:5.5, f:'470619.wav' },
+  'sfx.chair': { k:'sfx', d:1.4, f:'415939.wav' },
+  'sfx.chair.drag': { k:'sfx', d:8.0, f:'654148.wav' },
+  'sfx.couch': { k:'sfx', d:20.0, f:'766645.mp3' },
+  'sfx.creak.quiet': { k:'sfx', d:3.0, f:'238288.wav' },
+  'sfx.creak.a': { k:'sfx', d:1.0, f:'502505.wav' },
+  'sfx.creak.b': { k:'sfx', d:1.2, f:'506665.wav' },
+  'sfx.creak.c': { k:'sfx', d:14.1, f:'796507.mp3' },
+  'sfx.floor.single': { k:'sfx', d:0.2, f:'261371.wav' },
+  'sfx.floor.seq': { k:'sfx', d:20.0, f:'822745.mp3' },
+  'sfx.floor.boards': { k:'sfx', d:20.0, f:'570864.mp3' },
+  'sfx.metal.groan': { k:'sfx', d:20.0, f:'264014.mp3' },
+  'sfx.metal.groan2': { k:'sfx', d:1.6, f:'481787.wav' },
+  'sfx.metal.knock': { k:'sfx', d:11.7, f:'863059.mp3' },
+  'sfx.switch': { k:'sfx', d:2.6, f:'617608.wav' },
+  'sfx.switch2': { k:'sfx', d:4.1, f:'423512.wav' },
+  // --- Forest ------------------------------------------------------------
+  'bed.overworld.day': { k:'bed', d:30.0, f:'803224.mp3' },
+  'bed.overworld.calm': { k:'bed', d:8.0, f:'496512.mp3' },
+  'bed.overworld.night': { k:'bed', d:30.0, f:'62489.mp3' },
+  'bed.overworld.night2': { k:'bed', d:8.3, f:'520959.mp3' },
+  'bed.border': { k:'bed', d:30.0, f:'638404.mp3' },
+  'sfx.leaves': { k:'sfx', d:9.9, f:'758395.mp3' },
+  'sfx.bush': { k:'sfx', d:9.6, f:'765491.mp3' },
+  'sfx.tree.creak': { k:'sfx', d:13.2, f:'95263.mp3' },
+  'sfx.branch': { k:'sfx', d:2.2, f:'85433.wav' },
+  'sfx.branch.crackle': { k:'sfx', d:11.7, f:'811529.mp3' },
+  'sfx.grass': { k:'sfx', d:0.5, f:'396012.wav' },
+  // --- Farmlands ---------------------------------------------------------
+  'bed.farm.day': { k:'bed', d:30.0, f:'488067.mp3' },
+  'bed.farm.day2': { k:'bed', d:28.6, f:'488066.mp3' },
+  'bed.farm.night': { k:'bed', d:30.0, f:'584590.mp3' },
+  'bed.farm.wind': { k:'bed', d:27.9, f:'523374.mp3' },
+  'bed.farm.crop': { k:'bed', d:30.0, f:'454364.mp3' },
+  'sfx.crop': { k:'sfx', d:20.0, f:'542254.mp3' },
+  'sfx.crows': { k:'sfx', d:17.3, f:'403978.mp3' },
+  'sfx.birds.road': { k:'sfx', d:17.3, f:'464764.mp3' },
+  'sfx.crow': { k:'sfx', d:0.8, f:'813114.wav' },
+  'sfx.tractor': { k:'sfx', d:20.0, f:'344984.mp3' },
+  'sfx.tractor2': { k:'sfx', d:10.5, f:'570376.mp3' },
+  'sfx.dogs': { k:'sfx', d:15.6, f:'820267.mp3' },
+  'sfx.clang.far': { k:'sfx', d:15.4, f:'507465.mp3' },
+  'sfx.clang.low': { k:'sfx', d:15.4, f:'507469.mp3' },
+  'sfx.collapse.far': { k:'sfx', d:20.0, f:'333988.mp3' },
+  'sfx.metal.fall': { k:'sfx', d:5.2, f:'80450.wav' },
+  'sfx.rust.turn': { k:'sfx', d:14.7, f:'124122.mp3' },
+  // --- Animals -----------------------------------------------------------
+  'sfx.animal.cow': { k:'sfx', d:5.4, f:'867553.wav' },
+  'sfx.animal.sheep': { k:'sfx', d:3.8, f:'692900.wav' },
+  'sfx.animal.chicken': { k:'sfx', d:14.9, f:'456803.mp3' },
+  'sfx.animal.horse': { k:'sfx', d:7.6, f:'418428.wav' },
+  // --- Weather -----------------------------------------------------------
+  'bed.rain.light': { k:'bed', d:30.0, f:'96729.mp3' },
+  'bed.rain.heavy': { k:'bed', d:30.0, f:'640651.mp3' },
+  'bed.rain.roof': { k:'bed', d:22.3, f:'823199.mp3' },
+  'bed.storm.room': { k:'bed', d:30.0, f:'751720.mp3' },
+  'sfx.thunder.sub': { k:'sfx', d:20.0, f:'238743.mp3' },
+  'sfx.thunder.far': { k:'sfx', d:20.0, f:'398206.mp3' },
+  'bed.wind.open': { k:'bed', d:30.0, f:'16950.mp3' },
+  'sfx.gust': { k:'sfx', d:20.0, f:'361487.mp3' },
+  // --- Water -------------------------------------------------------------
+  'bed.water.stream': { k:'bed', d:30.0, f:'325324.mp3' },
+  'bed.water.stream2': { k:'bed', d:27.6, f:'536124.mp3' },
+  'sfx.drip.fast': { k:'sfx', d:20.0, f:'271336.mp3' },
+  'sfx.drip.slow': { k:'sfx', d:20.0, f:'442480.mp3' },
+  'sfx.steam': { k:'sfx', d:7.0, f:'666290.wav' },
+  // --- Suburbia ----------------------------------------------------------
+  'bed.sub.day': { k:'bed', d:30.0, f:'481964.mp3' },
+  'bed.sub.day2': { k:'bed', d:30.0, f:'135074.mp3' },
+  'bed.sub.night': { k:'bed', d:24.2, f:'535761.mp3' },
+  'bed.sub.traffic': { k:'bed', d:30.0, f:'428844.mp3' },
+  'sfx.car.pass': { k:'sfx', d:6.3, f:'669729.wav' },
+  'sfx.voices.muffled': { k:'sfx', d:20.0, f:'614573.mp3' },
+  // --- Electrical / hum --------------------------------------------------
+  'bed.hum.buzz': { k:'bed', d:20.0, f:'553075.mp3' },
+  'bed.hum.fridge': { k:'bed', d:11.8, f:'740110.mp3' },
+  'bed.hum.low': { k:'bed', d:10.0, f:'72091.mp3' },
+  'bed.hum.mech': { k:'bed', d:6.0, f:'865628.mp3' },
+  'bed.hum.powerline': { k:'bed', d:30.0, f:'816619.mp3' },
+  'sfx.electric': { k:'sfx', d:5.7, f:'407233.wav' },
+  'bed.hum.crt': { k:'bed', d:10.2, f:'799662.mp3' },
+  // --- Rift / reality distortion -----------------------------------------
+  'bed.rift.static': { k:'bed', d:30.0, f:'745231.mp3' },
+  'bed.rift.pulse': { k:'bed', d:30.0, f:'852315.mp3' },
+  'bed.rift.drone': { k:'bed', d:30.0, f:'344612.mp3' },
+  'bed.rift.space': { k:'bed', d:30.0, f:'211603.mp3' },
+  'sfx.rift.transition': { k:'sfx', d:20.0, f:'826582.mp3' },
+  'sfx.rift.distort': { k:'sfx', d:11.1, f:'562643.mp3' },
+  'sfx.rift.scrape': { k:'sfx', d:8.4, f:'381223.mp3' },
+  'sfx.rift.glitch': { k:'sfx', d:1.7, f:'90335.wav' },
+  'sfx.rift.musicbox': { k:'sfx', d:8.0, f:'30611.wav' },
+  'sfx.rift.knack': { k:'sfx', d:20.0, f:'61617.mp3' },
+  // --- Stalker -----------------------------------------------------------
+  'step.stalker': { k:'step', n:8, v:['383724_00.wav', '383724_01.wav', '383724_02.wav', '383724_03.wav', '383724_04.wav', '383724_05.wav', '383724_06.wav', '383724_07.wav'] },
+  'step.stalker.near': { k:'step', n:8, v:['152004_00.wav', '152004_01.wav', '152004_02.wav', '152004_03.wav', '152004_04.wav', '152004_05.wav', '152004_06.wav', '152004_07.wav'] },
+  'step.cloth': { k:'step', n:8, v:['788342_00.wav', '788342_01.wav', '788342_02.wav', '788342_03.wav', '788342_04.wav', '788342_05.wav', '788342_06.wav', '788342_07.wav'] },
+  'sfx.stalker.breath': { k:'sfx', d:3.5, f:'195572.wav' },
+  'sfx.stalker.breath2': { k:'sfx', d:20.0, f:'369294.mp3' },
+  'sfx.stalker.breath3': { k:'sfx', d:10.5, f:'121584.mp3' },
+  'sfx.stalker.creature': { k:'sfx', d:20.0, f:'528506.mp3' },
+  // --- Horror tension ----------------------------------------------------
+  'bed.tension.dark': { k:'bed', d:19.2, f:'826597.mp3' },
+  'bed.tension.pulse': { k:'bed', d:26.5, f:'845551.mp3' },
+  'bed.tension.long': { k:'bed', d:30.0, f:'744080.mp3' },
+  'bed.tension.slow': { k:'bed', d:30.0, f:'628917.mp3' },
+  'bed.tension.cello': { k:'bed', d:25.3, f:'81034.mp3' },
+  'bed.tension.deep': { k:'bed', d:30.0, f:'355738.mp3' },
+  'bed.tension.chime': { k:'bed', d:30.0, f:'867568.mp3' },
+  'bed.tension.piano': { k:'bed', d:30.0, f:'548621.mp3' },
+  'bed.tension.pulsedrum': { k:'bed', d:21.3, f:'529138.mp3' },
+  'sfx.eerie': { k:'sfx', d:9.2, f:'540967.mp3' },
+  'bed.tension.nc1': { k:'bed', d:30.0, f:'554110.mp3' },
+  'bed.tension.nc2': { k:'bed', d:30.0, f:'555179.mp3' },
+  'sfx.swell.odd': { k:'sfx', d:20.0, f:'567662.mp3' },
+  'sfx.swell.long': { k:'sfx', d:20.0, f:'192574.mp3' },
+  'sfx.swell.short': { k:'sfx', d:8.0, f:'218354.wav' },
+  'sfx.swell.piano': { k:'sfx', d:12.0, f:'443968.mp3' },
+  'bed.heartbeat': { k:'bed', d:30.0, f:'612641.mp3' },
+  // --- Blood Night -------------------------------------------------------
+  'bed.blood.rumble': { k:'bed', d:26.1, f:'473725.mp3' },
+  'bed.blood.earth': { k:'bed', d:30.0, f:'16947.mp3' },
+  'bed.blood.far': { k:'bed', d:30.0, f:'320788.mp3' },
+  'sfx.blast.far': { k:'sfx', d:8.6, f:'324277.mp3' },
+  'sfx.rumble.short': { k:'sfx', d:1.6, f:'529566.wav' },
+  // --- Hollowed Behemoth -------------------------------------------------
+  'sfx.behemoth.far': { k:'sfx', d:12.2, f:'456854.mp3' },
+  'sfx.behemoth.roar': { k:'sfx', d:11.0, f:'837799.mp3' },
+  'sfx.behemoth.roar2': { k:'sfx', d:7.2, f:'841961.wav' },
+  'sfx.behemoth.dist': { k:'sfx', d:1.8, f:'261147.wav' },
+  'sfx.behemoth.voice': { k:'sfx', d:3.8, f:'181374.wav' },
+  // --- Haven disappearance -----------------------------------------------
+  'bed.vanish.low': { k:'bed', d:12.7, f:'853575.mp3' },
+  'sfx.vanish.air': { k:'sfx', d:5.0, f:'810737.wav' },
+  'sfx.whoosh.soft': { k:'sfx', d:0.4, f:'73263.wav' },
+  // --- Final creature / finale -------------------------------------------
+  'bed.finale.deep': { k:'bed', d:30.0, f:'867251.mp3' },
+  'bed.finale.rumble': { k:'bed', d:28.2, f:'321812.mp3' },
+  'sfx.finale.bend': { k:'sfx', d:18.0, f:'529620.mp3' },
+  'sfx.finale.collide': { k:'sfx', d:6.5, f:'653294.wav' },
+  'bed.finale.air': { k:'bed', d:30.0, f:'845339.mp3' },
+  'sfx.finale.drop': { k:'sfx', d:4.0, f:'856174.wav' },
+  'sfx.finale.strike': { k:'sfx', d:7.9, f:'754422.wav' },
+  'sfx.finale.strike2': { k:'sfx', d:6.8, f:'754424.wav' },
+  // --- UI / interaction --------------------------------------------------
+  'sfx.ui.click': { k:'sfx', d:0.9, f:'342898.wav' },
+  'sfx.ui.click2': { k:'sfx', d:1.3, f:'687108.wav' },
+  'sfx.ui.deny': { k:'sfx', d:1.0, f:'327738.wav' },
+  'sfx.ui.pickup': { k:'sfx', d:0.0, f:'868506.wav' },
+  'sfx.ui.pop': { k:'sfx', d:0.6, f:'761011.wav' },
+  // --- Impacts and stings ------------------------------------------------
+  'sfx.impact.boom': { k:'sfx', d:8.8, f:'162850.mp3' },
+  'sfx.impact.drop': { k:'sfx', d:2.8, f:'475005.wav' },
+  'sfx.impact.perc': { k:'sfx', d:5.0, f:'475040.wav' },
+  'sfx.impact.soft': { k:'sfx', d:15.4, f:'388950.mp3' },
+  'sfx.impact.kick': { k:'sfx', d:20.0, f:'825797.mp3' },
+  'sfx.impact.drum': { k:'sfx', d:5.5, f:'177126.wav' },
+  // --- Voices, whispers and breath ---------------------------------------
+  'sfx.whisper.four': { k:'sfx', d:13.6, f:'193818.mp3' },
+  'sfx.whisper.close': { k:'sfx', d:20.0, f:'730965.mp3' },
+  'sfx.breath.player': { k:'sfx', d:20.0, f:'7998.mp3' },
+  'sfx.breath.fast': { k:'sfx', d:16.2, f:'512741.mp3' },
+  'sfx.breath.quiet': { k:'sfx', d:16.9, f:'554735.mp3' },
+});
+
+/* The ceilings. Every one of them exists because of a specific way a browser game goes
+   wrong, and none of them is tunable from anywhere else. */
+const AUDIO_LIMITS = Object.freeze({
+  voices:    20,    // total simultaneous SAMPLE voices. The synth voices are not counted
+                    // here; they are individually short and already bounded.
+  perKey:     3,    // simultaneous voices of ONE sound. This is the answer to "protection
+                    // against stacking hundreds of identical sounds": a bug that fires a
+                    // footstep every frame gets three of them, not sixty.
+  minGap:  0.045,   // seconds between two starts of the same sound. Below this the ear
+                    // hears flamming rather than repetition.
+  loopFade:  1.2,   // seconds of the tail crossfaded back over the head of a bed loop.
+  bedFade:   2.5,   // default seconds to swap one bed for another.
+  maxLoad:    6,    // concurrent decodes. A dimension change asks for six beds at once and
+                    // decodeAudioData is not free.
+});
+
+/* =====================================================================================
+   AudioLibrary — FILES. Nothing in this class knows what a dimension, a block or a
+   player is; it is asked for a name and it makes a sound.
+
+   FAILURE IS A NORMAL OUTCOME HERE, NOT AN EXCEPTION. A missing file, a 404, a decode
+   the browser refuses, a context that never opened, a name with a typo in it: every one
+   of them returns false or null and is LATCHED so it is never requested a second time.
+   The game is fully playable with this entire class dead — that is the contract, and
+   tests/audio.js drives a library whose every fetch fails to prove it.
+   ===================================================================================== */
+class AudioLibrary {
+  constructor(engine) {
+    this.engine = engine;
+    this.buffers = new Map();     // key -> AudioBuffer (beds hold the LOOPIFIED buffer)
+    this.pending = new Map();     // key -> Promise, so two callers share one fetch
+    this.failed  = new Set();     // key -> never asked for again
+    this.slots   = new Map();     // slot name -> the bed currently on it
+    this._last   = new Map();     // key -> ctx.currentTime of its last start
+    this._perKey = new Map();     // key -> live voice count
+    this.voices  = 0;             // live voice count, all keys
+    this.enabled = true;          // a hard off switch; nothing plays while false
+    this.stats = { requested: 0, loaded: 0, failed: 0, played: 0, dropped: 0, decoded: 0 };
+    this._loading = 0;
+    this._queue = [];
+  }
+
+  get ctx() { return this.engine ? this.engine.ctx : null; }
+  has(key) { return Object.prototype.hasOwnProperty.call(AUDIO_ASSETS, key); }
+  isLoaded(key) { return this.buffers.has(key); }
+
+  /* The one place a manifest entry becomes a URL. `variant` picks a footfall out of a
+     step set; anything out of range wraps, so a caller can hand it a raw random integer. */
+  url(key, variant) {
+    const a = AUDIO_ASSETS[key];
+    if (!a) return null;
+    if (a.k === 'step') {
+      const v = a.v[((variant | 0) % a.v.length + a.v.length) % a.v.length];
+      return AUDIO_ROOT + 'steps/' + v;
+    }
+    return AUDIO_ROOT + a.f;
+  }
+
+  /* A step set is stored as ONE buffer per slice under a synthetic key, so the cache, the
+     failure latch and the voice counter all work on slices without knowing they are one. */
+  _sliceKey(key, variant) {
+    const a = AUDIO_ASSETS[key];
+    if (!a || a.k !== 'step') return key;
+    const n = a.v.length;
+    return key + '#' + (((variant | 0) % n + n) % n);
+  }
+
+  // ---------------------------------------------------------------------------------
+  // LOADING
+  // ---------------------------------------------------------------------------------
+  /* Resolves to an AudioBuffer, or to null — never rejects. A null is final: the key goes
+     into `failed` and load() short-circuits on it forever after, so a broken asset costs
+     one request for the life of the session rather than one per attempt. */
+  load(key, variant) {
+    const ck = this._sliceKey(key, variant);
+    if (this.buffers.has(ck)) return Promise.resolve(this.buffers.get(ck));
+    if (this.failed.has(ck)) return Promise.resolve(null);
+    if (this.pending.has(ck)) return this.pending.get(ck);
+    const a = AUDIO_ASSETS[key];
+    const ctx = this.ctx;
+    if (!a || !ctx || typeof fetch !== 'function') { this.failed.add(ck); return Promise.resolve(null); }
+
+    const p = this._gate(() => this._fetchDecode(this.url(key, variant)))
+      .then((buf) => {
+        if (!buf) { this.failed.add(ck); this.stats.failed++; return null; }
+        const out = (a.k === 'bed') ? this._loopify(buf, AUDIO_LIMITS.loopFade) : buf;
+        this.buffers.set(ck, out);
+        this.stats.loaded++;
+        return out;
+      })
+      .catch(() => { this.failed.add(ck); this.stats.failed++; return null; })
+      .then((r) => { this.pending.delete(ck); return r; });
+    this.pending.set(ck, p);
+    this.stats.requested++;
+    return p;
+  }
+
+  /* A tiny concurrency gate. Six decodes at once is already enough to stutter a frame on
+     a modest machine, and a dimension change asks for more than that in one go. */
+  _gate(fn) {
+    if (this._loading < AUDIO_LIMITS.maxLoad) {
+      this._loading++;
+      return fn().then((r) => { this._release(); return r; },
+                       (e) => { this._release(); throw e; });
+    }
+    return new Promise((res, rej) => { this._queue.push({ fn, res, rej }); });
+  }
+  _release() {
+    this._loading--;
+    while (this._loading < AUDIO_LIMITS.maxLoad && this._queue.length) {
+      const j = this._queue.shift();
+      this._loading++;
+      j.fn().then((r) => { this._release(); j.res(r); }, (e) => { this._release(); j.rej(e); });
+    }
+  }
+
+  _fetchDecode(url) {
+    const ctx = this.ctx;
+    if (!url || !ctx) return Promise.resolve(null);
+    return fetch(url)
+      .then((r) => (r && r.ok) ? r.arrayBuffer() : null)
+      .then((ab) => {
+        if (!ab) return null;
+        this.stats.decoded++;
+        /* decodeAudioData is promise-based everywhere modern and callback-only in older
+           Safari. Wrapping the callback form covers both without a feature test that can
+           be wrong. */
+        return new Promise((res) => {
+          let settled = false;
+          const ok = (b) => { if (!settled) { settled = true; res(b || null); } };
+          const bad = () => { if (!settled) { settled = true; res(null); } };
+          try {
+            const r = ctx.decodeAudioData(ab, ok, bad);
+            if (r && typeof r.then === 'function') r.then(ok, bad);
+          } catch (e) { bad(); }
+        });
+      })
+      .catch(() => null);
+  }
+
+  /* Preload, for the cues that must not be late the first time they are needed: a
+     footstep, a door, a UI click. Returns a promise but nothing waits on it. */
+  preload(keys) {
+    const out = [];
+    for (const k of keys || []) {
+      const a = AUDIO_ASSETS[k];
+      if (!a) continue;
+      if (a.k === 'step') { for (let i = 0; i < a.v.length; i++) out.push(this.load(k, i)); }
+      else out.push(this.load(k));
+    }
+    return Promise.all(out);
+  }
+
+  /* =================================================================================
+     THE LOOP JOIN, AND WHY IT IS BAKED RATHER THAN SCHEDULED.
+
+     Two things make a bed click at its loop point: the recording's own seam (a field
+     recording does not end where it began) and, for an MP3, the encoder's padding. The
+     usual fixes are a scheduler that overlaps two sources every N seconds, or loopStart/
+     loopEnd guesswork. Both are wrong here: a scheduler is a timer, and this codebase has
+     spent four phases removing timers because they leak and cannot be driven by a test.
+
+     So the join is CONSTRUCTED ONCE, at decode: the last `fade` seconds are mixed back
+     over the first `fade` seconds and the buffer is shortened by exactly that much. The
+     result loops on itself perfectly with `loop = true` and no scheduling of any kind.
+     Cost is one buffer allocation per bed, paid once, and it replaces the decoded one.
+
+     A bed shorter than three fades is left alone — those are the authored seamless loops
+     (553075, 865628, 829081) and cutting them would do harm rather than good. */
+  _loopify(buf, fade) {
+    const ctx = this.ctx;
+    if (!ctx || !buf || !buf.length) return buf;
+    const sr = buf.sampleRate || 44100;
+    let f = Math.floor(Math.max(0.05, fade) * sr);
+    if (buf.length < f * 3) return buf;
+    const len = buf.length - f;
+    let out;
+    try { out = ctx.createBuffer(buf.numberOfChannels, len, sr); }
+    catch (e) { return buf; }
+    for (let c = 0; c < buf.numberOfChannels; c++) {
+      const src = buf.getChannelData(c);
+      const dst = out.getChannelData(c);
+      for (let i = 0; i < len; i++) dst[i] = src[i];
+      for (let i = 0; i < f; i++) {
+        const w = i / f;                       // 0 at the join, 1 a full fade later
+        dst[i] = src[i] * w + src[len + i] * (1 - w);
+      }
+    }
+    return out;
+  }
+
+  // ---------------------------------------------------------------------------------
+  // ONE-SHOTS
+  // ---------------------------------------------------------------------------------
+  /* opts: gain, rate, pan (-1..1), lp (Hz), variant, delay (s), bus ('sfx'|'amb'|'music')
+     Returns true only if a voice actually started. A false is not an error — it is a
+     refusal, and the three reasons are: the sound is not loaded yet, a ceiling was hit,
+     or the library is off. Nothing here ever throws. */
+  play(key, opts) {
+    if (!this.enabled) return false;
+    const ctx = this.ctx;
+    const a = AUDIO_ASSETS[key];
+    if (!ctx || !a) return false;
+    const o = opts || {};
+    const variant = (a.k === 'step')
+      ? ((o.variant === undefined) ? (Math.random() * a.v.length) | 0 : o.variant)
+      : 0;
+    const ck = this._sliceKey(key, variant);
+    const buf = this.buffers.get(ck);
+    if (!buf) { this.load(key, variant); this.stats.dropped++; return false; }
+
+    const now = ctx.currentTime;
+    const last = this._last.get(ck);
+    if (last !== undefined && now - last < (o.minGap === undefined ? AUDIO_LIMITS.minGap : o.minGap)) {
+      this.stats.dropped++; return false;
+    }
+    if (this.voices >= AUDIO_LIMITS.voices) { this.stats.dropped++; return false; }
+    if ((this._perKey.get(ck) || 0) >= AUDIO_LIMITS.perKey) { this.stats.dropped++; return false; }
+
+    let src, g;
+    try {
+      src = ctx.createBufferSource();
+      src.buffer = buf;
+      if (o.rate) src.playbackRate.value = Math.max(0.25, Math.min(4, o.rate));
+      g = ctx.createGain();
+      g.gain.value = Math.max(0, o.gain === undefined ? 1 : o.gain);
+      let tail = g;
+      if (o.lp && ctx.createBiquadFilter) {
+        const lp = ctx.createBiquadFilter();
+        lp.type = 'lowpass'; lp.frequency.value = o.lp; lp.Q.value = 0.6;
+        g.connect(lp); tail = lp;
+      }
+      if (o.pan !== undefined && ctx.createStereoPanner) {
+        const p = ctx.createStereoPanner();
+        p.pan.value = Math.max(-1, Math.min(1, o.pan));
+        tail.connect(p); tail = p;
+      }
+      src.connect(g);
+      tail.connect(this._bus(o.bus));
+      src.start(now + Math.max(0, o.delay || 0));
+    } catch (e) { return false; }
+
+    this.voices++;
+    this._perKey.set(ck, (this._perKey.get(ck) || 0) + 1);
+    this._last.set(ck, now);
+    this.stats.played++;
+    /* RELEASED EXACTLY ONCE. `done` is reachable from two places — the engine firing
+       onended, and the deadline below — and they are not exclusive: a normal end fires the
+       callback and the deadline still arrives afterwards. Without the latch the second
+       call decrements the counters a second time, the ceiling drifts upward and the
+       protection this whole block exists for quietly stops working. */
+    let released = false;
+    const done = () => {
+      if (released) return;
+      released = true;
+      src.onended = null;
+      this.voices = Math.max(0, this.voices - 1);
+      this._perKey.set(ck, Math.max(0, (this._perKey.get(ck) || 1) - 1));
+      try { src.disconnect(); g.disconnect(); } catch (e) { /* already detached */ }
+    };
+    src.onended = done;
+    /* onended is not guaranteed in every engine and is not fired at all by the offline
+       harness's stub, so the counter also has a deadline. Without this a stub run leaks
+       voices until the ceiling and every later play is refused. */
+    /* AND RELEASED EVEN IF NOTHING REPORTS IT. onended is not guaranteed in every engine
+       and is not fired at all by the offline harness's stub; without this deadline the
+       counter climbs to the ceiling and every later cue is refused for the rest of the
+       session. `done` is idempotent, so the two paths cannot conflict. */
+    if (typeof setTimeout === 'function') {
+      const secs = (buf.duration || 1) / (src.playbackRate ? (src.playbackRate.value || 1) : 1);
+      setTimeout(done, (secs + 0.4) * 1000);
+    }
+    return true;
+  }
+
+  /* A world sound. relRight/relForward are the listener-relative offsets the existing
+     animal and CRT code already compute, so this uses the same convention and no new
+     maths appears at the call sites.
+
+     DISTANCE IS A CURVE PLUS A FILTER, not just a gain. Air takes the top off a sound
+     long before it takes the level off it, and that is most of what makes something read
+     as far away rather than quiet — which is exactly what the finale needs. */
+  playAt(key, relRight, relForward, distance, opts) {
+    const o = Object.assign({}, opts || {});
+    const ref = o.ref || 14;                  // metres at which the sound is half strength
+    const d = Math.max(0, distance || 0);
+    const max = o.max || 140;
+    if (d > max) return false;
+    const fall = 1 / (1 + (d / ref) * (d / ref));
+    o.gain = (o.gain === undefined ? 1 : o.gain) * fall;
+    if (o.gain < 0.0015) return false;        // inaudible: do not spend a voice on it
+    const span = Math.abs(relRight) + Math.abs(relForward) + 1;
+    o.pan = Math.max(-0.9, Math.min(0.9, relRight / span));
+    o.lp = o.lp || Math.max(700, 18000 - d * 110);
+    return this.play(key, o);
+  }
+
+  // ---------------------------------------------------------------------------------
+  // BEDS
+  // ---------------------------------------------------------------------------------
+  /* A SLOT holds at most one looping bed. Asking a slot for the sound it already has is a
+     no-op — that is what lets the director call setBed() every frame from a table without
+     restarting anything. Asking for a different sound crossfades; asking for null fades
+     out and clears. There is no other way for a loop to start or stop in this class, so
+     there is no way to end up with two copies of a bed running. */
+  setBed(slot, key, opts) {
+    const o = opts || {};
+    const cur = this.slots.get(slot);
+    if (!key) { return this.clearSlot(slot, o.fade); }
+    if (!this.enabled || !this.ctx || !AUDIO_ASSETS[key]) return false;
+    if (cur && cur.key === key) {
+      if (o.level !== undefined) this.setBedLevel(slot, o.level, o.fade);
+      return true;
+    }
+    const level = (o.level === undefined) ? 1 : o.level;
+    const fade = (o.fade === undefined) ? AUDIO_LIMITS.bedFade : o.fade;
+    /* The buffer may not be here yet. Rather than block, the slot is claimed IMMEDIATELY
+       with a pending marker and started when the decode lands — and the marker is checked
+       on arrival, so a slot that changed its mind while loading does not get overwritten
+       by a bed nobody wants any more. */
+    const stamp = (this._stamp = (this._stamp || 0) + 1);
+    this.slots.set(slot, { key, level, src: null, gain: null, stamp, starting: true });
+    this.load(key).then((buf) => {
+      const s = this.slots.get(slot);
+      if (!buf || !s || s.stamp !== stamp) return;
+      /* s.level, not the captured `level`: setBedLevel may have moved it while the file
+         was in flight, and starting at the stale value would step audibly on the next
+         frame that corrects it. */
+      const started = this._startBed(key, buf, s.level, fade, o.bus);
+      if (!started) { this.slots.delete(slot); return; }
+      s.src = started.src; s.gain = started.gain; s.starting = false;
+    });
+    /* THE OUTGOING BED IS STOPPED HERE AND ONLY HERE. `cur.starting` means it never got
+       as far as a source — its own load will find the stamp changed and return without
+       starting one — so there is nothing to stop, and calling _stopBed from inside the
+       then() as well would tear the same nodes down twice. */
+    if (cur && !cur.starting) this._stopBed(cur, fade);
+    return true;
+  }
+
+  _startBed(key, buf, level, fade, bus) {
+    const ctx = this.ctx;
+    try {
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.loop = true;
+      const g = ctx.createGain();
+      g.gain.value = 0;
+      src.connect(g);
+      g.connect(this._bus(bus || 'amb'));
+      /* A bed starts at a random offset. Two visits to the same field should not open on
+         the same bird. Guarded because a stub source may not accept the argument. */
+      const off = (buf.duration && buf.duration > 2) ? Math.random() * buf.duration : 0;
+      try { src.start(0, off); } catch (e) { src.start(0); }
+      const now = ctx.currentTime;
+      g.gain.setTargetAtTime(level, now, Math.max(0.05, fade) / 3);
+      return { src, gain: g };
+    } catch (e) { return null; }
+  }
+
+  _stopBed(entry, fade) {
+    if (!entry || !entry.src) return;
+    const ctx = this.ctx;
+    const f = Math.max(0.05, fade === undefined ? AUDIO_LIMITS.bedFade : fade);
+    try {
+      const now = ctx.currentTime;
+      entry.gain.gain.cancelScheduledValues(now);
+      entry.gain.gain.setTargetAtTime(0, now, f / 3);
+    } catch (e) { /* graph already gone */ }
+    if (typeof setTimeout === 'function') {
+      setTimeout(() => {
+        try { entry.src.stop(); } catch (e) { /* already stopped */ }
+        try { entry.src.disconnect(); entry.gain.disconnect(); } catch (e) { /* detached */ }
+      }, (f + 0.4) * 1000);
+    } else {
+      try { entry.src.stop(); } catch (e) { /* already stopped */ }
+    }
+  }
+
+  setBedLevel(slot, level, fade) {
+    const s = this.slots.get(slot);
+    if (!s) return false;
+    s.level = Math.max(0, level);
+    if (!s.gain || !this.ctx) return true;
+    try {
+      const now = this.ctx.currentTime;
+      s.gain.gain.cancelScheduledValues(now);
+      s.gain.gain.setTargetAtTime(s.level, now, Math.max(0.05, fade === undefined ? 1.2 : fade) / 3);
+    } catch (e) { /* graph already gone */ }
+    return true;
+  }
+
+  bedKey(slot) { const s = this.slots.get(slot); return s ? s.key : null; }
+  activeBeds() { return this.slots.size; }
+
+  clearSlot(slot, fade) {
+    const s = this.slots.get(slot);
+    if (!s) return false;
+    this.slots.delete(slot);
+    this._stopBed(s, fade);
+    return true;
+  }
+
+  /* THE DIMENSION-CHANGE CALL, and the teardown every sequence in the game ends in. Every
+     bed goes, every slot is released. One-shots already in flight are left to finish —
+     they are all under a second and cutting them mid-envelope is a click. */
+  stopAllBeds(fade) {
+    const n = this.slots.size;
+    for (const slot of Array.from(this.slots.keys())) this.clearSlot(slot, fade);
+    return n;
+  }
+
+  /* The hard stop. Beds down, counters cleared. Decoded buffers are KEPT — they are the
+     expensive part and re-entering a dimension should not re-fetch. */
+  reset() {
+    this.stopAllBeds(0.25);
+    this._last.clear();
+    this._perKey.clear();
+    this.voices = 0;
+  }
+
+  _bus(kind) {
+    const e = this.engine;
+    if (!e) return null;
+    if (kind === 'music') return e.musicBus || e.master;
+    if (kind === 'sfx') return e.sfxUnityBus || e.master;
+    return e.ambienceBus || e.musicBus || e.master;   // 'amb' and anything unrecognised
+  }
+}
+
+/* =====================================================================================
+   THE SURFACE TABLE — which recording a footfall on a given block uses.
+
+   Written as a list of (block ids -> surface) rather than a per-id table because the
+   voxel palette is 2048 ids wide and roughly forty of them are walkable. Anything not
+   listed falls through to 'soil', which is the right default for a game whose ground is
+   mostly earth. The map is BUILT ONCE at load and is a plain object lookup thereafter.
+
+   ERA 2 NOTE. This is the only part of the audio system that knows a block id exists.
+   When the voxel Overworld is replaced, this table and AudioDirector.surfaceAt() are the
+   two things that go; everything else takes a surface NAME and does not care where it
+   came from. */
+const AUDIO_SURFACE_GROUPS = [
+  ['grass',    [BLOCK.GRASS, BLOCK.LAWN, BLOCK.LAWN_DRY, BLOCK.FOLIAGE, BLOCK.HEDGE_MAT,
+                BLOCK.SOIL_OVERGROWN, BLOCK.WEED_CLUMP, BLOCK.CROP_FLAT]],
+  ['soil',     [BLOCK.DIRT, BLOCK.ROTTED_SOIL, BLOCK.SOIL_DRY, BLOCK.SOIL_EXHAUSTED,
+                BLOCK.SOIL_FERTILE, BLOCK.SOIL_TRAMPLED, BLOCK.GRAVE_SOIL, BLOCK.MULCH,
+                BLOCK.ASH_GROUND]],
+  ['mud',      [BLOCK.SOIL_WET, BLOCK.FARM_MUD, BLOCK.WATER_SHALLOW]],
+  ['gravel',   [BLOCK.TIRE_TRACK, BLOCK.SMALL_STONES, BLOCK.DRIVEWAY, BLOCK.SLAB_DRIVEWAY]],
+  ['leaves',   [BLOCK.LEAVES, BLOCK.LEAF_LITTER, BLOCK.BLACK_CANOPY, BLOCK.STICKS,
+                BLOCK.ASH_DRIFT, BLOCK.CHARRED_BRANCH]],
+  ['stone',    [BLOCK.STONE, BLOCK.COBBLESTONE, BLOCK.ANDESITE, BLOCK.GRANITE,
+                BLOCK.OBSIDIAN, BLOCK.CORRUPTED_STONE, BLOCK.FIELDSTONE, BLOCK.CHAPEL_STONE,
+                BLOCK.STONE_VENEER, BLOCK.BRICK, BLOCK.BRICK_TAN, BLOCK.TILE_FLOOR,
+                BLOCK.MARKER_STONE, BLOCK.CONCRETE]],
+  ['pavement', [BLOCK.ASPHALT, BLOCK.ROAD, BLOCK.ROAD_LINE, BLOCK.ROAD_SEAM, BLOCK.SIDEWALK,
+                BLOCK.CURB_MAT, BLOCK.SLAB_SIDEWALK, BLOCK.SLAB_ASPHALT, BLOCK.SLAB_CONC,
+                BLOCK.SLAB_GUTTER]],
+  ['wood',     [BLOCK.OAK_LOG, BLOCK.WOOD_FLOOR, BLOCK.POLISHED_OAK, BLOCK.DECK,
+                BLOCK.ASH_WOOD, BLOCK.BARK, BLOCK.ROT_PLANK, BLOCK.BROKEN_WOOD,
+                BLOCK.BURNT_STUMP, BLOCK.LOFT_HAY]],
+  ['hollow',   [BLOCK.FARM_CLAPBOARD, BLOCK.BARN_RED, BLOCK.BARN_WHITE, BLOCK.CORRUGATED,
+                BLOCK.SILO_TILE]],
+  ['carpet',   [BLOCK.CARPET, BLOCK.RUG]],
+];
+const AUDIO_SURFACE_OF = (() => {
+  const m = Object.create(null);
+  for (const [name, ids] of AUDIO_SURFACE_GROUPS) {
+    for (const id of ids) if (id !== undefined) m[id] = name;
+  }
+  return Object.freeze(m);
+})();
+
+/* Which footfall set a surface uses, and how it is voiced. `g` is gain, `r` a playback
+   rate so two surfaces sharing a recording are not the same sound. Two surfaces have no
+   recording of their own and borrow one deliberately: carpet is a quiet indoor step, and
+   'mud' is the only one that keeps its own take because a wet step is unmistakable. */
+const AUDIO_STEP_SURFACES = Object.freeze({
+  grass:    { key: 'step.grass',    g: 0.50, r: 1.00 },
+  soil:     { key: 'step.soft',     g: 0.50, r: 1.00 },
+  mud:      { key: 'step.mud',      g: 0.55, r: 1.00 },
+  gravel:   { key: 'step.gravel',   g: 0.46, r: 1.00 },
+  leaves:   { key: 'step.leaves',   g: 0.46, r: 1.00 },
+  stone:    { key: 'step.stone',    g: 0.42, r: 1.00 },
+  pavement: { key: 'step.pavement', g: 0.40, r: 1.00 },
+  wood:     { key: 'step.wood',     g: 0.44, r: 1.00 },
+  hollow:   { key: 'step.hollow',   g: 0.44, r: 0.97 },
+  carpet:   { key: 'step.wood',     g: 0.22, r: 0.92 },
+});
+
+/* =====================================================================================
+   AUDIO_SCENES — WHERE EACH BED BELONGS. This table is the phase's actual sound design,
+   and everything about the way it is written is aimed at one thing: making it possible
+   to see the whole mix of a place at a glance and change it without reading any code.
+
+   Four slots, and the reason there are exactly four:
+
+     air      the place itself. Always present, always the loudest thing.
+     layer    what the place is doing. Wind through a crop, traffic four streets away,
+              a power line. Roughly a third of the air, and often absent.
+     tone     machinery and electricity. Small, close, and the only slot that is allowed
+              to be slightly unpleasant.
+     tension  the horror bed. EMPTY in nine scenes out of fourteen, and that is the
+              point — a drone that is always there is not a drone, it is a room tone,
+              and the game has spent thirty-three phases making silence mean something.
+
+   LEVELS ARE LOW ON PURPOSE. The loudest bed in this table is 0.5, against a footstep at
+   0.5 and a door at 0.6. Ambience that competes with an interaction is ambience the
+   player stops hearing. */
+const AUDIO_SCENES = Object.freeze({
+  'overworld.day':    { air: ['bed.overworld.day',   0.42], layer: ['bed.air.still',     0.18], ev: 'out.day'   },
+  'overworld.night':  { air: ['bed.overworld.night', 0.40], layer: ['bed.wind.open',     0.14], ev: 'out.night' },
+  'overworld.blood':  { air: ['bed.overworld.night', 0.24], layer: ['bed.blood.rumble',  0.30],
+                        tension: ['bed.blood.earth', 0.16], ev: 'out.blood' },
+  'farm.day':         { air: ['bed.farm.day',        0.42], layer: ['bed.farm.crop',     0.20], ev: 'farm.day'  },
+  'farm.night':       { air: ['bed.farm.night',      0.40], layer: ['bed.farm.wind',     0.14], ev: 'farm.night'},
+  'farm.blood':       { air: ['bed.farm.night',      0.24], layer: ['bed.blood.rumble',  0.28],
+                        tension: ['bed.blood.far',   0.12], ev: 'farm.night' },
+  'sub.day':          { air: ['bed.sub.day',         0.40], layer: ['bed.sub.traffic',   0.13],
+                        tone: ['bed.hum.crt',        0.07], ev: 'sub.day'   },
+  'sub.night':        { air: ['bed.sub.night',       0.40], layer: ['bed.hum.powerline', 0.09],
+                        tone: ['bed.hum.crt',        0.09], ev: 'sub.night' },
+  'sub.blood':        { air: ['bed.sub.night',       0.22], layer: ['bed.blood.rumble',  0.26],
+                        tone: ['bed.hum.crt',        0.09], ev: 'sub.night' },
+  /* INDOORS. The outside does not vanish, it is muffled: the air slot becomes the room
+     and the layer slot keeps a thin memory of the weather. A house is quieter than a
+     field, which is why every level here is lower than every level above. */
+  'in.house':         { air: ['bed.interior.house',  0.34], tone: ['bed.hum.buzz',       0.05], ev: 'in.house'  },
+  'in.sub':           { air: ['bed.interior.quiet',  0.32], tone: ['bed.hum.fridge',     0.06], ev: 'in.sub'    },
+  'in.sub.night':     { air: ['bed.interior.clock',  0.30], tone: ['bed.hum.fridge',     0.06], ev: 'in.sub'    },
+  'in.deep':          { air: ['bed.interior.basement', 0.30], ev: 'in.house' },
+  /* THE RIFT. The one scene with a tension bed as a matter of course, because it is the
+     one place the game has already told the player is wrong. */
+  'rift':             { air: ['bed.rift.pulse',      0.30], layer: ['bed.rift.static',   0.12],
+                        tension: ['bed.rift.drone',  0.14], ev: 'rift' },
+});
+
+/* =====================================================================================
+   AUDIO_EVENTS — THE SPARSE ONE-SHOTS, AND THE RULE THAT KEEPS THEM RARE.
+
+   `gap` is [min, max] SECONDS between two events. The smallest number in this table is
+   34, and outdoors at night it is 55: this is not a randomiser sprinkling noises, it is
+   something happening about once a minute and usually further away than the player can
+   see. The brief asks for "occasional distant environmental sounds" and "sparse
+   unsettling distant sounds", and the difference between those and set dressing is
+   entirely in these two numbers.
+
+   `d` is the distance range the sound is placed at, which is what makes it read as
+   somewhere else rather than as a cue. Nothing in this table is ever placed closer than
+   20 metres and most of it is beyond 40.
+
+   NOTHING HERE IS A STINGER, and nothing here is triggered by anything. No entry
+   responds to the player's position, the Stalker, sanity, or being looked at. They are
+   weather, in the sense that they happen whether or not anyone is there. */
+const AUDIO_EVENTS = Object.freeze({
+  'out.day':   { gap: [42, 120], picks: [
+                   ['sfx.crow',        0.55, [30, 90]],
+                   ['sfx.birds.road',  0.30, [45, 110]],
+                   ['sfx.branch',      0.40, [18, 45]],
+                   ['sfx.tree.creak',  0.30, [16, 40]],
+                   ['sfx.leaves',      0.28, [12, 30]] ] },
+  'out.night': { gap: [58, 150], picks: [
+                   ['sfx.branch',      0.30, [22, 60]],
+                   ['sfx.tree.creak',  0.26, [18, 46]],
+                   ['sfx.dogs',        0.28, [70, 130]],
+                   ['sfx.thunder.far', 0.22, [90, 140]] ] },
+  'out.blood': { gap: [50, 130], picks: [
+                   ['sfx.blast.far',   0.24, [90, 140]],
+                   ['sfx.rumble.short',0.26, [70, 130]],
+                   ['sfx.collapse.far',0.20, [80, 135]] ] },
+  'farm.day':  { gap: [46, 125], picks: [
+                   ['sfx.crows',       0.34, [55, 120]],
+                   ['sfx.crow',        0.45, [35, 95]],
+                   ['sfx.tractor',     0.22, [95, 140]],
+                   ['sfx.tractor2',    0.20, [95, 140]],
+                   ['sfx.clang.far',   0.26, [50, 110]],
+                   ['sfx.rust.turn',   0.22, [30, 70]],
+                   ['sfx.crop',        0.26, [14, 34]] ] },
+  'farm.night':{ gap: [62, 165], picks: [
+                   ['sfx.dogs',        0.26, [80, 135]],
+                   ['sfx.clang.low',   0.24, [60, 125]],
+                   ['sfx.metal.fall',  0.20, [55, 115]],
+                   ['sfx.crop',        0.20, [14, 34]],
+                   ['sfx.thunder.far', 0.20, [95, 140]] ] },
+  'sub.day':   { gap: [40, 110], picks: [
+                   ['sfx.car.pass',    0.26, [60, 130]],
+                   ['sfx.dogs',        0.24, [55, 120]],
+                   ['sfx.birds.road',  0.26, [40, 100]] ] },
+  'sub.night': { gap: [56, 150], picks: [
+                   ['sfx.car.pass',    0.18, [85, 140]],
+                   ['sfx.dogs',        0.20, [80, 135]],
+                   ['sfx.doorbell',    0.16, [55, 120]],
+                   ['sfx.door.slam',   0.18, [50, 115]],
+                   ['sfx.thunder.sub', 0.20, [95, 140]] ] },
+  /* INDOORS IS THE SPARSEST TABLE IN THE GAME and every entry in it is the building,
+     not a person. A house that creaks once every two minutes is a house; a house that
+     creaks every twenty seconds is a haunted house, and section 25 of CLAUDE.md is
+     explicit that not every structure is haunted. */
+  'in.house':  { gap: [70, 190], picks: [
+                   ['sfx.creak.quiet', 0.30, [3, 9]],
+                   ['sfx.creak.a',     0.26, [3, 10]],
+                   ['sfx.creak.b',     0.26, [3, 10]],
+                   ['sfx.floor.single',0.22, [4, 11]] ] },
+  /* THE RIFT is the one place a table is allowed to be busy, and it is still fifteen
+     seconds between events. Layers and fades carry this scene — the bed does the work —
+     and these are punctuation on top of it, never the substance. */
+  'rift':      { gap: [15, 38], picks: [
+                   ['sfx.rift.glitch',  0.22, [2, 9]],
+                   ['sfx.rift.distort', 0.20, [4, 14]],
+                   ['sfx.rift.scrape',  0.18, [4, 14]],
+                   ['sfx.rift.musicbox',0.16, [6, 18]] ] },
+  'in.sub':    { gap: [75, 200], picks: [
+                   ['sfx.creak.quiet', 0.26, [3, 9]],
+                   ['sfx.creak.c',     0.22, [3, 10]],
+                   ['sfx.switch',      0.14, [6, 14]] ] },
+});
+
+/* The cues that must never be late the first time. Everything else is lazy: a door the
+   player has not reached, a tractor a hundred metres away and a finale forty minutes off
+   are all fetched the moment something asks for them and not before. */
+const AUDIO_PRELOAD = Object.freeze([
+  'step.soft', 'step.grass', 'step.stone', 'step.wood',
+  'sfx.door.open', 'sfx.door.close', 'sfx.ui.pickup', 'sfx.ui.click', 'sfx.ui.pop',
+]);
+
+/* =====================================================================================
+   AudioDirector — POLICY. The only class that decides what SHOULD be sounding.
+
+   It reads game state and calls AudioLibrary. It never creates an AudioNode, never reads
+   an AudioParam, and never talks to the AudioContext — tests/audio.js fails if it grows
+   the ability to. That restriction is what keeps the two halves separable: the library
+   can be rewritten for a different backend and this class does not change, and this class
+   can be rewritten for a non-voxel Dimension 1 and the library does not.
+
+   IT IS DRIVEN, NOT SCHEDULED. update(dt, state) is called from the game loop and there
+   is no setTimeout, no setInterval and no requestAnimationFrame anywhere in it. Every
+   countdown in the class is a number that dt is subtracted from, which is why a test can
+   drive four hours of Farmland in a loop and why nothing in it can leak.
+   ===================================================================================== */
+class AudioDirector {
+  constructor(library) {
+    this.lib = library;
+    this.enabled = true;
+    this.scene = null;            // the scene id currently on the beds
+    this._evTimer = 30;           // seconds to the next sparse event
+    this._evTable = null;
+    this._stepPhase = 0;          // alternates so consecutive footfalls differ
+    this._surface = 'soil';
+    this._havenOn = false;
+    this._finaleOn = false;
+    this._riftHold = 0;
+    this.stats = { scenes: 0, events: 0, steps: 0 };
+  }
+
+  /* Called once, when the context opens. Pure convenience — nothing depends on it having
+     finished, and a failure to preload is indistinguishable from a slow network. */
+  prime() { if (this.lib) this.lib.preload(AUDIO_PRELOAD); return true; }
+
+  // ---------------------------------------------------------------------------------
+  // SURFACES
+  // ---------------------------------------------------------------------------------
+  /* The block a foot is actually on. Reads the block BELOW the player's feet, and one
+     lower if that is air, so standing on a slab or a stair still finds ground. */
+  surfaceAt(world, x, y, z) {
+    if (!world || !world.getBlockWorld) return 'soil';
+    const bx = Math.floor(x), bz = Math.floor(z);
+    let by = Math.floor(y - 0.12);
+    let id = world.getBlockWorld(bx, by, bz);
+    if (!id) id = world.getBlockWorld(bx, by - 1, bz);
+    return AUDIO_SURFACE_OF[id] || 'soil';
+  }
+
+  /* ONE FOOTSTEP. Returns true if a recorded footfall played and false if it did not, and
+     the caller uses that to decide whether to fall back to the synthesised step — which
+     is how the game stays fully audible with the whole sample library missing.
+
+     VARIATION IS THREE THINGS AT ONCE, because one is not enough to stop the ear hearing
+     a loop: a different slice each time (never the same one twice running), a rate within
+     ±6%, and a gain within ±12% multiplied by how fast the player is moving. */
+  footstep(speedFactor, surface) {
+    if (!this.enabled || !this.lib) return false;
+    const s = AUDIO_STEP_SURFACES[surface || this._surface] || AUDIO_STEP_SURFACES.soil;
+    const a = AUDIO_ASSETS[s.key];
+    if (!a || a.k !== 'step') return false;
+    let v = (Math.random() * a.v.length) | 0;
+    if (a.v.length > 1 && v === this._stepPhase) v = (v + 1) % a.v.length;
+    this._stepPhase = v;
+    const ok = this.lib.play(s.key, {
+      variant: v,
+      gain: s.g * (0.88 + Math.random() * 0.24) * Math.max(0.35, Math.min(1.5, speedFactor || 1)),
+      rate: s.r * (0.94 + Math.random() * 0.12),
+      bus: 'sfx',
+      minGap: 0.1,
+    });
+    if (ok) this.stats.steps++;
+    return ok;
+  }
+
+  // ---------------------------------------------------------------------------------
+  // SCENES
+  // ---------------------------------------------------------------------------------
+  /* state: { dimension, night, blood, indoors, deep, rift }
+     Returns the scene id, or null when another system owns the beds — inside the Haven
+     and inside the finale this class stands down completely rather than competing. */
+  sceneFor(state) {
+    const s = state || {};
+    if (this._havenOn || this._finaleOn) return null;
+    if (s.dimension === 'haven') return null;
+    if (s.rift) return 'rift';
+    if (s.indoors) {
+      if (s.deep) return 'in.deep';
+      if (s.dimension === 'suburbia') return s.night ? 'in.sub.night' : 'in.sub';
+      return 'in.house';
+    }
+    const d = s.dimension === 'farmlands' ? 'farm'
+            : s.dimension === 'suburbia' ? 'sub' : 'overworld';
+    if (s.blood) return d + '.blood';
+    return d + (s.night ? '.night' : '.day');
+  }
+
+  /* Puts a scene on the beds. Idempotent: naming the scene that is already playing does
+     nothing at all, which is why update() can call it every frame. */
+  setScene(id, fade) {
+    if (!this.lib) return false;
+    if (id === this.scene) return true;
+    this.scene = id;
+    this.stats.scenes++;
+    const sc = id ? AUDIO_SCENES[id] : null;
+    for (const slot of ['air', 'layer', 'tone', 'tension']) {
+      const row = sc ? sc[slot] : null;
+      if (row) this.lib.setBed(slot, row[0], { level: row[1], fade });
+      else this.lib.clearSlot(slot, fade);
+    }
+    this._evTable = sc && sc.ev ? AUDIO_EVENTS[sc.ev] : null;
+    /* The clock is reset on every scene change, and it is reset LONG. Walking through a
+       door must not fire an event on the other side of it. */
+    this._evTimer = this._evTable ? this._rand(this._evTable.gap) * (0.6 + Math.random() * 0.6) : 0;
+    return true;
+  }
+
+  _rand(pair) { return pair[0] + Math.random() * (pair[1] - pair[0]); }
+
+  /* THE FRAME. dt seconds, and a flat description of where the player is. */
+  update(dt, state) {
+    if (!this.enabled || !this.lib) return null;
+    const d = Math.max(0, Math.min(0.25, dt || 0));
+    const id = this.sceneFor(state);
+    this.setScene(id);
+    if (!this._evTable) return id;
+    this._evTimer -= d;
+    if (this._evTimer <= 0) {
+      this._evTimer = this._rand(this._evTable.gap);
+      this._fireEvent(this._evTable);
+    }
+    return id;
+  }
+
+  /* One distant sound, at a random bearing and a distance from its own row. The bearing
+     is uniform: the game never places an ambient event in front of the player on purpose,
+     because a sound that is reliably ahead reads as a lure. */
+  _fireEvent(table) {
+    const picks = table.picks;
+    if (!picks || !picks.length) return false;
+    const p = picks[(Math.random() * picks.length) | 0];
+    const dist = p[2][0] + Math.random() * (p[2][1] - p[2][0]);
+    const ang = Math.random() * Math.PI * 2;
+    /* `events` counts what the SCHEDULE decided, not what the mixer had room for — those
+       are two different questions and conflating them would make the sparseness figure
+       depend on the voice ceiling. Whether a voice was actually available is the
+       library's business and is counted in its own `dropped`. */
+    this.stats.events++;
+    return this.lib.playAt(p[0], Math.sin(ang) * dist, Math.cos(ang) * dist, dist,
+                           { gain: p[1], ref: 26, max: 200, bus: 'amb' });
+  }
+
+  // ---------------------------------------------------------------------------------
+  // THE AUTHORED SEQUENCES
+  // ---------------------------------------------------------------------------------
+  /* THE HAVEN. Phase 32 owns the timing and this owns nothing but the recordings that sit
+     under it: the three numbers arriving here are the SAME three the synthesised rig gets,
+     read from HAVEN_STAGES, so the recorded layers cannot drift from the synthesised ones
+     and cannot rise when they fall.
+
+     A REAL FIRE, A REAL ROOM, AND A REAL OUTSIDE, and then they are removed in that order.
+     That is the entire Haven sound design and it is one function long because Phase 32
+     already did the difficult part. */
+  havenBegin() {
+    if (!this.lib) return false;
+    this._havenOn = true;
+    this.setScene(null, 1.2);
+    this.lib.setBed('haven.room', 'bed.haven.room', { level: 0, fade: 3.0 });
+    this.lib.setBed('haven.out', 'bed.haven.outside', { level: 0, fade: 3.0 });
+    this.lib.setBed('haven.fire', 'bed.haven.hearth', { level: 0, fade: 3.0 });
+    this.lib.setBed('haven.tick', 'bed.interior.tick', { level: 0, fade: 3.0 });
+    return true;
+  }
+  havenLevels(room, outside, hearth) {
+    if (!this.lib || !this._havenOn) return false;
+    this.lib.setBedLevel('haven.room', Math.max(0, room) * 0.30, 2.4);
+    this.lib.setBedLevel('haven.out', Math.max(0, outside) * 0.20, 2.4);
+    this.lib.setBedLevel('haven.fire', Math.max(0, hearth) * 0.34, 2.4);
+    /* The clock rides the ROOM, not its own number. It is part of the room tone, so when
+       the room goes the clock goes with it — and it is the quietest layer in the cabin so
+       that noticing it has stopped takes a moment longer than noticing the fire has. */
+    this.lib.setBedLevel('haven.tick', Math.max(0, room) * 0.09, 2.4);
+    return true;
+  }
+  havenEnd(fade) {
+    this._havenOn = false;
+    if (!this.lib) return false;
+    for (const s of ['haven.room', 'haven.out', 'haven.fire', 'haven.tick']) {
+      this.lib.clearSlot(s, fade === undefined ? 2.0 : fade);
+    }
+    this.scene = null;                   // force the next real scene to rebuild the beds
+    return true;
+  }
+
+  /* THE FINALE. Phase 33 owns the beats; this puts recorded weight underneath them.
+
+     THREE LAYERS AND ONE EVENT, matching the synthesised rig exactly rather than adding a
+     fifth idea: a deep floor that is barely there at first, a rumble that carries the
+     scale, and moving air that only appears once the thing is close. The one event is on
+     the face beat and it is a STRUCTURAL sound — something enormous flexing — not a voice.
+     There is no roar in this sequence and STORY.md section 19 is why. */
+  finaleBegin() {
+    if (!this.lib) return false;
+    this._finaleOn = true;
+    this.setScene(null, 1.0);
+    this.lib.stopAllBeds(1.0);
+    this.lib.setBed('fin.deep', 'bed.finale.deep', { level: 0, fade: 4.0, bus: 'music' });
+    this.lib.setBed('fin.rumble', 'bed.finale.rumble', { level: 0, fade: 4.0, bus: 'music' });
+    this.lib.setBed('fin.air', 'bed.finale.air', { level: 0, fade: 4.0, bus: 'music' });
+    return true;
+  }
+  /* [deep, rumble, air] per beat. MONOTONE BY CONSTRUCTION — every column only ever rises
+     across the seven beats, which is the finale's one permitted direction and the mirror
+     image of the Haven's. */
+  finaleBeat(beat) {
+    if (!this.lib || !this._finaleOn) return false;
+    const L = {
+      silence:    [0.000, 0.000, 0.000],
+      impression: [0.050, 0.000, 0.000],
+      scale:      [0.090, 0.040, 0.000],
+      movement:   [0.130, 0.075, 0.020],
+      face:       [0.165, 0.110, 0.040],
+      impossible: [0.220, 0.165, 0.080],
+      cut:        [0.260, 0.200, 0.105],
+    }[beat];
+    if (!L) return false;
+    this.lib.setBedLevel('fin.deep', L[0], 2.2);
+    this.lib.setBedLevel('fin.rumble', L[1], 2.2);
+    this.lib.setBedLevel('fin.air', L[2], 2.2);
+    if (beat === 'face') this.lib.play('sfx.finale.bend', { gain: 0.42, bus: 'music' });
+    return true;
+  }
+  finaleEnd(fade) {
+    this._finaleOn = false;
+    if (!this.lib) return false;
+    for (const s of ['fin.deep', 'fin.rumble', 'fin.air']) {
+      this.lib.clearSlot(s, fade === undefined ? 0.3 : fade);
+    }
+    this.scene = null;
+    return true;
+  }
+
+  // ---------------------------------------------------------------------------------
+  // DISCRETE CUES
+  // ---------------------------------------------------------------------------------
+  /* Named cues, so no call site anywhere in the game holds a manifest key. `variants`
+     picks one of a short list, which is what stops a door in a corridor of doors being
+     the same door. */
+  cue(name, opts) {
+    if (!this.enabled || !this.lib) return false;
+    const pick = AUDIO_CUES[name];
+    if (!pick) return false;
+    const key = pick.k.length === 1 ? pick.k[0] : pick.k[(Math.random() * pick.k.length) | 0];
+    const o = Object.assign({ gain: pick.g, bus: pick.b || 'sfx',
+                              rate: 0.96 + Math.random() * 0.08 }, opts || {});
+    return this.lib.play(key, o);
+  }
+
+  /* The same, placed in the world. Used by the animal calls and by anything a chunk owns. */
+  cueAt(name, relRight, relForward, distance, opts) {
+    if (!this.enabled || !this.lib) return false;
+    const pick = AUDIO_CUES[name];
+    if (!pick) return false;
+    const key = pick.k.length === 1 ? pick.k[0] : pick.k[(Math.random() * pick.k.length) | 0];
+    const o = Object.assign({ gain: pick.g, bus: pick.b || 'sfx' }, opts || {});
+    return this.lib.playAt(key, relRight, relForward, distance, o);
+  }
+
+  /* =================================================================================
+     THE STALKER, AND THE RESTRAINT THAT IS THE WHOLE POINT OF IT.
+
+     Phase 5's sub-bass proximity pulse is not touched: it is still the thing that tells
+     the player something is close, and it is still the only continuous Stalker sound.
+     What this adds is INCIDENTAL — the noises a heavy thing makes moving through a place
+     it is not trying to be quiet in, at the bearing it is actually at.
+
+     THE RULES IT KEEPS TO, all of which are section 5's words:
+
+       * NEVER CLOSER THAN A WHISPER. Every gain here is under a quarter, against a
+         player footstep at half, so the Stalker is always quieter than the player is.
+       * NOTHING ANNOUNCES. No cue is triggered by the Stalker seeing the player, by the
+         player seeing it, or by it changing state. They are spaced by a countdown that
+         only knows how far away it is.
+       * FARTHER IS SLOWER AND DIFFERENT. Beyond eighteen metres it is footfalls and
+         things being pushed through; inside that it is cloth; inside nine, and rarely,
+         a breath. The sequence is a thing approaching, not a threat display.
+       * IT STOPS COMPLETELY at 34 metres and in the Haven, because the Stalker is not
+         in the Haven and a sound from one that is not there is a different game.
+
+     There is no screech here and there never will be: playStalkerScreech is Phase 5's
+     one loud Stalker event and it stays the only one. */
+  stalker(dt, distance, relRight, relForward) {
+    if (!this.enabled || !this.lib) return false;
+    if (this._havenOn || this._finaleOn) return false;
+    const d = distance;
+    if (!isFinite(d) || d > 34) { this._stalkTimer = 0; return false; }
+    this._stalkTimer = (this._stalkTimer || 0) - Math.max(0, Math.min(0.25, dt || 0));
+    if (this._stalkTimer > 0) return false;
+    const near = 1 - Math.max(0, Math.min(1, d / 34));      // 0 far, 1 adjacent
+    this._stalkTimer = 6.5 - near * 3.8 + Math.random() * (4.5 - near * 2.4);
+    let name;
+    if (d > 18) name = Math.random() < 0.55 ? 'stalker.step' : (Math.random() < 0.5 ? 'branch' : 'leaves');
+    else if (d > 9) name = Math.random() < 0.5 ? 'stalker.near' : 'stalker.cloth';
+    else name = Math.random() < 0.3 ? 'stalker.breath' : 'stalker.cloth';
+    return this.cueAt(name, relRight, relForward, Math.max(1, d),
+                      { ref: 9, max: 40, gain: 0.16 + near * 0.16 });
+  }
+
+  /* THE BEHEMOTH ANNOUNCES ITSELF ONCE, FROM A LONG WAY OFF, AND NEVER AGAIN FROM HERE.
+     One call at spawn, placed at a real distance and filtered by it, so the player hears
+     that something arrived and gets no second chance to locate it. Everything the
+     Behemoth does after that is the mob's own existing audio. */
+  behemothArrives(relRight, relForward, distance) {
+    if (!this.enabled || !this.lib) return false;
+    return this.cueAt('behemoth.far', relRight, relForward, Math.max(40, distance || 90),
+                      { ref: 40, max: 220, gain: 0.34 });
+  }
+
+  /* A New Game and a Load both land here, through the same one teardown path everything
+     else in this build uses. Beds down, sequences released, scene forgotten. */
+  reset() {
+    this._havenOn = false;
+    this._finaleOn = false;
+    this.scene = null;
+    this._evTable = null;
+    this._evTimer = 30;
+    this._stalkTimer = 0;
+    if (this.lib) this.lib.reset();
+    return true;
+  }
+}
+
+/* The cue vocabulary. A name on the left, one or more recordings on the right; the game
+   asks for 'door.open' and never for a Freesound id. Adding a sound to an interaction
+   means adding a row here, not a call to the library. */
+const AUDIO_CUES = Object.freeze({
+  'door.open':    { k: ['sfx.door.open', 'sfx.door.open2'],            g: 0.50 },
+  'door.close':   { k: ['sfx.door.close', 'sfx.door.close2'],          g: 0.46 },
+  'door.creak':   { k: ['sfx.creak.door', 'sfx.door.squeak'],          g: 0.34 },
+  'door.screen':  { k: ['sfx.door.screen'],                            g: 0.42 },
+  'door.knock':   { k: ['sfx.knock.near', 'sfx.knock.seq'],            g: 0.40 },
+  'gate':         { k: ['sfx.metal.groan', 'sfx.metal.groan2'],        g: 0.34 },
+  'drawer':       { k: ['sfx.drawer', 'sfx.cabinet', 'sfx.cabinet2'],  g: 0.36 },
+  'chest.open':   { k: ['sfx.ui.pop'],                                 g: 0.55 },
+  'furniture':    { k: ['sfx.chair', 'sfx.chair.drag', 'sfx.couch'],   g: 0.30 },
+  'creak':        { k: ['sfx.creak.a', 'sfx.creak.b', 'sfx.creak.c',
+                        'sfx.creak.quiet'],                            g: 0.30 },
+  'floor.single': { k: ['sfx.floor.single'],                           g: 0.30 },
+  'switch':       { k: ['sfx.switch', 'sfx.switch2'],                  g: 0.30 },
+  'pickup':       { k: ['sfx.ui.pickup'],                              g: 0.45 },
+  'ui.click':     { k: ['sfx.ui.click', 'sfx.ui.click2'],              g: 0.30 },
+  'ui.deny':      { k: ['sfx.ui.deny'],                                g: 0.26 },
+  'metal.knock':  { k: ['sfx.metal.knock'],                            g: 0.34 },
+  'branch':       { k: ['sfx.branch', 'sfx.branch.crackle'],           g: 0.34 },
+  'leaves':       { k: ['sfx.leaves', 'sfx.bush', 'sfx.grass'],        g: 0.28 },
+  'water.drip':   { k: ['sfx.drip.fast', 'sfx.drip.slow'],             g: 0.24 },
+  'animal.cow':     { k: ['sfx.animal.cow'],                           g: 0.30 },
+  'animal.sheep':   { k: ['sfx.animal.sheep'],                         g: 0.30 },
+  'animal.chicken': { k: ['sfx.animal.chicken'],                       g: 0.26 },
+  'animal.horse':   { k: ['sfx.animal.horse'],                         g: 0.30 },
+  /* THE STALKER. Four recordings, all of them quiet, none of them a scream. Section 5 of
+     the brief asks for "extremely restrained creature audio" and the loudest thing here
+     is a footfall at 0.34 — a third of the player's own step at the same distance. */
+  'stalker.step':   { k: ['step.stalker'],                             g: 0.34 },
+  'stalker.near':   { k: ['step.stalker.near'],                        g: 0.30 },
+  'stalker.cloth':  { k: ['step.cloth'],                               g: 0.22 },
+  'stalker.breath': { k: ['sfx.stalker.breath', 'sfx.stalker.breath2',
+                          'sfx.stalker.breath3'],                      g: 0.20 },
+  /* THE RIFT. Layers and fades, never spam — the brief's words. Each of these is a
+     one-shot the Rift sequence places, not a loop and not a scheduler. */
+  'rift.glitch':    { k: ['sfx.rift.glitch'],                          g: 0.24, b: 'amb' },
+  'rift.distort':   { k: ['sfx.rift.distort', 'sfx.rift.scrape'],      g: 0.22, b: 'amb' },
+  'rift.transition':{ k: ['sfx.rift.transition'],                      g: 0.28, b: 'amb' },
+  'rift.memory':    { k: ['sfx.rift.musicbox'],                        g: 0.20, b: 'amb' },
+  /* THE BEHEMOTH. Distant by default: every one of these is placed with playAt at real
+     distance, and the roar is deliberately the quietest thing in the group. */
+  'behemoth.far':   { k: ['sfx.behemoth.far', 'sfx.behemoth.dist'],    g: 0.30 },
+  'behemoth.roar':  { k: ['sfx.behemoth.roar', 'sfx.behemoth.roar2'],  g: 0.26 },
+  'whisper':        { k: ['sfx.whisper.four', 'sfx.whisper.close'],     g: 0.18, b: 'amb' },
+});
 
 /* The selection box + crack overlay drawn on whatever voxel the crosshair is on.
    One persistent pair of meshes that gets repositioned — nothing is allocated or
@@ -12123,9 +13490,9 @@ class EnvironmentStorySystem {
     const g = this.game;
     if (this._occStep > 0) {
       this._occStep -= dt;
-      if (this._occStep <= 0 && g && g.sound && g.sound.playFootstep) {
+      if (this._occStep <= 0) {
         this._occStep = 0;
-        try { g.sound.playFootstep(0.17); } catch (e) { /* audio is optional */ }
+        this._occFootfall(g, 0.17, 0.24);
       }
       return;
     }
@@ -12144,9 +13511,24 @@ class EnvironmentStorySystem {
     while (this._occOrder.length > ENV_OCCUPANCY_CAP) this._occHeard.delete(this._occOrder.shift());
     this._occCooldown = ENV_OCCUPANCY_GAP;
     this._occStep = 0.36;                             // the second footfall
-    if (g && g.sound && g.sound.playFootstep) {
-      try { g.sound.playFootstep(0.2); } catch (e) { /* audio is optional */ }
-    }
+    this._occFootfall(g, 0.2, 0.28);
+  }
+
+  /* PHASE 34 — ONE footfall, and the only reason it is its own method is that Phase 31
+     makes exactly two of them and they must sound alike.
+
+     The cue is a SINGLE recorded floorboard (261371) — precisely the sound Phase 31
+     described and could not have — and the synthesised step is the fallback, so a build
+     with the sample library missing still produces the effect Phase 31 authored rather
+     than nothing at all. Neither path is allowed to throw: an audio failure has never
+     been a reason for a world system to stop. */
+  _occFootfall(g, synthLevel, cueLevel) {
+    if (!g || !g.sound) return false;
+    try {
+      if (g.sound.director && g.sound.director.cue('floor.single', { gain: cueLevel })) return true;
+      if (g.sound.playFootstep) g.sound.playFootstep(synthLevel);
+    } catch (e) { /* audio is optional */ }
+    return false;
   }
 
   /* SAVE. Only the latch, and only the ids this build knows — filtered through the
@@ -26296,9 +27678,17 @@ class PlayerController {
       if (result === 'blocked') {
         if (this.ui) this.ui.showToast('The door catches against you.', 1400);
       } else if (result) {
+        /* PHASE 34 — a door now sounds like a door. The recorded cue is tried first and
+           the placement/break clack it used to borrow is the fallback, so the interaction
+           is never silent even with the library missing. Two takes per direction, picked
+           at random, because a corridor of identical doors is a corridor of one door. */
         if (this.sound) {
-          if (result === 'opened') this.sound.playBlockPlace();
-          else this.sound.playBlockBreak(BLOCK.OAK_LOG);
+          const d = this.sound.director;
+          const played = d && d.cue(result === 'opened' ? 'door.open' : 'door.close');
+          if (!played) {
+            if (result === 'opened') this.sound.playBlockPlace();
+            else this.sound.playBlockBreak(BLOCK.OAK_LOG);
+          }
         }
       }
       return;
@@ -26609,7 +27999,13 @@ class PlayerController {
       this.walkDistance += speed * dt;
       this.footstepTimer -= dt;
       if (this.footstepTimer <= 0) {
-        this.sound.playFootstep(this.sprint ? 1.3 : 0.9);
+        /* PHASE 34 — the surface is worked out HERE, once per footfall rather than once
+           per frame, because this is the only moment it is needed and a block read is not
+           free. The engine is handed a NAME; it never sees the block id. */
+        const surf = (this.sound.director)
+          ? this.sound.director.surfaceAt(this.world, this.position.x, this.position.y, this.position.z)
+          : null;
+        this.sound.playFootstep(this.sprint ? 1.3 : 0.9, surf);
         // Base cadence of 0.4s, synced faster/slower with actual movement velocity.
         this.footstepTimer = 0.4 * (this.walkSpeed / speed);
       }
@@ -32627,6 +34023,7 @@ class UIManager {
     slider('setMaster', 'masterVolume', 100);
     slider('setMusic', 'musicVolume', 100);
     slider('setSfx', 'sfxVolume', 100);
+    slider('setAmb', 'ambienceVolume', 100);
     slider('setSens', 'mouseSensitivity', 100);
 
     const seg = el('setQuality');
@@ -32669,6 +34066,8 @@ class UIManager {
     txt('setMusicVal', pct(S.get('musicVolume')));
     put('setSfx', Math.round(S.get('sfxVolume') * 100));
     txt('setSfxVal', pct(S.get('sfxVolume')));
+    put('setAmb', Math.round(S.get('ambienceVolume') * 100));
+    txt('setAmbVal', pct(S.get('ambienceVolume')));
     put('setSens', Math.round(S.get('mouseSensitivity') * 100));
     txt('setSensVal', S.get('mouseSensitivity').toFixed(2) + '×');
 
@@ -35863,6 +37262,11 @@ class Game {
        repaints from the state it just applied rather than skipping a write because the
        cache still holds the previous run's value. See UIManager.resetPresentation. */
     this.ui.resetPresentation();
+    /* PHASE 34 — and nothing SOUNDING may survive one either. Every bed goes down, the
+       Haven and finale sequences are released, and the scene is forgotten so the next
+       frame rebuilds it from where the player has actually landed. Decoded buffers are
+       deliberately kept: re-entering a dimension should not re-download it. */
+    if (this.sound && this.sound.director) this.sound.director.reset();
 
     // Player body: no residual motion, mining, lock or death.
     const p = this.player;
@@ -36204,10 +37608,65 @@ class Game {
      graphics zero times, because the quality string did not change.
      =================================================================================== */
   _onSettingChanged(key) {
-    if (key === 'masterVolume' || key === 'musicVolume' || key === 'sfxVolume') this._applyAudioSettings();
+    if (key === 'masterVolume' || key === 'musicVolume' || key === 'sfxVolume' ||
+        key === 'ambienceVolume') this._applyAudioSettings();
     else if (key === 'graphicsQuality') this._applyGraphicsQuality();
     // mouseSensitivity is read live by the mousemove handler; nothing to push.
     // fullscreen is actioned from the click that set it — see UIManager._bindSettings.
+  }
+
+  /* PHASE 34 — a world point as the listener hears it: how far right of the camera it is,
+     how far in front, and how far away. Four lines that were written out three times in
+     this file before this phase (the CRT static, the animal calls, and now twice more),
+     so they are written once here and the copies point at it. */
+  _listenerRelative(p) {
+    const o = this.player.position;
+    const dx = p.x - o.x, dz = p.z - o.z;
+    const yaw = this.player.yaw;
+    const right = dx * Math.cos(yaw) + dz * -Math.sin(yaw);
+    const forward = -(dx * -Math.sin(yaw) + dz * -Math.cos(yaw));
+    return { right, forward, dist: Math.sqrt(dx * dx + dz * dz) };
+  }
+
+  /* PHASE 34 — see the call site in update() for why this exists and what it may not do.
+     Returns the scene id it settled on, which is what makes it testable. */
+  _updateEnvironmentAudio(dt) {
+    const d = this.sound && this.sound.director;
+    if (!d) return null;
+    const p = this.player;
+    const pos = p.position;
+    /* INDOORS IS "NOTHING OVERHEAD", read from the world's own sky test rather than from
+       a new flag: a barn counts, a porch does not, and a cave counts as deep. This is the
+       same predicate the day-phase sanity floor already uses. */
+    let indoors = false, deep = false;
+    if (this.world && this.world.hasSkyAbove) {
+      const hx = Math.floor(pos.x), hy = Math.floor(pos.y + p.eyeHeight), hz = Math.floor(pos.z);
+      indoors = !this.world.hasSkyAbove(hx, hy, hz);
+      /* 'DEEP' MEANS UNDER THE GROUND, NOT MERELY LOW. The first version of this line
+         read `pos.y < 26`, which is above SEA_LEVEL: the browser test caught it
+         immediately by walking into an ordinary ground-floor room at y 24 and getting the
+         basement room tone. Three blocks below sea level is unambiguously a cave or a
+         cellar and cannot be a living room. */
+      deep = indoors && pos.y < SEA_LEVEL - 3;
+    }
+    /* THE RIFT SCENE IS A PLACE, NOT AN EVENT. It comes up when the player walks toward
+       a powered Anchor and goes again when they walk away, on the bed crossfade like
+       every other scene — no trigger, no sting, and nothing that fires once and has to be
+       latched. Twenty metres is roughly where the dome is first clearly visible, so the
+       sound and the sight arrive together. */
+    let rift = false;
+    const am = this.anchorManager;
+    if (am && am.riftActive && am.activeAnchor) {
+      const a = am.activeAnchor.pos;
+      const dx = a.x - pos.x, dz = a.z - pos.z;
+      rift = (dx * dx + dz * dz) < 400;
+    }
+    return d.update(dt, {
+      dimension: EnvironmentStorySystem.dimensionOf(p),
+      night: !!this.env.isNight,
+      blood: !!this.env.isNight && this.stage >= 2,
+      indoors, deep, rift,
+    });
   }
 
   /* Safe before the AudioContext exists, which is the normal case at boot: a browser
@@ -36218,7 +37677,8 @@ class Game {
     if (!this.sound) return;
     this.sound.applyVolumes(this.settings.get('masterVolume'),
                             this.settings.get('musicVolume'),
-                            this.settings.get('sfxVolume'));
+                            this.settings.get('sfxVolume'),
+                            this.settings.get('ambienceVolume'));
   }
 
   /* THE THREE KNOBS, and nothing else. No effect is disabled, no geometry is dropped and
@@ -37206,12 +38666,42 @@ class Game {
        dimensions and nothing can follow the player out of this one. */
     this.farmAnimals.update(dt, this.player, this.camera);
 
+    /* =================================================================================
+       PHASE 34 — THE ONE PLACE THE ENVIRONMENT'S RECORDED SOUND IS DECIDED.
+
+       Everything the director needs is a flat description of WHERE THE PLAYER IS, built
+       here and nowhere else, so the whole of the game's environmental audio policy is one
+       call and one small object rather than a set of playback calls scattered through the
+       dimensions. The director does the rest: chooses a scene, crossfades the beds it
+       needs, releases the ones it does not, and counts down to the next sparse event.
+
+       IT IS CHEAP AND IT IS SELF-GATING. Two block reads and an object literal per frame;
+       the scene id is compared against the one already playing and an unchanged scene
+       does nothing at all. Inside the Haven and through the finale the director returns
+       null from sceneFor() and stands down completely — those two sequences own their own
+       beds and nothing here competes with them.
+
+       `blood` DOES NOT COME FROM A BLOOD NIGHT FLAG, because the build does not have one:
+       Blood Nights are a STORY.md idea that the code expresses as the stage escalation.
+       Stage 2 onwards at night is the closest honest signal there is, and it is written
+       here rather than invented as a new piece of state. */
+    this._updateEnvironmentAudio(dt);
+
     this.sound.updateDayTrack(dt, !this.env.isNight);
     this.sound.setNightIntensity(this.env.nightAmount, this.env.t);
     this.sound.updateWhispers(dt, this.sanity.fraction);
     this.sound.setSanityFraction(this.sanity.fraction);
     this.sound.updateDarknessWhispers(dt, this.sanity.lightLevel);
     this.sound.updateStalkerProximityPulse(dt, this.stalkerDistance);
+    /* PHASE 34 — the recorded Stalker needs a BEARING, which the pulse never did. It is
+       computed with the same three lines the CRT static and the animal calls already use,
+       and only when there is something to compute it for. */
+    if (this.stalker && isFinite(this.stalkerDistance) && this.stalkerDistance < 34) {
+      const b = this._listenerRelative(this.stalker.position);
+      this.sound.updateStalkerPresence(dt, this.stalkerDistance, b.right, b.forward);
+    } else {
+      this.sound.updateStalkerPresence(dt, Infinity, 0, 0);
+    }
     // LEVEL 4 — drives the infinite warm 8-bit chiptune loop (no-ops unless the
     // Haven's audio mode is active).
     this.sound.updateHavenMusic(dt);
@@ -37265,6 +38755,14 @@ class Game {
       this.behemothSpawned = true;
       const spawnPos = this.anchorManager.activeAnchor ? this.anchorManager.activeAnchor.pos.clone() : this.player.position.clone();
       this.mobs.spawnBehemoth(spawnPos);
+      /* PHASE 34 — ONE call, from where it actually arrived. Not a stinger and not a
+         cue to go and look: it is placed at the real spawn bearing and the real spawn
+         distance, so if the Behemoth appeared behind the player they hear it behind
+         them, and if it appeared close they hear how close. */
+      if (this.sound.director) {
+        const b = this._listenerRelative(spawnPos);
+        this.sound.director.behemothArrives(b.right, b.forward, b.dist);
+      }
     }
     /* LEVEL 4 — FAKE HAVEN ILLUSION TRIGGER (PHASE 5A PART 3).
        The moment the Level 3 Rift Core Disk actually lands in the inventory — i.e.

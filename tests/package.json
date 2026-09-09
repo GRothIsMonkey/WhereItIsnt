@@ -36,7 +36,9 @@
     "haven": "node haven.js",
     "browser-haven": "node browser-haven.js",
     "finale": "node finale.js",
-    "browser-finale": "node browser-finale.js"
+    "browser-finale": "node browser-finale.js",
+    "audio": "node audio.js",
+    "browser-audio": "node browser-audio.js"
   },
   "dependencies": {
     "three": "0.128.0"

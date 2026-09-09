@@ -16,3 +16,5 @@ vendor/
 # The Phase 26 build, for the HUD before/after cost comparison:
 #   git show c05efbe:game.html > tests/phase26.html
 phase26.html
+# Python bytecode from tests/tools/
+tools/__pycache__/
