@@ -2704,6 +2704,86 @@ class SoundEngine {
     this.musicBus.gain.setTargetAtTime(Math.max(0, Math.min(1.5, v)), now, 0.1);
   }
 
+  /* =================================================================================
+     PHASE 34.2 — THE UI CLICK, AND WHY IT NEEDS A SYNTHESISED HALF.
+
+     `AUDIO_CUES` has carried a 'ui.click' row since Phase 34 and NOTHING HAS EVER CALLED
+     IT: the menu buttons made no sound at all. Wiring one is not simply a matter of
+     calling the cue, because of WHEN the first click happens. A browser will not open an
+     AudioContext before a gesture, so on the main menu there is no context, no library
+     and no decoded buffer — and the very first click a player makes is the one that
+     creates all three. The sample cannot be ready in time for the click that loads it.
+
+     So this follows the rule the rest of the audio system already follows: the recording
+     is tried first and a synthesised voice answers when it is not there. The synthesised
+     click is deliberately tiny — a 7ms noise tick through a band-pass plus a short sine
+     body, about 40ms in total — because it is standing in for a menu click and not for a
+     game event. In practice it is heard once, on the first button of a session.
+
+     IT IS ONE SOUND PER CALL AND IT IS ON THE SFX BUS, so the Sound Effects slider
+     reaches it like every other cue. */
+  playUiClick(kind) {
+    /* The click IS a user gesture, so this is a legal place to open the context — and it
+       makes any menu button a valid way to arm audio, not just the menu's own listener. */
+    if (!this.started) { try { this.start(); } catch (e) { return false; } }
+    if (!this.ctx) return false;
+    this.resumeContext();
+    const cue = (kind === 'deny') ? 'ui.deny' : 'ui.click';
+    if (this.director && this.director.cue(cue, { minGap: 0.04 })) return true;
+    /* --- the fallback, for the first click of a session and for a stripped build --- */
+    const now = this.ctx.currentTime;
+    const out = this.ctx.createGain();
+    out.gain.value = 0;
+    out.connect(this.sfxUnityBus || this.master);
+    const deny = (kind === 'deny');
+    const tick = this.ctx.createBufferSource();
+    tick.buffer = this._makeNoiseBuffer(0.02, 'white');
+    const bp = this.ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = deny ? 900 : 2400;
+    bp.Q.value = 1.4;
+    tick.connect(bp); bp.connect(out);
+    const body = this.ctx.createOscillator();
+    body.type = 'sine';
+    body.frequency.setValueAtTime(deny ? 220 : 520, now);
+    body.frequency.exponentialRampToValueAtTime(deny ? 150 : 330, now + 0.05);
+    const bg = this.ctx.createGain();
+    bg.gain.value = 0.22;
+    body.connect(bg); bg.connect(out);
+    out.gain.setValueAtTime(0.0001, now);
+    out.gain.exponentialRampToValueAtTime(deny ? 0.14 : 0.2, now + 0.006);
+    out.gain.exponentialRampToValueAtTime(0.0001, now + 0.055);
+    tick.start(now); tick.stop(now + 0.03);
+    body.start(now); body.stop(now + 0.07);
+    body.onended = () => { try { out.disconnect(); } catch (e) { /* detached */ } };
+    return true;
+  }
+
+  /* =================================================================================
+     PHASE 34.2 — THE ONE PLACE A SUSPENDED CONTEXT IS RECOVERED.
+
+     Before this the build called `ctx.resume()` NOWHERE. A context opened inside a
+     gesture starts running, so the common path worked and nothing in either test suite
+     ever saw the failure — but a context does not stay running by right. Chrome suspends
+     it when a tab is hidden or backgrounded for long enough, Safari suspends it when the
+     page loses focus, and an autoplay policy can hand one over already suspended. Any of
+     those leaves a session where every gain node, every bed and every scheduled source is
+     perfectly correct and the player hears nothing at all, permanently.
+
+     Cheap enough to call from anywhere: it tests the state first and a resume() on a
+     running context is not issued. It is called from every gesture the game already binds
+     and from visibilitychange — see Game._watchAudioContext. Nothing here plays a silent
+     keep-alive buffer; that is a workaround for this function not existing. */
+  resumeContext() {
+    const c = this.ctx;
+    if (!c || c.state !== 'suspended' || typeof c.resume !== 'function') return false;
+    try {
+      const r = c.resume();
+      if (r && typeof r.catch === 'function') r.catch(() => {});
+    } catch (e) { return false; }
+    return true;
+  }
+
   isMusicTrackPlaying(id) {
     this._ensureMusicRegistry();
     return this.activeMusicIds.has(id);
@@ -3949,10 +4029,34 @@ class SoundEngine {
        only horse in the library. A commercial build losing it falls back to this method's
        synthesised horse rather than to silence. See AUDIO_INDEX.md. */
     if (this.director) {
-      const name = { cow: 'animal.cow', sheep: 'animal.sheep',
-                     chicken: 'animal.chicken', horse: 'animal.horse' }[species];
+      /* =============================================================================
+         PHASE 34.2 — INDEXED BY NUMBER, BECAUSE THAT IS WHAT `species` ACTUALLY IS.
+
+         This lookup was written with STRING keys — { cow: …, sheep: … }[species] — and
+         every caller passes `a.desc.species`, which is FARM_ANIM_SPECIES: the integers
+         0, 1, 2, 3. The subscript therefore evaluated to `undefined` on every call, the
+         `if (name && …)` guard below always failed, and the four recorded animal calls
+         were unreachable from anywhere in the game. Not rare, not quiet — UNREACHABLE.
+         Every animal the player has ever heard was the synthesised fallback twelve lines
+         further down, which is why the human playtest reported no animal calls at all.
+
+         Nothing caught it because the offline suite tested the SELECTION — it called
+         this with the string 'cow' and got 'animal.cow' back, which is true and is not
+         the question. The question is whether the real animal, in the real herd, reaches
+         a real playback call, and that is what tests/audio.js now drives instead.
+
+         The string form is still accepted, because the audit tool and the tests address
+         species by name and there is no reason to make them speak in integers. */
+      const BY_INDEX = ['animal.cow', 'animal.sheep', 'animal.chicken', 'animal.horse'];
+      const name = (typeof species === 'number')
+        ? BY_INDEX[species]
+        : { cow: 'animal.cow', sheep: 'animal.sheep',
+            chicken: 'animal.chicken', horse: 'animal.horse' }[species];
+      /* PHASE 34.2 — `floor: 0.4`. An animal IS at a real place and the player can walk
+         to it, so distance keeps a real say here — but only half a say. A herd across a
+         field has to be audible from the road or the Farmlands has no livestock in it. */
       if (name && this.director.cueAt(name, relRight, relForward, Math.max(1, distance || 1),
-                                      { ref: 11, max: 70 })) return;
+                                      { ref: 11, max: 70, floor: 0.4 })) return;
     }
     const now = this.ctx.currentTime;
     const dist = Math.max(1, distance || 1);
@@ -5538,6 +5642,11 @@ class AudioLibrary {
     this.voices  = 0;             // live voice count, all keys
     this.enabled = true;          // a hard off switch; nothing plays while false
     this.stats = { requested: 0, loaded: 0, failed: 0, played: 0, dropped: 0, decoded: 0 };
+    /* PHASE 34.2 — the last voice that actually STARTED, for the developer overlay and
+       the runtime audit. One object assignment on a path that already does several, and
+       it is the difference between "a sound was requested" and "a sound was made" — the
+       distinction this whole correction pass exists to be able to see. */
+    this.last = null;
     this._loading = 0;
     this._queue = [];
   }
@@ -5746,6 +5855,7 @@ class AudioLibrary {
     this._perKey.set(ck, (this._perKey.get(ck) || 0) + 1);
     this._last.set(ck, now);
     this.stats.played++;
+    this.last = { key: ck, gain: +(g.gain.value).toFixed(4), bus: o.bus || 'amb', t: now };
     /* RELEASED EXACTLY ONCE. `done` is reachable from two places — the engine firing
        onended, and the deadline below — and they are not exclusive: a normal end fires the
        callback and the deadline still arrives afterwards. Without the latch the second
@@ -5779,21 +5889,62 @@ class AudioLibrary {
      animal and CRT code already compute, so this uses the same convention and no new
      maths appears at the call sites.
 
-     DISTANCE IS A CURVE PLUS A FILTER, not just a gain. Air takes the top off a sound
-     long before it takes the level off it, and that is most of what makes something read
-     as far away rather than quiet — which is exactly what the finale needs. */
+     =================================================================================
+     PHASE 34.2 — DISTANCE IS COLOUR AND BEARING FIRST, LEVEL A DISTANT SECOND, AND
+     THIS IS THE FIX FOR THE SILENT WORLD.
+
+     The previous version applied a bare inverse-square law to the authored gain:
+
+         fall = 1 / (1 + (d/ref)^2)
+
+     A tractor authored at 0.24 and placed 95-140 metres away — which is where a
+     tractor belongs — arrived at the player at gain 0.008. A crow authored at 0.46
+     and placed at 90m arrived at 0.032. Against a footstep at 0.46 on the same bus
+     that is thirty-five decibels down, and against an ambient bed at 0.85 it is
+     twenty-five decibels below the thing it is supposed to be heard over. Every
+     distant one-shot in the game — every crow, tractor, dog, gate, clang and animal
+     call — was being computed into inaudibility, which is precisely why a human
+     playtester walking the Farmlands for ten minutes heard nothing but their own feet.
+
+     THE ERROR WAS CATEGORICAL, NOT ARITHMETIC. The distance an ambient event is
+     placed at is DECORATIVE: it is drawn at random from its own row purely so the
+     sound reads as coming from somewhere else. It is not a physical fact the player
+     can walk toward, test, or act on. Running a physical falloff over a decorative
+     distance turns an authored mix level into a number nobody chose.
+
+     So the curve now carries a FLOOR. `floor` is the fraction of the authored gain
+     that distance may never take away:
+
+         floor 1.00   the authored gain IS the level at the player. Distance shapes
+                      only bearing and colour. This is what an ambient event wants.
+         floor 0.25   a real thing at a real place, whose distance the player is
+                      meant to be able to judge — an animal in a field.
+         floor 0.05   the Stalker, where closing distance is the entire cue and must
+                      remain the loudest thing the curve does.
+
+     AND THE AIR FILTER DOES THE WORK THE LEVEL USED TO. The old low-pass was linear
+     and barely engaged — 8.1kHz at ninety metres is not a filter, it is a formality.
+     It is now a reciprocal curve that reaches 2.7kHz at ninety metres and 2.0kHz at
+     the far edge, which is what genuinely makes a sound read as distant rather than
+     merely quiet. Level says "this is small". Colour says "this is far". They are
+     different statements and only the second one survives being audible.
+     ================================================================================= */
   playAt(key, relRight, relForward, distance, opts) {
     const o = Object.assign({}, opts || {});
-    const ref = o.ref || 14;                  // metres at which the sound is half strength
+    const ref = o.ref || 14;                  // metres at which the raw curve is half
     const d = Math.max(0, distance || 0);
     const max = o.max || 140;
     if (d > max) return false;
-    const fall = 1 / (1 + (d / ref) * (d / ref));
+    const floor = (o.floor === undefined) ? 0.25 : Math.max(0, Math.min(1, o.floor));
+    const raw = 1 / (1 + (d / ref) * (d / ref));
+    const fall = floor + (1 - floor) * raw;
     o.gain = (o.gain === undefined ? 1 : o.gain) * fall;
     if (o.gain < 0.0015) return false;        // inaudible: do not spend a voice on it
     const span = Math.abs(relRight) + Math.abs(relForward) + 1;
     o.pan = Math.max(-0.9, Math.min(0.9, relRight / span));
-    o.lp = o.lp || Math.max(700, 18000 - d * 110);
+    /* 18kHz at the listener, 4.7kHz at forty metres, 2.7kHz at ninety, 2.1kHz at the
+       far edge. Air absorption, and the only thing left that says "far". */
+    o.lp = o.lp || Math.max(700, 700 + 17300 / (1 + d / 12));
     return this.play(key, o);
   }
 
@@ -6034,18 +6185,45 @@ const AUDIO_SCENES = Object.freeze({
   'overworld.night':  { air: ['bed.overworld.night', 0.80], layer: ['bed.wind.open',     0.26], ev: 'out.night' },
   'overworld.blood':  { air: ['bed.overworld.night', 0.50], layer: ['bed.blood.rumble',  0.44],
                         tension: ['bed.blood.earth', 0.26], ev: 'out.blood' },
-  'farm.day':         { air: ['bed.farm.day',        0.85], layer: ['bed.farm.crop',     0.42], ev: 'farm.day'  },
+  /* PHASE 34.2 — THE DAYTIME FARMLANDS GAINS ITS WIND. The playtest listed "no wind
+     ambience" and "no grass/environmental ambience" separately from "no farm ambience",
+     and it was right to: the day scene had a field recording and a crop layer and nothing
+     moving over them, while only the NIGHT scene carried `bed.farm.wind`. An open
+     agricultural region with wide horizons (CLAUDE.md section 31) is the windiest place
+     in the game and was the only outdoor scene with no air moving in it. */
+  'farm.day':         { air: ['bed.farm.day',        0.85], layer: ['bed.farm.crop',     0.42],
+                        tone: ['bed.farm.wind',      0.26], ev: 'farm.day'  },
   'farm.night':       { air: ['bed.farm.night',      0.80], layer: ['bed.farm.wind',     0.28], ev: 'farm.night'},
   'farm.blood':       { air: ['bed.farm.night',      0.48], layer: ['bed.blood.rumble',  0.42],
                         tension: ['bed.blood.far',   0.20], ev: 'farm.night' },
-  /* SUBURBIA'S `tone` SLOT IS EMPTY BY DAY AND HOLDS A STREET-LIGHT BUZZ AT NIGHT. It
-     used to hold a recorded CRT hum, which doubled the Phase 5A procedural CRT static —
-     and that one is SPATIALISED to the nearest window, which the bed could never be. One
-     hum, and it is the positioned one. */
-  'sub.day':          { air: ['bed.sub.day',         0.85], layer: ['bed.sub.traffic',   0.34], ev: 'sub.day'   },
+  /* =================================================================================
+     SUBURBIA'S ELECTRICAL LAYER — REMOVED IN 34.1, RESTORED IN 34.2, AND THE REASONING
+     THAT REMOVED IT WAS THE MISTAKE.
+
+     Phase 34.1 deleted `bed.hum.crt` from all three Suburbia scenes on the grounds that
+     it "doubled the Phase 5A procedural CRT static", leaving `sub.day` and `sub.blood`
+     with no tone slot at all. The human playtest that followed reported the exact
+     consequence: "there was not even the AC/electrical ambience that was audible before".
+
+     TWO THINGS WERE WRONG WITH THE ARGUMENT. The procedural CRT static is not a
+     neighbourhood hum — it is one television, SPATIALISED to the nearest window through
+     a panner with refDistance 3 and maxDistance 45, which measures at roughly -45 dBFS
+     and is only present within about ten metres of a house. It was never carrying the
+     dimension. And it was audible before 34.1 only because every recorded bed around it
+     was inaudible; once the beds were correctly normalised it was simply masked.
+
+     So the layers are separated by WHAT THEY ARE rather than deduplicated by category.
+     A television in a window is a positioned object and stays positioned. The hum of a
+     street full of air-conditioning plant is a bed, it is everywhere, and it is the
+     sound the playtester actually missed. `bed.hum.mech` is a seamless CC0 mechanical
+     drone and is deliberately NOT the powerline recording, which is NonCommercial and is
+     already carrying the night layer — see the licence quarantine in AUDIO_INDEX.md. */
+  'sub.day':          { air: ['bed.sub.day',         0.85], layer: ['bed.sub.traffic',   0.34],
+                        tone: ['bed.hum.mech',       0.30], ev: 'sub.day'   },
   'sub.night':        { air: ['bed.sub.night',       0.80], layer: ['bed.hum.powerline', 0.30],
-                        tone: ['bed.hum.buzz',       0.20], ev: 'sub.night' },
-  'sub.blood':        { air: ['bed.sub.night',       0.46], layer: ['bed.blood.rumble',  0.40], ev: 'sub.night' },
+                        tone: ['bed.hum.buzz',       0.24], ev: 'sub.night' },
+  'sub.blood':        { air: ['bed.sub.night',       0.46], layer: ['bed.blood.rumble',  0.40],
+                        tone: ['bed.hum.low',        0.22], ev: 'sub.night' },
   /* INDOORS. The outside does not vanish, it is muffled — but "muffled" is a level
      BELOW the outdoor bed, not a level near silence, which is what the first version's
      0.34 against an unnormalised -67 dBFS recording actually produced. */
@@ -6318,9 +6496,25 @@ class AudioDirector {
       else this.lib.clearSlot(slot, fade);
     }
     this._evTable = sc && sc.ev ? AUDIO_EVENTS[sc.ev] : null;
-    /* The clock is reset on every scene change, and it is reset LONG. Walking through a
-       door must not fire an event on the other side of it. */
-    this._evTimer = this._evTable ? this._rand(this._evTable.gap) * (0.6 + Math.random() * 0.6) : 0;
+    /* The clock is reset on every scene change, because walking through a door must not
+       fire an event on the other side of it — a sound that lands as the mix changes reads
+       as a reaction to the player, which nothing in these tables may be.
+
+       PHASE 34.2 — BUT IT IS NO LONGER RESET LONG. The old line was
+       `rand(gap) * (0.6 + rand*0.6)`, which for the Farmland day table is anywhere from
+       14 to 66 SECONDS. Arriving in a dimension and standing in silence for a minute is
+       indistinguishable from a dimension that has no sound in it, and that is exactly how
+       the human playtest described the Farmlands. Five seconds is already far more than
+       enough to decouple the first event from the door that caused the scene change; the
+       upper bound is now a little over half the table's own minimum gap, so a busy table
+       opens sooner than a sparse one without either of them opening ON the transition.
+
+       THE FLOOR IS ELEVEN SECONDS AND THAT NUMBER IS LOAD-BEARING. A scene change must
+       never fire an event — a creak heard on the far side of a door the player just
+       walked through reads as a reaction to the player, which nothing in these tables is
+       allowed to be — and `tests/audio.js` drives two hundred scene changes and fails if
+       a single event lands in the ten seconds after any of them. Do not lower it. */
+    this._evTimer = this._evTable ? 11 + Math.random() * (this._evTable.gap[0] * 0.55) : 0;
     return true;
   }
 
@@ -6355,8 +6549,16 @@ class AudioDirector {
        depend on the voice ceiling. Whether a voice was actually available is the
        library's business and is counted in its own `dropped`. */
     this.stats.events++;
+    /* PHASE 34.2 — `floor: 0.7`, AND THIS IS THE LINE THE SILENT WORLD TURNED ON.
+       These distances are decorative: they are drawn from the row above purely so the
+       sound reads as coming from somewhere else, and the player can never walk to one
+       or test it. Running a physical inverse-square over them delivered a tractor at
+       gain 0.008 and a crow at 0.032 — a table of sounds nobody could hear. With the
+       floor the authored gain is very nearly the level at the player (72-93% of it
+       across the whole range), and distance is carried by the air filter and the
+       bearing instead, which is what made these read as far away in the first place. */
     return this.lib.playAt(p[0], Math.sin(ang) * dist, Math.cos(ang) * dist, dist,
-                           { gain: p[1], ref: 26, max: 200, bus: 'amb' });
+                           { gain: p[1], ref: 26, max: 200, floor: 0.7, bus: 'amb' });
   }
 
   // ---------------------------------------------------------------------------------
@@ -6523,8 +6725,13 @@ class AudioDirector {
     if (d > 18) name = Math.random() < 0.55 ? 'stalker.step' : (Math.random() < 0.5 ? 'branch' : 'leaves');
     else if (d > 9) name = Math.random() < 0.5 ? 'stalker.near' : 'stalker.cloth';
     else name = Math.random() < 0.3 ? 'stalker.breath' : 'stalker.cloth';
+    /* PHASE 34.2 — a LOW floor here, deliberately, and it is the opposite decision from
+       the ambient events. The Stalker's distance is not decorative: closing on the player
+       IS the cue, and the level sweep from 0.034 at thirty metres to 0.234 at five is the
+       thing that carries it. The floor only stops the far end computing itself to
+       nothing — it must be perceptible to be a warning — and leaves the gradient intact. */
     return this.cueAt(name, relRight, relForward, Math.max(1, d),
-                      { ref: 9, max: 40, gain: 0.16 + near * 0.16 });
+                      { ref: 9, max: 40, floor: 0.12, gain: 0.16 + near * 0.16 });
   }
 
   /* THE BEHEMOTH ANNOUNCES ITSELF ONCE, FROM A LONG WAY OFF, AND NEVER AGAIN FROM HERE.
@@ -6533,8 +6740,12 @@ class AudioDirector {
      Behemoth does after that is the mob's own existing audio. */
   behemothArrives(relRight, relForward, distance) {
     if (!this.enabled || !this.lib) return false;
+    /* PHASE 34.2 — a HIGH floor. This fires once in a playthrough and its whole job is to
+       tell the player that something enormous has arrived somewhere else. A distance
+       curve that reduced that one announcement to gain 0.13 spent the moment on nothing;
+       the bearing and the air filter still say how far away it is. */
     return this.cueAt('behemoth.far', relRight, relForward, Math.max(40, distance || 90),
-                      { ref: 40, max: 220, gain: 0.34 });
+                      { ref: 40, max: 220, floor: 0.55, gain: 0.34 });
   }
 
   /* A New Game and a Load both land here, through the same one teardown path everything
@@ -6576,10 +6787,16 @@ const AUDIO_CUES = Object.freeze({
   'leaves':       { k: ['sfx.leaves', 'sfx.bush', 'sfx.grass'],        g: 0.28 },
   'crop':         { k: ['sfx.crop'],                                   g: 0.26 },
   'water.drip':   { k: ['sfx.drip.fast', 'sfx.drip.slow'],             g: 0.24 },
-  'animal.cow':     { k: ['sfx.animal.cow'],                           g: 0.30 },
-  'animal.sheep':   { k: ['sfx.animal.sheep'],                         g: 0.30 },
-  'animal.chicken': { k: ['sfx.animal.chicken'],                       g: 0.26 },
-  'animal.horse':   { k: ['sfx.animal.horse'],                         g: 0.30 },
+  /* PHASE 34.2 — RAISED, because these are a signature Farmland sound and the previous
+     numbers never reached the player. Behind the old inverse-square a cow lowing twenty
+     metres away arrived at gain 0.07 and one across a field at 0.02; the human playtest
+     reported no animal calls at all, and that is the arithmetic reason why. They are
+     still restrained — a cow at twenty metres now lands at 0.22, under a footstep at
+     0.46 — and the rate they arrive at is unchanged and still starved by FarmAnimalManager. */
+  'animal.cow':     { k: ['sfx.animal.cow'],                           g: 0.42 },
+  'animal.sheep':   { k: ['sfx.animal.sheep'],                         g: 0.40 },
+  'animal.chicken': { k: ['sfx.animal.chicken'],                       g: 0.34 },
+  'animal.horse':   { k: ['sfx.animal.horse'],                         g: 0.42 },
   /* THE STALKER. Four recordings, all of them quiet, none of them a scream. Section 5 of
      the brief asks for "extremely restrained creature audio" and the loudest thing here
      is a footfall at 0.34 — a third of the player's own step at the same distance. */
@@ -37016,6 +37233,10 @@ class Game {
     this._applyGraphicsQuality();
     this._applyAudioSettings();
     this._watchFullscreen();
+    /* PHASE 34.2 — one delegated click voice for the whole interface, and the one place
+       a suspended AudioContext is brought back. Both bind listeners only. */
+    this._bindInterfaceAudio();
+    this._watchAudioContext();
 
     this.ui.updateVitals(this.player);
 
@@ -37746,6 +37967,12 @@ class Game {
     const dim = EnvironmentStorySystem.dimensionOf(p);
     if (dim !== this._audioDim) {
       this._audioDim = dim;
+      /* PHASE 34.2 — every route into a dimension passes through here: normal
+         progression, a save load, a New Game, the Haven and the developer teleports all
+         change this flag and nothing else is common to all of them. If the context was
+         suspended while the player was elsewhere, this is the moment it must come back —
+         arriving somewhere new to permanent silence is the exact failure being fixed. */
+      this.sound.resumeContext();
       /* Fetch the beds of every scene THIS dimension can produce, so night falling or a
          door closing crossfades into something already decoded instead of into a gap. */
       const pre = { overworld: ['overworld.day', 'overworld.night', 'in.house'],
@@ -37810,6 +38037,66 @@ class Game {
     };
     for (const ev of ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange']) {
       document.addEventListener(ev, sync);
+    }
+  }
+
+  /* =================================================================================
+     PHASE 34.2 — INTERFACE AUDIO, AND WHY IT IS ONE LISTENER RATHER THAN FIFTEEN.
+
+     The requirement is a click on every menu button, exactly one per click, never
+     doubled. There are fifteen or so clickable controls across the start screen, the
+     settings panel and the win screen, and each already owns a handler that does its real
+     work. Adding a play call to each of those is fifteen chances to add it twice, to miss
+     one, or to have a future button ship silent.
+
+     So the sound is bound ONCE, here, by delegation. A physical click dispatches exactly
+     one `click` event, this sees it exactly once on the way down, and the count cannot
+     drift no matter what the individual handlers do — including the ones that tear their
+     own element out of the DOM, which is why this listens in the CAPTURE phase.
+
+     THE SELECTOR IS A LIST OF INTERFACE CONTROLS, NOT "EVERY BUTTON". The hotbar slots,
+     the inventory grid and the crafting rows are gameplay and already have their own
+     voices (pickup, chest, deny); giving them a menu click as well would be two sounds
+     for one action. `closest()` is used so a click landing on a <span> inside a button —
+     CONTINUE's save note does exactly that — still counts as its button. */
+  _bindInterfaceAudio() {
+    const SEL = '.menu-btn, .settings-toggle, .settings-close, .link-btn, ' +
+                '.settings-seg button, .action-btn';
+    document.addEventListener('click', (e) => {
+      const t = e.target;
+      if (!t || typeof t.closest !== 'function') return;
+      const btn = t.closest(SEL);
+      if (!btn) return;
+      /* A disabled control refuses the action, so it gets the refusal sound instead. */
+      const off = btn.disabled || btn.getAttribute('aria-disabled') === 'true';
+      try { this.sound.playUiClick(off ? 'deny' : 'click'); } catch (err) { /* optional */ }
+    }, true);
+  }
+
+  /* =================================================================================
+     PHASE 34.2 — KEEPING THE CONTEXT ALIVE.
+
+     An AudioContext is not guaranteed to stay running. Chrome suspends one belonging to a
+     tab that has been hidden long enough, Safari suspends on focus loss, and a strict
+     autoplay policy can hand one over suspended from the start. The build had no
+     `resume()` call anywhere, so any of those was a permanently silent session with a
+     completely healthy audio graph behind it — the hardest kind of audio bug to see,
+     because every diagnostic reports success.
+
+     Two triggers, both cheap and both idempotent: the page becoming visible again, and
+     the next gesture of any kind. The gesture listeners are passive and never removed —
+     they cost one state comparison each and they are the only thing that recovers a
+     context suspended while the window was in the background. */
+  _watchAudioContext() {
+    const wake = () => { try { this.sound.resumeContext(); } catch (e) { /* optional */ } };
+    if (typeof document !== 'undefined' && document.addEventListener) {
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) wake(); });
+    }
+    if (typeof window !== 'undefined' && window.addEventListener) {
+      window.addEventListener('focus', wake);
+      for (const ev of ['pointerdown', 'keydown', 'touchstart']) {
+        window.addEventListener(ev, wake, { passive: true });
+      }
     }
   }
 
@@ -39854,6 +40141,104 @@ class Game {
     return undefined;
   };
 
+  /* =====================================================================================
+     PHASE 34.2 — THE AUDIO DEBUG OVERLAY.
+
+     DEVELOPER ONLY, AND IT DOES NOT EXIST UNTIL IT IS ASKED FOR. No element is created,
+     no listener is bound and no frame callback is scheduled at load time; a normal player
+     cannot reach it because reaching it means typing into a console. `debugAudioOverlay()`
+     toggles, `debugAudioOverlay(false)` forces it off, and turning it off removes the
+     element and cancels the frame callback so nothing is left behind.
+
+     WHY IT EXISTS. Phase 34 and 34.1 both shipped with green suites and a nearly silent
+     game, and both times the gap was diagnosed by reading source and guessing. This
+     answers the questions that actually matter — is the context running, is a bed really
+     on a source or only claimed in the slot table, what gain did the last cue leave at,
+     which surface is under the feet — from the live session, while it is being played.
+
+     IT READS AND RENDERS. It calls nothing that makes a sound, changes no level, and
+     holds no state of its own beyond the element and the frame handle. */
+  let audioOverlay = null;
+  global.debugAudioOverlay = function (on) {
+    const g = game(); if (!g) return console.warn('DEV: game not ready');
+    const want = (on === undefined) ? !audioOverlay : !!on;
+    if (!want) {
+      if (audioOverlay) {
+        if (audioOverlay.raf) cancelAnimationFrame(audioOverlay.raf);
+        if (audioOverlay.el && audioOverlay.el.parentNode) audioOverlay.el.parentNode.removeChild(audioOverlay.el);
+        audioOverlay = null;
+      }
+      console.log('DEV: audio overlay off');
+      return false;
+    }
+    if (audioOverlay) return true;
+    const el = document.createElement('div');
+    el.id = 'audioDebugOverlay';
+    el.setAttribute('style', [
+      'position:fixed', 'top:8px', 'right:8px', 'z-index:9999',
+      'font:11px/1.45 ui-monospace,Menlo,Consolas,monospace',
+      'color:#cfc7b4', 'background:rgba(10,10,12,0.82)', 'border:1px solid rgba(190,180,150,0.22)',
+      'padding:8px 10px', 'white-space:pre', 'pointer-events:none',
+      'max-height:92vh', 'overflow:hidden', 'text-shadow:0 1px 0 #000',
+    ].join(';'));
+    document.body.appendChild(el);
+    audioOverlay = { el, raf: 0 };
+
+    const dbfs = (v) => (!v || v <= 0) ? '  -inf' : (20 * Math.log10(v)).toFixed(1).padStart(6);
+    const draw = () => {
+      const s = g.sound, lib = s && s.library, d = s && s.director;
+      const L = [];
+      L.push('AUDIO  ' + (s && s.ctx ? s.ctx.state.toUpperCase() : 'NO CONTEXT') +
+             (s && s.ctx ? '  ' + Math.round(s.ctx.sampleRate / 1000) + 'kHz' : ''));
+      const dim = g.player.inFakeHaven ? 'haven' : g.player.inSuburbia ? 'suburbia'
+                : g.player.inFarmlands ? 'farmlands' : 'overworld';
+      L.push('dim    ' + dim + (g.env && g.env.isNight ? '  night' : '  day') +
+             (g._audioIndoors ? '  indoors' : ''));
+      L.push('scene  ' + (d ? (d.scene || '(none)') : '-'));
+      if (s) {
+        const bus = (n) => s[n] ? dbfs(s[n].gain.value) : '   n/a';
+        L.push('bus    master' + bus('master') + '  user' + bus('userGain'));
+        L.push('       music ' + bus('musicBus') + '  sfx ' + bus('sfxBus') +
+               '/' + bus('sfxUnityBus') + '  amb' + bus('ambienceBus'));
+      }
+      if (lib) {
+        /* THE DISTINCTION THIS OVERLAY EXISTS FOR. A slot can be CLAIMED without ever
+           having started — setBed marks it before the decode lands and leaves it marked
+           if the load fails — so a bed is only reported LIVE when it is on a real source
+           at a real gain. Anything else says so. */
+        L.push('beds   ' + lib.slots.size + ' slot(s), ' + lib.voices + ' voice(s), ' +
+               lib.buffers.size + ' decoded');
+        for (const [slot, e] of lib.slots) {
+          const state = e.starting ? 'LOADING' : (e.src && e.gain ? 'LIVE   ' : 'DEAD   ');
+          const lvl = e.gain ? dbfs(e.gain.gain.value) : '      ';
+          L.push('  ' + state + ' ' + slot.padEnd(10) + e.key.padEnd(22) + lvl);
+        }
+        L.push('last   ' + (lib.last ? lib.last.key + '  g=' + lib.last.gain +
+                            '  [' + lib.last.bus + ']' : '(nothing yet)'));
+        const st = lib.stats;
+        L.push('count  played ' + st.played + '  dropped ' + st.dropped +
+               '  failed ' + st.failed + '  req ' + st.requested);
+        if (lib.failed.size) {
+          const f = Array.from(lib.failed);
+          L.push('DEAD   ' + f.slice(0, 4).join(', ') + (f.length > 4 ? ' +' + (f.length - 4) : ''));
+        }
+      }
+      if (d) {
+        const surf = d.lastStepSurface();
+        const fam = surf && AUDIO_STEP_SURFACES[surf] ? AUDIO_STEP_SURFACES[surf].key : '-';
+        L.push('step   ' + (surf || '(none yet)') + '  ->  ' + fam);
+        L.push('events ' + (d._evTable ? 'next in ' + Math.max(0, d._evTimer).toFixed(1) + 's' +
+               '  gap ' + JSON.stringify(d._evTable.gap) : '(no table)') +
+               '  fired ' + d.stats.events);
+      }
+      audioOverlay.el.textContent = L.join('\n');
+      audioOverlay.raf = requestAnimationFrame(draw);
+    };
+    draw();
+    console.log('DEV: audio overlay on — debugAudioOverlay(false) to remove it');
+    return true;
+  };
+
   global.debugTeleportHelp = function () {
     console.log([
       'WHERE IT ISN\u2019T — DEV TELEPORTS',
@@ -39884,6 +40269,13 @@ class Game {
       '                                      progression, and the parcel/lane/biome you are',
       '                                      standing in',
       '  debugFarmlandsAudit(true)           ...and re-verify deterministic regeneration',
+      '  debugAudioOverlay()                 PHASE 34.2 — toggle the live audio readout:',
+      '                                      context state, dimension, scene, bus levels,',
+      '                                      every bed and whether it is LIVE or only',
+      '                                      claimed, the last cue and its gain, the',
+      '                                      footstep surface and family, the event',
+      '                                      countdown, and any dead assets',
+      '  debugAudioOverlay(false)            ...remove it',
       '',
       'Both audits are READ-ONLY: they touch no voxel, spawn nothing, and allocate nothing',
       'that outlives the call, so they are safe to run mid-session without perturbing a',

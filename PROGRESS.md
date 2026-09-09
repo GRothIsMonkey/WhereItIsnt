@@ -53,6 +53,170 @@ instruction and the compass and changed no world generation at all.
 
 ---
 
+## 0.00000000000000. PHASE 34.2 — AUDIO RUNTIME FAILURE INVESTIGATION + INTEGRATION FIX
+
+Phase 34.1 normalised every file in the library, deleted the retro music, split the
+Farmland surfaces nine ways and shipped with 169 offline and 46 browser checks green. The
+same person played it again and reported the same thing: the Farmlands audible only as
+footsteps, and Static Suburbia now WORSE than before — its electrical hum gone entirely.
+
+### WHAT THE INVESTIGATION ACTUALLY FOUND
+
+The chain was traced end to end — asset, loader, decoder, buffer, source, gain, bus,
+master — in a real Chromium with an AnalyserNode on every bus. Most of it was healthy, and
+that is why two correction passes had missed the fault:
+
+| link | state | evidence |
+|---|---|---|
+| 274 runtime files present, 0 missing, 0 orphaned | OK | manifest walked against disk |
+| fetch / decode | OK | 80-91 buffers decoded per session, `failed: 0` |
+| beds started and connected | OK | every slot LIVE on a real source at its authored gain |
+| ambience bus | OK | −24.8 to −28.2 dBFS RMS, measured |
+| **distant one-shots** | **BROKEN** | **crow 0.032, tractor 0.008 at the player** |
+| **Suburbia electrical bed** | **DELETED** | **34.1 removed `bed.hum.crt` from `sub.day`** |
+| **animal calls** | **UNREACHABLE** | **string lookup against an integer species** |
+| AudioContext resume | ABSENT | `resume()` appeared nowhere in the build |
+| menu click | ABSENT | `ui.click` was in the cue table; nothing called it |
+
+**ROOT CAUSE ONE — A PHYSICAL LAW OVER A DECORATIVE DISTANCE.** `playAt()` applied a bare
+inverse-square falloff to the authored gain. An ambient event's distance is drawn at
+random from its own row purely so the sound reads as coming from somewhere else; the
+player cannot walk to it, test it, or act on it. Running a physical curve over that number
+turned every authored mix level into one nobody chose:
+
+```
+sfx.tractor   authored 0.24  placed 95-140m   ->  0.008 at the player   (-35 dB vs a footstep)
+sfx.crow      authored 0.46  placed  35-95m   ->  0.032                 (-23 dB)
+sfx.crows     authored 0.36  placed 55-120m   ->  0.016                 (-29 dB)
+animal.cow    authored 0.30  at 30m           ->  0.070                 (-16 dB)
+```
+
+Every crow, tractor, dog, gate, clang and animal call in the game was being computed into
+inaudibility underneath a bed at 0.85. **The error was categorical, not arithmetic**, which
+is why 34.1 — which fixed the arithmetic of file loudness — did not touch it.
+
+The curve now carries a **floor**: the fraction of the authored gain distance may never
+take away. Distance is carried by bearing and by a real air-absorption filter instead
+(18kHz at the listener, 2.7kHz at ninety metres, 2.1kHz at the far edge — the old one was
+linear and reached only 8.1kHz at ninety, which is not a filter but a formality).
+
+```
+floor 1.00 / 0.70   an ambient event: the authored gain IS the level at the player
+floor 0.55          the Behemoth's one arrival announcement
+floor 0.40          an animal, which is at a real place the player can walk to
+floor 0.12          the Stalker, where closing distance IS the cue
+```
+
+Measured after the change, at the FAR end of each pick's own row: tractor 0.170, crow
+0.332, crows 0.257, cow at 30m 0.198 — every one of them within 3-9 dB of a footstep
+instead of 25-35 dB below it, and none of them louder than one. The Stalker keeps a 13.3 dB
+level sweep across its approach and its loudest cue is still 0.311, under the 0.34 ceiling
+section 61 sets.
+
+**ROOT CAUSE TWO — 34.1 DELETED SUBURBIA'S ELECTRICAL LAYER.** The diff is unambiguous:
+
+```
+-  'sub.day':   { air: [...0.40], layer: [...0.13], tone: ['bed.hum.crt', 0.07], ... }
++  'sub.day':   { air: [...0.85], layer: [...0.34],                              ... }
+-  'sub.blood': { ... tone: ['bed.hum.crt', 0.09] ... }
++  'sub.blood': { ...  (no tone slot at all)      ... }
+```
+
+The reasoning was that it doubled the Phase 5A procedural CRT static. It does not. That one
+is spatialised to the nearest window through a panner with refDistance 3 and maxDistance
+45; it measures −45 dBFS and exists only within about ten metres of a house. It had been
+audible before 34.1 only because every recorded bed around it was inaudible, and it was
+masked the moment they were fixed. The layers are now separated by WHAT THEY ARE — a
+television in a window stays a positioned object; the hum of a street full of
+air-conditioning plant is a bed. `bed.hum.mech` is a seamless CC0 mechanical drone and is
+deliberately not the NonCommercial powerline recording.
+
+**ROOT CAUSE THREE — THE ANIMAL RECORDINGS WERE UNREACHABLE, NOT QUIET.** `playAnimalCall`
+looked its recording up with string keys:
+
+```js
+const name = { cow: 'animal.cow', sheep: 'animal.sheep', … }[species];
+```
+
+Every caller passes `a.desc.species`, which is `FARM_ANIM_SPECIES` — the integers 0-3. The
+subscript evaluated to `undefined` on **every call in every build**, the guard below it
+always failed, and all four animal recordings were dead code. Every animal the player has
+ever heard was the synthesised fallback. The synthesised branch twelve lines further down
+switches on `species === 0`, `=== 1`, `=== 2`, which is the proof that the value was
+numeric all along.
+
+Nothing caught it because the offline test asked the SELECTION FUNCTION a question in the
+wrong alphabet — it passed the string `'cow'`, got `'animal.cow'` back, and reported
+success. The brief for this pass predicted this exact failure mode: *"Do not merely
+unit-test the selection function. Verify the real runtime animal entity path reaches the
+audio playback call."* Doing so is what found it. `tests/audio.js` now drives the integer,
+and a live browser check drives a real cow in a real herd through the real `_maybeCall` and
+confirms `sfx.animal.cow` starts at gain 0.227.
+
+**ALSO FIXED.** The first ambient event after a scene change could be 66 seconds out;
+arriving in a dimension to a minute of nothing is indistinguishable from a dimension with
+no sound in it. It is now 11-24s — still never inside the ten seconds that would make it
+read as a reaction to the door the player just walked through. `farm.day` gained the wind
+it never had (only the night scene moved air, in the most open region in the game).
+
+### DEBUG ENTRY IS NOT THE CAUSE, AND THE LIFECYCLE IS ROBUST
+
+Explicitly investigated, because it was the standing suspicion. It is not the cause: the
+director is **driven from player state every frame** rather than from an entry hook, so a
+teleport, a save load, a New Game and normal progression are indistinguishable to it. The
+teleports were measured swapping beds correctly. What WAS missing is that the build called
+`ctx.resume()` **nowhere** — a tab backgrounded long enough came back with a perfect audio
+graph and permanent silence, the hardest kind of audio bug to see because every diagnostic
+reports success. There is now one `resumeContext()`, armed on visibilitychange, on focus,
+on the next gesture of any kind, and on every dimension change. No keep-alive buffer.
+
+### THE MENU HAS A VOICE
+
+`ui.click` sat in `AUDIO_CUES` from Phase 34 and nothing ever called it. It is now bound
+**once**, by delegation, in the capture phase — one physical click, one sound, regardless
+of how many handlers a button already has and even for handlers that remove their own
+element. The first click of a session is the one that opens the AudioContext and therefore
+cannot have a decoded buffer, so `playUiClick` follows the rule the rest of the system
+follows: the recording is tried first and a small synthesised tick answers when it is not
+there. Verified in a real browser — first click synthesised, second click recorded, six
+real clicks produce exactly six sounds.
+
+### THE MEASUREMENT PROBLEM, WHICH IS THE REAL LESSON
+
+Two correction passes measured whether a sound had been SELECTED. `tests/audio-audit.js`
+now taps the live graph and separates four things that had been one:
+
+```
+REQUESTED  a call was made                        (the counters)
+STARTED    a real BufferSource exists on the slot
+CONNECTED  it is on a gain node in the live graph
+AUDIBLE    signal measurably present on the bus   (dBFS, measured)
+```
+
+This matters because `setBed()` claims its slot BEFORE the decode lands and leaves it
+claimed if the load fails — so the old audit reported a bed as playing when nothing played.
+`tests/audio.js` gained a matching offline check that drives all 51 ambient events through
+the real distance model and asserts a **floor as well as a ceiling** on each. A one-sided
+bound is what let "sparse" and then "distant" become cover for "silent", twice.
+
+`debugAudioOverlay()` is the developer readout: context state, dimension, scene, bus
+levels, every bed and whether it is LIVE / LOADING / DEAD, the last cue and its gain, the
+footstep surface and family, the event countdown, and any dead assets.
+
+### VALIDATION
+
+23 offline suites pass (1,600+ checks; `audio.js` 188, +19). 8 browser suites pass
+(`browser-audio.js` 53, +7). The audit reports every bed LIVE in all six dimension/time
+states with the ambience bus 20+ dB above silence. Footstep classification, measured
+against 5,476 real ground columns from the real generator, yields 9 families.
+
+**NOT SIGNED OFF.** Nothing here has been listened to — headless Chromium renders to a null
+device and no playback device was available. Every claim above is decibels, gains and node
+state. Whether the world now SOUNDS right is the same person's call, and this phase is not
+complete until they have played it and said so.
+
+---
+
 ## 0.0000000000000. PHASE 34.1 — AUDIO CORRECTION AFTER A HUMAN PLAYTEST
 
 Phase 34 shipped with 117 offline checks and 42 browser checks green. A person then played

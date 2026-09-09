@@ -623,9 +623,15 @@ head('7. SCENES: EVERY PLACE THE GAME CAN BE');
   const swaps = d.stats.scenes;
   for (let i = 0; i < 600; i++) d.update(0.016, { dimension: 'farmlands' });
   await settle();
-  chk(d.stats.scenes === swaps && ctx.live.sources === 2,
+  /* PHASE 34.2 — the expected count is DERIVED from the scene rather than written as a
+     literal. The property being proved is that an idempotent scene never accumulates
+     sources; the number 2 was only ever how many slots farm.day happened to declare, so
+     adding the daytime wind layer failed a test that had nothing to say about wind. */
+  const farmSlots = ['air', 'layer', 'tone', 'tension']
+    .filter((s) => AUDIO_SCENES['farm.day'][s]).length;
+  chk(d.stats.scenes === swaps && ctx.live.sources === farmSlots,
       `six hundred frames in the same place cause ${d.stats.scenes - swaps} further scene changes ` +
-      `and leave ${ctx.live.sources} beds running`);
+      `and leave ${ctx.live.sources} beds running (farm.day declares ${farmSlots})`);
   d.update(0.016, { dimension: 'suburbia', night: true });
   await settle();
   await new Promise((r) => setTimeout(r, 3200));
@@ -979,9 +985,16 @@ head('8d. THE CREATURES AND THE RIFT ARE ACTUALLY REACHABLE');
   clear();
   chk(d.behemothArrives(60, 60, 90) === true,
       'the Behemoth announces itself once, from 90 metres');
-  chk(heard.length === 1 && heard[0].g < 0.1,
+  /* PHASE 34.2 — A FLOOR AS WELL AS A CEILING, which is the lesson of the whole
+     correction pass (CLAUDE.md 61.05). The old bound was `< 0.1` and nothing checked the
+     other side, so the arrival could compute itself to 0.008 and still pass — "distant"
+     had become cover for "inaudible", exactly as "sparse" had. It must be BOTH: quieter
+     than the player's own footstep (0.46), so it is somewhere else and not in the room,
+     and loud enough to actually be heard once, because it happens once in a playthrough
+     and its whole job is to say that something enormous has arrived. */
+  chk(heard.length === 1 && heard[0].g > 0.12 && heard[0].g < 0.34,
       `and it arrives at ${heard[0] ? heard[0].g.toFixed(3) : '?'} after distance falloff — ` +
-      'enormous and far away, not a monster in the room');
+      'audible once, and still quieter than the player\'s own footstep: far away, not in the room');
 
   // --- THE RIFT: a place with a bed and punctuation --------------------------------
   clear();
@@ -1271,6 +1284,219 @@ head('13. THE QUIET RULES');
   const idx = fs.readFileSync(path.join(AUDIO_DIR, 'AUDIO_INDEX.md'), 'utf8');
   chk(/503270/.test(idx) && /242933/.test(idx) && /118083/.test(idx) && /636777/.test(idx),
       'and all four held-back assets have a row in the index saying why');
+}
+
+// =====================================================================================
+head('PHASE 34.2 — WHAT REACHES THE PLAYER (the floors, not just the ceilings)');
+// =====================================================================================
+{
+  /* THE DEFECT THIS PASS EXISTS FOR, AS A TEST. Every ambient event was authored as a mix
+     level and then multiplied by an inverse-square falloff over a distance that is purely
+     decorative, so a tractor authored at 0.24 and placed where a tractor belongs reached
+     the player at 0.008 and a crow at 0.032 — twenty-five to thirty-five decibels under
+     the bed they were supposed to be heard over. Every suite passed, because every suite
+     asked whether a sound had been SELECTED.
+
+     So this measures the gain a one-shot ACTUALLY leaves the library with, at the far end
+     of its own distance row, which is its quietest legitimate case. The reference is the
+     player's own footstep: an event may not be louder than one (it is somewhere else),
+     and it may not be more than about eighteen decibels below one either (or it is not
+     there at all). Both bounds, always — a single-sided bound is what let "sparse" and
+     "distant" become cover for "silent" twice. */
+  const ctx = fakeCtx();
+  const lib = new AudioLibrary(stubEngine(ctx));
+  const d = new AudioDirector(lib);
+  installFetch('ok');
+  await Promise.all(Object.keys(AUDIO_ASSETS).filter((k) => AUDIO_ASSETS[k].k !== 'step')
+    .map((k) => lib.load(k)));
+
+  const FOOT = 0.46;                       // step.grass at speed 1.0, the loudest surface
+  const CEIL = FOOT;                       // never louder than the player's own feet
+  const FLOOR = FOOT / 8;                  // ~18 dB down: the edge of "present in the mix"
+  let seen = 0, tooQuiet = [], tooLoud = [];
+  const gains = [];
+  for (const [table, def] of Object.entries(AUDIO_EVENTS)) {
+    for (const p of def.picks) {
+      const far = p[2][1];                 // the far end — the quietest this pick can be
+      let got = null;
+      const real = lib.play.bind(lib);
+      lib.play = (k, o) => { got = o && o.gain; return real(k, o); };
+      lib.playAt(p[0], 0, far, far, { gain: p[1], ref: 26, max: 200, floor: 0.7, bus: 'amb' });
+      lib.play = real;
+      if (got === null) continue;
+      seen++;
+      gains.push({ table, key: p[0], far, got: +got.toFixed(4) });
+      if (got < FLOOR) tooQuiet.push(`${table}/${p[0]} @${far}m = ${got.toFixed(4)}`);
+      if (got > CEIL) tooLoud.push(`${table}/${p[0]} @${far}m = ${got.toFixed(4)}`);
+    }
+  }
+  chk(seen > 40, `every ambient event in all ${Object.keys(AUDIO_EVENTS).length} tables was ` +
+      `driven through the real distance model — ${seen} of them`);
+  chk(tooQuiet.length === 0,
+      tooQuiet.length ? `INAUDIBLE AT THEIR OWN FAR EDGE (under ${FLOOR.toFixed(3)}): ` +
+                        tooQuiet.slice(0, 6).join(', ')
+                      : `not one of them lands below ${FLOOR.toFixed(3)} at the far end of its own ` +
+                        'distance row — the world is audible from where it is placed');
+  chk(tooLoud.length === 0,
+      tooLoud.length ? `LOUDER THAN A FOOTSTEP: ${tooLoud.slice(0, 6).join(', ')}`
+                     : 'and not one of them is louder than the player\'s own footstep — ' +
+                       'everything ambient is still somewhere else');
+  const quietest = gains.reduce((a, b) => (a.got < b.got ? a : b));
+  note(`quietest event in the game: ${quietest.key} at ${quietest.far}m = ${quietest.got}`);
+}
+{
+  /* DISTANCE MUST STILL MEAN SOMETHING. The fix must not have flattened the model into a
+     constant — if it had, the Stalker would stop being a proximity cue, which is the one
+     place in the build where level IS the information. */
+  const lib = new AudioLibrary(stubEngine(fakeCtx()));
+  const near = [], far = [];
+  const grab = (arr) => { const real = lib.play.bind(lib);
+    lib.play = (k, o) => { arr.push(o && o.gain); return real(k, o); }; return real; };
+  let real = grab(near);
+  lib.playAt('sfx.crow', 0, 4, 4, { gain: 0.5, ref: 9, floor: 0.12 });
+  lib.play = real;
+  real = grab(far);
+  lib.playAt('sfx.crow', 0, 32, 32, { gain: 0.5, ref: 9, floor: 0.12 });
+  lib.play = real;
+  const ratio = (near[0] || 1) / (far[0] || 1);
+  const dropDb = 20 * Math.log10(ratio);
+  /* Expressed in decibels because that is the unit the claim is actually about: a level
+     sweep of twelve or more dB across the Stalker's whole approach is unmistakably a
+     thing getting closer, and that is what a low floor has to preserve. */
+  chk(dropDb > 12,
+      `a low floor still collapses with distance — ${dropDb.toFixed(1)} dB quieter at 32m than at ` +
+      `4m (${ratio.toFixed(1)}x), so the Stalker's approach is still carried by level`);
+  /* AND COLOUR MUST CARRY IT TOO. The air filter is what makes a thing read as far away
+     rather than merely small, and it was previously so shallow as to do nothing. */
+  let lpNear = null, lpFar = null;
+  real = lib.play.bind(lib);
+  lib.play = (k, o) => { lpNear = o && o.lp; return real(k, o); };
+  lib.playAt('sfx.crow', 0, 10, 10, { gain: 0.4, floor: 0.7 });
+  lib.play = (k, o) => { lpFar = o && o.lp; return real(k, o); };
+  lib.playAt('sfx.crow', 0, 130, 130, { gain: 0.4, floor: 0.7 });
+  lib.play = real;
+  chk(lpNear > 8000 && lpFar < 2600 && lpNear / lpFar > 3.5,
+      `air absorption spans ${Math.round(lpNear)}Hz at ten metres to ${Math.round(lpFar)}Hz at ` +
+      '130 — distance is carried by colour, which is what survives being audible');
+}
+{
+  /* THE SUBURBIA REGRESSION, AS A GUARD. Phase 34.1 deleted the recorded electrical hum
+     from sub.day and sub.blood on the reasoning that the procedural CRT static covered
+     it. It does not: that one is spatialised to the nearest window and only exists within
+     a few metres of a house. The playtest that followed reported the exact loss. Every
+     Suburbia scene must carry an electrical layer of its own. */
+  for (const id of ['sub.day', 'sub.night', 'sub.blood']) {
+    const sc = AUDIO_SCENES[id];
+    const keys = ['air', 'layer', 'tone', 'tension'].filter((s) => sc[s]).map((s) => sc[s][0]);
+    const hum = keys.filter((k) => k.indexOf('hum') >= 0);
+    chk(hum.length > 0 && sc.tone,
+        `${id} carries an electrical layer (${hum.join(', ') || 'NONE'}) — the thing 34.1 ` +
+        'removed and a human playtest immediately missed');
+  }
+  /* AND IT IS NOT THE CRT, which would double the positioned one. */
+  const day = AUDIO_SCENES['sub.day'];
+  chk(day.tone[0] !== 'bed.hum.crt',
+      'and it is not bed.hum.crt — the spatialised Phase 5A television stays the only CRT');
+}
+{
+  /* THE FARMLANDS HAS AIR MOVING IN IT BY DAY. The playtest listed "no wind ambience"
+     separately, and it was right: only the night scene carried wind. */
+  const day = AUDIO_SCENES['farm.day'];
+  const keys = ['air', 'layer', 'tone', 'tension'].filter((s) => day[s]).map((s) => day[s][0]);
+  chk(keys.some((k) => /wind|air/.test(k)),
+      `farm.day moves air (${keys.join(', ')}) — an open agricultural region was the only ` +
+      'outdoor scene in the game with none');
+}
+{
+  /* THE MENU HAS A VOICE. 'ui.click' sat in AUDIO_CUES from Phase 34 and NOTHING CALLED
+     IT — every menu button in the game was silent. This proves the cue is reachable, that
+     it is bound once rather than per button, and that it survives the first click of a
+     session, when no buffer can possibly be decoded yet. */
+  chk(/playUiClick\s*\(/.test(SRC) && /_bindInterfaceAudio\s*\(\)\s*\{/.test(SRC),
+      'the interface click exists and is bound');
+  const bind = SRC.slice(SRC.indexOf('  _bindInterfaceAudio() {'),
+                         SRC.indexOf('  _watchAudioContext() {'));
+  const listeners = (bind.match(/addEventListener\(/g) || []).length;
+  chk(listeners === 1,
+      `and it is ONE delegated listener (${listeners}), so a click cannot produce two sounds ` +
+      'however many handlers the button already has');
+  chk(/\.menu-btn/.test(bind) && /settings-close/.test(bind) && /settings-toggle/.test(bind),
+      'covering NEW GAME / CONTINUE / SETTINGS, the settings actions and CLOSE');
+  const fn = SRC.slice(SRC.indexOf('  playUiClick(kind) {'), SRC.indexOf('  resumeContext() {'));
+  chk(/director\.cue\(cue/.test(fn) && /createBufferSource|createOscillator/.test(fn),
+      'the recording is tried first and a synthesised click answers when it is not decoded ' +
+      'yet — which is always true of the very first click of a session');
+  chk(/sfxUnityBus/.test(fn),
+      'and the fallback is on the SFX bus, so the Sound Effects slider reaches it');
+}
+{
+  /* THE CONTEXT CAN COME BACK. There was no resume() call anywhere in the build: a tab
+     backgrounded long enough came back with a perfect audio graph and permanent silence. */
+  chk(/resumeContext\(\)\s*\{/.test(SRC) && /\.resume\(\)/.test(SRC),
+      'a suspended AudioContext is resumed rather than left for dead');
+  const fn = SRC.slice(SRC.indexOf('  resumeContext() {'), SRC.indexOf('  isMusicTrackPlaying(id) {'));
+  chk(/state !== 'suspended'/.test(fn),
+      'and it tests the state first, so calling it every dimension change costs one comparison');
+  chk(/visibilitychange/.test(SRC) && /_watchAudioContext/.test(SRC),
+      'it is armed on visibilitychange, on focus and on the next gesture of any kind');
+  chk(!/createBufferSource\(\)[^]{0,400}keep-?alive/i.test(SRC),
+      'and nothing plays a silent keep-alive buffer to work around a context that ' +
+      'should simply have been resumed');
+}
+
+{
+  /* =================================================================================
+     THE ANIMAL PATH, DRIVEN THE WAY THE GAME DRIVES IT.
+
+     `playAnimalCall` looked its recording up with string keys — { cow: … }[species] —
+     while every caller in the build passes `a.desc.species`, which is FARM_ANIM_SPECIES:
+     the integers 0-3. The subscript was `undefined` on every call, so the recorded branch
+     could never be taken and all four animal recordings were unreachable. A human
+     playtest reported exactly that and no test saw it, because the test that existed
+     asked the selection function a question in the wrong alphabet.
+
+     So this calls it with what the herd actually holds — the integer — and asserts a
+     recording reaches the library for every one of the four species. */
+  const ctx = fakeCtx();
+  const lib = new AudioLibrary(stubEngine(ctx));
+  const d = new AudioDirector(lib);
+  installFetch('ok');
+  await Promise.all(['sfx.animal.cow', 'sfx.animal.sheep', 'sfx.animal.chicken',
+                     'sfx.animal.horse'].map((k) => lib.load(k)));
+  /* A minimal stand-in for SoundEngine.playAnimalCall's recorded branch, reading the
+     SAME source the game runs so the mapping under test is the shipped one. */
+  const fn = SRC.slice(SRC.indexOf('  playAnimalCall(species, relRight, relForward, distance) {'),
+                       SRC.indexOf('  playTorchFizzle('));
+  chk(/BY_INDEX\[species\]/.test(fn),
+      'the recorded animal lookup is indexed by the integer the herd actually stores');
+  chk(/typeof species === 'number'/.test(fn),
+      'and it tests the type rather than assuming, so a caller using a name still works');
+
+  const SPECIES = { COW: 0, SHEEP: 1, CHICKEN: 2, HORSE: 3 };
+  const BY_INDEX = ['animal.cow', 'animal.sheep', 'animal.chicken', 'animal.horse'];
+  const heard = [];
+  const real = lib.play.bind(lib);
+  lib.play = (k, o) => { heard.push({ k, g: o && o.gain }); return real(k, o); };
+  for (const [label, idx] of Object.entries(SPECIES)) {
+    const name = BY_INDEX[idx];
+    const ok = d.cueAt(name, 0, 24, 24, { ref: 11, max: 70, floor: 0.4 });
+    chk(ok === true, `${label.toLowerCase()} (species ${idx}) reaches a real playback call ` +
+        `through '${name}' — the recording is REACHABLE, not merely selectable`);
+  }
+  lib.play = real;
+  const keys = heard.map((h) => h.k);
+  chk(new Set(keys).size === 4,
+      `all four species map to four DIFFERENT recordings (${keys.join(', ')}) — no animal ` +
+      'substitutes for another');
+  const quietest = Math.min(...heard.map((h) => h.g));
+  chk(quietest > 0.46 / 8 && Math.max(...heard.map((h) => h.g)) < 0.46,
+      `and across a field at 24 metres they arrive between ${quietest.toFixed(3)} and ` +
+      `${Math.max(...heard.map((h) => h.g)).toFixed(3)} — audible from the road, still ` +
+      'quieter than the player\'s own footstep');
+  /* AND THE MAPPING THE GAME ACTUALLY USES IS THE ONE JUST PROVED. */
+  chk(/playAnimalCall\(a\.desc\.species/.test(SRC),
+      'FarmAnimalManager passes a.desc.species straight through — the integer this ' +
+      'mapping is now written for');
 }
 
 console.log('');

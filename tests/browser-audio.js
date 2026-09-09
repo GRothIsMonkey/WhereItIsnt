@@ -136,8 +136,84 @@ const SNAP = () => {
           'one before the player has interacted with the page');
     }
 
+    // =================================================================================
+    head('1b. THE MENU HAS A VOICE — PHASE 34.2');
+    // =================================================================================
+    let menuClicks = 0;
+    {
+      /* 'ui.click' existed in AUDIO_CUES from Phase 34 and NOTHING CALLED IT: every button
+         on the start screen and in the settings panel was silent. This drives real clicks
+         on the real elements, in a real browser, before the game has started — which is
+         also the hardest case, because the FIRST click of a session is the one that opens
+         the AudioContext and therefore cannot have a decoded buffer to play from. */
+      await page.evaluate(`window.__ui = [];
+        const s = window.game.sound;
+        const real = s.playUiClick.bind(s);
+        s.playUiClick = (k) => {
+          const r = real(k);
+          window.__ui.push({ ok: r, ctx: s.ctx ? s.ctx.state : null,
+                             recorded: !!(s.library && s.library.last && /ui\\./.test(s.library.last.key)) });
+          return r;
+        };`);
+      await page.click('#startSettingsLink');
+      await page.waitForTimeout(500);
+      const first = await page.evaluate('window.__ui.slice()');
+      chk(first.length === 1 && first[0].ok === true,
+          `the first click of the session makes exactly one sound (${first.length} call(s)) — ` +
+          'and it is the click that opens the AudioContext, so nothing could be decoded yet');
+      chk(first.length === 1 && first[0].recorded === false,
+          'the very first one is the SYNTHESISED click, because the recording cannot ' +
+          'possibly have arrived yet — this is why the fallback exists');
+      await page.click('#setClose');
+      await page.waitForTimeout(400);
+      const second = await page.evaluate('window.__ui.slice()');
+      chk(second.length === 2, `CLOSE adds exactly one more (${second.length} total) — one ` +
+          'delegated listener, so no button can ever double-trigger');
+      /* WAIT FOR THE BUFFER RATHER THAN FOR A CLICK COUNT. Which click is the first to
+         use the recording depends on how fast the preload's decode queue drains, and
+         asserting "the second one" makes this a race the suite sometimes loses. The claim
+         that matters is that the recording TAKES OVER once it exists, so this waits for
+         the buffer to actually be decoded and then clicks. */
+      await page.waitForFunction(
+        `window.game.sound.library && window.game.sound.library.isLoaded('sfx.ui.click')`,
+        null, { timeout: 30000 });
+      const n0 = await page.evaluate('window.__ui.length');
+      await page.click('#startSettingsLink');
+      await page.waitForTimeout(350);
+      const after = await page.evaluate('window.__ui.slice()');
+      chk(after.length === n0 + 1 && after[after.length - 1].recorded === true,
+          'and once the buffer is decoded the RECORDING is what plays — the synthesised ' +
+          'voice steps aside and is never heard again this session');
+      await page.click('#setClose');
+      await page.waitForTimeout(250);
+      /* Every menu control, not just the two convenient ones. Counted as a DELTA so the
+         assertion does not depend on how many clicks the section above needed. */
+      const before4 = await page.evaluate('window.__ui.length');
+      await page.click('#startSettingsLink');
+      await page.waitForTimeout(250);
+      await page.click('#setQuality button[data-q="low"]');
+      await page.waitForTimeout(250);
+      await page.click('#setDefaults');
+      await page.waitForTimeout(250);
+      await page.click('#setClose');
+      await page.waitForTimeout(300);
+      const all = await page.evaluate('window.__ui.length');
+      menuClicks = all;
+      chk(all - before4 === 4,
+          `SETTINGS, a graphics segment, RESTORE DEFAULTS and CLOSE — four real clicks on four ` +
+          `different kinds of control produce exactly four sounds (${all - before4})`);
+      const bus = await page.evaluate('window.game.sound.sfxUnityBus.gain.value');
+      chk(bus > 0, `and they are on the SFX bus (gain ${bus}), so the Sound Effects slider reaches them`);
+    }
+
     await page.click('#clickPlay');
     await page.waitForTimeout(700);
+    {
+      const n = await page.evaluate('window.__ui.length');
+      chk(n === menuClicks + 1,
+          `NEW GAME itself makes one click and only one (${n - menuClicks}) — ${n} for the whole ` +
+          'menu session, one per button actually pressed');
+    }
     await page.evaluate('window.game.film && window.game.film.active && window.game.film.skip()');
     await page.waitForFunction('window.game.running === true', null, { timeout: 60000 });
     await page.waitForTimeout(1500);
