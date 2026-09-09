@@ -96,6 +96,94 @@ const INSTRUMENT = () => {
   return true;
 };
 
+/* =====================================================================================
+   PHASE 34.2 — THE METER, AND THE FOUR WORDS THIS FILE NOW DISTINGUISHES.
+
+   Everything above this line counts CALLS. That is what Phase 34 and 34.1 both measured,
+   and both times the game shipped nearly silent with the counts looking healthy — because
+   "the code asked for a crow" and "the player heard a crow" are different claims and only
+   the first one was ever checked.
+
+   This taps the real audio graph with an AnalyserNode per bus and reports the signal that
+   is actually on it. Combined with the bed truth below, the audit can now separate:
+
+     REQUESTED  a call was made                          (the counters above)
+     STARTED    a real BufferSource exists on the slot   (bed.state === 'LIVE')
+     CONNECTED  it is on a gain node in the live graph   (bed.gain !== null)
+     AUDIBLE    signal is measurably present on the bus  (the dBFS columns)
+
+   A bed can be REQUESTED and never STARTED — setBed claims its slot before the decode
+   lands and leaves it claimed if the fetch fails, which is exactly the case that reported
+   a playing bed while nothing played. It can be STARTED and CONNECTED and still not
+   AUDIBLE, if its level, its bus or the master is at zero. Only the last column is a
+   statement about the player.
+
+   Headless Chromium renders to a null device, so this measures the signal and NOT how it
+   sounds. Loudness is arithmetic and can be checked here; whether it is the right sound
+   in the right place is a person's job, and the report says so. */
+const METER = () => {
+  const s = window.game.sound;
+  if (!s.ctx || window.__meter) return false;
+  const ctx = s.ctx;
+  const M = window.__meter = { an: {}, acc: {}, n: {}, peak: {} };
+  /* An analyser is a dead end and a dead end is not guaranteed to be pulled, so each one
+     also runs into a silent gain that IS connected to the destination. */
+  const sink = ctx.createGain();
+  sink.gain.value = 0;
+  sink.connect(ctx.destination);
+  for (const name of ['master', 'musicBus', 'sfxBus', 'sfxUnityBus', 'ambienceBus']) {
+    const node = s[name];
+    if (!node) continue;
+    const a = ctx.createAnalyser();
+    a.fftSize = 2048;
+    a.smoothingTimeConstant = 0;
+    node.connect(a);
+    a.connect(sink);
+    M.an[name] = a; M.acc[name] = 0; M.n[name] = 0; M.peak[name] = 0;
+  }
+  M.buf = new Float32Array(2048);
+  M.timer = setInterval(() => {
+    for (const k in M.an) {
+      M.an[k].getFloatTimeDomainData(M.buf);
+      let ss = 0, m = 0;
+      for (let i = 0; i < M.buf.length; i++) {
+        const v = M.buf[i];
+        ss += v * v;
+        const av = Math.abs(v);
+        if (av > m) m = av;
+      }
+      M.acc[k] += ss / M.buf.length;
+      M.n[k]++;
+      if (m > M.peak[k]) M.peak[k] = m;
+    }
+  }, 20);
+  return true;
+};
+const METER_RESET = () => {
+  const M = window.__meter;
+  if (!M) return false;
+  for (const k in M.acc) { M.acc[k] = 0; M.n[k] = 0; M.peak[k] = 0; }
+  return true;
+};
+const METER_READ = () => {
+  const M = window.__meter, s = window.game.sound, lib = s.library;
+  const db = (v) => (v <= 1e-9 ? -999 : +(20 * Math.log10(v)).toFixed(1));
+  const levels = {};
+  if (M) for (const k in M.acc) {
+    levels[k] = { rms: db(Math.sqrt(M.acc[k] / Math.max(1, M.n[k]))), peak: db(M.peak[k]) };
+  }
+  /* BED TRUTH. Not the slot table — the nodes. */
+  const beds = [];
+  if (lib) for (const [slot, e] of lib.slots) {
+    beds.push({ slot, key: e.key,
+                state: e.starting ? 'LOADING' : (e.src && e.gain ? 'LIVE' : 'DEAD'),
+                gain: e.gain ? +e.gain.gain.value.toFixed(3) : null,
+                decoded: lib.buffers.has(e.key) });
+  }
+  return { levels, beds, ctxState: s.ctx ? s.ctx.state : null,
+           failed: lib ? Array.from(lib.failed) : [] };
+};
+
 /* One dimension: teleport, walk a straight line for `secs` of REAL time letting the real
    frame loop drive everything, sampling what the audio system settled on. */
 const WALK = async (dims) => {
@@ -171,6 +259,7 @@ const RATES = (arg) => {
     await page.waitForFunction('window.game.running === true', null, { timeout: 60000 });
     await page.waitForTimeout(1200);
     await page.evaluate(INSTRUMENT);
+    await page.evaluate(METER);
 
     const places = [
       ['OVERWORLD  day',   "window.debugTeleportToOverworld && window.debugTeleportToOverworld(); window.game.env.t = 200;"],
@@ -184,7 +273,11 @@ const RATES = (arg) => {
     for (const [name, setup] of places) {
       await page.evaluate(setup);
       await page.waitForTimeout(2500);
+      /* The meter is zeroed AFTER the crossfade has settled, so a reading describes the
+         place rather than the transition into it. */
+      await page.evaluate(METER_RESET);
       const r = await page.evaluate(WALK, { secs: SECONDS / places.length });
+      r.meter = await page.evaluate(METER_READ);
       walks.push([name, r]);
     }
 
@@ -197,6 +290,37 @@ const RATES = (arg) => {
       row('beds', beds[beds.length - 1] || '(NONE — SILENT)');
       const surf = Object.entries(r.surfaces).sort((a, b) => b[1] - a[1]);
       row('surfaces walked', surf.map(([k, v]) => `${k}×${v}`).join('  '));
+    }
+
+    // =================================================================================
+    head('IS IT AUDIBLE — REQUESTED vs STARTED vs CONNECTED vs AUDIBLE');
+    // =================================================================================
+    console.log('  A bed is LIVE only when a real source and gain node exist for it.');
+    console.log('  LOADING = the slot is claimed and the decode has not landed.');
+    console.log('  DEAD    = the slot is claimed and nothing is playing on it.');
+    console.log('  dBFS is the signal measured on the bus, not a level anyone wrote down.\n');
+    for (const [name, r] of walks) {
+      const m = r.meter;
+      if (!m) { console.log('  ' + name + '  (no meter)'); continue; }
+      console.log('  ' + name + '   context ' + (m.ctxState || '?'));
+      for (const b of m.beds) {
+        const flag = b.state === 'LIVE' ? '  ' : '!!';
+        console.log('    ' + flag + ' ' + b.state.padEnd(8) + b.slot.padEnd(10) +
+                    b.key.padEnd(22) + (b.gain === null ? '' : 'gain ' + b.gain) +
+                    (b.decoded ? '' : '   [NOT DECODED]'));
+      }
+      if (!m.beds.length) console.log('    !! NO BEDS AT ALL');
+      const L = m.levels;
+      const col = (k) => (L[k] ? String(L[k].rms).padStart(7) + ' /' + String(L[k].peak).padStart(7) : '      -');
+      console.log('    rms/peak dBFS   master' + col('master') + '   amb' + col('ambienceBus'));
+      console.log('                    sfx   ' + col('sfxUnityBus') + '   mus' + col('musicBus'));
+      /* THE ONE LINE THAT WOULD HAVE CAUGHT THE ORIGINAL DEFECT. A bus carrying beds
+         that are all LIVE and still reading silence is the failure this pass fixed. */
+      const amb = L.ambienceBus ? L.ambienceBus.rms : -999;
+      const liveBeds = m.beds.filter((b) => b.state === 'LIVE').length;
+      if (liveBeds && amb < -45) console.log('    !! ' + liveBeds + ' live bed(s) and the ambience bus is SILENT');
+      if (m.failed.length) console.log('    !! dead assets: ' + m.failed.join(', '));
+      console.log('');
     }
 
     const A = await page.evaluate('window.__audit');

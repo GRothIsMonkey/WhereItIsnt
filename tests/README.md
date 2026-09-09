@@ -224,10 +224,38 @@ game nearly silent under an unwanted music loop. The suites proved the system CA
 and play a sound; they could not answer "what does the player get". This can, and its first
 run produced every finding in `PROGRESS.md` section 0.0000000000000.
 
+**Phase 34.2 added a meter, and four words it now keeps apart.** Everything described above
+counts CALLS, which is what both earlier passes measured — and both times the game shipped
+nearly silent with the counts looking healthy, because "the code asked for a crow" and "the
+player heard a crow" are different claims. There is now an `AnalyserNode` on every bus and
+a bed-state reader that looks at the NODES rather than the slot table:
+
+```
+REQUESTED  a call was made                          (the counters)
+STARTED    a real BufferSource exists on the slot   (reported LIVE / LOADING / DEAD)
+CONNECTED  it is on a gain node in the live graph
+AUDIBLE    signal measurably present on the bus     (rms/peak dBFS, measured)
+```
+
+This distinction is not academic: `AudioLibrary.setBed()` claims its slot **before** the
+decode lands and leaves it claimed if the load fails, so the slot table cheerfully reports
+a bed playing when nothing is playing. The `IS IT AUDIBLE` section flags any bus carrying
+live beds that still reads silence, and any asset that failed to load.
+
+It still cannot listen — headless Chromium renders to a null device. It measures the
+signal; whether that signal is the right sound in the right place is a person's judgement.
+
 ```
 node audio-audit.js                       # ~25s of walking per dimension
 WII_AUDIT_SECONDS=90 node audio-audit.js  # longer, if a rare event is being chased
 ```
+
+**In a live session**, `debugAudioOverlay()` in the browser console shows the same picture
+in real time: context state, dimension, scene, bus levels, every bed and whether it is LIVE
+/ LOADING / DEAD, the last cue played and its gain, the footstep surface and the family it
+selected, the countdown to the next ambient event, and any dead assets.
+`debugAudioOverlay(false)` removes it. It is developer-only and nothing is created,
+listened to or scheduled until it is asked for.
 
 ## About the renders
 

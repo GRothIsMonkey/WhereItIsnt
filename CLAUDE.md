@@ -1419,7 +1419,8 @@ Phase 31 — Environmental Storytelling            (COMPLETE — see section 57)
 Phase 32 — Fake Haven Dream Sequence              (COMPLETE — see section 58)
 Phase 33 — Final Creature / Horror Finale         (COMPLETE — see section 59)
 Phase 34 — Final Audio Integration                (COMPLETE — see section 61)
-Phase 34.1 — Audio Correction (human playtest)    (see section 61.05 — awaiting replay)
+Phase 34.1 — Audio Correction (human playtest)    (see section 61.05)
+Phase 34.2 — Audio Runtime Correction             (see section 61.06 — awaiting replay)
 Phase 35 — Complete Dimension Cohesion
 Phase 36 — Complete Playable Alpha / Full Audit
 
@@ -2312,6 +2313,86 @@ RULES THAT NOW HOLD FOR AUDIO, in addition to section 61:
 - **AND THEN A HUMAN PLAYS IT.** Neither suite can hear. Nothing in this repository has
   been listened to. A phase that changes what the game sounds like is not complete until
   someone has played it and said so.
+
+---
+
+# 61.06. PHASE 34.2 — THE RUNTIME CORRECTION, AND THE RULES IT PRODUCED
+
+Phase 34.1 fixed the loudness of every FILE and shipped green. The same human played it and
+reported the Farmlands still audible only as footsteps, and Suburbia WORSE than before. The
+chain was traced end to end in a real browser with a meter on every bus. Most of it was
+healthy — all 274 runtime files present, every bed decoded, started, connected and
+measurably sounding at −25 dBFS — which is exactly why two passes had missed the fault.
+See `PROGRESS.md` section 0.00000000000000 for the full record.
+
+RULES THAT NOW HOLD:
+
+- **A DECORATIVE DISTANCE IS NOT A PHYSICAL ONE.** `playAt()` had applied a bare
+  inverse-square law to the authored gain of an ambient event — but that event's distance
+  is drawn at random from its own row purely so the sound reads as elsewhere, and the
+  player can never walk to it or test it. A tractor authored at 0.24 reached the ear at
+  0.008; a crow at 0.46 reached it at 0.032. Every distant one-shot in the game was
+  computed into inaudibility. The curve now carries a **floor** — the fraction of the
+  authored gain distance may never remove — and DISTANCE IS CARRIED BY COLOUR AND BEARING:
+  the air filter runs 18kHz at the listener to 2.1kHz at the far edge. Level says "this is
+  small"; colour says "this is far". Only the second survives being audible.
+- **PICK THE FLOOR BY WHETHER THE PLAYER CAN ACT ON THE DISTANCE.** 0.70 for an ambient
+  event (decorative), 0.55 for the Behemoth's one arrival, 0.40 for an animal (a real thing
+  at a real place), 0.12 for the Stalker (closing distance IS the cue, and it keeps a
+  13.3 dB sweep across its approach). Nothing ambient may exceed the player's own footstep.
+- **THE STALKER CEILING FROM SECTION 61 STILL HOLDS.** Its loudest cue is 0.311 against a
+  footstep at 0.46. Never raise a floor in a way that breaks that.
+- **SUBURBIA KEEPS AN ELECTRICAL LAYER IN EVERY SCENE.** 34.1 deleted `bed.hum.crt` from
+  `sub.day` and `sub.blood` believing it doubled the Phase 5A procedural CRT static. It did
+  not: that one is SPATIALISED to the nearest window, measures −45 dBFS, and exists only
+  within about ten metres of a house — it had merely been the only audible thing before the
+  beds were fixed. A television in a window is a positioned object; the hum of a street of
+  air-conditioning plant is a bed. They are different sounds and both belong.
+  `tests/audio.js` fails if any Suburbia scene loses its tone slot.
+- **`species` IS AN INTEGER AND THE AUDIO TABLE MUST BE INDEXED BY ONE.** `playAnimalCall`
+  looked its recording up with string keys while every caller passed
+  `a.desc.species` — `FARM_ANIM_SPECIES`, the integers 0-3. The subscript was `undefined`
+  on every call in every build, so all four animal recordings were UNREACHABLE, not
+  merely rare, and every animal the player has ever heard was the synthesised fallback.
+  The offline test passed because it asked the selection function in the wrong alphabet.
+  **A SELECTION TEST IS NOT A PATH TEST.** Where a recording is chosen by a value that
+  comes from a game entity, the test must drive the ENTITY, with the value that entity
+  actually stores.
+- **A SCENE CHANGE STILL MAY NOT FIRE AN EVENT, BUT ARRIVAL MAY NOT BE SILENT EITHER.** The
+  first event after a scene change was up to 66 seconds out, which is indistinguishable
+  from a dimension with no sound in it. It is now 11-24s. The eleven-second floor is
+  load-bearing: below ten and the sound reads as a reaction to the door the player just
+  walked through. Do not lower it.
+- **THE AUDIO SYSTEM HAS A VOICE FOR THE INTERFACE, AND IT IS BOUND ONCE.** `ui.click` sat
+  in `AUDIO_CUES` from Phase 34 with no call site at all. It is now ONE delegated
+  capture-phase listener over a list of interface controls — never a play call added to
+  each button, which is fifteen chances to double it or miss one. Gameplay surfaces (the
+  hotbar, the inventory, the crafting rows) are excluded: they already have their own
+  voices and a menu click on top would be two sounds for one action.
+- **THE FIRST CLICK OF A SESSION CANNOT USE A RECORDING.** It is the click that opens the
+  AudioContext, so nothing can be decoded yet. `playUiClick` therefore follows the same
+  rule as every other cue: the recording is tried first and a synthesised voice answers
+  when it is not there. Verified live — first click synthesised, second recorded.
+- **A SUSPENDED CONTEXT MUST BE ABLE TO COME BACK.** The build called `ctx.resume()`
+  NOWHERE. A backgrounded tab returned with a perfect graph and permanent silence, and
+  every diagnostic reported success. There is now one `resumeContext()`, armed on
+  visibilitychange, on focus, on the next gesture, and on every dimension change. **Never
+  work around a suspended context with an always-playing silent buffer.**
+- **DEBUG ENTRY IS NOT A SEPARATE AUDIO PATH AND MUST NOT BECOME ONE.** The director is
+  driven from player state every frame rather than from an entry hook, so a teleport, a
+  save load, a New Game and normal progression are indistinguishable to it. That is why
+  the developer teleports were never the cause. Keep it that way.
+- **REQUESTED, STARTED, CONNECTED, AUDIBLE ARE FOUR DIFFERENT CLAIMS.** `setBed()` claims
+  its slot BEFORE the decode lands and leaves it claimed if the load fails, so the slot
+  table will report a bed playing when nothing plays. `tests/audio-audit.js` now meters the
+  live graph and reports all four separately. When the question is "what does the player
+  get", this is the tool.
+- **AND THE 34.1 LESSON, RESTATED BECAUSE IT RECURRED.** A test that only bounds one side
+  is half a test. "Sparse" became cover for "silent" in Phase 34; "distant" became cover
+  for "silent" in 34.1. Every level check added here carries a FLOOR as well as a CEILING,
+  including the Behemoth's arrival, which previously passed at 0.008.
+- **AND THEN A HUMAN PLAYS IT.** Unchanged and permanent. Nothing in this repository has
+  been listened to.
 
 ---
 
