@@ -43,6 +43,35 @@ Three encodes, and the reason for each:
   the 208-second drone would have been 73MB of RAM decoded. The engine crossfade-loops
   beds, so a 30-second window of a wash is indistinguishable from all of it.
 
+## Loudness
+
+**Every runtime copy is levelled, and this is the single most important thing the build
+does.** The collected library spans 64 dB from the quietest recording to the loudest — a
+room tone at -67 dBFS RMS next to a drone at -3 — and the first Phase 34 build copied
+each file at its recorded level and then applied a hand-written mix number to it. A human
+playtest found the result nearly silent, which is exactly what the arithmetic predicts:
+the Overworld day bed reached the player at about -56 dBFS and the interior room tone at
+about -82.
+
+So loudness is measured and corrected here, once, at build time:
+
+| class | reference | measured over |
+|---|---|---|
+| beds | -26 dBFS RMS | the whole 30-second window that ships |
+| one-shots | -20 dBFS RMS | the **loudest 300ms**, not the whole file |
+| footfalls | -22 dBFS RMS | the **whole set**, not each slice |
+
+Nothing is allowed to clip (peak ceiling -1.5 dBFS), and a file that would need more
+than its class boost limit is left short rather than amplified into its own noise floor.
+The two "measured over" notes are corrections in their own right: whole-file RMS put
+fifty of the hundred and ten cues about twenty decibels too quiet, because a two-second
+file holding one 80ms click is mostly silence; and per-slice normalisation made every
+footfall in a set exactly as loud as every other, which deletes the heavy-step/light-step
+dynamic that makes a walk sound like a person.
+
+After this the spread is 9.3 dB for beds and 11.5 dB for one-shots, and a number in
+`AUDIO_SCENES` is a real mix decision rather than a guess about an unmeasured file.
+
 ---
 
 ## Interior / home ambience

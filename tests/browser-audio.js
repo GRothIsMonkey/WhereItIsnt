@@ -216,6 +216,25 @@ const SNAP = () => {
     head('4. BEDS IN A LIVE GRAPH');
     // =================================================================================
     {
+      /* THE CORRECTION'S HEADLINE CLAIM, in a live browser: exploration is no longer
+         scored, and the ambience the player is left with is genuinely there. */
+      const music = await page.evaluate(() => {
+        const s = window.game.sound;
+        let chords = 0;
+        const has = typeof s.playDayChord === 'function';
+        s.playDayChord = () => { chords++; };
+        for (let i = 0; i < 4000; i++) s.updateDayTrack(0.25, true);   // ~16 simulated minutes
+        return { has, chords, recordedLive: s._recordedBedLive() };
+      });
+      chk(music.has === false,
+          'playDayChord does not exist on the live engine — the retro exploration ' +
+          'soundtrack is gone from the running build, not merely from the source');
+      chk(music.chords === 0,
+          `and sixteen simulated minutes of daylight schedule ${music.chords} chords`);
+      chk(music.recordedLive === true,
+          'while a recorded bed IS sounding, so the synthesised night bed has stood down for it');
+    }
+    {
       const a = await page.evaluate(SNAP);
       chk(a.scene !== null, `the director settled on a scene by itself: '${a.scene}'`);
       chk(a.bedCount > 0, `and put ${a.bedCount} bed(s) on it: ${a.beds.join(', ')}`);
@@ -246,15 +265,38 @@ const SNAP = () => {
         const out = { day: beds(), y: Math.round(g.player.position.y) };
         /* NIGHT IS SET ON THE CLOCK, not on the flag: EnvironmentSystem recomputes
            isNight from `t` every frame, so writing the flag lasts exactly one frame. */
-        const t0 = g.env.t;
-        g.env.t = 560;          await wait(3600); out.night = beds(); out.nightScene = g.sound.director.scene;
-        g.stage = 3;            await wait(3600); out.blood = beds(); out.bloodScene = g.sound.director.scene;
+        const clock0 = g.env.t;
+        const settle = async (want) => {
+          const t = performance.now();
+          while (g.sound.director.scene !== want && performance.now() - t < 40000) await wait(250);
+          await wait(2500);
+        };
+        g.env.t = 560;  await settle('overworld.night');
+        out.night = beds(); out.nightScene = g.sound.director.scene;
+        g.stage = 3;    await settle('overworld.blood');
+        out.blood = beds(); out.bloodScene = g.sound.director.scene;
         const sky = g.world.hasSkyAbove.bind(g.world);
         g.world.hasSkyAbove = () => false;
-        await wait(3600);       out.indoors = beds(); out.indoorScene = g.sound.director.scene;
+        /* WAITED ON, NOT SLEPT THROUGH. The indoor reading has to HOLD for
+           AUDIO_INDOOR_SETTLE seconds of simulated time before the mix acts on it, and
+           simulated time is accumulated dt — which on this software renderer, at two
+           frames a second, runs several times slower than the wall clock. At a real frame
+           rate the two are the same; here they are not, and a fixed sleep measured the
+           renderer rather than the feature. */
+        await settle('in.house');
+        out.indoors = beds(); out.indoorScene = g.sound.director.scene;
         g.world.hasSkyAbove = sky;
-        g.stage = 1; g.env.t = t0;
-        await wait(3600);       out.back = beds(); out.backScene = g.sound.director.scene;
+        g.stage = 1;
+        /* The clock is NOT restored to where it started. Each settle above waits on a real
+           condition rather than a fixed sleep, and the game's own day runs while it does —
+           so which outdoor scene we come back to depends on how long the software renderer
+           took. The claim being tested is that the mix comes back OUT, not which hour it
+           is when it does. */
+        const outdoor = ['overworld.day', 'overworld.night'];
+        const t2 = performance.now();
+        while (outdoor.indexOf(g.sound.director.scene) < 0 && performance.now() - t2 < 40000) await wait(250);
+        await wait(2000);
+        out.back = beds(); out.backScene = g.sound.director.scene;
         out.count = lib.slots.size;
         return out;
       });
@@ -265,8 +307,8 @@ const SNAP = () => {
       chk(r.indoorScene === 'in.house' && r.indoors.some((s) => s.indexOf('bed.interior.house') >= 0) &&
           !r.indoors.some((s) => s.indexOf('bed.blood') >= 0),
           `and stepping under a roof at y ${r.y} gives a ROOM and not a basement: ${r.indoors.join(', ')}`);
-      chk(r.backScene === 'overworld.day' && r.back.some((s) => s.indexOf('bed.overworld.day') >= 0),
-          `walking back out into the morning brings the day back: ${r.back.join(', ')}`);
+      chk(/^overworld\./.test(r.backScene || '') && r.back.some((s) => s.indexOf('bed.overworld') >= 0),
+          `and walking back out returns an outdoor scene ('${r.backScene}'): ${r.back.join(', ')}`);
       chk(r.count <= 3, `${r.count} beds resident after four scene changes, not an accumulation`);
       chk(errors.length === 0, 'and still nothing has thrown');
     }
@@ -339,16 +381,34 @@ const SNAP = () => {
       chk(r.voices <= 20, `${r.voices} voices live — the ceiling holds in a real context`);
     }
     {
-      /* THE SURFACE IS READ FROM THE REAL WORLD, not from a stub. */
-      const r = await page.evaluate(() => {
+      /* THE SURFACE IS READ FROM THE REAL WORLD, not from a stub — and since the playtest
+         the thing that matters is that WALKING CHANGES IT. This moves the player along the
+         real Farmland journey corridor and records which recording each footfall used. */
+      const r = await page.evaluate(async () => {
         const g = window.game, d = g.sound.director, p = g.player;
-        return { here: d.surfaceAt(g.world, p.position.x, p.position.y, p.position.z),
-                 sky: g.world.hasSkyAbove(Math.floor(p.position.x),
-                                          Math.floor(p.position.y + p.eyeHeight),
-                                          Math.floor(p.position.z)) };
+        window.debugTeleportToFarmlands();
+        await new Promise((res) => setTimeout(res, 3000));
+        const seen = {}, fams = new Set();
+        const base = { x: p.position.x, z: p.position.z };
+        for (let i = 0; i < 90; i++) {
+          p.position.x = base.x + i * 4;
+          p.position.z = base.z + ((i * 7) % 40) - 20;
+          const y = g.world.findSpawnHeight(Math.floor(p.position.x), Math.floor(p.position.z));
+          if (y > 0) p.position.y = y + 1;
+          const surf = d.surfaceAt(g.world, p.position.x, p.position.y, p.position.z);
+          seen[surf] = (seen[surf] || 0) + 1;
+          if (d.footstep(0.9, surf)) fams.add(d.lastStepSurface());
+          await new Promise((res) => setTimeout(res, 14));
+        }
+        return { seen, fams: Array.from(fams) };
       });
-      chk(typeof r.here === 'string' && r.here.length > 0,
-          `the ground under the player in the real generated world classifies as '${r.here}'`);
+      const walked = Object.keys(r.seen);
+      chk(walked.length >= 3,
+          `walking 360 blocks of the real Farmland corridor crosses ${walked.length} surfaces: ` +
+          Object.entries(r.seen).map(([k, v]) => `${k}×${v}`).join(' '));
+      chk(r.fams.length >= 3,
+          `and the footstep system actually switched recording ${r.fams.length} ways doing it: ` +
+          r.fams.join(', '));
     }
 
     // =================================================================================
@@ -419,7 +479,13 @@ const SNAP = () => {
       const r = await page.evaluate(async () => {
         const g = window.game, s = g.sound, lib = s.library;
         const wait = (ms) => new Promise((res) => setTimeout(res, ms));
-        await wait(600);
+        /* PUT THE PLAYER SOMEWHERE KNOWN FIRST. Earlier blocks teleport across three
+           dimensions and stub a world predicate; measuring a teardown against whatever
+           they happened to leave behind measures those blocks, not this one. */
+        window.debugTeleportToOverworld();
+        const t = performance.now();
+        while (lib.slots.size === 0 && performance.now() - t < 40000) await wait(250);
+        await wait(1500);
         const before = lib.slots.size;
         const buffersBefore = lib.buffers.size;
         const real = g._updateEnvironmentAudio;
