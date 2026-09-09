@@ -1,7 +1,10 @@
 # WHERE IT ISN'T — PROJECT STATE
 
 ```
-Current phase              34.1 — AUDIO CORRECTION (needs a human replay)
+HOW TO RUN IT              SERVE IT. python3 -m http.server 8000, then
+                           http://localhost:8000/game.html  — opening game.html
+                           from disk plays NO recorded audio at all (section 0.000000000000000)
+Current phase              34.3 — AUDIO FORENSIC INVESTIGATION (needs a human replay)
 Next phase                 35 — COMPLETE DIMENSION COHESION
 Phase 19                   COMPLETE
 Phase 20                   COMPLETE
@@ -21,7 +24,9 @@ Phase 31                   COMPLETE           (see section 0.000000000)
 Phase 32                   COMPLETE           (see section 0.0000000000)
 Phase 33                   COMPLETE           (see section 0.00000000000)
 Phase 34                   COMPLETE           (see section 0.000000000000)
-Phase 34.1 correction      IMPLEMENTED        (see section 0.0000000000000 — NOT yet replayed)
+Phase 34.1 correction      IMPLEMENTED        (see section 0.0000000000000)
+Phase 34.2 correction      IMPLEMENTED        (see section 0.00000000000000)
+Phase 34.3 correction      IMPLEMENTED        (see section 0.000000000000000 — NOT yet replayed)
 Exploration music          REMOVED            (34.1; four authored music moments remain)
 XP                         REMOVED            (no runtime XP exists; see section 0.0000)
 Hearts / vital bars        REMOVED            (no runtime HUD bar exists; see section 0.00000)
@@ -50,6 +55,143 @@ describe Phase 20 as it was first delivered, and Section 0 describes the 20.1 jo
 revision that followed a human playtest and supersedes them wherever they disagree** — principally the beat table, the landmark set, the distances, and the
 performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
 instruction and the compass and changed no world generation at all.
+
+---
+
+## 0.000000000000000. PHASE 34.3 — AUDIO FORENSIC INVESTIGATION
+
+Phase 34.2 traced the chain in a real browser and shipped with 117 offline and 42 browser
+checks green. The same person played it again: **menu clicks work, some Stalker sounds
+work, and the Overworld, the Farmlands and Static Suburbia have no ambience at all.**
+
+This time one sound was followed through the entire live path with a meter on every bus,
+in a real Chromium, from both origins.
+
+### THE ROOT CAUSE — AND IT IS NOT IN THE AUDIO SYSTEM
+
+**The game was being opened as a file rather than served over HTTP.**
+
+Measured in Chromium from a `file://` page:
+
+| transport | result |
+|---|---|
+| `fetch('assets/audio/runtime/803224.mp3')` | `THREW: Failed to fetch` — URL scheme "file" is not supported |
+| `XMLHttpRequest` (arraybuffer) | `ONERROR status=0` |
+| `<audio>` element | **loads** — `canplay dur=30.00` |
+| that element into `createMediaElementSource` | **digital silence** — cross-origin tainted (`rmsMax 0`, element playing, `readyState 4`, `currentTime` advancing) |
+
+There is no fourth route. **Web Audio cannot receive a local file from a `file://` page**,
+and nothing that can be written in this repository changes that.
+
+So all 274 runtime files failed, permanently, in every session the human ever played.
+Measured at the master bus **before** the fix, in daylight, with an AnalyserNode:
+
+| dimension | master RMS | state |
+|---|---|---|
+| Overworld, day | **-inf dBFS** | `loaded=0 failed=81`, both beds stuck LOADING |
+| Farmlands, day | **-inf dBFS** | `loaded=0 failed=85`, three beds stuck LOADING |
+| Static Suburbia, day | **-59.9 dBFS** | `loaded=0 failed=93` — the procedural CRT static, and only that |
+
+Not quiet. Silent.
+
+### WHY THREE PHASES OF LEVEL WORK CHANGED NOTHING
+
+Every sound that survived has a SYNTHESISED twin that runs when the recording does not:
+
+| the human heard | why |
+|---|---|
+| menu clicks | `playUiClick`'s synthesised fallback (`director.cue` returned false) |
+| footsteps | `playFootstep`'s synthesised fallback (`director.footstep` returned false) |
+| some Stalker | Phase 5's procedural proximity pulse and screech |
+| **no ambience anywhere** | recorded beds are the ONLY environmental ambience, and they have no twin |
+
+Three consecutive playtests reported exactly the procedural voices and **never once a
+recording**. That is why normalising every file (34.1) and rewriting the distance curve
+(34.2) were both invisible: they were corrections to files that never arrived. It is also
+why every suite passed — every one of them serves `game.html` over HTTP.
+
+### WHAT WAS RULED OUT, WITH MEASUREMENTS
+
+The user's stated hypothesis was a spatial/listener/routing fault. It is not one:
+
+- **The beds are not spatialised and never were.** `_startBed` is `source -> gain -> bus`.
+  No PannerNode, no distance model, no `AudioListener` anywhere in the recorded path. The
+  three PannerNodes in the build (CRT static, whispers, the synthesised animal call) are
+  fed LISTENER-RELATIVE coordinates, so an unmoved listener is correct by construction.
+- **Served over HTTP everything already worked.** Beds requested, loaded, decoded,
+  started, connected, and measurably sounding: ambience bus -17 to -27 dBFS, master -22 to
+  -32 dBFS, across the Overworld, the Farmlands and Static Suburbia, over a three-minute
+  session with dimension changes. `failed=[]`, context `running`.
+- **The files are healthy.** All 183 manifest entries decoded in a real Chrome decoder:
+  valid sample rates, channel counts and durations, no zero-length or silent buffers,
+  every bed normalised to the intended ~-26 dBFS with broadband content. No format fault.
+- **The settings path is airtight.** `GameSettings.load()` always starts from
+  `defaultSettings()`, so a pre-Phase-34 stored blob still yields `ambienceVolume` 1.0.
+
+### THE FIX — FOUR SMALL CHANGES
+
+1. **`AUDIO_TRANSPORT_BLOCKED`** detects a `file:` origin before an AudioContext exists,
+   and `load()` short-circuits on it — so a blocked run does not spend 274 requests
+   burying its own explanation under 274 CORS errors.
+2. **`AudioLibrary.transportDead()`** is the aggregate the class never had. Per-key
+   `failed` answers "is this sound dead"; nothing answered "is the LIBRARY dead", which is
+   a different fault with a different remedy. Latched after `AUDIO_LIMITS.deadAfter` (12)
+   failures with not one success, and never on a library that has loaded anything.
+3. **`Game._reportAudioTransport()`** states the cause and the remedy, once, on the start
+   screen, in the settings panel next to the volume sliders, and in the console. Never in
+   the HUD and never in the world — sections 53 and 57 are not suspended because a message
+   is technical. `UIManager.showAudioNotice()` is a pure renderer and knows nothing about
+   libraries or transports.
+4. **The fallback contract is made whole.** Section 61 claims "the build is fully audible
+   with `assets/audio/runtime/` deleted". That was true of one-shots and FALSE of ambience:
+   the synthesised bed was scaled by `nightAmount` (zero at noon) and Static Suburbia
+   returned before ever reading `_recordedBedLive()`. `AUDIO_FALLBACK_BED` (0.26) closes
+   both. Plus one honesty fix: `setBed` left a FAILED slot marked `starting` forever, so
+   the engine could ask "is a recording on its way" and get yes, permanently, for a file
+   that was never coming.
+
+### THE FIX'S OWN BUG, AND THE INSTRUMENT THAT CAUGHT IT
+
+The first version guarded the fallback with a time window alone. A browser probe sampling
+`nightGain` every 25ms across five real bed crossfades measured it **swelling to 0.218
+during a dimension teleport** on a perfectly healthy build — a dimension change is slower
+than the window. The guard is now precise: no live bed AND none *pending* AND held for
+`AUDIO_FALLBACK_SETTLE`, and it stands down through the Haven and the finale.
+
+Re-measured: **peak 0.00000 across 613 samples, 5 scene changes and 3 teleports.**
+
+### PROOF
+
+Real Chromium, AnalyserNode on every bus, both origins, after the fix:
+
+| | served over HTTP | opened as a file |
+|---|---|---|
+| start-screen notice | not shown | **shown** |
+| `transportDead()` | false | **true** |
+| synthesised fallback | **0 everywhere** | 0.26 (0.182 Suburbia) |
+| Overworld day, master RMS | -26.7 dBFS, beds LIVE | **-inf -> -34.9 dBFS** |
+| Farmlands day, master RMS | -22.6 dBFS, 3 beds LIVE | **-inf -> -36.0 dBFS** |
+| Suburbia day, master RMS | -29.6 dBFS, 3 beds LIVE | **-59.9 -> -32.7 dBFS** |
+| footstep / menu click / Stalker | -14.9 / -18.2 / -19.0 dBFS peak | all still audible |
+| page errors | none | none |
+
+### THE DIAGNOSTIC
+
+- `debugAudioTrace([secs])` — hangs an AnalyserNode off every bus and reports what
+  **flowed**, not what was asked for: context state and rate, origin and transport state,
+  the library's counters, every bus gain, the measured rms/peak per bus, every bed as
+  REQUESTED / STARTED+CONNECTED / CLAIMED-DEAD, and the last cue's full gain chain with an
+  estimate at the listener. Read-only; every tap is removed before it returns.
+- `debugAudioProbe(key)` / `debugAudioProbe(key, 'spatial', metres)` — the A/B: one asset
+  flat at an audible test gain, or through the shipped distance curve. Changes no level
+  and leaves no state.
+
+### WHAT IS HONESTLY NOT DONE
+
+**Nothing has been listened to.** No playback device exists here; every figure above is a
+meter reading. Whether the Farmland bed is the right recording, and whether the
+synthesised fallback is a tolerable stand-in on a build with no files, remain judgements
+for a person with speakers — **playing it served over HTTP**.
 
 ---
 

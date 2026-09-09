@@ -87,6 +87,18 @@ const BLOCK = g('BLOCK');
 // that arrives, a file that 404s, a file that arrives and will not decode, and a file
 // that is never asked for at all.
 // =====================================================================================
+/* An AudioParam-shaped stub: `.value`, the ramp methods, and a `_target` the tests read
+   to see where a ramp was pointed. */
+function param() {
+  const p = { value: 0, _target: 0,
+    cancelScheduledValues() {},
+    setTargetAtTime(v) { p.value = v; p._target = v; },
+    setValueAtTime(v) { p.value = v; p._target = v; },
+    linearRampToValueAtTime(v) { p.value = v; p._target = v; },
+    exponentialRampToValueAtTime(v) { p.value = v; p._target = v; } };
+  return p;
+}
+
 function fakeCtx() {
   const made = { gain: 0, source: 0, filter: 0, panner: 0, buffer: 0 };
   const live = { sources: 0 };
@@ -114,7 +126,11 @@ function fakeCtx() {
         stop() { if (!n._stopped) { n._stopped = true; live.sources--; } } };
       return n;
     },
-    createBiquadFilter() { made.filter++; return { type: '', frequency: { value: 0 }, Q: { value: 0 }, connect() {}, disconnect() {} }; },
+    /* PHASE 34.3 — the filter's frequency is a real AudioParam in a browser and
+       setNightIntensity ramps it. The stub only had `.value`, so any test that drove the
+       synthesised bed threw rather than measuring it — which is part of why the fallback
+       had never been exercised in daylight. */
+    createBiquadFilter() { made.filter++; return { type: '', frequency: param(), Q: { value: 0 }, connect() {}, disconnect() {} }; },
     createStereoPanner() { made.panner++; return { pan: { value: 0 }, connect() {}, disconnect() {} }; },
     createOscillator() { return { type: '', frequency: { value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {} }, detune: { value: 0 }, connect() {}, disconnect() {}, start() {}, stop() {} }; },
     createWaveShaper() { return { curve: null, connect() {}, disconnect() {} }; },
@@ -1497,6 +1513,187 @@ head('PHASE 34.2 — WHAT REACHES THE PLAYER (the floors, not just the ceilings)
   chk(/playAnimalCall\(a\.desc\.species/.test(SRC),
       'FarmAnimalManager passes a.desc.species straight through — the integer this ' +
       'mapping is now written for');
+}
+
+// =====================================================================================
+head('19. PHASE 34.3 — THE TRANSPORT, AND THE OTHER SIDE OF THE FALLBACK TEST');
+// =====================================================================================
+/* WHY THIS SECTION EXISTS. Section 3 above already asserted that with every asset 404ing
+   a FOOTSTEP still makes a sound, and called that "the game is fully audible with
+   assets/audio/runtime/ deleted". It was half a test — the third time in this phase that
+   a check bounded one side and the missing side was where the fault lived. A footstep has
+   a synthesised twin. The world's AMBIENCE did not: `setNightIntensity` scaled the only
+   synthesised bed by nightAmount, which is zero at noon, and Static Suburbia returned
+   before reaching the switch at all. So a build with no recorded audio was not "fully
+   audible" — in daylight it was DIGITALLY SILENT, and that is exactly what a human
+   playtester on a file:// origin heard three times running. */
+{
+  const engineWithBeds = (recorded) => {
+    const ctx = fakeCtx();
+    const eng = new SoundEngine();
+    eng.ctx = ctx;
+    eng.master = ctx.createGain(); eng.musicBus = ctx.createGain();
+    eng.sfxBus = ctx.createGain(); eng.sfxUnityBus = ctx.createGain();
+    eng.ambienceBus = ctx.createGain();
+    eng._buildNightBed();
+    /* `pending` is the third state this fix turns on: a slot claimed and still decoding
+       is a bed the player is about to get, and the fallback must not fill that gap. */
+    const slots = recorded === 'pending'
+      ? [['air', { key: 'bed.overworld.day', src: null, starting: true }]]
+      : recorded ? [['air', { key: 'bed.overworld.day', src: {}, starting: false }]] : [];
+    eng.library = { slots: new Map(slots), transportDead: () => recorded === false };
+    return eng;
+  };
+  const SETTLE = g('AUDIO_FALLBACK_SETTLE');
+  /* THE HOLD FIRST, because it is the thing that keeps a HEALTHY build unchanged.
+     `_recordedBedLive()` is false for a moment during every ordinary bed swap — setBed
+     claims a slot before its buffer lands — so a fallback that acted on the instantaneous
+     answer would swell a synthesised wind up and back down every time night fell. */
+  const flick = engineWithBeds(false);
+  flick.library.transportDead = () => false;      // not dead, merely nothing claimed yet
+  flick.setNightIntensity(0, 0);
+  chk(flick.nightGain._target === 0,
+      'a momentary gap with no recorded bed does NOT start the fallback — the reading has ' +
+      `to hold for ${SETTLE}s first, so an ordinary bed crossfade cannot make a healthy ` +
+      'build swell a synthesised wind through it');
+  flick.ctx.currentTime = SETTLE + 1;
+  flick.setNightIntensity(0, 0);
+  chk(flick.nightGain._target > 0, 'and once it HAS held that long, the fallback engages');
+
+  /* DAYLIGHT, NO RECORDING. nightAmount 0 — the exact condition the fault lived in. */
+  const day = engineWithBeds(false);
+  day.setNightIntensity(0, 0);
+  day.ctx.currentTime = SETTLE + 1;
+  day.setNightIntensity(0, 0);
+  const dayWind = day.nightGain._target;
+  chk(dayWind > 0,
+      `with no recorded bed live, the synthesised air bed sounds IN DAYLIGHT too ` +
+      `(gain ${dayWind}) — before this it was nightAmount * 0.22, which is zero at noon, ` +
+      'so a build with no audio files had no daytime ambience at all');
+
+  /* AND SUBURBIA, which returned before the switch it was supposed to consult. */
+  const sub = engineWithBeds(false);
+  sub.suburbiaMode = true;
+  sub.setNightIntensity(0, 0);
+  sub.ctx.currentTime = SETTLE + 1;
+  sub.setNightIntensity(0, 0);
+  chk(sub.nightGain._target > 0,
+      `Static Suburbia keeps an environmental bed when nothing recorded is live ` +
+      `(gain ${sub.nightGain._target}) — the branch used to return before ` +
+      '_recordedBedLive() was ever read, so the dimension was silent twice over');
+
+  /* THE OTHER SIDE OF THE SAME COIN, and the one that protects the shipped mix: when a
+     recording IS sounding, the fallback is exactly zero. A served build is unchanged. */
+  const served = engineWithBeds(true);
+  served.ctx.currentTime = SETTLE + 20;      // long past the hold: it passes on merit
+  served.setNightIntensity(0, 0);
+  chk(served.nightGain._target === 0,
+      'and when a recorded bed IS live the synthesised one is exactly 0 — a correctly ' +
+      'served build hears no fallback and its mix is unchanged by this phase');
+  const servedSub = engineWithBeds(true);
+  servedSub.ctx.currentTime = SETTLE + 20;
+  servedSub.suburbiaMode = true;
+  servedSub.setNightIntensity(0, 0);
+  chk(servedSub.nightGain._target === 0,
+      'including in Suburbia, where the recorded electrical layer 34.2 restored still wins');
+
+  /* A BED THAT IS STILL DECODING IS NOT A MISSING BED. This is the guard the browser
+     probe forced: without it, a teleport swelled a synthesised wind to 0.218 while the
+     new dimension's beds were in flight, on a build with nothing wrong with it. */
+  const pend = engineWithBeds('pending');
+  pend.ctx.currentTime = SETTLE + 20;
+  pend.setNightIntensity(0, 0);
+  chk(pend.nightGain._target === 0,
+      'a bed that is CLAIMED AND STILL DECODING holds the fallback off however long it ' +
+      'takes — an ordinary dimension change is covered by the pending state, not by a timer');
+
+  /* THE FINALE OWNS ITS OWN LAST THIRTY-TWO SECONDS (section 59). */
+  const fin = engineWithBeds(false);
+  fin.ctx.currentTime = SETTLE + 20;
+  fin.finaleAudio = { live: true };
+  fin.setNightIntensity(0, 0);
+  chk(fin.nightGain._target === 0,
+      'and nothing is added under the finale even on a build whose files never load — ' +
+      'Phase 33 owns every sound in it and this phase may not put one there');
+
+  /* THE FALLBACK MAY NOT BECOME THE LOUDEST THING IN THE GAME. Section 61's rule that
+     nothing ambient exceeds the player's own footstep applies to it as much as to a bed. */
+  const FALLBACK = g('AUDIO_FALLBACK_BED');
+  chk(FALLBACK > 0 && FALLBACK < AUDIO_STEP_SURFACES.grass.g,
+      `the fallback bed is ${FALLBACK}, under a grass footstep at ${AUDIO_STEP_SURFACES.grass.g} — ` +
+      'a stand-in that announced itself would be worse than the fault it stands in for');
+}
+
+{
+  /* THE AGGREGATE THE LIBRARY NEVER HAD. `failed` is per key; nothing said "the whole
+     transport is dead", which is a different fault with a different remedy. */
+  installFetch('404');
+  const lib = new AudioLibrary(stubEngine(fakeCtx()));
+  chk(lib.transportDead() === false, 'a fresh library does not claim its transport is dead');
+  const keys = Object.keys(AUDIO_ASSETS).filter((k) => AUDIO_ASSETS[k].k !== 'step')
+                     .slice(0, AUDIO_LIMITS.deadAfter + 2);
+  for (const k of keys) lib.load(k);
+  await settle(); await settle();
+  chk(lib.transportDead() === true,
+      `after ${keys.length} failures with not one success the library reports its transport ` +
+      'dead — the statement that a per-key latch could never make');
+
+  /* AND IT MUST NOT CRY WOLF. One dead asset among healthy ones is not a dead transport. */
+  installFetch('ok');
+  const ok = new AudioLibrary(stubEngine(fakeCtx()));
+  await ok.load('sfx.ui.click');
+  await settle();
+  chk(ok.transportDead() === false,
+      'and a library that has loaded even one file never reports a dead transport, ' +
+      'however many individual assets later fail');
+}
+
+{
+  /* THE ORIGIN CASE. A file:// page cannot fetch, cannot XHR, and is taint-silenced
+     through a media element, so every recording is unreachable before anything is tried.
+     Proved live in Chromium during this phase; asserted here as the source contract. */
+  chk(/const AUDIO_TRANSPORT_BLOCKED = /.test(LIVE),
+      'the blocked-origin case is detected up front rather than discovered as 274 failures');
+  chk(/location\.protocol === 'file:'/.test(LIVE),
+      "and it is detected by the thing that actually causes it — a file: origin");
+  const loadBody = methodBody(classBody(LIVE, 'AudioLibrary'), 'load(key, variant)');
+  chk(/this\.transportBlocked/.test(loadBody),
+      'load() short-circuits a blocked transport, so a blocked run does not spend 274 ' +
+      'requests burying its own explanation in console errors');
+
+  /* IT IS REPORTED, ONCE, SOMEWHERE A PLAYER WILL SEE IT. Silence was the only symptom
+     this fault had, and it is also the symptom of a volume slider at zero. */
+  chk(/_reportAudioTransport\(\)/.test(LIVE), 'and the game reports it');
+  const rep = methodBody(LIVE, '_reportAudioTransport()');
+  chk(/this\._audioReported/.test(rep), 'exactly once — it is latched');
+  chk(/http/i.test(rep) && /server/i.test(rep),
+      'and it names the REMEDY, not just the fault: a message that says a thing is broken ' +
+      'without saying what to do is a better class of silence');
+  chk(/showAudioNotice/.test(rep) && /console\.warn/.test(rep),
+      'on screen and in the console, so it is reachable without opening devtools');
+
+  /* WHERE IT IS NOT ALLOWED TO GO. Sections 53 and 57: the objective line belongs to the
+     objective system, and the world does not address the player. */
+  chk(!/journeyStep|objStatus|memStatus|stageStatus/.test(rep),
+      'and it never writes to the objective line or the HUD status — a technical notice ' +
+      'is a reason to find another surface, not an exception to the HUD rules');
+  const notice = methodBody(LIVE, 'showAudioNotice(why, fix, how)');
+  chk(notice.length > 0 && !/AUDIO_ASSETS|library|director|transportDead/.test(notice),
+      'and UIManager is still a RENDERER: showAudioNotice is handed finished text and ' +
+      'knows nothing about libraries, assets or transports');
+}
+
+{
+  /* THE DIAGNOSTIC IS READ-ONLY, and must stay that way — it exists to be run during a
+     playtest without perturbing it. */
+  const trace = LIVE.slice(LIVE.indexOf('global.debugAudioTrace'), LIVE.indexOf('global.debugAudioProbe'));
+  chk(trace.length > 0, 'debugAudioTrace exists');
+  chk(/createAnalyser/.test(trace),
+      'and it MEASURES the signal rather than reading gain values — every silent bed in ' +
+      'every playtest had a correct gain value, which is why reading them proved nothing');
+  chk(/disconnect/.test(trace), 'and it removes every tap it made before it returns');
+  chk(!/\.play\(|setBed|setBedLevel|setTargetAtTime/.test(trace),
+      'and it plays nothing and moves no level');
 }
 
 console.log('');

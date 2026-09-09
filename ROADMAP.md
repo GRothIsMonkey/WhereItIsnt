@@ -2158,6 +2158,22 @@ step, split the Farmland ground from one footstep surface into nine, and added
 prints what a player actually gets. See `CLAUDE.md` section 61.05 and `PROGRESS.md` section
 0.0000000000000.
 
+**TWO MORE PLAYTESTS FAILED IT, AND THE ROOT CAUSE WAS NEVER THE MIX — PHASE 34.3.** 34.2
+corrected the distance curve, restored Suburbia's electrical layer, fixed an animal lookup
+indexed in the wrong alphabet and added a context-resume path; the player reported the same
+silence. Following one sound through the live path with a meter on every bus found that
+**the game was being opened as a file rather than served over HTTP**, where a browser
+refuses `fetch` and `XMLHttpRequest` for a local file and taint-silences a media element —
+so all 274 runtime files failed in every session, and everything the player still heard was
+a synthesised fallback. Measured before the fix: the Overworld and the Farmlands at **-inf
+dBFS** in daylight.
+
+The build now detects and reports that, and the fallback contract — "fully audible with the
+runtime folder deleted" — was made true of ambience as well as of footsteps, which it had
+never been. **THE GAME MUST BE SERVED:** `python3 -m http.server 8000`, then
+`http://localhost:8000/game.html`. See `CLAUDE.md` section 61.07 and `PROGRESS.md` section
+0.000000000000000.
+
 **IT IS NOT SIGNED OFF.** Nothing in this repository has been listened to, and a phase that
 changes what the game sounds like is not complete until a person has played it and said so.
 

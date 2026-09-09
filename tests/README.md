@@ -1,5 +1,19 @@
 # WHERE IT ISN'T — VALIDATION SUITE
 
+> **RUN THE GAME FROM A SERVER, NOT FROM DISK.** Opening `game.html` with a `file://` URL
+> plays **no recorded audio at all** — a browser refuses `fetch` and `XMLHttpRequest` for a
+> local file and taint-silences a media element, so every one of the 274 runtime assets
+> fails and only the synthesised fallbacks are heard. This was the root cause of three
+> consecutive "the game is silent" playtest reports; see `CLAUDE.md` section 61.07.
+>
+> ```
+> cd /path/to/WhereItIsnt && python3 -m http.server 8000
+> # then open http://localhost:8000/game.html
+> ```
+>
+> Every suite here already serves the page over HTTP, which is precisely why none of them
+> could see the fault.
+
 These are the checks Phase 20, its journey revision (20.1), the guidance pass (20.2), the
 item-contact pass (21), the settings pass (22), the save/load pass (23), the story
 foundation (24), the objective system (25), the XP removal (26), the HUD rebirth (27) and
