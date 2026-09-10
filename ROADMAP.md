@@ -1,3652 +1,2868 @@
-# WHERE IT ISN'T
-# MASTER DEVELOPMENT ROADMAP
 
-Former project name:
-BLOCK & RUIN
 
-Official current project name:
 WHERE IT ISN'T
+MASTER DEVELOPMENT ROADMAP — REBIRTH EDITION
+Official title: WHERE IT ISN'T
 
----
+Project state: Era 1 mechanically complete; final human-playthrough gate remains; next development milestone is Era 1.5 Architecture Split, followed by Era 2 Rebirth.
 
-# 0. WHAT THIS ROADMAP IS
+This document replaces the previous master roadmap.
 
-This file is the long-term development roadmap for Where It Isn't.
+It is the long-term development source of truth for:
 
-It exists so the project can be continued across development sessions,
-context resets, model changes, and implementation environments without losing
-the larger creative direction.
+game identity
 
-This roadmap describes:
+player experience
 
-- the game's identity
-- the intended player experience
-- the progression of major development eras
-- completed phases
-- current phase
-- future phases
-- major systems
-- narrative direction
-- visual direction
-- horror philosophy
-- technical direction
-- permanent design decisions
+development eras
 
-The individual phase prompts contain the precise implementation requirements
-for that phase.
+completed milestones
 
-This file provides the larger picture.
+future phases
 
----
+story/horror direction
 
-# 1. GAME IDENTITY
+technical direction
 
-Where It Isn't is a stylized semi-realistic liminal survival horror game
-built primarily using:
+permanent design decisions
 
-- HTML
-- JavaScript
-- CSS
-- Three.js
-- browser APIs
-- procedural world generation
-- chunk streaming
-- custom geometry
-- custom collision
-- deterministic procedural systems
-- environmental storytelling
-- survival gameplay
-- cinematic horror
+STORY.md is authoritative for story canon and horror principles.
+ROADMAP.md is authoritative for development order and phase intent.
+PROGRESS.md records what has actually been built and verified.
+Individual phase prompts contain implementation-level instructions.
 
-The game uses a voxel/chunk foundation but is NOT intended to visually resemble
-Minecraft.
+1. GAME IDENTITY
+Where It Isn't is a cinematic, atmospheric survival horror game about a familiar world that is being reconstructed incorrectly.
 
-The voxel technology is an implementation foundation.
+The game is built for browser delivery using technologies including:
 
-It is not a creative restriction.
+HTML
 
-The world can use:
+JavaScript
 
-- cubes
-- slabs
-- half blocks
-- stairs
-- wedges
-- roof slopes
-- thin geometry
-- custom meshes
-- low-poly organic shapes
-- furniture geometry
-- custom architectural components
-- custom creature geometry
+CSS
 
-The goal is to create a distinct visual identity.
+Three.js
 
----
+browser APIs
 
-# 2. CORE GAME CONCEPT
+procedural generation
 
-The central horror idea is:
+streamed world systems
 
-The player enters a world that initially appears familiar and physically
-believable.
+custom geometry
 
-As the game progresses, the player realizes that reality itself is unstable.
+deterministic systems
 
-Places, environments, memories, structures, and familiar objects appear to be
-being reconstructed incorrectly.
+authored environments
 
-Something is attempting to imitate reality.
+environmental storytelling
 
-It does not understand reality perfectly.
+survival mechanics
 
-This creates:
+cinematic horror
 
-- incorrect spaces
-- impossible architecture
-- repeated places
-- missing objects
-- objects appearing where they should not
-- connected dimensions
-- Disconnected Homes
-- Rifts
-- memory failures
-- Fake Haven
-- increasingly impossible environments
-- creatures associated with the damaged reality
-- the final entity
+The visual foundation is temporary
+The Era 1 build used a voxel/chunk foundation.
 
-The player should discover this gradually.
+That was useful for proving:
 
-The game should not explain the entire truth at the beginning.
+procedural generation
 
----
+traversal
 
-# 3. TITLE
+survival
 
+progression
+
+dimension logic
+
+persistence
+
+horror systems
+
+It is NOT the final visual identity.
+
+The long-term creative direction is a full non-voxel presentation.
+
+The final game should not visually resemble Minecraft.
+
+Era 2 therefore replaces:
+
+block terrain
+
+voxel buildings
+
+voxel vegetation
+
+voxel-first composition
+
+cube-dependent presentation
+
+with:
+
+mesh terrain
+
+authored architectural proportions
+
+natural terrain silhouettes
+
+high-quality vegetation
+
+intentional materials
+
+cinematic lighting
+
+controlled environmental composition
+
+stronger creature presentation
+
+The game keeps its soul, story, dimensions, progression concepts, landmarks, and major horror ideas while changing the underlying visual representation.
+
+2. CORE GAME CONCEPT
+The player enters a world that initially appears familiar.
+
+Over time, the player discovers that:
+
+spaces do not always agree
+
+familiar objects recur in impossible places
+
+people are absent
+
+the same world can exist in multiple reconstructed forms
+
+observation influences what remains stable
+
+Rifts are seams between incompatible reconstructions
+
+the farther the player descends, the more hostile and unreliable the world becomes
+
+The game combines:
+
+psychological horror
+
+environmental horror
+
+physical survival horror
+
+pursuit
+
+claustrophobia
+
+darkness
+
+impossible spaces
+
+authored scares
+
+rare jumpscares
+
+cinematic escalation
+
+The player should not merely be afraid of monsters.
+
+The player should eventually be afraid that the world itself cannot be trusted.
+
+3. THE HORROR ESCALATION
+The final game intentionally becomes scarier as it progresses.
+
+The dimensions do NOT repeat the same horror recipe.
+
+Dimension 1 — Shattered Farmlands
+Core feeling: exposure.
+
+The player feels:
+
+isolated
+
+vulnerable
+
+visible
+
+surrounded by darkness
+
+unable to see what is outside the flashlight
+
+Primary fear:
+
+Something is out there.
+
+Physical horror tools:
+
+darkness
+
+flashlight limitation
+
+huge open spaces
+
+distant movement
+
+sounds beyond the player's view
+
+sudden crossings
+
+stalking
+
+rural structures
+
+authored jumpscares
+
+eventual physical danger
+
+The player should learn that darkness is not empty.
+
+Dimension 2 — Static Suburbia
+Core feeling: pursuit.
+
+The player can see farther.
+
+The threat becomes:
+
+smarter
+
+more deliberate
+
+better at interception
+
+harder to escape
+
+capable of using familiar architecture
+
+Primary fear:
+
+It knows where I am.
+
+Physical horror tools:
+
+open streets
+
+visible threats
+
+houses as temporary shelter
+
+being cut off
+
+impossible interiors
+
+pursuit
+
+interception
+
+authored jumpscares
+
+danger inside previously safe spaces
+
+Dimension 3 — The Below
+Core feeling: helplessness.
+
+The player enters the game's most extreme environment.
+
+It contains:
+
+impossible architecture
+
+scale shifts
+
+enormous chambers
+
+crushingly small spaces
+
+familiar objects embedded in impossible places
+
+roads where roads cannot exist
+
+structures with incompatible interiors
+
+Primary fear:
+
+I was never supposed to be here.
+
+Physical horror tools:
+
+sound-sensitive threat
+
+stealth pressure
+
+hiding
+
+loss of safe hiding places
+
+active hunting
+
+claustrophobic movement
+
+overwhelming creature scale
+
+authored chase sequences
+
+sensory confusion
+
+Haven
+Core feeling: safety.
+
+The player is allowed to relax.
+
+Then:
+
+The safe place stops being safe.
+
+Finale
+Core feeling: insignificance.
+
+The reconstruction is removed.
+
+The underlying subject is exposed.
+
+The final creature is NOT a boss.
+
+4. TITLE
 The official title is:
 
 WHERE IT ISN'T
-
-The title should eventually become thematically meaningful.
-
-The player repeatedly encounters situations where:
-
-- something should be there but isn't
-- something is where it shouldn't be
-- a familiar place is misplaced
-- a familiar object appears in an impossible context
-- a place exists where it cannot physically exist
-- memory and physical reality disagree
-
-The title should not be reduced to a literal gimmick.
-
-Its meaning should emerge through the player's experiences.
-
----
-
-# 4. PRIMARY CREATIVE GOALS
-
-Where It Isn't should be:
-
-- memorable
-- atmospheric
-- mysterious
-- unsettling
-- beautiful in places
-- frightening in places
-- mechanically playable
-- geographically interesting
-- visually distinct
-- narratively coherent
-
-It should NOT become:
-
-- Minecraft with horror mods
-- a generic voxel survival game
-- a generic procedural horror game
-- a jumpscare simulator
-- a gore simulator
-- a monster combat game
-- a sequence of disconnected horror gimmicks
-
----
-
-# 5. HORROR PHILOSOPHY
-
-Horror should primarily come from:
-
-- anticipation
-- uncertainty
-- isolation
-- silence
-- scale
-- environmental wrongness
-- memory
-- repetition
-- impossible geometry
-- distant movement
-- subtle creature behavior
-- familiar objects in unfamiliar contexts
-
-Not everything should be scary.
-
-Normality is part of the horror.
-
-A peaceful field should sometimes just be peaceful.
-
-A healthy animal should sometimes just be healthy.
-
-A normal farmhouse should sometimes just be a farmhouse.
-
-The game should establish a baseline of reality before violating it.
-
-Rare strong horror moments should be much more effective because the game
-does not use them constantly.
-
----
-
-# 6. VISUAL PHILOSOPHY
-
-The target visual style is:
-
-STYLIZED
-+
-SEMI-REALISTIC
-+
-LOW-POLY / VOXEL-COMPATIBLE
-+
-ATMOSPHERIC
-+
-LIMINAL
-+
-HORROR
-
-The game should gradually become increasingly distinct from Minecraft.
-
-Use:
-
-- custom geometry
-- stronger silhouettes
-- richer architectural proportions
-- layered materials
-- low-poly organic forms
-- sub-voxel architecture
-- environmental depth
-- visual hierarchy
-- atmospheric perspective
-- controlled lighting
-- environmental detail
-
-Do not make the world photorealistic.
-
-Do not make it cartoonish.
-
----
-
-# 7. GAMEPLAY PHILOSOPHY
-
-The player should:
-
-- explore
-- survive
-- gather
-- craft
-- discover
-- investigate
-- travel
-- remember
-- notice
-- interpret
-
-The game should use objectives to provide direction without turning the world
-into a waypoint simulator.
-
-The player should usually understand what they are doing without being told
-every answer.
-
-Whenever possible, the world itself should communicate:
-
-- where to go
-- what matters
-- what is unusual
-- what has happened
-- what the player should investigate
-
----
-
-# 8. TECHNICAL PHILOSOPHY
-
-The game uses an effectively infinite / very large procedural world.
-
-Important principles:
-
-- deterministic generation
-- chunk streaming
-- chunk-local processing
-- bounded simulations
-- shared resources
-- efficient memory use
-- stable chunk boundaries
-- persistent world edits
-- regression testing
-- measurable performance
-
-Do not replace working architecture casually.
-
-Do not create expensive global simulations when a bounded local system can
-achieve the same gameplay result.
-
-Do not create thousands of unnecessary scene objects.
-
----
-
-# 9. DEVELOPMENT ERAS
-
-The development roadmap is divided into broad eras.
-
-## ERA 1
-Complete the actual game.
-
-Primary goals:
-
-- complete all major gameplay systems
-- establish the coherent story
-- complete dimensions
-- complete major destinations
-- complete onboarding
-- establish audio
-- create Fake Haven
-- create the finale
-- make the game a fully playable alpha
-- identify technical debt
-- ensure the full experience works from start to finish
-
-## ERA 2
-Major visual identity revolution.
-
-Primary goals:
-
-- push the game far beyond its early voxel appearance
-- improve architecture
-- improve materials
-- improve lighting
-- improve environment detail
-- improve creatures
-- improve UI
-- improve animation and presentation
-- establish a consistent visual signature
-
-## ERA 3
-Deep horror and world depth.
-
-Primary goals:
-
-- deepen mystery
-- increase systemic psychological horror
-- expand environmental storytelling
-- increase world reactivity
-- develop recurring anomalies
-- deepen creature/world relationships
-- strengthen replayability and discovery
-
-## ERA 4
-Release quality.
-
-Primary goals:
-
-- polish
-- optimization
-- accessibility
-- compatibility
-- save robustness
-- audio licensing verification
-- final QA
-- packaging
-- store presentation
-- launch preparation
-
----
-
-# 10. ERA 1 — COMPLETE THE GAME
-
-Era 1 is not intended to be the final visual version of the game.
-
-Its purpose is to make the game:
-
-- complete
-- coherent
-- playable
-- narratively meaningful
-- mechanically stable
-- structurally sound
-
-Era 2 will later perform the major visual revolution.
-
----
-
-# 11. PHASE 13 — STATIC SUBURBIA VISUAL REBIRTH
-
-STATUS:
-COMPLETE
-
-Purpose:
-
-Transform Static Suburbia from a primitive cube-based environment into a
-more believable suburban environment.
-
-Major goals:
-
-- sub-voxel architecture
-- better houses
-- better roads
-- better curbs
-- better sidewalks
-- better driveways
-- better street hierarchy
-- better lamps
-- better mailboxes
-- better landscaping
-- improved roofs
-- more believable architecture
-
-Static Suburbia should feel like a real neighborhood.
-
-The use of shaped geometry rather than only cubes is important.
-
-This phase established the foundation for later visual progression.
-
----
-
-# 12. PHASE 14 — STATIC SUBURBIA INTERIOR 2.0
-
-STATUS:
-COMPLETE
-
-Purpose:
-
-Turn Suburbia interiors into believable homes rather than empty cube shells.
-
-Room systems include:
-
-- living rooms
-- kitchens
-- hallways
-- bathrooms
-- bedrooms
-- dining rooms
-- laundry rooms
-- garages
-
-Furniture includes:
-
-- couches
-- chairs
-- tables
-- TVs
-- shelves
-- beds
-- lamps
-- cabinets
-- counters
-- refrigerators
-- stoves
-- sinks
-- bathroom fixtures
-- rugs
-- wall objects
-
-Important systems:
-
-- reusable room modules
-- furniture models
-- interior generation
-- functional doors
-- walkability
-- upper floors
-- room reachability
-- deterministic layout
-- furniture collision awareness
-
-Phase 14 established a strong residential foundation.
-
----
-
-# 13. PHASE 15 — STATIC SUBURBIA MEMORY HORROR
-
-STATUS:
-COMPLETE
-
-Purpose:
-
-Make Static Suburbia psychologically unsettling without simply adding
-more monsters.
-
-Core concepts:
-
-- deterministic anomalies
-- memory failure
-- repeated objects
-- altered room relationships
-- small inconsistencies
-- doors changing
-- windows changing
-- subtle impossible spaces
-- familiar objects appearing incorrectly
-
-Important philosophy:
-
-The neighborhood should mostly remain believable.
-
-Only a small percentage of reality should feel wrong.
-
-The player should begin questioning their memory.
-
-No new monster is required to create the horror.
-
----
-
-# 14. PHASE 16 — INFINITE SHATTERED FARMLANDS
-
-STATUS:
-COMPLETE
-
-Purpose:
-
-Transform the Farmlands from a small isolated area into a very large,
-effectively infinite agricultural dimension.
-
-Major systems:
-
-- infinite/effectively infinite chunk generation
-- agricultural biome fields
-- Rotting Fields
-- Ashen Forest
-- field generation
-- rural terrain
-- agricultural layouts
-- continuous world generation
-
-Important technical decision:
-
-Literal infinite precision is not possible at arbitrary floating-point
-coordinates.
-
-The Farmlands therefore use an effectively infinite region appropriate to
-the game's coordinate system.
-
-The world must remain deterministic across extremely long distances.
-
----
-
-# 15. PHASE 17 — FARMLAND ABANDONED SETTLEMENTS + RURAL HORROR LANDMARKS
-
-STATUS:
-COMPLETE
-
-Purpose:
-
-Populate the Farmlands with agricultural settlements and memorable rural
-structures.
-
-Structure families include:
-
-- farmhouse variants
-- barns
-- sheds
-- workshops
-- cabins
-- equipment sheds
-- granaries
-- animal shelters
-- utility structures
-- silos
-- wells
-
-Rural landmarks include:
-
-- graveyards
-- chapels
-- great barns
-- deep wells
-- memorials
-- water infrastructure
-
-Important composition:
-
-house
-→
-driveway
-→
-yard
-→
-barn/outbuilding
-→
-field
-
-Abandoned settlements should feel agricultural rather than randomly
-scattered.
-
-Horror landmarks remain rare.
-
----
-
-# 16. PHASE 17.1 — FARMLAND DENSITY CORRECTION
-
-STATUS:
-COMPLETE
-
-Purpose:
-
-Correct the encounter density of farmsteads and rural structures.
-
-The original generation used area spacing that translated into overly long
-walking distances.
-
-The system was corrected so the player can reasonably encounter:
-
-- farms
-- structures
-- minor rural locations
-
-during ordinary exploration.
-
-Major horror landmarks remain rarer.
-
-Important lesson:
-
-Areal density is not the same as player walking encounter distance.
-
-Future content should be validated in actual traversal terms.
-
----
-
-# 17. PHASE 18 — FARMLAND ANIMALS + RURAL NAVIGATION
-
-STATUS:
-COMPLETE
-
-Purpose:
-
-Introduce harmless animals and stronger rural navigation.
-
-Animals:
-
-- cows
-- sheep
-- chickens
-- horses
-
-Animals are not enemies.
-
-Behavior includes:
-
-- idle
-- walk
-- stop
-- turn
-- feed
-- wander
-- grouping
-- entering buildings
-- unusual stillness
-- staring
-- alignment
-- straight-line movement
-- disappearing when unobserved
-- freeze-when-watched behavior
-
-Visual deterioration tiers:
-
-- healthy
-- slightly rotten
-- moderately rotten
-- severely rotten
-
-Important rule:
-
-Visual deterioration and behavioral wrongness are partially independent.
-
-A healthy animal can behave incorrectly.
-
-A severely deteriorated animal can behave normally.
-
-Rural navigation was also expanded:
-
-- meaningful paths
-- destination relationships
-- rural signs
-- farm names
-- Roth Farm
-- route logic
-
----
-
-# 18. PHASE 18.1 — FARMLAND ROUTE CHARACTER / PATH REBIRTH
-
-STATUS:
-COMPLETE
-
-Problem:
-
-The original Farmland roads technically contained route variation but still
-looked almost perfectly straight.
-
-Cause:
-
-The previous offset system was structurally limited by the way the local
-parcel lookup handled lane positions.
-
-Solution:
-
-- signed distance to lane lines
-- curved actual path footprints
-- route archetypes
-- meaningful route variation
-- better junctions
-- better driveways
-- route continuity
-
-Important visual target:
-
-The actual visible road must curve.
-
-Moving metadata around underneath a straight-looking road is not sufficient.
-
-Typical straight runs were substantially reduced.
-
----
-
-# 19. PHASE 18.2 — FARMLAND ANIMAL VISUAL REBIRTH
-
-STATUS:
-COMPLETE
-
-Problem:
-
-The original animals were chopped/blocky placeholder-like models and their
-deterioration was difficult to read.
-
-Solution:
-
-Complete animal visual redesign using custom low-poly parametric geometry.
-
-Major species-specific identities:
-
-COW:
-- heavy barrel torso
-- broad chest
-- thick neck
-- muzzle
-- horns
-- ears
-- legs
-- hooves
-- tail
-
-SHEEP:
-- smaller body
-- distinct wool masses
-- narrow face
-- short legs
-- hooves
-- wool-loss deterioration
-
-CHICKEN:
-- compact upright body
-- neck
-- head
-- beak
-- comb
-- wattle
-- wing geometry
-- tail fan
-- legs
-- feet
-
-HORSE:
-- large torso
-- long legs
-- long arched neck
-- long head
-- mane
-- tail
-- hooves
-
-Deterioration uses multiple channels:
-
-- coat loss
-- body recession
-- exposed anatomy
-- damaged parts
-- asymmetry
-- deeper eye sockets
-
-Gore remains restrained.
-
-The animals should be disturbing when deteriorated without becoming
-excessive gore monsters.
-
----
-
-# 20. PHASE 19 — FARMLAND ECOLOGY, ENVIRONMENT + WATER
-
-STATUS:
-COMPLETE
-
-Purpose:
-
-Make the Farmlands feel like a real agricultural region rather than a
-collection of procedural objects.
-
-Major environmental layers:
-
-FOREGROUND:
-- dry grass
-- weeds
-- stones
-- sticks
-- leaves
-- crop remnants
-- mud
-- erosion
-- small debris
-
-MIDGROUND:
-- fields
-- farmhouses
-- barns
-- machinery
-- fences
-- orchards
-- drainage
-- ponds
-- animals
-- farm paths
-- utility structures
-
-BACKGROUND:
-- barns
-- silos
-- water towers
-- chapels
-- tree masses
-- Ashen Forest
-- distant terrain
-- distant water features
-
-Additional systems:
-
-- terrain microvariation
-- terrain basins
-- soil states
-- crop states
-- field edges
-- fence deterioration
-- abandoned machinery
-- farmyard identity
-- orchards
-- drainage
-- ashen ecology
-- transition zones
-- weathering
-- debris
-- environmental storytelling
-
-Water:
-
-- shallow water
-- deeper water
-- ponds
-- drainage
-- channels
-- waterlogged areas
-- local deterministic flow
-- block-break-triggered movement
-- bounded simulation
-- player wading/swimming
-- shore escape
-- crop protection
-- road protection
-- structure protection
-- animal compatibility
-- chunk continuity
-
-Water must never become an uncontrolled global simulation.
-
-Important visual philosophy:
-
-The Farmlands should feel rural before they feel horrific.
-
----
-
-# 21. PHASE 20 — FARMLANDS JOURNEY + DISCONNECTED HOME 2.0
-
-STATUS:
-COMPLETE  (revised — see below)
-
-See PROGRESS.md for what was built, what was measured, and the known
-limitations. The requirements below are unchanged and remain the
-specification the phase was built and tested against.
-
-JOURNEY REVISION:
-COMPLETE
-
-A human playtest found the systems working and the composition weak: the
-Farmlands still read as a procedural grid of roads and destinations rather
-than as one road that goes somewhere. The revision changed composition,
-navigation and landmark staging only — nothing in Phases 16-19 was rebuilt,
-and the water tower, the red light, the farmhouse and the Rift Core Disk are
-unchanged.
-
-The journey is now a single authored rural route roughly 1,950 blocks long,
-with a landmark chain the eye can rank without any UI:
-
-  ARRIVAL
-  -> GIANT FALLEN WATER TOWER      (46 blocks long, 13 high, lying across the road)
-  -> MASSIVE STANDING WATER TOWER  (38 tall — unchanged)
-  -> GIANT BARN                    (21 to the ridge, 34 across, two silos)
-  -> ENORMOUS LIVING TREE          (41 tall, 53 across, in dead land)
-  -> DISCONNECTED HOME             (unchanged)
-
-Inside the corridor the procedural lattice is suppressed — the main road is
-five blocks wide against three, no road runs parallel to it, crossing lanes
-survive at about a third and the doomed ones stop short of the verge. Outside
-the corridor generation is unchanged.
-
-See PROGRESS.md section 0 for the full account and the measurements.
-
-PHASE 20.2 — JOURNEY GUIDANCE, LORE INSTRUCTION + COMPASS:
-COMPLETE
-
-20.1 built a journey the player had no reason to choose. 20.2 gives them a
-reason and the means to act on it, and changes no world generation at all.
-
-  THE INSTRUCTION.  The opening ends, on black and in near-silence, with
-  "At the crossroads, go east." — a pause — "Go east." It names no landmark,
-  no destination and no mechanic. It was authored as the beat an opening film would
-  END on, behind one entry point that film could call as its last cue — and Phase 30
-  built that film and calls exactly that entry point.
-
-  THE COMPASS.  A tape, not a dial — a strip of heading sliding behind a fixed
-  mark, in the same panel material as the existing clock. It shows direction and
-  nothing else: no landmark marks, no distance, no arrow. Earned from the first
-  Ancient Chest cracked in the Overworld, which is already mission directive [4],
-  so no structure, quest or directive was added. It is progression state rather
-  than an inventory item, and it survives every dimension crossing.
-
-  DIRECTIONS WERE DERIVED, NOT ASSUMED.  EAST = +X and NORTH = -Z, from the
-  movement basis, the Farmlands spawn yaw and the landmark coordinates, all three
-  of which already agreed.
-
-  NOTHING MOVED.  The four-way crossroads is intact and was verified rather than
-  rebuilt; all five landmarks are within 40 blocks of their 20.1 distances; the
-  player can still go north, south, west or off-road.
-
-See PROGRESS.md section 0.5.
-
-This phase is intentionally broader than the original concept.
-
-The original idea was simply:
-
-build a believable abandoned farmhouse that eventually becomes spatially
-impossible.
-
-That remains mandatory.
-
-However, this phase has been expanded because repeating Static Suburbia's
-discovery formula would make the game feel repetitive.
-
-Static Suburbia:
-
-explore neighborhood
-→
-find strange house
-→
-investigate house
-
-Farmlands:
-
-arrival
-→
-guided rural journey
-→
-wheat field
-→
-animals
-→
-barn/farmstead
-→
-open farmland
-→
-massive water tower
-→
-red light anomaly
-→
-continue beyond tower
-→
-increasing isolation
-→
-geographic wrongness
-→
-evidence of missing farm
-→
-Disconnected Home
-→
-spatial horror
-
----
-
-# 22. PHASE 20 — FARMLAND ARRIVAL
-
-The player should arrive directly onto a meaningful rural path.
-
-The world should NOT begin as:
-
-- huge empty field
-- dozens of meaningless paths
-- aimless random branching
-- obvious procedural maze
-
-Instead the first route should communicate:
-
-"This road goes somewhere."
-
-The player remains free to walk away from it.
-
-The road is a guide, not a prison.
-
----
-
-# 23. PHASE 20 — WHEAT FIELD
-
-The first meaningful stretch of the route should pass through a substantial
-wheat field.
-
-The first impression should be:
-
-- open
-- agricultural
-- quiet
-- beautiful
-- slightly lonely
-
-The player should see:
-
-- crop rows
-- field edges
-- dry vegetation
-- fences where appropriate
-- distant structures
-- broad horizons
-
-Do not make the opening immediately horrifying.
-
----
-
-# 24. PHASE 20 — ANIMAL ENCOUNTER
-
-The route should naturally bring the player near:
-
-- cows
-- sheep
-- chickens
-- horses
-
-These first encounters should mostly establish normality.
-
-The player should feel:
-
-"There are farms here."
-
-Later, existing Phase 18/18.2 animal behavior can provide subtle wrongness.
-
----
-
-# 25. PHASE 20 — BARN / FARMSTEAD ENCOUNTER
-
-The path should naturally pass near:
-
-- a barn
-- farmyard
-- fencing
-- machinery
-- animals
-- fields
-- farmhouse or supporting structures
-
-The environment should read as an actual working/abandoned agricultural
-property.
-
-This is NOT the Disconnected Home.
-
-It establishes normal Farmland life.
-
----
-
-# 26. PHASE 20 — MASSIVE WATER TOWER
-
-The signature landmark of the Farmland journey is a MASSIVE water tower.
-
-It should be:
-
-- enormous
-- vertically dominant
-- visible above fields
-- visible above many tree lines
-- recognizable from substantial distance
-- believable as rural infrastructure
-- memorable
-
-Once introduced, it should be very difficult for the player to miss.
-
-The tower serves as:
-
-- navigation landmark
-- destination
-- visual icon
-- horror object
-
----
-
-# 27. PHASE 20 — WATER TOWER RED LIGHT
-
-The tower has a red light at the top.
-
-The light behaves strangely based on player attention.
-
-When the player looks directly at the tower:
-
-The light is generally dormant.
-
-When the player looks slightly away:
-
-The light may flash.
-
-Important:
-
-The flashes must NOT be rhythmic.
-
-Do NOT use a simple:
-
-flash
-wait
-flash
-wait
-flash
-
-pattern.
-
-Use irregular intervals.
-
-The behavior should feel:
-
-- meaningless
-- inexplicable
-- subtle
-- peripheral
-- difficult to verify
-
-The player should think:
-
-"Did that actually flash?"
-
-No objective should explain it.
-
-No puzzle should require it.
-
----
-
-# 28. PHASE 20 — ROUTE BEYOND THE TOWER
-
-The tower is NOT the Disconnected Home.
-
-After the player reaches its vicinity, another route continues deeper.
-
-Possible continuation:
-
-- service road
-- older farm road
-- overgrown route
-- field-edge path
-- isolated rural track
-
-The player should realize:
-
-"There is somewhere beyond this."
-
----
-
-# 29. PHASE 20 — INCREASING ISOLATION
-
-After the water tower:
-
-- fewer animals
-- fewer active-looking farms
-- more empty fields
-- older fencing
-- more abandoned equipment
-- fewer obvious destinations
-- quieter ambience
-- more isolated roads
-- increasingly empty horizon
-
-The player should slowly become aware of being alone.
-
-Do not suddenly turn the entire environment into a horror zone.
-
----
-
-# 30. PHASE 20 — GEOGRAPHIC WRONGNESS
-
-Introduce increasingly subtle spatial/reality anomalies.
-
-Possible examples:
-
-- same fence appears twice
-- same dead tree appears in impossible locations
-- same object appears more than once
-- familiar structure returns
-- a road seems to lead somewhere unexpectedly
-- a landmark seems strangely close again
-- field boundaries feel duplicated
-- an object from another dimension appears in the Farmlands
-
-The goal is to create uncertainty about the player's perception and
-the reliability of the environment.
-
----
-
-# 31. PHASE 20 — MISSING FARM
-
-Before revealing the Home, show evidence that a farm should exist nearby.
-
-Possible evidence:
-
-- fence posts
-- old gate
-- tire tracks
-- mailbox
-- well
-- drainage
-- field rows
-- machinery
-- property debris
-- old service road
-
-The player should realize:
-
-"There used to be a farm here."
-
----
-
-# 32. PHASE 20 — DISCONNECTED HOME DISCOVERY
-
-The player eventually sees the farmhouse.
-
-It should initially look believable.
-
-The key problem is not:
-
-"The farmhouse is haunted."
-
-The key problem is:
-
-"The farmhouse cannot physically belong where it is."
-
-The surrounding geography should contradict the property.
+The title accumulates meaning through experience.
 
 Examples:
 
-- tire tracks stop where the driveway should continue
-- fence lines do not properly connect
-- field rows terminate strangely
-- mailbox exists without correct access
-- well is positioned incorrectly
-- barn relationship is impossible
-- drainage suggests a farm that cannot fit in the available space
-- the structure footprint contradicts surrounding terrain
+a thing is missing
 
-The player should identify the Home through accumulated evidence.
+a thing appears where it should not
 
-Do not use a giant marker.
+a road does not connect correctly
 
----
+a room does not fit inside its house
 
-# 33. PHASE 20 — DISCONNECTED HOME EXTERIOR
+a structure exists where the terrain cannot support it
 
-The original Phase 20 exterior requirements remain mandatory.
+a creature is suddenly somewhere it was not
 
-Create:
+a safe place ceases to contain safety
 
-- porch
-- steps
-- siding
-- windows
-- doors
-- roof
-- chimney
-- yard
-- vegetation
-- possible shed relationship
+Do not reduce the title to a literal joke or catchphrase.
 
-Use strong believable rural architecture.
+Never explain the title in dialogue.
 
-Use sub-voxel geometry where it improves quality.
+The player should understand the title through what the world does.
 
-The farmhouse must look like a real place where people lived.
+5. PRIMARY CREATIVE GOALS
+The final game should be:
 
----
+genuinely scary
 
-# 34. PHASE 20 — DISCONNECTED HOME INTERIOR
+atmospheric
 
-The original required spaces remain mandatory:
+memorable
 
-- living room
-- kitchen
-- hallway
-- bedroom
-- utility/bathroom
-- storage
-- fireplace
+mysterious
 
-Use rural furniture and environmental details.
+visually distinct
 
-Possible:
+physically threatening
 
-- couch
-- chairs
-- table
-- kitchen
-- cabinets
-- stove
-- sink
-- beds
-- shelves
-- lamps
-- rugs
-- storage
-- fireplace objects
-- farm-related household objects
+mechanically playable
 
----
+narratively coherent
 
-# 35. PHASE 20 — HUMAN HISTORY
+streamer-friendly without being artificial
 
-The player should believe people lived here.
+beautiful when it needs to be
 
-Use subtle evidence:
+disturbing when it needs to be
 
-- family photographs
-- calendars
-- cookware
-- dishes
-- farm paperwork
-- work clothes
-- personal objects
-- children's objects
-- abandoned meals
-- old farm records
-- worn furniture
+capable of creating genuine panic
 
-Do not turn the house into a collectible note hunt.
+capable of creating quiet dread
 
----
+It should NOT become:
 
-# 36. PHASE 20 — SPATIAL HORROR
+Minecraft with horror
 
-The interior begins believable.
+a generic voxel survival game
 
-Then gradually becomes impossible.
+a generic liminal-space game
 
-Possible effects:
+a jumpscare compilation
 
-- hallway too long
-- stairs that do not fit exterior geometry
-- rooms larger than the house allows
-- incorrect floor relationships
-- impossible doorway relationships
-- inverted rooms
-- windows showing impossible directions
-- fireplaces/chimneys that cannot physically align
-- spaces extending beyond the known footprint
+a gore simulator
 
-The player should eventually understand:
+a boss-rush game
 
-"The inside cannot physically fit inside the outside."
+a constant chase
 
----
+a walking simulator with no physical danger
 
-# 37. PHASE 20 — BROADER STORY CONNECTION
+a generic demon/hell game
 
-The Home should suggest that reality is being reconstructed incorrectly.
+a lore exposition simulator
 
-It is not simply a haunted farmhouse.
+6. HORROR PHILOSOPHY
+The horror should use both psychological and physical fear.
 
-It should feel like:
+Psychological horror creates:
+anticipation
 
-something has reconstructed the concept of a farmhouse
-without understanding the physical rules required for the farmhouse to exist.
+paranoia
 
-This becomes an important bridge into the game's larger mystery.
+uncertainty
 
----
+recognition
 
-# 38. PHASE 20 — LEVEL 2 RIFT CORE DISK
+distrust
 
-The Level 2 Rift Core Disk remains guaranteed.
+dread
 
-It must never become inaccessible.
+Physical horror creates:
+pursuit
 
-Test:
+confinement
 
-- fresh generation
-- unload/reload
-- leaving and returning
-- structure regeneration
-- acquisition
+danger
 
----
+helplessness
 
-# 39. PHASE 21 — DROPPED ITEM GROUND CONTACT
+survival decisions
 
-STATUS:
-COMPLETE
+panic
 
-Two independent defects, both measured rather than guessed at, both fixed:
+Ideal structure:
 
-  THE MESH ORIGIN.  position is the item's FOOT, but THREE.BoxGeometry is
-  centred on its origin and was drawn at position.y directly, so every dropped
-  item was rendered 0.125 blocks below the surface it stood on. The bob, applied
-  as +/-0.08 around that already-sunk centre, meant the rendered bottom sat
-  between 0.045 and 0.205 blocks UNDER the ground and never once touched it.
+psychological setup → physical threat → aftermath
 
-  THE LANDING GAP.  On a downward collision the integrator reverted to the start
-  of the substep instead of closing the gap, leaving items resting 0.002 to 0.037
-  blocks in the air depending on impact speed — and, because the wake-up probe
-  only reaches 0.02 down, unable to see their own floor.
+Example:
 
-Fixed by drawing the mesh where the collider already is, re-basing the bob to
-swing up from the surface rather than through it (same rate, same travel, same
-desync), bisecting onto the contact surface on the frame of landing, and making
-support use the SAME predicate as landing instead of isSolid().
+The player hears movement for several minutes.
 
-Rendered bottom relative to the support surface went from -0.205..-0.045 to
-0.000..+0.160. The item system also ended up 54% CHEAPER than before.
+Eventually the threat appears.
 
-See PROGRESS.md section 0.2.
+The player must actually escape.
+
+Afterward, the player is afraid to return to the same place.
+
+Neither half should replace the other.
+
+7. STREAMER / SPECTATOR DESIGN
+The game should create genuine moments people naturally want to talk about, clip, or share.
+
+A strong streamer moment should have:
+
+setup
+
+tension
+
+a readable event
+
+realization
+
+reaction
+
+The audience should generally understand why the player reacted.
+
+Avoid relying on:
+
+nearly invisible changes
+
+sounds too quiet to survive commentary
+
+random one-frame glitches
+
+unreadable darkness
+
+exposition-only reveals
+
+Good reactions should naturally be things like:
+
+“What was that?”
+
+“It moved.”
+
+“It's following me.”
+
+“That wasn't there.”
+
+“I know this place.”
+
+“There's something in here.”
+
+“Get me out.”
+
+The goal is not to manufacture viral clips.
+
+The goal is to make experiences worth sharing.
+
+8. GAMEPLAY PHILOSOPHY
+The player should:
+
+explore
+
+survive
+
+gather when appropriate
+
+craft when appropriate
+
+investigate
+
+travel
+
+notice
+
+interpret
+
+hide
+
+run
+
+make mistakes
+
+learn the world's rules
+
+Objectives guide without turning the game into a waypoint simulator.
+
+The world should communicate through:
+
+roads
+
+landmarks
+
+sound
+
+silhouettes
+
+lighting
+
+architecture
+
+composition
+
+recurring details
+
+Do not rely on:
+
+giant arrows
+
+permanent waypoints
+
+minimaps
+
+excessive quest markers
+
+constant tutorial popups
+
+9. DEVELOPMENT ERAS
+ERA 1 — GAME FOUNDATION
+Status: mechanically complete
 
 Purpose:
 
-Fix remaining dropped-item contact problems.
+build the actual game
 
-Audit:
+establish story
 
-- mesh origin
-- collider
-- ground contact
-- uneven terrain
-- corners
-- walls
-- chunk boundaries
-- newly mined blocks
+establish dimensions
 
-Requirements:
+establish progression
 
-- no sinking
-- no floating
-- no tunneling
-- pickup unchanged
-- rotation unchanged
-- resting bob unchanged
-- support wake-up unchanged
+establish survival
 
----
+establish environmental storytelling
 
-# 40. PHASE 22 — SETTINGS + GAME OPTIONS
+establish audio
 
-STATUS:
-COMPLETE
+establish Haven
 
-Six settings, no more: master volume, music volume, SFX volume, mouse
-sensitivity, graphics quality (Low / Medium / High) and fullscreen.
+establish finale
 
-The panel is built from the game's own visual language — desaturated bands, a
-thin rule, restrained type — rather than a generic web settings page. It opens
-with O or from the start screen, closes with Escape, pauses simulation while
-leaving the last rendered frame on screen, releases pointer lock on open and
-restores it on close, and gates every gameplay input through the existing
-UIManager.menuOpen path rather than a second, parallel gate.
+prove normal progression
 
-Three things the audit found before any code was written, each of which would
-have made a naive implementation wrong:
+produce a playable alpha
 
-  THE SFX BUS WAS BYPASSED.  Eighteen sound sites connected straight to the
-  master gain rather than to sfxBus, so an "SFX volume" slider wired to sfxBus
-  would have silently missed most of the game's sounds. They were re-routed.
+Era 1 is intentionally not final visual quality.
 
-  MASTER GAIN WAS ALREADY OWNED.  The death sequence ramps master.gain down and
-  latches it, so a user volume control writing the same node would fight it. A
-  separate userGain node was inserted between master and the destination, which
-  leaves every existing cinematic audio behaviour untouched.
-
-  PIXEL RATIO IS NOT THE COST LEVER.  PostFX renders into a WebGLRenderTarget
-  sized in CSS pixels and blits, so setPixelRatio alone changes almost nothing.
-  The graphics presets drive the render target scale (0.70 / 0.85 / 1.00)
-  alongside pixel ratio and shadow map size.
-
-One real defect was found by inspection and fixed: with the settings panel open,
-E still opened the crafting bench and I/Tab still opened the backpack on top of
-it, orphaning one overlay. Both are now guarded.
-
-Settings persist to localStorage under a versioned key with a schema, per-field
-coercion and clamping, so Phase 23 can adopt them without a migration. The full
-save system was deliberately NOT built here.
-
-See PROGRESS.md section 0.1.
+ERA 1.5 — ARCHITECTURE SPLIT
+Next major milestone
 
 Purpose:
 
-Create cohesive settings.
+break the giant implementation into a maintainable architecture
 
-Options:
+separate gameplay from rendering
 
-- master volume
-- music volume
-- SFX volume
-- mouse sensitivity
-- graphics quality
-- performance options where justified
-- fullscreen
+separate world logic from presentation
 
-The settings interface must use the Where It Isn't visual identity.
+isolate major systems
 
-It must:
+create clear module boundaries
 
-- pause gameplay
-- correctly release pointer lock
-- restore pointer lock
-- block gameplay input
-- preserve audio state
+make Era 2 implementation safer
 
-Do not add excessive options.
+Target:
+roughly 40 meaningful modules/files where justified.
 
----
+ERA 1.5 is an architecture phase, not a visual rebirth and not a content expansion.
 
-# 41. PHASE 23 — SAVE / LOAD  — **COMPLETE**
-
-Implement robust browser-local save/load.
-
-Delivered. See `PROGRESS.md` section 0.0 for the schema, the world-delta representation,
-the safe-placement rules, the corruption behaviour, what is deliberately NOT persisted
-(XP), the one place saving is refused (the Fake Haven) and exactly what was validated in a
-real browser.
-
-Persist relevant information such as:
-
-- player position
-- current dimension
-- inventory
-- selected slot
-- HP
-- sanity
-- stage
-- day count
-- progression
-- opened chests
-- anchors
-- world edits
-- necessary structure state
-- settings
-
-XP MUST NOT be persisted because XP is permanently removed. Phase 26 finished the job:
-the player `level` the schema carried for the HUD label went out with schema 3, and its
-migration is documented in `PROGRESS.md` section 0.0000.
-
-Use edited-chunk/world-edit style persistence rather than giant snapshots
-where practical.
-
-Include:
-
-- save version
-- schema validation
-- migration hooks
-- repair logic
-- invalid-save handling
-- position safety
-- dimension validation
-
-Never load the player into:
-
-- solid terrain
-- invalid dimension
-- impossible coordinates
-
----
-
-# 42. PHASE 24 — CANONICAL STORY FOUNDATION  — **COMPLETE**
-
-Delivered. The canon is in **`STORY.md`** — the authority on what the game means, what
-every dimension and entity is for, the player knowledge curve, and the explicit list of
-things that must never be explained. Read it before writing any player-facing text.
+ERA 2 — REBIRTH
+Next creative era
 
 Purpose:
 
-Create one coherent internal truth for the entire game.
+transform the game from voxel foundation to final non-voxel presentation
 
-The story must connect:
+dramatically improve atmosphere
 
-- Overworld
-- Blood Nights
-- Stalker
-- Anchor Monument
-- Hollowed Behemoth
-- Rift Cores
-- Shattered Farmlands
-- Disconnected Homes
-- Static Suburbia
-- Fake Haven
-- Final Entity
+dramatically improve horror delivery
 
-The canonical story should explain:
+rebuild environments
 
-- why the player is here
-- what changed
-- what the Anchor is
-- what the Rifts are
-- why dimensions exist
-- why the Farmlands became abandoned
-- why Suburbia behaves incorrectly
-- what Disconnected Homes represent
-- why Fake Haven exists
-- what the Final Entity represents
+rebuild creatures
 
-The internal truth can be more complete than what the player learns.
+rebuild lighting
 
-Do NOT expose the complete truth to the player.
+rebuild audio presentation
 
----
+rebuild cinematics
 
-# 43. PHASE 25 — DYNAMIC OBJECTIVE SYSTEM  — **COMPLETE**
+preserve the completed story and progression skeleton
 
-Delivered. See `PROGRESS.md` section 0.000 for the architecture, the exact lines, the
-save migration and what was removed. `STORY.md` section 25 states the rule the wording
-follows: observations, never destinations.
+Era 2 should feel like:
 
-Create a persistent player-facing objective system.
+the same game, finally becoming the game it was always meant to be.
 
-Objectives:
+ERA 3 — DEEP HORROR / WORLD REACTIVITY
+Potential later era.
 
-- guide
-- do not spoon-feed
-- reflect actual game state
-- update after completion
-- remain concise
-- avoid giant markers
+Purpose:
 
-Early example:
+deeper world memory
 
-Gather wood.
+stronger systemic horror
 
-Then:
+more reactive encounters
 
-Craft a basic tool.
+more replayability
 
-Then:
+more environmental discoveries
 
-Find coal.
+more advanced creature behavior
 
-Then:
+Only pursue concepts that strengthen the core game.
 
-Craft torches.
+ERA 4 — RELEASE
+Purpose:
 
-Then:
+optimization
 
-Prepare for night.
+accessibility
 
-Then:
+compatibility
 
-Return to the Anchor.
+audio legality/licensing
 
-Then:
+save robustness
 
-Survive until dawn.
+final QA
 
-Then:
+packaging
 
-Investigate the Rift.
+Steam/store presentation
 
-Farmland objectives should encourage exploration without immediately
-spoiling the Disconnected Home.
+launch preparation
 
-Suburbia objectives should encourage:
+10. ERA 1 — COMPLETED PHASES
+The following phases are complete and form the current foundation.
 
-- exploring
-- investigating signals
-- searching houses
-- noticing what doesn't belong
-- discovering the impossible house
+PHASE 13 — STATIC SUBURBIA VISUAL REBIRTH
+STATUS: COMPLETE
 
-Fake Haven may initially simply say:
+Improved:
 
-REST.
+suburban architecture
 
----
+roads
 
-# 44. PHASE 26 — REMOVE XP / REBUILD PROGRESSION  — **COMPLETE**
+curbs
+
+sidewalks
+
+driveways
+
+lamps
+
+mailboxes
+
+landscaping
+
+roofs
+
+shaped geometry
+
+Established the visual foundation for later Suburbia work.
+
+PHASE 14 — STATIC SUBURBIA INTERIOR 2.0
+STATUS: COMPLETE
+
+Added structured residential interiors:
+
+living rooms
+
+kitchens
+
+hallways
+
+bathrooms
+
+bedrooms
+
+dining rooms
+
+laundry rooms
+
+garages
+
+Added reusable furniture and deterministic room generation.
+
+PHASE 15 — STATIC SUBURBIA MEMORY HORROR
+STATUS: COMPLETE
+
+Established:
+
+deterministic anomalies
+
+repeated objects
+
+altered room relationships
+
+subtle spatial inconsistency
+
+memory uncertainty
+
+observation-dependent changes
+
+The neighborhood remains mostly believable.
+
+PHASE 16 — INFINITE SHATTERED FARMLANDS
+STATUS: COMPLETE
+
+Established:
+
+effectively infinite agricultural traversal
+
+deterministic Farmland generation
+
+fields
+
+Rotting Fields
+
+Ashen Forest
+
+continuous generation
+
+PHASE 17 — ABANDONED SETTLEMENTS + RURAL HORROR LANDMARKS
+STATUS: COMPLETE
+
+Added rural structure families and landmark logic:
+
+farmhouses
+
+barns
+
+sheds
+
+workshops
+
+cabins
+
+granaries
+
+animal shelters
+
+silos
+
+wells
+
+chapels
+
+graveyards
+
+memorials
+
+PHASE 17.1 — FARMLAND DENSITY CORRECTION
+STATUS: COMPLETE
+
+Corrected encounter spacing so the Farmlands do not become functionally empty.
+
+Validated density through real traversal distance rather than abstract area density.
+
+PHASE 18 — FARMLAND ANIMALS + RURAL NAVIGATION
+STATUS: COMPLETE
+
+Animals:
+
+cows
+
+sheep
+
+chickens
+
+horses
+
+Established:
+
+animal behavior
+
+rural paths
+
+signs
+
+farms
+
+unusual stillness
+
+observation behavior
+
+PHASE 18.1 — FARMLAND ROUTE CHARACTER / PATH REBIRTH
+STATUS: COMPLETE
+
+Added:
+
+curved route footprints
+
+route archetypes
+
+meaningful junctions
+
+driveways
+
+stronger travel composition
+
+PHASE 18.2 — FARMLAND ANIMAL VISUAL REBIRTH
+STATUS: COMPLETE
+
+Rebuilt animal visuals using low-poly/custom geometry.
+
+Established separate visual deterioration and behavioral wrongness.
+
+PHASE 19 — FARMLAND ECOLOGY / ENVIRONMENT / WATER
+STATUS: COMPLETE
+
+Established:
+
+environmental layering
+
+terrain microvariation
+
+crop/soil states
+
+fences
+
+machinery
+
+orchards
+
+drainage
+
+vegetation
+
+ponds
+
+water behavior
+
+rural ecosystem composition
+
+PHASE 20 — FARMLANDS JOURNEY + DISCONNECTED HOME 2.0
+STATUS: COMPLETE
+
+Built the authored rural journey:
+
+arrival
+
+giant fallen water tower
+
+massive standing water tower
+
+giant barn
+
+enormous living tree
+
+Disconnected Home
+
+Established a dedicated authored corridor through the procedural world.
+
+PHASE 20.2 — GUIDANCE + COMPASS
+STATUS: COMPLETE
+
+Established:
+
+“At the crossroads, go east.”
+
+“Go east.”
+
+earned compass
+
+compass as persistent progression state
+
+four real road directions
+
+route guidance through environmental composition
+
+PHASE 21 — DROPPED ITEM GROUND CONTACT
+STATUS: COMPLETE
+
+Fixed:
+
+sinking
+
+floating
+
+landing gaps
+
+ground support detection
+
+Preserved:
+
+pickup
+
+rotation
+
+bobbing
+
+support wake-up
+
+PHASE 22 — SETTINGS
+STATUS: COMPLETE
+
+Six settings:
+
+master volume
+
+music volume
+
+SFX volume
+
+mouse sensitivity
+
+graphics quality
+
+fullscreen
+
+Established:
+
+UI input gating
+
+pointer-lock handling
+
+pause behavior
+
+localStorage persistence
+
+PHASE 23 — SAVE / LOAD
+STATUS: COMPLETE
+
+Established:
+
+browser-local save
+
+schema versioning
+
+migrations
+
+corruption handling
+
+repair logic
+
+safe placement
+
+persistent world edits
+
+settings persistence
+
+dimension persistence
+
+Haven intentionally refuses save/load.
+
+PHASE 24 — CANONICAL STORY FOUNDATION
+STATUS: COMPLETE — SUPERSEDED BY NEW STORY BIBLE
+
+Established:
+
+record
+
+reconstruction
+
+observation
+
+Anchor
+
+Rift
+
+Rift Core
+
+Stalker
+
+Behemoth
+
+Farmlands
+
+Disconnected Home
+
+Static Suburbia
+
+Haven
+
+final creature
+
+The original story canon has now been completely replaced by the current STORY.md.
+
+PHASE 25 — DYNAMIC OBJECTIVE SYSTEM
+STATUS: COMPLETE
+
+Established:
+
+persistent objectives
+
+state-driven updates
+
+concise guidance
+
+observations rather than spoilers
+
+PHASE 26 — REMOVE XP / REBUILD PROGRESSION
+STATUS: COMPLETE
 
 XP is permanently removed.
 
-Delivered. See `PROGRESS.md` section 0.0000 for what XP was, everything that depended on
-it, what each dependant depends on now, the three-row `PROGRESSION_MILESTONES` table that
-replaced the stat curve, the schema 2 → 3 migration (and the double-grant trap it exists to
-avoid), and exactly what was and was not validated in a real browser.
-
-The end state, in one line: **there is no XP counter, no player level, no threshold and no
-grant function.** Progression is ACCESS (the compass, a recipe's materials, a Core Disk, a
-dimension) and ENDURANCE (three one-shot survival milestones, ceiling 170 max health).
-`attackBonus` and `miningSpeedBonus` remain as fields with no runtime source, purely so a
-save written while XP was alive keeps what it already paid for.
-
-Remove:
-
-- XP bar
-- XP numbers
-- XP gain
-- XP requirements
-- XP levels
-- XP combat rewards
-- XP tutorial references
-- XP save references
-
-Replace progression with:
-
-- tools
-- equipment
-- recipes
-- discoveries
-- Rift Core milestones
-- story milestones
-
-Do not replace XP with another invisible number.
-
-**None of the above may be reintroduced.** Phase 27 rebuilt the HUD and Phase 28 removed
-the tutorial; neither brought back a level, a bar, a threshold or a grant function, and
-`tests/progression.js` fails if a later phase does.
-
----
-
-# 45. PHASE 27 — HEALTH / SANITY / HUD REBIRTH  — **COMPLETE**
-
-Delivered. See `PROGRESS.md` section 0.00000 for the full record: what each element is
-made of, why health and perception are kept apart on four axes at once, the presentation
-cache and why it owns nothing, the two defects the phase found, what the browser proved
-and what only a person can.
-
-The end state, in one line: **the heart, the brain, both vital bars and the bordered
-objective panel are gone from the document.** Health is a row of ticks (ten health each,
-so an endurance milestone visibly lengthens it); perception is a signal traced on a
-canvas that loses pieces of itself as it fails; the objective is one line against a
-hairline; the hotbar is one continuous strip; the interaction prompt is a key chip and a
-verb above it. Every element is built from one set of tokens in a single `:root` block.
-
-Gameplay was not touched: health values, damage, sanity values, decay, thresholds,
-combat, movement, inventory, objectives, crafting, mining and generation are all
-unchanged, and `tests/regression.js` proves the world is byte-identical.
-
-What it must keep being:
-
-- Health = physical condition. Perception = perception. Never the same instrument twice.
-- No hearts, no vital bar, no quest panel, no nine-box hotbar, no XP or level anything.
-- The HUD renders; it does not own. `tests/hud.js` fails if `UIManager` reads an
-  objective table, writes a gameplay value, or reaches a block id, chunk or mesh.
-- Objectives, hotbar, prompts and status share one visual language, and new elements
-  use the existing tokens rather than inventing a colour.
-
-**Phase 28 delivered** and did neither of the things this section warned it against: the
-HUD's retired vocabulary did not come back, and the interaction prompt did not become a
-tutorial layer — it renders three two-word cues that retire permanently, behind every
-real affordance, and `UIManager` still cannot tell a cue from a door.
-
----
-
-# 46. PHASE 28 — REMOVE TUTORIAL / ORGANIC ONBOARDING  — **COMPLETE**
-
-Delivered. See `PROGRESS.md` section 0.000000 for the full record: what each of the six
-tutorial cards explained and where that fact went, the onboarding flow as it now runs, why
-there are exactly three contextual cues, the schema 4 migration and the reasoning behind
-it, what was deleted layer by layer, the measured cost, the three defects the phase found,
-and — plainly — that no human has played the result.
-
-The end state, in one line: **BEGIN EXPEDITION goes straight to the game.** The six-page
-card, its stylesheet, its markup, its page table, its controller and its z-index layer are
-deleted; the objective chain is the primary onboarding; and exactly three contextual cues
-— `LMB · CHOP/MINE/BREAK`, `E · CRAFT`, `RMB · PLACE` — name the three keys that have no
-visible surface to click on, each once, each retiring the first time it is pressed.
-
-Gameplay was not touched: crafting, mining, resources, night, the Anchor, the Rift, the
-compass, the objective tables and the HUD are all unchanged, and `tests/regression.js`
-proves the world is byte-identical.
-
-What it must keep being:
-
-- No tutorial, and no tutorial in another shape. No control screen, no keyboard
-  reference, no "how to play", no hint popups, no tooltips, no arrows, no highlighting,
-  no quest log, no minimap, no waypoints. `tests/onboarding.js` fails if any string
-  literal longer than 140 characters appears in the build.
-- **One prompt system.** A cue is the last fallback in the look-target path, so a door,
-  the Anchor, an Ancient Chest or a Haven prop always takes the line first. A second
-  prompt layer is the failure mode, not a feature.
-- **Three cues, and a reason for each.** The test is "can a player who has been told
-  'Gather wood.' find this on their own, from the world, in under a minute?" A fourth cue
-  needs a candidate that genuinely fails it.
-- A cue teaches a **verb**, in one upper-case word. The moment it needs a clause it has
-  become the tutorial again.
-- **Nothing is said twice.** The verbs the world teaches were taken off the start
-  screen's legend; putting them back is duplicate onboarding.
-- The opening instruction ("At the crossroads, go east.") is **not** tutorial content and
-  stays. Phase 30 absorbed it as the closing beat of the opening film.
-- A pre-Phase-28 save loads fully onboarded. Never re-teach a returning player.
-
-**Phase 29 delivered** and kept that rule: the start screen was rebuilt around a
-landscape, and the legend is still two lines of keys that have no crosshair target — no
-tutorial, no control screen, no "how to play" panel came back onto it.
-
----
-
-# 47. PHASE 29 — MAIN MENU REBIRTH + UI TYPOGRAPHY  — **COMPLETE**
-
-Delivered. See `PROGRESS.md` section 0.0000000 for the full record: every element that was
-removed and what replaced it, the scene's architecture and why it is a 2D canvas, the three
-anomalies and their schedules, the audio lifecycle, the type scale with its measured
-values, the five defects the phase found, and — plainly — that no human has looked at any
-of it.
-
-The end state, in one line: **the menu is a place, not a card.** A cold horizon with a tree
-line, a water tower, a barn and a wire, drifting fog and low mist; the title in its sky in
-the HUD's own parchment ink with one letter a third of a pixel out of line; NEW GAME,
-CONTINUE and SETTINGS as words with hairlines under them. The ember particles, the brass
-corner brackets, the bordered card, the eyebrow reading A SURVIVAL HORROR EXPEDITION, the
-gradient title bloom and BEGIN EXPEDITION are all gone.
-
-And the HUD is readable: **the blur was Courier New**, whose hairline stems cannot survive
-9px, behind a 12px halo that made it worse. The face is now a real monospace stack with a
-per-platform fallback, the shadow is a hard 1px contour rather than a glow, and nine
-measured readings sit on a four-step scale with a 10px floor.
-
-Gameplay was not touched: health, sanity, damage, objectives, progression, inventory,
-crafting, mining, combat, save/load and generation are all unchanged, and
-`tests/regression.js` proves the world is byte-identical.
-
-What it must keep being:
-
-- **ONE menu.** One `#startScreen`, one of each control, and the three buttons stay bound
-  in `Game`. `MainMenu` owns the scene, the ambience and the CONTINUE label and binds none
-  of them — the split is by KIND, not by control, because a menu split across two
-  controllers becomes two menus.
-- **The menu is presentation.** It generates no terrain, ticks no clock, spawns nothing,
-  advances no objective and writes no save. `tests/menu.js` asserts that against the source
-  and `browser-menu.js` proves it live.
-- **Nothing announces itself.** The earliest anomaly is 14s in, the figure not before 34s,
-  the tower light is lit under 1% of the time, and the figure is two pixels wide. A menu
-  anomaly a player cannot doubt is a menu anomaly that has failed.
-- **No creature and no answer.** No Stalker, no Behemoth, no Neighbour, no final entity,
-  and no menu text may use the canon's internal vocabulary.
-- **Minimal is not tiny.** Nothing in the HUD goes below 10px, including in the
-  small-viewport media query, and nothing goes above 16px either.
-- **No artificial blur.** Atmosphere comes from restraint, spacing, colour and composition.
-  Text stays sharp.
-- Health and perception stay apart on Phase 27's four axes. Neither instrument may be
-  redesigned here; they were only made bigger and given readable captions.
-- The legend stays a footnote of keys with no crosshair target — Phase 28's rule.
-
-**Phase 30 delivered** and kept that rule too: the film explains no mechanic, names no
-key, and hands over to the Phase 20.2 instruction exactly as that instruction was authored
-to be handed to. No tutorial and no control screen came back on the way through.
-
----
-
-# 48. PHASE 30 — OPENING LORE FILM  — **COMPLETE**
-
-Delivered. The full record is PROGRESS.md section 0.00000000; this is the shape of it and
-the rules that now hold.
-
-NEW GAME plays a sixty-eight second film before the crossroads instruction. CONTINUE never
-does — a returning player has already seen it, and nothing in the save records that they
-have because the film is a property of starting a new game, not of a save.
-
-WHAT IT IS
-
-  IN THE WORLD.  Not a video, not a second scene, not a new render path. The film is the
-  real Overworld at the real spawn, drawn by the real renderer, with the player in
-  look-only. It reuses `movementLocked` — the Fake Haven freeze, which already syncs the
-  camera from yaw and pitch and drops velocity, input and mining — and the fact that
-  `running` is still false, which is what every gameplay verb was already gated on. No
-  input layer was invented for it.
-
-  TEN BEATS, ONE TABLE.  `FILM_BEATS` is a frozen table that tiles 0-68s with no gap:
-  dark, reveal, familiar, anomaly, closer, vast, seam, unresolved, calm, out. Nothing in
-  the film is scheduled by a timer — everything is a function of `film.t`, which is why
-  settings can pause it, a test can drive it, and there is nothing to leak.
-
-  A REAL DAWN.  `FILM_LIGHT` gives each beat one cycle-second on the 720-second day
-  (697 -> 16), so the light walks from the last of the dark into early morning across the
-  film. The day is never TICKED: the film sets the hour, and teardown puts the game's own
-  second back.
-
-  THREE SHAPES, AND NO CREATURE.  Two tapered five-sided columns and one enormous one.
-  Untextured, unlit, featureless — no face, no limbs, nothing that resolves into an
-  anatomy — because the player's first real meeting with a creature belongs to a later
-  phase. They are not the Stalker mesh and not the Behemoth mesh.
-
-  THE RULE, SHOWN AND NEVER STATED.  The near shape moves only while it is NOT being
-  looked at. Nothing announces the move and no sound plays on it.
-
-  TWO LINES.  "I know this place." and "Some of it is right." That is the whole script.
-
-  ITS CLOSING BEAT IS PHASE 20.2's.  The film hands to the existing opening instruction —
-  "At the crossroads, go east." / "Go east." — which keeps exactly one authority over
-  that text, as 20.2 authored it.
-
-  SKIP.  A quiet control, bottom-right, fading in from 2.5s and settling at 0.75 opacity;
-  Escape does the same when there is no settings panel to close first. A skipped film and
-  a watched one run the same teardown and land in the same state.
-
-RULES THAT NOW HOLD
-
-- **The film is presentation.** It may not tick the clock, advance an objective, stream a
-  chunk, spawn anything, damage the player or write a save. `opening.js` and
-  `browser-opening.js` both check.
-- **One teardown.** Five different exits all land in `_teardown()`, which puts back
-  movement lock, eye height and the borrowed hour and disposes every geometry and
-  material. Anything the film adds is added in `begin()` and removed there.
-- **No timers.** No `setTimeout` anywhere in it; listeners are bound once in the
-  constructor and gated on `active`.
-- **Escape belongs to the panel first.** The film's key listener is a CAPTURE listener on
-  `window` precisely so an open settings panel gets the key before the film does.
-- **Nothing resolves.** A silhouette that becomes a creature has spent a later phase's
-  reveal. Keep them shapes.
-- **A vantage is a composition, not a spawn.** The film raises the EYE, never the body —
-  the player is standing exactly where the film found them when it hands over, and the
-  crossroads instruction therefore still points from the right place.
-
-**Phase 31 delivered** and made the world itself carry the story — see section 49.
-
----
-
-# 49. PHASE 31 — ENVIRONMENTAL STORYTELLING  — **COMPLETE**
-
-Delivered. The full record is PROGRESS.md section 0.000000000; this is the shape of it and
-the rules that now hold.
-
-WHAT WAS ACTUALLY BUILT, AND WHY IT IS MOSTLY NOT CONTENT
-
-The current voxel Overworld is not guaranteed to be the final Dimension 1, and Era 2
-intends to rebuild these dimensions without voxels. So this phase spent its budget on the
-LANGUAGE rather than on objects: a closed vocabulary of what a piece of environmental
-storytelling can be doing, a table of the places it can be doing it, and a runtime that
-knows one thing only — which of them the player has stood in front of. Ten events are a
-representative sentence in that language. The language is the deliverable.
-
-  ENV_READS       six closed categories: absence, placement, repetition, contradiction,
-                  callback, trace. Something that fits none of them is a set piece and
-                  belongs to a phase with a name on it.
-  ENV_PERSIST     four classes: generated (re-derived from the seed, never saved),
-                  noticed (a latch, saved), world (the existing edit/stage ledgers carry
-                  it), session. Almost everything is generated, which is why this phase
-                  added one save field and not a ledger.
-  ENV_SITES       THE ERA 2 SEAM. An event carries the NAME of a place; this table says
-                  where that place currently is. Every voxel-specific number in the phase
-                  — parcel indices, superblock arithmetic, lot grids, the Haven pocket —
-                  lives in these eight functions and nowhere else. A site may also name
-                  something an earlier phase already built.
-  ENV_STAMPERS    the only part that knows what a block is, kept out of both the table
-                  and VoxelWorld. This is the part Era 2 throws away.
-
-THE CONTENT, IN ONE LINE EACH
-
-  Overworld    a held place (a levelled square, four planks, a scorched centre, four
-               spent sticks — somebody else's anchor, unlit and unusable); the same
-               square elsewhere with nothing on it; and a crossing — pressed ground and
-               opened canopy — that appears only after the first night survived.
-  Farmlands    the record's vocabulary: four yard arrangements stamped VERBATIM on a
-               third of farmsteads, in the same corner of every yard. Plus two objects
-               Phase 20 already built, given names so that noticing them can matter.
-  Suburbia     the held place again, in a back yard; the ROTH FARM board again, on a
-               front lawn; and the family photograph losing one of its two figures, as a
-               seventh Phase 15 revision effect.
-  Haven        the armchair from the dead field, by the fire, unremarked.
-
-RULES THAT NOW HOLD
-
-- **It never speaks.** No notes, no journals, no handwriting, no readable human sentence
-  (STORY.md section 13). No toast, no objective, no marker, no discovery sound. A player
-  who does not notice does not notice.
-- **It never resolves.** STORY.md section 22's list is the boundary. Every event may
-  imply and may not confirm.
-- **Nothing changes while it is being watched.** Section 16 rule 1. This phase adds no new
-  way to break it: a callback appears in a chunk the player has not reached.
-- **Repetition is literal.** Not a similar chair — the same cells, the same ids, the same
-  corner. A variation is a different object and defeats the point.
-- **A callback requires its original.** Three events exist only once the player has stood
-  in front of something in another dimension. A callback nobody has the memory for is a
-  prop.
-- **Three things are tracked at run time, and they are exactly the three that gate
-  something.** The runtime cost is the mechanic and nothing else.
-- **The audio budget is not spent on discovery.** A sound on finding something is a
-  confirmation. It is spent on occupancy instead — one quiet footfall in a house the
-  player has been in before, standing still, at most once per house.
-- **Phase 15 was extended, not shadowed.** There is still exactly one Suburbia revision
-  system.
-
-**Phase 32 is complete.** See section 50 and `PROGRESS.md` section 0.0000000000.
-
----
-
-# 50. PHASE 32 — FAKE HAVEN DREAM SEQUENCE — COMPLETE
-
-**DELIVERED. The record below is the original brief; what follows it is what was built and
-where the two disagree.**
-
-WHAT THE HAVEN IS NOW: six stages over 178 seconds, of which the first 82 contain nothing
-different at all. The horror vocabulary is REMOVAL and nothing else — the world outside the
-windows goes quiet, then the hearth stops sounding while it is still visibly burning, then
-the clouds stop and the music loses its bass, then the room tone goes and the place is
-removed over twenty-six seconds. Nothing is added to frighten the player, nothing turns on
-them, and the four captions that used to tell them how to feel are deleted.
-
-**THE LENGTH IS A KNOWN DISAGREEMENT AND THIS SECTION WAS NOT REWRITTEN TO HIDE IT.** The
-brief below says "approximately 30 seconds". The Phase 32 implementation brief asks for the
-first one to two minutes to be calm and for the wrongness to arrive gradually after that,
-and asks a human playtester whether there was enough time for the false safety to establish
-itself. Those cannot both be satisfied; the later, more specific document won. This is two
-briefs disagreeing, not a canon contradiction — STORY.md section 18 is silent on duration
-and is satisfied either way.
-
-Everything else below was implemented as written: the player wants to stay, the collapse is
-not revealed early, and the sequence hands to Phase 33 at one boundary.
-
----
-
-*The original brief follows.*
-
-Fake Haven should become a genuine dreamlike refuge.
-
-The player should experience approximately 30 seconds of:
-
-- warmth
-- comfort
-- peace
-- familiarity
-- safety
-- beautiful lighting
-- calming audio
-
-The player should initially believe:
-
-"This is somewhere safe."
-
-The sequence should then transition:
+No:
+
+XP bar
+
+level system
+
+XP thresholds
+
+XP rewards
+
+Progression is based on:
+
+capability
+
+discovery
+
+Cores
+
+survival milestones
+
+world progression
+
+PHASE 27 — HEALTH / PERCEPTION / HUD REBIRTH
+STATUS: COMPLETE
+
+Established:
+
+health presentation
+
+perception signal
+
+objective line
+
+hotbar
+
+interaction prompts
+
+unified visual tokens
+
+Health and perception remain conceptually separate.
+
+PHASE 28 — REMOVE TUTORIAL / ORGANIC ONBOARDING
+STATUS: COMPLETE
+
+Removed the old tutorial.
+
+Established:
+
+objective-driven onboarding
+
+three contextual control cues
+
+no traditional control screen
+
+no duplicated tutorial layer
+
+PHASE 29 — MAIN MENU REBIRTH
+STATUS: COMPLETE
+
+Rebuilt menu around:
+
+landscape
+
+atmosphere
+
+subtle anomalies
+
+restrained typography
+
+minimal controls
+
+menu ambience
+
+PHASE 30 — OPENING LORE FILM
+STATUS: COMPLETE
+
+Established:
+
+in-world opening
+
+look-only presentation
+
+controlled beats
+
+subtle anomalies
+
+minimal script
+
+transition into eastward instruction
+
+PHASE 31 — ENVIRONMENTAL STORYTELLING
+STATUS: COMPLETE
+
+Established:
+
+absence
+
+placement
+
+repetition
+
+contradiction
+
+callbacks
+
+traces
+
+persistent noticing
+
+PHASE 32 — FAKE HAVEN
+STATUS: COMPLETE
+
+Established:
+
+genuine comfort
+
+safety
+
+delayed disruption
+
+environmental removal
+
+emotional contrast
+
+PHASE 33 — FINAL CREATURE
+STATUS: COMPLETE
+
+Established:
+
+enormous final silhouette
+
+authored cinematic reveal
+
+no conventional boss fight
+
+no conventional combat
+
+hard cut to ending
+
+PHASE 34 — FINAL AUDIO INTEGRATION
+STATUS: COMPLETE
+
+Established:
+
+centralized audio library
+
+ambience
+
+events
+
+footsteps
+
+animal audio
+
+Stalker
+
+Behemoth
 
 Haven
-→
-blur
-→
-dissolve
-→
-audio softening
-→
-separate final horror scene
 
-Fake Haven should NOT immediately reveal the final monster.
+finale
 
-The player should want to stay.
+menu audio
 
-That makes the eventual collapse more powerful.
+34.1 / 34.2 / 34.3
+STATUS: COMPLETE
 
----
+Corrected:
 
-# 51. PHASE 33 — FINAL CREATURE / 30-SECOND HORROR FINALE — COMPLETE
+loudness issues
 
-**DELIVERED. See `PROGRESS.md` section 0.00000000000.** The brief below was implemented as
-written: a 32-second, seven-beat cinematic; a 150-metre unlit silhouette that is never shown
-whole, never lit, never named and never explained; scale established against a ladder of
-fifteen familiar landmarks; a hard cut to the existing credits. The eight-metre "Void
-Sovereign" monolith it replaces is removed from the build entirely — rings, shards, red slit
-and roar were the grammar of a boss, which STORY.md section 19 forbids.
+ambience routing
 
----
+event audibility
 
-*The original brief follows.*
+animal lookup
 
-This is NOT a boss fight.
+spatial assumptions
 
-It is a cinematic horror sequence.
+AudioContext lifecycle
 
-Sequence:
+transport failure
 
-Fake Haven
-→
-~30 seconds of safety
-→
-blur/dissolve
-→
-new environment
-→
-distant movement
-→
-partial glimpse
-→
-strong scare
-→
-scale realization
-→
-full reveal
-→
-hard cut
-→
-credits
+Critical discovery:
+Recorded audio failed when the game was opened through file://.
 
-The creature should be:
+Canonical testing environment:
+HTTP/HTTPS only.
 
-- absurdly tall
-- extremely thin
-- long-limbed
-- disproportionately large
-- dark
-- alien
-- difficult to understand
-- visually disturbing
+PHASE 35 — COMPLETE DIMENSION / STORY COHESION
+STATUS: COMPLETE
 
-Use the provided reference only as inspiration.
+Fixed:
 
-Do NOT copy it literally.
+Rift teardown
 
-The final entity should be much larger and more alien than Stalker or
-Behemoth.
+second Rift failure
 
----
+progression dead ends
 
-# 52. PHASE 34 — FINAL AUDIO INTEGRATION — COMPLETE
+Behemoth gate persistence
 
-DELIVERED, AND THE BRIEF IT ANSWERED WAS NOT THIS ONE. The phase as it was actually
-commissioned was the whole audio system — auditing the collected library, indexing it,
-building a centralized engine for it and integrating it across every dimension — with the
-climax as one part rather than the whole. `CLAUDE.md` section 61 records what was built
-and the rules that now hold; `PROGRESS.md` section 0.000000000000 records what was
-measured, what was found and what is honestly not verified.
+powered Anchor recovery
 
-In one paragraph: 187 source assets audited (13 byte-identical duplicates removed, one
-missing attribution line added, 18 NonCommercial assets quarantined in the index), a
-three-layer system — SoundEngine for the hardware, AudioLibrary for files, AudioDirector
-for policy — and recorded footsteps on ten surfaces, ambience for every dimension, doors,
-animals, a restrained Stalker, a real fire in the Haven and three thickening layers under
-the finale. Neither the Haven's timing nor the finale's was touched: both were handed the
-numbers they already compute.
+lost Core recovery
 
-**A HUMAN PLAYTEST THEN FAILED IT, AND THE CORRECTION IS PHASE 34.1.** The player reported
-the game nearly silent apart from footsteps, under an unwanted retro music loop from an
-early build. Both were true. The cause was that the collected library spans 64 dB and every
-mix level had been hand-written as if it did not, so the recorded environment reached the
-player between -56 and -82 dBFS while the one thing that had never needed a level decision
-— a pentatonic arpeggio scheduled every ten seconds of daylight since the prototype — was
-the loudest thing in the game.
+respawn dimension errors
 
-The correction removed the exploration music entirely, made loudness a measured build-time
-step, split the Farmland ground from one footstep surface into nine, and added
-`tests/audio-audit.js` — a measurement rather than a test, which boots the real game and
-prints what a player actually gets. See `CLAUDE.md` section 61.05 and `PROGRESS.md` section
-0.0000000000000.
+Suburbia sanity presentation
 
-**TWO MORE PLAYTESTS FAILED IT, AND THE ROOT CAUSE WAS NEVER THE MIX — PHASE 34.3.** 34.2
-corrected the distance curve, restored Suburbia's electrical layer, fixed an animal lookup
-indexed in the wrong alphabet and added a context-resume path; the player reported the same
-silence. Following one sound through the live path with a meter on every bus found that
-**the game was being opened as a file rather than served over HTTP**, where a browser
-refuses `fetch` and `XMLHttpRequest` for a local file and taint-silences a media element —
-so all 274 runtime files failed in every session, and everything the player still heard was
-a synthesised fallback. Measured before the fix: the Overworld and the Farmlands at **-inf
-dBFS** in daylight.
+victory screen behavior
 
-The build now detects and reports that, and the fallback contract — "fully audible with the
-runtime folder deleted" — was made true of ambience as well as of footsteps, which it had
-never been. **THE GAME MUST BE SERVED:** `python3 -m http.server 8000`, then
-`http://localhost:8000/game.html`. See `CLAUDE.md` section 61.07 and `PROGRESS.md` section
-0.000000000000000.
+several stale-state issues
 
-**IT IS NOT SIGNED OFF.** Nothing in this repository has been listened to, and a phase that
-changes what the game sounds like is not complete until a person has played it and said so.
+Proved:
 
-WHAT REMAINS OF THIS SECTION'S ORIGINAL BRIEF is the climax standard below, which the
-phase met structurally and which nobody has yet heard.
+real first Rift
 
----
+real second Rift
 
-Integrate Fake Haven and the final creature into one cinematic climax.
+Farmlands arrival
 
-Haven:
+Suburbia arrival
 
-- warm
-- quiet
-- safe
+Home traversal
 
-Transition:
+save/load around transitions
 
-- audio softens
-- environment blurs
-- sound becomes distant
+no major state leaks
 
-Final:
+PHASE 36 — COMPLETE PLAYABLE ALPHA / FULL GAME AUDIT
+STATUS: MECHANICALLY COMPLETE
 
-- silence
-- distant movement
-- spatial audio
-- impact
-- selective distortion
-- horror music
-- scale reveal
-- hard cut
+The full normal progression has been validated in a browser without debug commands.
 
-The strongest horror tools should be reserved for moments like this.
+Found and fixed major failures involving:
 
-Do not spam:
+Behemoth persistence
 
-- screen shake
-- distortion
-- horror music
-- jumpscares
+Anchor/Core recovery
 
-Their rarity creates impact.
+victory-screen logic
 
----
+ending reset
 
-# 53. PHASE 35 — COMPLETE DIMENSION / STORY COHESION PASS — COMPLETE
+progression recovery
 
-DELIVERED. The audit below was carried out and its central finding was not a matter of
-tone: **the chain it asks about was physically broken.** The Level 1 -> 2 crossing never
-put its rift down, so `powerRiftCore(3)` refused for the rest of the session and the
-Level 2 -> 3 rift could not be opened at all — Static Suburbia, the Fake Haven and the
-finale were unreachable in normal play, and the Farmlands objective was pinned to
-"Enter the Rift." from its first frame. Fixed, with a shared crossing teardown, and both
-rifts are now opened and walked through by the real interaction path in a real browser in
-`tests/browser-transitions.js`.
+objective timing
 
-Two more dead ends in the same chain were closed with it: the Farmlands contained no wood
-a player could pick up, so the Anchor the Level 2 Disk needs could not be built there; and
-a respawn ejected the player out of the dimension they died in, into an Overworld whose
-chunks the crossing had disposed.
+Suburbia sanity
 
-See `CLAUDE.md` section 62 for the rules this produced and `PROGRESS.md` section
-0.0000000000000000 for the full record. The brief below is kept because it is still the
-standard the dimensions are held to.
+death/respawn
 
-Audit the complete relationship between:
+All major automated/browser suites passed in the delivered build.
 
-Overworld
-→
+Human gate
+The final human full-playthrough remains the last validation step for Era 1.
+
+The human test must use a served build.
+
+Never use file:// as the audio test environment.
+
+11. ERA 1 COMPLETION DEFINITION
+Era 1 is considered mechanically complete when:
+
+the game starts
+
+opening works
+
+progression works
+
+both Rifts work
+
+Farmlands works
+
+Suburbia works
+
+Haven works
+
+finale works
+
+save/load works
+
+objectives work
+
+settings work
+
+audio works when served correctly
+
+no major progression dead ends remain
+
+automated validation is green
+
+browser validation is green
+
+Human playthrough is the final experiential gate.
+
+12. ERA 1.5 — ARCHITECTURE SPLIT
+Status: NEXT
+
+This phase exists because the game is now large enough that continued development inside a giant monolithic file is unnecessarily risky.
+
+Purpose
+Turn the current working Era 1 build into a maintainable architecture.
+
+Do NOT:
+
+redesign the game
+
+rebuild visuals
+
+change story
+
+change horror design
+
+add new dimensions
+
+start Era 2
+
+rewrite systems merely for style
+
+Target architecture
+Separate major responsibilities such as:
+
+Core
+game lifecycle
+
+state
+
+input
+
+timing
+
+configuration
+
+World
+world abstraction
+
+terrain
+
+chunk management
+
+generation
+
+world edits
+
+structures
+
+Rendering
+scene
+
+camera
+
+lighting
+
+post-processing
+
+materials
+
+render layers
+
+Player
+movement
+
+collision
+
+health
+
+perception
+
+inventory
+
+interaction
+
+Progression
+objectives
+
+milestones
+
+Core logic
+
+dimension state
+
+Dimensions
 Farmlands
-→
-Static Suburbia
-→
-Fake Haven
-→
-Final Scene
 
-For every dimension answer:
+Suburbia
 
-- What is this place?
-- Why does it exist?
-- What does it reveal?
-- How does it change the player's understanding?
+Haven
 
-Overworld:
+finale
 
-beautiful origin
-+
-survival
-+
-first warnings
+future D3 interfaces
 
-Farmlands:
+Horror
+observation systems
 
-abandonment
-+
-history
-+
+anomalies
+
+Stalker
+
+Behemoth
+
+Neighbor
+
+future Below systems
+
+Audio
+library
+
+director
+
+buses
+
+runtime audio loading
+
+UI
+main menu
+
+HUD
+
+settings
+
+objectives
+
+transitions
+
+Persistence
+save
+
+load
+
+migration
+
+recovery
+
+Success criteria
+At the end of Era 1.5:
+
+the game behaves the same
+
+the story is unchanged
+
+the horror is unchanged
+
+the visuals are unchanged
+
+save format remains compatible
+
+the system is easier to modify
+
+dependencies are explicit
+
+future Era 2 rendering can be developed without rewriting gameplay
+
+Architecture quality matters more than file-count for its own sake.
+
+13. ERA 2 — REBIRTH
+Central goal
+Era 2 transforms the proven Era 1 game into the final visual and horror experience.
+
+This is not a sequel.
+
+This is not a reboot of the story.
+
+It is a complete presentation and horror rebirth.
+
+The player should recognize:
+
+the same world
+
+the same progression
+
+the same mystery
+
+the same landmarks where preserved
+
+the same major encounters
+
+But should no longer think:
+
+“This looks like a voxel game.”
+
+The final product should stand beside modern indie horror games visually and atmospherically.
+
+14. ERA 2 CORE REBIRTH RULES
+Rule 1 — Preserve the story
+Never remove established canon without a deliberate canon decision.
+
+Rule 2 — Preserve the progression spine
+Do not casually remove critical progression relationships.
+
+Rule 3 — Preserve meaningful landmarks
+Landmarks can be rebuilt, resized, repositioned for composition, or redesigned.
+
+Their narrative role must survive.
+
+Rule 4 — Reduce voxel identity
+Every major Rebirth phase should move the game further away from cube-first presentation.
+
+Rule 5 — Increase horror identity
+Every major Rebirth phase should improve fear, tension, physical danger, or atmosphere.
+
+Rule 6 — Atmosphere before realism
+The game does not need photorealism.
+
+It needs believable, deliberate, scary spaces.
+
+Rule 7 — Each dimension has a different fear
+Do not give every dimension:
+
+the same darkness
+
+the same fog
+
+the same chase
+
+the same creature
+
+the same scare pattern
+
+Rule 8 — Physical fear matters
+The final game must have:
+
+danger
+
+pursuit
+
+confinement
+
+escape
+
 consequences
-+
-rural isolation
 
-Static Suburbia:
+Psychological horror alone is insufficient.
 
-imitation
-+
-memory
-+
-reconstruction
+Rule 9 — Do not overuse the strongest tools
+The most powerful:
 
-Fake Haven:
+jumpscares
 
-false safety
-+
-dream
-+
-emotional manipulation
+stingers
+
+chases
+
+reveals
+
+distortions
+
+should remain rare enough to matter.
+
+Rule 10 — Preserve player agency where possible
+The player should usually:
+
+choose where to look
+
+decide whether to investigate
+
+decide when to run
+
+decide where to hide
+
+decide whether to continue
+
+Forced moments are most powerful when used deliberately.
+
+15. ERA 2 — DEVELOPMENT PRINCIPLES
+Authored experiences > random spectacle
+Procedural systems should create:
+
+scale
+
+variation
+
+consistency
+
+repeatability
+
+Authored systems should create:
+
+major scares
+
+signature encounters
+
+landmarks
+
+key cinematic moments
+
+Disconnected Homes
+
+Haven
+
+finale
+
+Normality is still necessary
+Do not make everything scary.
+
+The player needs:
+
+quiet
+
+beauty
+
+routine
+
+empty travel
+
+relief
+
+before those things can be broken.
+
+16. ERA 2 — PHASE 1 — FOUNDATION REBUILD
+Goal:
+
+Separate the final non-voxel world representation from gameplay.
+
+Tasks:
+
+world abstraction
+
+render abstraction
+
+terrain interface
+
+entity interface
+
+structure interface
+
+interaction interface
+
+dimension interface
+
+save compatibility
+
+audio integration
+
+collision abstraction
+
+Do not change the visible game more than necessary.
+
+Success:
+Gameplay systems do not depend directly on voxel rendering.
+
+17. ERA 2 — PHASE 2 — TERRAIN REBIRTH
+Goal:
+
+Replace cube-shaped ground with authored natural terrain.
+
+Tasks:
+
+mesh terrain
+
+natural slopes
+
+hills
+
+valleys
+
+cliffs
+
+erosion
+
+path integration
+
+riverbeds
+
+drainage
+
+horizon control
+
+terrain blending
+
+Success:
+A screenshot no longer reads as voxel terrain.
+
+18. ERA 2 — PHASE 3 — VEGETATION REBIRTH
+Goal:
+
+Replace voxel vegetation with final vegetation.
+
+Tasks:
+
+realistic/stylized grass
+
+crops
+
+bushes
+
+trees
+
+dead trees
+
+fallen trees
+
+stumps
+
+ferns
+
+rocks
+
+moss
+
+ashen vegetation
+
+wind motion
+
+Vegetation must support each dimension's identity.
+
+19. ERA 2 — PHASE 4 — ARCHITECTURE REBIRTH
+Goal:
+
+Replace cube-built structures with intentional architecture.
+
+Tasks:
+
+houses
+
+barns
+
+sheds
+
+farm buildings
+
+cabins
+
+utility structures
+
+suburban buildings
+
+interiors
+
+furniture
+
+roofs
+
+windows
+
+trim
+
+porches
+
+doors
+
+stairs
+
+structural details
+
+Use:
+
+GLB models
+
+custom meshes
+
+modular architectural pieces
+
+authored compositions
+
+Preferred asset direction:
+
+high texture quality
+
+reasonable polygon count
+
+optimized runtime size
+
+GLB where appropriate
+
+20. ERA 2 — PHASE 5 — LIGHTING REBIRTH
+Goal:
+
+Create the final visual atmosphere.
+
+Tasks:
+
+dynamic lighting
+
+realistic darkness
+
+fog
+
+volumetric effects where practical
+
+atmospheric perspective
+
+interior/exterior contrast
+
+dusk
+
+night
+
+sunrise
+
+weather lighting
+
+shadow quality
+
+cinematic color control
+
+Do not make every dimension dark.
+
+Each dimension needs its own visual relationship with light.
+
+21. ERA 2 — PHASE 6 — DIMENSION 1 / SHATTERED FARMLANDS REBIRTH
+This is the first final horror dimension.
+
+The current Era 1 Overworld is discarded as the final D1.
+
+The final D1 is the Shattered Farmlands.
+
+D1 core fear
+Something is out there.
+
+Physical feeling
+The player should feel:
+
+exposed
+
+alone
+
+small
+
+visible
+
+vulnerable
+
+Major tools
+Flashlight
+A useful but limited cone of certainty.
+
+It should:
+
+reveal enough to travel
+
+never illuminate the whole environment
+
+create meaningful blind areas
+
+Darkness
+Used deliberately rather than permanently.
+
+The player should experience:
+
+dusk
+
+moonlight
+
+lit buildings
+
+dark fields
+
+forest edges
+
+near-total darkness in authored sequences
+
+The environment
+Use:
+
+giant fields
+
+tree lines
+
+farmhouses
+
+barns
+
+sheds
+
+fences
+
+roads
+
+utility poles
+
+isolated lights
+
+the water tower
+
+Physical threats
+Build toward:
+
+distant movement
+
+branch/vegetation disturbances
+
+visible crossings
+
+following sounds
+
+staged stalking
+
+real chase sequences
+
+Signature escalation
+Early:
+quiet rural normality
+
+Middle:
+things occur outside the flashlight
+
+Late:
+the player discovers the darkness contains an actual threat
 
 Final:
+a deliberate physical encounter/chase forces the player to survive
 
-underlying horror
-
-Do not add major gameplay simply for this phase.
-
-Fix contradictions and weak connective tissue.
-
----
-
-# 54. TECHNICAL DEBT / LEGACY CLEANUP  (was numbered "Phase 36" here)
-
-**NUMBERING NOTE.** This section was written when "Phase 36" meant a legacy-cleanup pass.
-The phase that was actually delivered as 36 is the PLAYABLE ALPHA / FULL GAME AUDIT
-(section 83), and the cleanup below now belongs with Phase 37's architecture split, which
-is where the file is opened up anyway. The brief is kept verbatim because it is still
-correct about what needs doing; only its number moved.
-
-Purpose:
-
-Audit the codebase before final alpha stabilization.
-
-Review:
-
-- duplicate systems
-- dead code
-- outdated comments
-- stale constants
-- unused assets
-- deprecated APIs
-- memory leaks
-- duplicated materials
-- duplicated geometries
-- old tutorial remnants
-- old XP remnants
-- obsolete progression logic
-- contradictory systems
-- temporary debug systems
-- accidental legacy systems
-
-Do not perform a massive risky rewrite.
-
-The goal is controlled cleanup.
-
----
-
-# 55. PHASE 37 — SAVE ROBUSTNESS / RECOVERY HARDENING
-
-Purpose:
-
-Take the save/load system from functional to resilient.
-
-Test:
-
-- malformed saves
-- incomplete saves
-- future schema migrations
-- interrupted writes
-- invalid coordinates
-- invalid dimensions
-- corrupted edited chunks
-- missing structure state
-- old save versions
-- repeated save/load
-- dimension transitions
-- world edits
-- unusual player positions
-
-The player should not casually lose their world.
-
-Safe recovery is more important than preserving malformed state perfectly.
-
----
-
-# 56. PHASE 38 — COMPLETE PLAYABLE ALPHA
-
-Treat the game as a complete playable product.
-
-Play through the intended full experience:
-
-MAIN MENU
-→
-OPENING LORE FILM
-→
-OVERWORLD
-→
-OBJECTIVES
-→
-SURVIVAL
-→
-BLOOD NIGHTS
-→
-STALKER
-→
-ANCHOR
-→
-HOLLOWED BEHEMOTH
-→
-RIFT
-→
-SHATTERED FARMLANDS
-→
-ABANDONED SETTLEMENTS
-→
-FARMLAND ANIMALS
-→
-FARMLAND ECOLOGY
-→
-FARMLAND DISCONNECTED HOME
-→
-STATIC SUBURBIA
-→
-ENTERABLE HOMES
-→
-MEMORY HORROR
-→
-SUBURBIA DISCONNECTED HOME
-→
-FAKE HAVEN
-→
-BLUR / DISSOLVE
-→
-FINAL CREATURE
-→
-CREDITS
-
-Audit:
-
-GAMEPLAY:
-- movement
-- mining
-- crafting
-- combat
-- knockback
-- item drops
-- progression
-
-STORY:
-- coherence
-- clarity
-- mystery
-- consistency
-
-OBJECTIVES:
-- understandable
-- correctly triggered
-- not annoying
-- no broken states
-
-HUD:
-- health
-- sanity
-- objectives
-- inventory
-- prompts
-
-DIMENSIONS:
-- identity
-- streaming
-- transition
-
-AUDIO:
-- ambience
-- music
-- horror
-- transitions
-- finale
-
-SAVE:
-- save
-- load
-- corruption
-- recovery
-- persistence
+The previously approved Farmlands jumpscare remains part of the final design.
 
-SETTINGS:
-- volume
-- controls
-- graphics
-- fullscreen
+22. ERA 2 — PHASE 7 — FARMLANDS JOURNEY / LANDMARK HORROR
+Turn the rural route into a cinematic journey.
 
-XP:
-must remain completely absent.
+Preserve the meaningful chain:
 
-OLD TUTORIAL:
-must remain completely absent. Phase 28 deleted it — markup, stylesheet, page table and
-controller. Onboarding is the objective chain plus three contextual cues, and a fourth
-cue is a design decision, not a convenience.
+arrival
 
-FULL-CUBE DEPENDENCY:
-must not be required for newer architectural content.
+fallen water tower
 
----
+standing water tower
 
-# 57. ERA 1 COMPLETION DEFINITION
+giant barn
 
-Era 1 is complete when:
+great tree
 
-- the game can be played from beginning to end
-- all major dimensions exist
-- progression works
-- saving works
-- objectives work
-- onboarding works
-- story is coherent
-- major locations are complete
-- Fake Haven works
-- finale works
-- audio works
-- major regressions are resolved
-- performance is understood
-- the game qualifies as a complete playable alpha
+disconnected home
 
-Era 1 is NOT supposed to represent the final visual quality.
+Improve:
 
----
+composition
 
-# ERA 2 — REBIRTH
+distance
 
-Status: Planned
+scale
 
-Target Start:
-Immediately following completion of Era 1 Alpha.
+weather
 
----
+visibility
 
-# Vision
+environmental storytelling
 
-Era 1 proves that Where It Isn't works.
+audio
 
-Era 2 transforms Where It Isn't into the game it was always meant to become.
+transitions
 
-The purpose of Era 2 is not to create a sequel.
+authored encounters
 
-The purpose of Era 2 is not to restart development.
+The water tower remains a major visual anchor.
 
-The purpose of Era 2 is to rebuild the presentation, atmosphere, visual identity, and horror delivery while preserving the completed Era 1 experience.
+Its red light remains unexplained.
 
-Players should recognize:
+23. ERA 2 — PHASE 8 — STATIC SUBURBIA REBIRTH
+This is Dimension 2.
 
-- The same story
-- The same journey
-- The same dimensions
-- The same landmarks
-- The same progression
-- The same mystery
+Core fear
+It knows where I am.
 
-But should no longer recognize the game as a voxel game.
+Suburbia should NOT copy Farmland horror.
 
-By the end of Era 2:
+It should often be:
 
-Where It Isn't should stand visually beside modern indie horror games rather than voxel survival games.
+visible
 
----
+lit
 
-# Core Rebirth Rules
+readable
 
-## Rule 1
+geographically understandable
 
-Never remove completed story content.
+Then the player discovers that visibility is not safety.
 
-## Rule 2
+Main horror tools
+Open streets
+Long sightlines allow the threat to be seen.
 
-Never remove dimensions.
+Interception
+The threat can get ahead of the player.
 
-## Rule 3
+Houses
+Temporary shelter that can become traps.
 
-Never remove major landmarks.
+Impossible interiors
+Spaces cease to obey exterior geometry.
 
-## Rule 4
+Repetition
+The same house/object appears where it should not.
 
-Never restart progression systems.
+Observation
+Changes are discovered, not watched happening.
 
-## Rule 5
+The previously approved Suburbia jumpscare remains.
 
-Every Rebirth phase must reduce the game's voxel identity.
+24. ERA 2 — PHASE 9 — SUBURBIA ENTITY / NEIGHBOR
+Build the primary Suburbia hunting entity.
 
-## Rule 6
+It should feel:
 
-Every Rebirth phase must increase the game's horror identity.
+at home
 
-## Rule 7
+familiar
 
-Atmosphere always comes before realism.
+person-shaped
 
-## Rule 8
+wrong
 
-The game should feel lonely, hostile, and mysterious.
+deliberate
 
-## Rule 9
+physically dangerous
 
-If a feature only exists because the game was voxel-based, it should be reconsidered.
+Behavior escalation:
 
-## Rule 10
+distant observation
 
-Preserve the soul of the game at all costs.
+window sightings
 
----
+street sightings
 
-# Phase 1 — Foundation Rebuild
+positioning
 
+interception
+
+entry into occupied spaces
+
+chase
+
+temporary player escape
+
+Do not make it:
+
+a talking villain
+
+a conventional boss
+
+a lore dump
+
+a generic monster
+
+Its personality should be expressed through behavior.
+
+25. ERA 2 — PHASE 10 — THE BELOW REBIRTH
+Dimension 3.
+
+This is the strongest horror chapter.
+
+Core fear
+I was never supposed to be here.
+
+Environment
+Not literal Hell.
+
+No:
+
+lava
+
+generic demons
+
+infernal symbols
+
+generic underworld imagery
+
+Instead:
+
+impossible interiors
+
+giant chambers
+
+tiny crawlspaces
+
+roads inside buildings
+
+houses embedded in walls
+
+upside-down bedrooms
+
+forests inside rooms
+
+towers embedded in ceilings
+
+architecture that cannot fit together
+
+The world should look physically wrong rather than generically evil.
+
+Scale contrast
+Move between:
+
+enormous spaces
+
+narrow tunnels
+
+giant shafts
+
+small rooms
+
+claustrophobic corridors
+
+The player should lose comfortable spatial intuition.
+
+26. ERA 2 — PHASE 11 — THE BELOW CREATURE
+Working/internal name:
+
+The Collector
+
+Do not assume this is its final in-game name.
+
+Core behavior
+The creature hunts through:
+
+sound
+
+movement
+
+environmental response
+
+The player can:
+
+walk quietly
+
+run loudly
+
+hide
+
+make mistakes
+
+attract danger
+
+Escalation
+Early:
+the player hears distant movement
+
+Middle:
+sound produces responses
+
+Later:
+the creature actively hunts
+
+Late:
+hiding places stop being reliable
+
+Final:
+the player must physically escape
+
+The creature should rarely show its entire body early.
+
+Use:
+
+silhouettes
+
+limbs
+
+partial faces
+
+movement behind architecture
+
+impossible scale
+
+27. ERA 2 — PHASE 12 — HORROR EXPANSION
 Goal:
 
-Prepare the engine for a non-voxel future.
+Implement the game's strongest authored scare library.
 
----
+Categories:
 
-## Tasks
+Farmlands
+darkness encounters
 
-- Separate gameplay from rendering
-- Separate progression from rendering
-- Separate AI from rendering
-- Separate terrain generation from rendering
-- Remove cube assumptions
-- Create world abstraction layers
-- Create rendering abstraction layers
-- Future-proof all core systems
+distant sightings
 
----
+rural pursuit
 
-## Success Criteria
+existing signature jumpscare
 
-Nothing changes visually.
+rare large events
 
-The player should not notice this phase.
+Suburbia
+interception
 
-This phase exists solely to make every future Rebirth phase possible.
+house invasion
 
----
+existing signature jumpscare
 
-# Phase 2 — Terrain Rebirth
+street pursuit
 
+impossible safe rooms
+
+Below
+sound hunting
+
+hiding failures
+
+impossible-space chase
+
+creature encounters
+
+escape sequences
+
+Haven
+safety collapse
+
+invasion
+
+physical threat inside the refuge
+
+Rules
+No:
+
+scare spam
+
+constant stingers
+
+constant chase music
+
+random monster placement everywhere
+
+Strong scares need contrast.
+
+28. ERA 2 — PHASE 13 — HAVEN REBIRTH
 Goal:
 
-Destroy the blocky terrain silhouette.
-
----
-
-## Tasks
-
-- Smooth terrain rendering
-- Natural slopes
-- Natural hills
-- Natural valleys
-- Terrain blending
-- Cliff systems
-- Erosion systems
-- Improved river generation
-- Improved coastlines
-- Improved horizons
-
----
-
-## Success Criteria
-
-The player no longer sees cube-shaped terrain.
-
-The world immediately stops resembling Minecraft.
-
----
-
-# Phase 3 — Vegetation Rebirth
-
-Goal:
-
-Remove voxel vegetation entirely.
-
----
-
-## Tasks
-
-- Real grass
-- Real crops
-- Real bushes
-- Real trees
-- Dead tree systems
-- Wind simulation
-- Seasonal support
-- Terrain-specific vegetation
-
----
-
-## Horror Objective
-
-The environment should feel alive.
-
-Not safe.
-
-Not comfortable.
-
-Alive.
-
----
-
-## Success Criteria
-
-Players stop noticing cubes.
-
-Players start noticing silhouettes.
-
----
-
-# Phase 4 — Lighting Rebirth
-
-Goal:
-
-Create the final atmosphere.
-
----
-
-## Tasks
-
-- Volumetric fog
-- Dynamic fog density
-- Dynamic shadows
-- Improved darkness
-- Better night rendering
-- Sky overhaul
-- Sunrise overhaul
-- Sunset overhaul
-- Distance haze
-- Atmospheric color grading
-- Weather systems
-
----
-
-## Horror Objective
-
-Darkness should feel oppressive.
-
-Distance should feel uncertain.
-
----
-
-## Success Criteria
-
-A screenshot should immediately feel unsettling.
-
----
-
-# Phase 5 — Overworld Rebirth
-
-Goal:
-
-Transform the weakest visual area of the game.
-
----
-
-## Problems To Solve
-
-Current Overworld risks:
-
-- Minecraft comparisons
-- Generic survival feeling
-- Familiar terrain language
-- Weak visual identity
-
----
-
-## Tasks
-
-- Terrain redesign
-- Structure redesign
-- Visual language redesign
-- Environmental storytelling
-- Landmark expansion
-- Horror atmosphere improvements
-
----
-
-## Preserve
-
-- Blood Nights
-- Stalkers
-- Behemoths
-- Rift progression
-
----
-
-## Success Criteria
-
-The Overworld becomes uniquely Where It Isn't.
-
----
-
-# Phase 6 — Landmark Rebirth
-
-Goal:
-
-Turn every major landmark into something unforgettable.
-
----
-
-## Great Tree
+Make Haven the most emotionally comfortable place in the game.
 
 Tasks:
 
-- Massive scale increase
-- Disturbing silhouette
-- Audio presence
-- Visible for extreme distances
+beautiful materials
 
----
+warm lighting
 
-## Water Towers
+high-quality furniture
 
-Tasks:
+specific objects
 
-- Real industrial design
-- Rust
-- Corrosion
-- Structural decay
+fire
 
----
+room detail
 
-## Giant Barn
+atmospheric sound
 
-Tasks:
+comfortable pacing
 
-- Real architecture
-- Interior storytelling
-- Environmental clues
+The player should genuinely want to stay.
 
----
+Then the safety fails.
 
-## Disconnected Home
+The failure should be:
 
-Tasks:
+gradual
 
-- Complete visual overhaul
-- Greater mystery
-- Better horror presentation
+physical
 
----
+unnerving
 
-## Success Criteria
+emotionally meaningful
 
-Players remember landmarks years later.
+Do not reveal the final creature early.
 
----
-
-# Phase 7 — Shattered Farmlands Rebirth
-
-Goal:
-
-Create the game's defining experience.
-
----
-
-## Philosophy
-
-Farmlands should feel endless.
-
-Farmlands should feel wrong.
-
-Farmlands should feel watched.
-
----
-
-## Tasks
-
-- Road redesign
-- Field redesign
-- Environmental storytelling
-- Weather systems
-- Distance fog
-- Horizon improvements
-- Landmark upgrades
-
----
-
-## The Eastward Stalker
-
-Major encounter system.
-
-Stage 1:
-
-Audio behind the player.
-
-Stage 2:
-
-Movement in distant fields.
-
-Stage 3:
-
-Brief sightings.
-
-Stage 4:
-
-Movement behind trees.
-
-Stage 5:
-
-Full reveal.
-
-Stage 6:
-
-Chase sequence.
-
-Stage 7:
-
-Escape sequence.
-
----
-
-## Success Criteria
-
-Farmlands becomes the most discussed dimension in the game.
-
----
-
-# Phase 8 — Static Suburbia Rebirth
-
-Goal:
-
-Create one of the strongest liminal horror environments ever built into the project.
-
----
-
-## Tasks
-
-- Real neighborhoods
-- Better streets
-- Better houses
-- Better interiors
-- Impossible architecture
-- Reality distortion systems
-- Environmental storytelling
-
----
-
-## The Neighbor
-
-Primary horror encounter.
-
-Stage 1:
-
-Distant observation.
-
-Stage 2:
-
-Window sightings.
-
-Stage 3:
-
-Street sightings.
-
-Stage 4:
-
-Impossible appearances.
-
-Stage 5:
-
-Final confrontation.
-
----
-
-## Success Criteria
-
-Players become afraid to look behind them.
-
----
-
-# Phase 9 — Fake Haven Rebirth
-
-Goal:
-
-Perfect false comfort.
-
----
-
-## Tasks
-
-- Beautiful visuals
-- Warm lighting
-- Safe atmosphere
-- Comfortable architecture
-- Environmental deception
-
----
-
-## Horror Objective
-
-Players should trust Haven.
-
-Then regret trusting Haven.
-
----
-
-## Success Criteria
-
-The reveal lands harder than in Era 1.
-
----
-
-# Phase 10 — Audio Rebirth
-
+29. ERA 2 — PHASE 14 — AUDIO REBIRTH
 Goal:
 
 Create the final audio identity.
 
----
+Preserve the working architecture.
 
-## Music
+Improve:
 
-- Overworld themes
-- Blood Night themes
-- Farmland themes
-- Suburbia themes
-- Haven themes
-- Ending themes
+mix
 
----
+source quality
 
-## Horror Audio
+environment-specific beds
 
-- Distant sounds
-- Environmental whispers
-- Dynamic tension systems
-- Chase themes
-- Audio stingers
+spatial placement where appropriate
 
----
+transitions
 
-## Success Criteria
+threat audio
 
-Players recognize Where It Isn't from audio alone.
+silence
 
----
+room tone
 
-# Phase 11 — Cinematics
+chase intensity
 
+Audio must serve dimension identity:
+
+Farmlands
+wind
+
+distant rural sounds
+
+sparse animal calls
+
+open-space distance
+
+darkness
+
+Suburbia
+electrical hum
+
+houses
+
+distant traffic
+
+footsteps
+
+occupancy
+
+street ambience
+
+Below
+extreme quiet
+
+structural sounds
+
+sound-response cues
+
+low environmental pressure
+
+intense chase audio
+
+deliberate silence
+
+Haven
+warmth
+
+fire
+
+soft ambience
+
+emotional comfort
+
+Never return to the old retro exploration music.
+
+30. ERA 2 — PHASE 15 — CINEMATICS
+Rebuild:
+
+opening
+
+major Rift transitions where needed
+
+Farmlands signature sequences
+
+Suburbia sequences
+
+Haven transition
+
+finale
+
+Cinematics must:
+
+use the final art direction
+
+preserve the story
+
+avoid over-explaining
+
+support horror pacing
+
+avoid taking control away for too long
+
+31. ERA 2 — PHASE 16 — WORLD REACTIVITY / THE WORLD REMEMBERS
+Potential first version of the later reactive concept.
+
+Possible memory inputs:
+
+repeated routes
+
+repeated hiding locations
+
+objects the player moves
+
+places where the player spends significant time
+
+death locations
+
+frequently inspected objects
+
+Effects should remain subtle.
+
+Never show:
+
+memory meters
+
+relationship stats
+
+visible "the world remembers you" systems
+
+The feeling should be:
+
+“This place noticed me.”
+
+32. ERA 2 — PHASE 17 — WORLD POLISH
 Goal:
 
-Deliver the final narrative presentation.
+Make every surviving environment feel intentional.
 
----
+Audit:
 
-## Tasks
+composition
 
-- Intro film
-- Rift film
-- Farmland film
-- Suburbia film
-- Haven film
-- Ending film
+landmarks
 
----
+lighting
 
-## Success Criteria
+materials
 
-The story reaches its final presentation quality.
+vegetation
 
----
+audio
 
-# Phase 12 — Horror Expansion
+transitions
 
+interactions
+
+horror pacing
+
+performance
+
+Remove:
+
+obvious procedural repetition
+
+placeholder objects
+
+inconsistent materials
+
+visual noise
+
+accidental dead spaces
+
+33. ERA 2 — PHASE 18 — RELEASE CANDIDATE REBIRTH
 Goal:
 
-Create unforgettable moments.
+Create the first truly final-looking build.
 
----
+Check:
 
-## Rules
+visual identity
 
-No cheap jumpscares.
+performance
 
-No constant screaming.
+stability
 
-No spam.
+horror
 
-Every scare must matter.
+progression
 
----
+audio
 
-## Tasks
+save/load
 
-- Stalker encounters
-- Neighbor encounters
-- Rare events
-- Environmental scares
-- Dynamic horror systems
+accessibility
 
----
+compatibility
 
-## Success Criteria
+controls
 
-Players remember specific moments years later.
+final asset licensing
 
----
+credits
 
-# Phase 13 — World Polish
+packaging
 
-Goal:
+34. ERA 3 — DEEP HORROR / REPLAYABILITY
+Potential systems:
 
-Turn good areas into great areas.
+more sophisticated world memory
 
----
+stronger entity behavior
 
-## Tasks
+rare alternate events
 
-- Environmental storytelling
-- Detail passes
-- Visual cleanup
-- Additional discoveries
-- Hidden lore
-- Secret encounters
+persistent environmental consequences
 
----
+deeper environmental storytelling
 
-## Success Criteria
+hidden discoveries
 
-Every dimension feels complete.
+controlled replay variation
 
----
+Do not add systems merely because they sound impressive.
 
-# Phase 14 — Release Candidate
+35. ERA 4 — RELEASE
+Final goals:
 
-Goal:
+performance
 
-Prepare for commercial launch.
+compatibility
 
----
+accessibility
 
-## Tasks
+legal/audio licensing review
 
-- Optimization
-- Bug fixing
-- Performance
-- Achievements
-- Demo
-- Trailer
-- Steam page
-- Final QA
-- Marketing assets
+save robustness
 
----
+input reliability
 
-# End of Era 2
+loading
 
-Players should say:
+error recovery
 
-"The game where you travel east through the broken countryside."
+credits
 
-"The game with the impossible neighborhood."
+packaging
 
-"The game with the giant dead tree."
+trailer
 
-"The game with the thing following you through the fields."
+Steam page
 
-Not:
+screenshots
 
-"The Minecraft horror game."
+demo if appropriate
 
-The Rebirth is complete when the visual identity of Where It Isn't becomes entirely its own.
+achievements if appropriate
 
-# 67. ERA 3 — DEEPER CREATURE HORROR
+final QA
 
-Potential future systems:
+The game must be evaluated as a product, not simply as a finished prototype.
 
-- stronger environmental reactions
-- more sophisticated stalking
-- more subtle entities
-- unusual behavior
-- creatures visible only indirectly
-- creatures that respond to observation
-- distant movement
-- silhouettes
-- sound-driven encounters
-
-Do not turn every creature into a combat encounter.
-
----
-
-# 68. ERA 4 — RELEASE QUALITY
-
-Final production goals:
-
-- performance
-- compatibility
-- save stability
-- accessibility
-- audio legality/licensing
-- input reliability
-- UI polish
-- loading behavior
-- error recovery
-- browser compatibility
-- asset verification
-- packaging
-- store screenshots
-- trailer
-- title treatment
-- credits
-- final QA
-
-The game should be evaluated as a product, not just a prototype.
-
----
-
-# 69. PERMANENT DESIGN DECISIONS
-
-These should not be reversed casually.
-
-## GAME NAME
-
+36. PERMANENT DESIGN DECISIONS
+GAME NAME
 Where It Isn't.
 
-## XP
-
+XP
 Removed permanently.
 
-## VISUAL IDENTITY
+TUTORIAL
+Removed permanently.
 
-Voxel foundation is allowed.
+VISUAL IDENTITY
+Final game is non-voxel.
 
-Minecraft appearance is not the goal.
+DIMENSION 1
+Final D1 is Shattered Farmlands.
 
-## ANIMALS
+DIMENSION 2
+Final D2 is Static Suburbia.
 
-Animals are not enemies.
+DIMENSION 3
+Final D3 is The Below, pending final naming.
 
-## ANIMAL DETERIORATION
+ANIMALS
+Animals are not default enemies.
 
-Visual deterioration and behavior remain partially independent.
+HORROR
+Psychological + physical.
 
-## HORROR
+ESCALATION
+Each dimension becomes scarier in a different way.
 
-Normality and restraint are important.
+JUMPSCARES
+Allowed, rare, authored, meaningful.
 
-## FARMLANDS
+FINAL CREATURE
+Not a boss.
 
-Farmlands must have their own identity.
+HAVEN
+Must begin genuinely safe.
 
-## STATIC SUBURBIA
+STORY
+Mystery remains stronger than explanation.
 
-Static Suburbia and Farmlands must not feel like reskins of each other.
+STREAMER VALUE
+Design for genuine reactions, not artificial content bait.
 
-## DISCONNECTED HOMES
+37. DIMENSION IDENTITY SUMMARY
+Dimension	Core Fear	Main Tools
+D1 — Shattered Farmlands	exposure	flashlight, darkness, distance, unseen threat, rural pursuit
+D2 — Static Suburbia	pursuit	visible threat, interception, houses, impossible interiors
+D3 — The Below	helplessness	sound hunting, claustrophobia, impossible architecture, overwhelming creature
+Haven	loss of safety	comfort, invasion, shrinking safety
+Finale	insignificance	scale, removal, exposure
+38. DEVELOPMENT VALIDATION PRINCIPLE
+Every major phase must test two things:
 
-Disconnected Homes represent deeper spatial/reality problems.
+What the code says
+Automated tests, deterministic checks, browser tests, performance measurements.
 
-## FAKE HAVEN
+What the player experiences
+Human playtesting.
 
-Fake Haven should initially feel safe and comforting.
+No phase involving:
 
-## FINAL CREATURE
+horror
 
-Not a boss fight.
+pacing
 
-## FINAL CREATURE SCALE
+audio
 
-Much larger and more alien than ordinary creatures.
+atmosphere
 
-## WATER
+navigation
 
-Water remains restrained and gameplay-safe.
+visual readability
 
-## GUIDED ROUTES
+should be considered experientially complete from automation alone.
 
-Routes can guide the player without becoming forced rails.
+39. PLAYTESTING PRINCIPLE
+The human tester should report:
 
----
+what felt scary
 
-# 70. FARMLANDS PERMANENT IDENTITY
+what felt boring
 
-The Farmlands should represent:
+where they got confused
 
-- agriculture
-- rural history
-- isolation
-- geographic scale
-- abandoned human infrastructure
-- harmless animals
-- water
-- fields
-- barns
-- roads
-- orchards
-- Ashen Forest
-- subtle rural horror
+where they felt safe
 
-The Farmlands should not represent:
+where safety failed
 
-- constant monsters
-- constant blood
-- constant jumpscares
-- swamp everywhere
-- random horror objects everywhere
+which sounds stood out
 
----
+which sounds were missing
 
-# 71. STATIC SUBURBIA PERMANENT IDENTITY
+where they wanted to stop
 
-Static Suburbia should represent:
+which moments they remembered afterward
 
-- familiarity
-- artificial normality
-- memory
-- repetition
-- suburban architecture
-- houses
-- subtle reality errors
-- impossible interiors
-- reconstructed familiarity
+whether important locations were findable
 
----
+Do not require the human tester to diagnose implementation.
 
-# 72. OVERWORLD PERMANENT IDENTITY
+The player's reaction is evidence about the experience.
 
-The Overworld should represent:
+40. PROCEDURAL VS AUTHORED PRINCIPLE
+Use procedural systems for:
 
-- the baseline
-- beauty
-- survival
-- familiarity
-- first warning signs
-- the player's initial understanding of reality
+scale
 
----
+variation
 
-# 73. FAKE HAVEN PERMANENT IDENTITY
+repeatability
 
-Fake Haven should represent:
+background life
 
-- comfort
-- memory
-- safety
-- emotional manipulation
-- false reality
-- dreamlike perfection
+traversal
 
-It should not initially feel evil.
+Use authored systems for:
 
----
+major horror events
 
-# 74. FINAL ENTITY PERMANENT IDENTITY
+signature scares
 
-The final entity should represent something much deeper than an ordinary
-enemy.
+Disconnected Homes
 
-It should feel:
+landmark staging
 
-- ancient or incomprehensible
-- impossible
-- enormous
-- difficult to perceive
-- unlike ordinary creatures
-- connected to the deepest mystery
+Haven
 
-The player should not receive a complete explanation simply because
-they see it.
+finale
 
----
+critical transitions
 
-# 75. ENVIRONMENTAL STORYTELLING PRINCIPLE
+major creature encounters
 
-Whenever possible:
+The final game should feel authored even when large portions of the world are generated.
 
-SHOW instead of TELL.
+41. PERFORMANCE PRINCIPLE
+Measure before optimizing.
 
-Prefer:
+Track:
 
-- objects
-- architecture
-- layouts
-- sound
-- repetition
-- environmental changes
-- visual clues
+generation
 
-over:
+streaming
 
-- huge lore paragraphs
-- NPC exposition
-- giant text dumps
+rendering
 
----
+memory
 
-# 76. PLAYER GUIDANCE PRINCIPLE
+entity counts
 
-Good guidance:
+audio nodes
 
-- road
-- landmark
-- sound
-- silhouette
-- sign
-- lighting
-- environmental composition
-- distant structure
+terrain meshes
 
-Bad guidance:
+lighting
 
-- giant glowing arrow
-- constant waypoint beam
-- invisible wall
-- unexplained teleport
-- giant objective marker spoiling mystery
+interiors
 
----
+transitions
 
-# 77. MEMORABILITY PRINCIPLE
+long traversal
 
-The player should be able to remember specific images.
+worst-case horror scenes
 
-Examples:
+Do not make performance claims without measurements.
 
-- a massive water tower in distant fog
-- a red light flashing only when looked away from
-- an enormous rural landscape
-- an impossible farmhouse
-- a repeated object
-- a suburban house that cannot fit its interior
-- Fake Haven's comfort
-- the final creature's scale
+42. ASSET PIPELINE PRINCIPLE
+Final Era 2 assets should prioritize:
 
-The game should create moments the player talks about afterward.
+strong visual quality
 
----
+coherent art direction
 
-# 78. FEW STRONG IDEAS > MANY WEAK IDEAS
+appropriate scale
 
-Do not add content merely to increase feature count.
+reasonable file size
 
-A system should contribute to at least one:
+efficient runtime materials
 
-- gameplay
-- atmosphere
-- story
-- world identity
-- player memory
-- horror
-- exploration
+GLB when practical
 
-If it contributes to none of those, question whether it belongs.
+clear attribution
 
----
+Original source files and credit information must remain intact.
 
-# 79. AUTHORED VS PROCEDURAL CONTENT
+Runtime processing must never erase source attribution.
 
-Procedural generation is essential for large environments.
+43. CODEBASE PRINCIPLE
+Until Era 1.5:
 
-But major experiences should use authored design.
+do not perform the architecture split accidentally
 
-Prefer authored or strongly controlled systems for:
+During Era 1.5:
 
-- major horror events
-- Disconnected Homes
-- Fake Haven
-- finale
-- signature landmarks
-- major story sequences
-- opening cinematic
+architecture becomes the primary target
 
-Procedural generation should provide scale and variation.
+During Era 2:
 
-It should not replace authored experiences.
+final rendering/world representation should be independent of gameplay logic
 
----
+Never combine a risky architectural rewrite with an unrelated giant gameplay redesign unless explicitly planned.
 
-# 80. PERFORMANCE PRINCIPLE
+44. CONTEXT RESET PRINCIPLE
+The repository must remain understandable without the development chat.
 
-Never assume a feature is acceptable because it works once.
+The project should contain:
 
-Measure:
+code
 
-- chunk generation
-- chunk streaming
-- memory
-- objects
-- geometry
-- materials
-- long-distance traversal
-- interaction
-- water updates
-- animal simulation
-- cinematic transitions
+CLAUDE.md
 
-When optimizing:
+ROADMAP.md
 
-- measure
-- change
-- benchmark
-- compare
-- keep only actual improvements
+PROGRESS.md
 
-Never fake benchmark results.
+STORY.md
 
----
+audio index/credits
 
-# 81. VALIDATION PRINCIPLE
+tests
 
-Every major phase should test both:
+useful development documentation
 
-WHAT THE CODE SAYS
-and
-WHAT THE PLAYER ACTUALLY EXPERIENCES.
+A new development session should read the repository before making assumptions.
 
-Automated tests are necessary.
+45. CURRENT PROJECT STATUS
+Era 1
+Mechanically complete.
 
-They are not sufficient.
+Current build:
 
-Whenever practical, validate through:
+playable
 
-- first-person play
-- rendered imagery
-- traversal
-- interaction
-- persistence
-- deterministic comparison
-- chunk seam inspection
-- performance benchmarking
+progression complete
 
----
+Rifts functional
 
-# 82. CONTEXT RESET PRINCIPLE
+Farmlands functional
 
-Development sessions may reset.
+Suburbia functional
 
-The project must remain understandable without the old chat.
+Haven functional
 
-The repository should provide:
+finale functional
 
-- source code
-- CLAUDE.md
-- ROADMAP.md
-- future progress/state files
-- useful test information
+audio functional when properly served
 
-Claude Code should inspect the repository before making assumptions.
+save/load functional
 
----
+settings functional
 
-# 83. CURRENT PROJECT STATUS
+browser validation green
 
-Current completed milestone:
+Outstanding Era 1 gate
+Human full-playthrough of the final Phase 36 build.
 
-Phase 36 — Complete Playable Alpha / Full Game Audit
-(Phase 35 dimension cohesion, Phase 34 final audio integration and its 34.1/34.2/34.3
-corrections, Phase 33 final creature, Phase 32 Fake Haven, Phase 31 environmental
-storytelling, Phase 30 opening lore film, Phase 29 main-menu rebirth + UI typography,
-Phase 28 tutorial removal, Phase 27 HUD rebirth, Phase 26 XP removal, Phase 25 dynamic
-objectives, Phase 24 canonical story foundation, Phase 23 save/load, Phase 22 settings,
-Phase 21 dropped item ground contact, and Phase 20 including the 20.1 journey revision and
-the 20.2 guidance pass — see PROGRESS.md, and STORY.md for the canon)
+This must be:
 
-**THE HUMAN PLAYTHROUGH IS THE OUTSTANDING GATE.** Phase 36 walked the entire game from a
-real New Game to the credits in a real browser with no debug command in it, and repaired
-five ways the build could take a run away from a player. Nobody has PLAYED it. The script
-for that playthrough is `PLAYTEST.md`, and it must be played from a SERVED build
-(http://localhost:8000/game.html), never from disk — opening the file directly plays none
-of the 274 recorded sounds.
+normal play
 
-Current next major phase:
+served via HTTP/HTTPS
 
-Phase 37 — Architecture split (then Era 2)
+no debug commands
 
----
+no save editing
 
-# 83.1 DIMENSION 1 — WHAT PHASE 36 FOUND, KEPT FOR THE ERA 2 REPLACEMENT
+Next development milestone
+ERA 1.5 — ARCHITECTURE SPLIT
 
-Phase 36 audited the Overworld for CORRECTNESS and deliberately did not improve it: it is
-already scheduled for wholesale replacement, and polishing it would be work thrown away.
-It is functionally complete — everything the chain needs from it works, and the faults it
-did have are fixed. What is wrong with it is STRUCTURAL, and this is the list, written
-down now while it is fresh rather than re-derived later:
+Then:
 
-1. **THE PACING IS A TIMER, NOT A JOURNEY.** The whole of dimension 1 is "survive until
-   night three". Nothing in the world moves the player toward anything; the only reason to
-   walk anywhere is to find wood, coal and stone, and those are everywhere. Compare the
-   Farmlands, where a road, a tower and a property do the work. D1 has no spine.
+ERA 2 — REBIRTH
 
-2. **THE ONLY AUTHORED PLACE IS THE ANCIENT CHEST**, and it is placed procedurally with
-   nothing pointing at it. The compass — the single most important progression item in the
-   first hour — is therefore found by accident or not at all.
-
-3. **THE BEHEMOTH IS THE ONLY EVENT.** One arrival, on one night, with two nights of
-   nothing before it. It is also the only thing between the player and the rest of the
-   game, which is why its gate being a one-shot boolean was able to end runs.
-
-4. **THE SURVIVAL LOOP IS THE PART THAT LOOKS MOST LIKE THE GAME IT IS NOT SUPPOSED TO BE.**
-   Chop tree, craft plank, craft pickaxe, mine stone, place torch, build shelter, night
-   falls, things spawn. Sections 4 and 73 of CLAUDE.md exist because of this stretch.
-
-5. **THE STAGE MACHINE IS VESTIGIAL.** "PURGE COMPLETE / DESCEND TO STAGE n+1" raises a
-   difficulty multiplier and a mob cap and sends the player back to spawn. It predates the
-   rift chain, it is not part of the story, and no objective line mentions it. It should
-   not survive into the rebuilt dimension.
-
-6. **THE HUD STILL REPORTS IT.** `FRAGMENTS n/3 · STAGE 1` sits under the objective line in
-   every dimension, including Static Suburbia and the Farmlands, where neither number means
-   anything. Phase 27 kept it as a dim status line; a rebuilt D1 should decide whether it
-   exists at all.
-
-None of the above is a bug and none of it was changed.
-
-Current game build baseline:
-
-game.html
-
-Repository version:
-
-Where-It-Isnt
-
-Official game title:
-
-Where It Isn't
-
----
-
-# 84. CURRENT DEVELOPMENT ORDER
-
-Proceed in phase order.
-
-Do not skip major phases simply because a later visual idea sounds exciting.
-
-Era 1 should first produce a coherent playable alpha.
-
-Era 2 should then perform the major visual revolution.
-
-Era 3 should deepen the horror and world.
-
-Era 4 should prepare the game for release.
-
----
-
-# 85. FINAL DEVELOPMENT NORTH STAR
-
+46. NORTH STAR
 The ultimate goal is not:
 
-"Make the biggest voxel horror game."
+Make a large voxel horror game.
 
-The goal is:
+It is:
 
-"Create a memorable horror world where familiar places slowly become
-untrustworthy, where the player learns through exploration, and where the
-world itself eventually becomes the thing they fear."
+Create a horror world that begins familiar, becomes physically frightening, and ultimately makes the player afraid of the reliability of reality itself.
 
-Where It Isn't should make the player wonder:
+The player should remember:
 
-- "Was that there before?"
-- "Why is that here?"
-- "Where did that road come from?"
-- "Why does that place look familiar?"
-- "How can this room fit inside this house?"
-- "Was that light really flashing?"
-- "Why does this feel like somewhere I've already been?"
-- "What is actually real?"
+the first time they walked through the dark Farmlands
 
-The player should not simply fear monsters.
+the first time something appeared where it shouldn't
 
-They should eventually fear the reliability of the world itself.
+the first time Suburbia actively hunted them
 
----
+the first time they realized a house was not safe
 
-# END OF ROADMAP
+the first time they entered The Below
+
+the first time the Below creature found them
+
+the moment Haven felt safe
+
+the moment that safety disappeared
+
+the final creature's impossible scale
+
+The ideal final reaction is not merely:
+
+“That was scary.”
+
+It is:
+
+“I don't want to go back there.”
+
+And after the ending:
+
+“What the hell was that?”
+
+The game should answer enough to make the experience coherent.
+
+It should never answer enough to make the experience harmless.
+
+END OF ROADMAP
