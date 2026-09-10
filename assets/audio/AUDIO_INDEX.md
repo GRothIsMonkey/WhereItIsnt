@@ -72,6 +72,26 @@ dynamic that makes a walk sound like a person.
 After this the spread is 9.3 dB for beds and 11.5 dB for one-shots, and a number in
 `AUDIO_SCENES` is a real mix decision rather than a guess about an unmeasured file.
 
+
+**PHASE 36 — AND IT IS ACTUALLY TRUE NOW.** For two phases it was not. The ceiling was
+computed from measurements that could not see past it: first a mono 22.05 kHz downmix
+(fixed in 35, unbuildable there), then `volumedetect`, which converts to 16-bit before
+it counts and therefore CLAMPS — so a 32-bit float source whose true peak was +8.89 dBFS
+reported 0.0 and got 8.9 dB too much gain. That source is `sfx.ui.click`, the interface
+click bound to every control in the game, and it shipped with 132 samples pinned flat.
+The peak now comes from `astats`, which reads the float domain and does not clamp.
+
+And a computed gain is only a PREDICTION: sample-rate conversion and lossy encoding both
+lift the peak above the highest sample they were given, by up to 1.33 dB measured. The
+builder now encodes, MEASURES WHAT CAME OUT, and encodes once more from the original if
+it landed over. 27 files were rebuilt; the other 247 were already correct and were left
+alone. Verified in a real decoder (`tests/tools/measure_runtime.js`): **0 files clipped**
+(was 3), and the two still above the ceiling are over it by 0.30 and 0.03 dB with no
+pinned samples — MP3 decoder disagreement, not a build fault.
+
+Six files carry a DC offset between 0.005 and 0.027. Inaudible, costs under a quarter of
+a decibel of headroom, and removing it means filtering files that are otherwise correct.
+Measured and left alone rather than churned.
 ---
 
 ## Interior / home ambience

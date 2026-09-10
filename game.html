@@ -8299,6 +8299,11 @@ const MOB_KB_BOSS_MULT = 0.14;      // bosses shrug off most of the impulse
 // --- Mob movement integration ---------------------------------------------------
 const MOB_MAX_STEP_DIST = 0.35;     // max horizontal travel per collision substep (blocks)
 const MOB_MAX_SUBSTEPS = 6;         // ceiling on substeps so a spike can't stall a frame
+/* PHASE 36 — below this a mob is out of the world and is reaped rather than left to
+   fall. Deliberately well under the lowest ground anywhere in the game (the Farmlands
+   basins bottom out in the twenties and the Disconnected Home's cellar at twelve), so
+   nothing standing on real terrain can ever be mistaken for it. */
+const MOB_VOID_Y = -8;
 // --- Dropped item physics -------------------------------------------------------
 const ITEM_GRAVITY = 18.0;          // blocks/s^2
 const ITEM_TERMINAL_VY = -26.0;     // terminal fall speed
@@ -27167,11 +27172,30 @@ class VoxelWorld {
     // Blocks that require a Pickaxe drop nothing at all if broken without one.
     if (willDrop === false) return id;
 
+    const centerPos = new THREE.Vector3(wx + 0.5, wy + 0.5, wz + 0.5);
+
     if (id === BLOCK.SAFEHOUSE_ANCHOR && this.anchorManager) {
+      /* PHASE 36 — A POWERED ANCHOR HANDS ITS DISK BACK.
+
+         Feeding a Rift Core Disk to the monument consumes it. The monument is a block
+         with three seconds of hardness and no tool requirement, and the whole run has
+         taught the player that the left button is how you find out what a block is. One
+         click on the thing that has just lit up therefore destroyed the rift AND the only
+         key that could ever open it, in one gesture, with nothing said and nothing to
+         undo. There are exactly three Cores in the game (STORY.md section 9) and no
+         second source of any of them: that click ended the run.
+
+         REFUSING THE BREAK WOULD HAVE BEEN AN INVISIBLE WALL, which section 65 rules out.
+         Giving the Disk back is the honest answer and needs no rule explained: it is
+         inside the monument, so taking the monument apart returns it, and the player can
+         raise the Anchor again anywhere and feed it again. Nothing else about the
+         interaction changes, and an unpowered Anchor is untouched by this. */
+      const spent = this.anchorManager.riftActive
+        ? (this.anchorManager.riftTargetLevel === 3 ? ITEM.CORE_DISK_L2 : ITEM.CORE_DISK)
+        : null;
+      if (spent !== null) this.itemManager.spawnDrop(spent, 1, centerPos);
       this.anchorManager.removeAnchor();
     }
-
-    const centerPos = new THREE.Vector3(wx + 0.5, wy + 0.5, wz + 0.5);
     if (id === BLOCK.OAK_LOG) {
       this.itemManager.spawnDrop(ITEM.OAK_LOG, 1, centerPos);
     } else if (id === BLOCK.ASH_WOOD) {
@@ -29505,11 +29529,47 @@ class SanitySystem {
   // standing still instead. Moving continuously holds decay at a slow base rate;
   // stopping for more than 3 seconds — the same threshold Dynamic Rearrangement
   // uses — kicks decay up sharply, so the two horror beats land together.
+  /* PHASE 36 — AND IT HAS A FLOOR NOW, WHICH IS WHAT MAKES IT A MECHANIC.
+
+     WHAT WAS WRONG. Both rates were negative and neither was bounded. Arrival sets
+     Sanity to 100 and the slowest of them is 1.5 a second, so a player reached zero in
+     about a minute and stayed there for the entire dimension — and Static Suburbia is
+     the longest search in the game, because the Disconnected Home sits four to six
+     superblocks out on a ring with nothing pointing at it.
+
+     TWO THINGS BROKE AT THE FLOOR. The first is presentation, and it was severe: the
+     post-FX ramp reads Sanity directly, so from that minute on the player looked for one
+     wrong house through full-strength grain, a 1.15 vignette, radial channel split and
+     the edge mirage — rendered and looked at, not reasoned about; see
+     tests/renders/sanity-suburbia-{100,60,34,30,8,0}.png. At 34 the street is atmospheric
+     and completely legible. At 0 it is a grey rectangle. Section 5 of CLAUDE.md says not to use
+     distortion constantly, and this used it permanently.
+
+     The second is the mechanic itself. "Standing still is punished" cannot be felt from
+     the bottom of the scale: once pinned at zero, stopping did nothing and moving did
+     nothing, so the beat this system exists for stopped landing after the first minute.
+
+     THE SHAPE IT HAS NOW is the same two rates it always had, with the two floors that
+     make them mean something and one slow climb back. Walking settles at a value the
+     street is still readable through; stopping drives well past it; and walking away
+     from that recovers, slowly, so the player learns the rule by feeling it more than
+     once. Nothing else about the dimension changes: there is still no torch, no safe
+     zone and no Stalker here, and Sanity still does no damage anywhere. */
   updateSuburbia(dt, stationaryTimer) {
-    const BASE_DRAIN = 1.5;       // slow constant unease while moving
-    const STATIONARY_DRAIN = 6.0; // sharp acceleration once truly still
+    const BASE_DRAIN = 1.5;       // slow constant unease while moving   (unchanged)
+    const STATIONARY_DRAIN = 6.0; // sharp acceleration once truly still (unchanged)
+    /* 34 sits just inside 'p-breaking' and just above the point where the grain and the
+       vignette stop being atmosphere and start being an obstruction. 8 is deep in
+       'p-lost', with the edge mirage running — which is exactly what standing still in
+       this place should cost. */
+    const MOVING_FLOOR = 34.0;
+    const STILL_FLOOR = 8.0;
+    const RECOVER = 2.2;          // slower than either drain: relief is never instant
     const accelerating = stationaryTimer > 3;
-    const delta = -(accelerating ? STATIONARY_DRAIN : BASE_DRAIN);
+    const floor = accelerating ? STILL_FLOOR : MOVING_FLOOR;
+    let delta;
+    if (this.value > floor) delta = -(accelerating ? STATIONARY_DRAIN : BASE_DRAIN);
+    else delta = accelerating ? 0 : RECOVER;
     this.value = Math.max(0, Math.min(100, this.value + delta * dt));
     this.ui.setSanity(this.value);
   }
@@ -31806,6 +31866,24 @@ class MobManager {
         // (max), not an addition: clearing a group of five can't stack into a 12s
         // lull, and it can never shorten an already-longer wait.
         this.spawnTimer = Math.max(this.spawnTimer, MOB_SPAWN_KILL_GRACE);
+      } else if (mob.position.y < MOB_VOID_Y) {
+        /* PHASE 36 — OUT OF THE WORLD, AND THEREFORE GONE.
+
+           Collision reads chunk.data directly and getBlockWorld answers AIR for a chunk
+           that is not resident, so a mob left standing in a chunk the radial streamer
+           has since disposed finds nothing under it and falls for the rest of the
+           session. It is not a hypothetical: the Behemoth stops chasing beyond
+           AGGRO_RANGE and is slower than the player, so walking away from it and
+           carrying on past CHUNK_UNLOAD_RADIUS is the ordinary thing a frightened player
+           does.
+
+           Reaped rather than left to fall: it costs a slot in this loop forever
+           otherwise, and — because the gate above now asks whether one is STANDING —
+           leaving a corpse falling through the void would keep the Behemoth's own gate
+           shut on a Behemoth nobody can reach. This is not a death: no loot, no kill
+           count, no sound. It was never killed; it simply is not there. */
+        mob.destroy();
+        this.mobs.splice(i, 1);
       } else if (!isNight && !mob.isBoss && Math.random() < dt * 0.05) {
         // Slow daytime burn-off so the overworld clears out after a Blood Night.
         // The Hollowed Behemoth boss persists through the day until defeated.
@@ -31813,6 +31891,21 @@ class MobManager {
         this.mobs.splice(i, 1);
       }
     }
+  }
+
+  /* PHASE 36 — IS A HOLLOWED BEHEMOTH STANDING ANYWHERE?
+
+     The Behemoth gate asks this rather than reading a latch. See Game._animate for why:
+     the latch was saved, the mob never was, and a Behemoth that had been reaped by a
+     reload or lost off the edge of the streamed world took the only Level 1 Core Disk
+     with it. */
+  hasBehemoth() {
+    /* Indexed rather than for-of: this is asked from the frame loop and a for-of
+       allocates an iterator every call. The list is at most MOB_CAP_MAX long. */
+    for (let i = 0; i < this.mobs.length; i++) {
+      if (this.mobs[i].isBoss && this.mobs[i].alive) return true;
+    }
+    return false;
   }
 
   // Hollowed Behemoth: Level 1 boss, spawned once on Night 3 near the Anchor Monument.
@@ -33522,6 +33615,10 @@ class UIManager {
     this._journeyText = null;
     this.dayLabel = document.getElementById('dayLabel');
     this.winScreen = document.getElementById('winScreen');
+    /* PHASE 36 — null, 'stage' or 'boss'. Presentation state, held here because this is
+       the object that owns the element; the Game reads it to decide what its one button
+       does and whether the world may simulate behind it. */
+    this.winScreenMode = null;
     this.winTitle = document.getElementById('winTitle');
     this.winSub = document.getElementById('winSub');
     this.nextLevelBtn = document.getElementById('nextLevelBtn');
@@ -34305,6 +34402,22 @@ class UIManager {
     /* PHASE 33 — the finale's HUD hide is transient presentation like everything else
        here, so a New Game taken mid-sequence does not start behind an invisible HUD. */
     this.setFinaleMode(false);
+    /* PHASE 36 — AND THE THREE FULL-SCREEN LAYERS THE SEQUENCES PUT UP, WHICH WERE THE
+       ONLY THINGS IN THE DOCUMENT NOTHING EVER TOOK DOWN.
+
+       #fadeWhite (z 60) is the Haven's wash, #blackCut (z 65) the hard cut, #creditsScreen
+       (z 70) the ending, and #winScreen (z 60) the stage screen. All four sit ABOVE the
+       settings panel at 56, so a run started from behind one of them ran the rest of the
+       session under an opaque sheet with no way back except reloading the page — and
+       Phase 33 made a New Game from the ending reachable on purpose (requirement 25). It
+       fixed the HUD's inline display and stopped there; these four are the rest of it.
+
+       Symmetrical with the rule in section 53: anything transient is cleared here, and
+       these are the most transient things in the game. */
+    if (this.blackCut) this.blackCut.classList.remove('on');
+    if (this.creditsScreen) this.creditsScreen.classList.remove('active');
+    if (this.fadeWhite) { this.fadeWhite.style.transition = 'none'; this.fadeWhite.style.opacity = '0'; }
+    if (this.winScreen) this.hideWinScreen();
     this.view.hp = null; this.view.maxHp = null; this.view.hpState = null;
     this.view.dead = null; this.view.sanity = null; this.view.sanityState = null;
     this.view.slot = null;
@@ -34760,8 +34873,18 @@ class UIManager {
 
   toggleSettings() { if (this.settingsOpen) this.closeSettings(); else this.openSettings(); }
 
+  /* PHASE 36 — WHICH SCREEN IS UP, AND WHETHER ONE IS UP AT ALL.
+
+     Two different events reuse this one piece of DOM and they want two different things
+     to happen when the button is pressed. Before this the caller guessed, from
+     `behemothDefeated`, which is true forever after the first Core Disk — so every stage
+     screen taken after the Behemoth fell was mistaken for the Behemoth's own.
+
+     It is also the answer to "is the world allowed to simulate", which the frame loop
+     now asks: see Game._animate. */
   triggerWinScreen(stage) {
     document.exitPointerLock();
+    this.winScreenMode = 'stage';
     if (this.winTitle) this.winTitle.textContent = 'PURGE COMPLETE';
     /* PHASE 35 — "THE RUIN" was the second half of the retired working title, sitting
        capitalised in player-facing text as if it were a place. CLAUDE.md section 1 is
@@ -34775,16 +34898,29 @@ class UIManager {
   }
 
   hideWinScreen() {
+    this.winScreenMode = null;
     this.winScreen.style.display = 'none';
   }
 
   // Distinct victory popup fired when the Hollowed Behemoth is defeated and its
   // Core Disk is collected, unlocking Level 2. Reuses the same win-screen DOM.
+  /* PHASE 36 — AND IT NO LONGER PROMISES A DOOR IT IS NOT.
+
+     The button said ENTER THE SHATTERED FARMLANDS and the line above it said the
+     dimension was unlocked. Neither was ever true from here: since Phase 5A the crossing
+     has been the rift and only the rift — the Disk goes into the Anchor and the player
+     walks in — so the button fell through to the stage handler and threw the player back
+     to the world spawn with the nights made harder. See Game._dismissBossVictory.
+
+     What it says now is what actually happened: the thing is dead and the Disk is in the
+     pack. Where the Disk goes is the objective line's business, and it is already saying
+     it underneath. */
   triggerBossVictory() {
     document.exitPointerLock();
+    this.winScreenMode = 'boss';
     if (this.winTitle) this.winTitle.textContent = 'THE HOLLOWED BEHEMOTH FALLS';
-    if (this.winSub) this.winSub.textContent = 'CORE DISK RECOVERED \u2022 LEVEL 2: THE SHATTERED FARMLANDS UNLOCKED';
-    if (this.nextLevelBtn) this.nextLevelBtn.textContent = 'ENTER THE SHATTERED FARMLANDS';
+    if (this.winSub) this.winSub.textContent = 'CORE DISK RECOVERED';
+    if (this.nextLevelBtn) this.nextLevelBtn.textContent = 'CONTINUE';
     this.winScreen.style.display = 'flex';
   }
 
@@ -37747,6 +37883,9 @@ class Game {
     this._refreshContinueButton();
     document.getElementById('nextLevelBtn').addEventListener('click', () => {
       if (this.pendingLevel2Transition) this._transitionToLevel2();
+      /* PHASE 36 — the Behemoth's screen and the stage screen are the same element and
+         they are not the same event. See UIManager.triggerBossVictory. */
+      else if (this.ui.winScreenMode === 'boss') this._dismissBossVictory();
       else this._advanceStage();
     });
 
@@ -38135,6 +38274,48 @@ class Game {
     this.mobs.difficultyMult = 1 + (this.stage - 1) * 0.4;
     this.mobs.maxMobs = Math.min(MOB_CAP_MAX, MOB_CAP_BASE + this.stage * MOB_CAP_PER_STAGE);
 
+    /* 8.5. A RIFT CORE DISK THE PLAYER HELD, HAS NOT SPENT, AND IS NO LONGER CARRYING.
+
+       PHASE 36 — THE ONE CLASS OF LOST PROGRESS A SAVE CANNOT OTHERWISE SURVIVE.
+
+       A Disk exists in three places over its life: inside a container, on the ground as
+       an ItemEntity, and in the pack. The middle one is not saved — no dropped item is —
+       and neither is anything about it recoverable, because there are exactly three
+       Cores in the game and no second source of any of them (STORY.md section 9). So a
+       player who dropped a Disk (Q drops the held stack) and saved, or who saved in the
+       moment between a container opening and the drop reaching their feet, loaded into a
+       run that could not be finished and was told nothing.
+
+       The rule is the one section 75 states: never silently destroy progress. So the
+       three Disks are checked against the state the save already carries — no new field,
+       no schema change — and a Disk that was HELD (riftDisks), is not in the pack, and
+       has not been SPENT is put back, with the repair reported like every other repair.
+
+       SPENT is a different question for each of them and all three answers are already
+       in the file: the Level 1 Disk is spent once the Farmlands have been breached or an
+       Anchor is standing with a rift toward them; the Level 2 Disk likewise for Suburbia;
+       the Level 3 Disk the moment the Haven sequence has fired. Nothing here can mint a
+       Disk the player never had, and nothing here can duplicate one, because the ground
+       copy this is replacing did not survive into the loaded world. */
+    for (const [disk, spent, name] of [
+      [ITEM.CORE_DISK, this.dimensionsBreached.has(DIMENSION.FARMLANDS) ||
+        !!(state.anchor && state.anchor.riftActive && state.anchor.riftTargetLevel === 2), 'Core Disk'],
+      [ITEM.CORE_DISK_L2, this.dimensionsBreached.has(DIMENSION.SUBURBIA) ||
+        !!(state.anchor && state.anchor.riftActive && state.anchor.riftTargetLevel === 3), 'Level 2 Rift Core Disk'],
+      [ITEM.CORE_DISK_L3, this.fakeHavenTriggered, 'Level 3 Rift Core Disk'],
+    ]) {
+      if (!this.riftDisksCollected.has(disk) || spent) continue;
+      if (p.inventory.hasItem(disk)) continue;
+      /* A full pack refuses, and a repair note that is not true is worse than no note.
+         Thirty-six slots against three Disks makes this unreachable in practice; it is
+         written because "in practice" is how the rest of this section got here. */
+      if (p.inventory.addItem(disk, 1)) {
+        notes.push('returned the ' + name + ' — it was not in the pack and had not been spent');
+      } else {
+        notes.push('could not return the ' + name + ' — the pack is full');
+      }
+    }
+
     // 9. TEMPORAL. The night-survived edge is restored with the clock, so a load can
     //    never award a night the player already banked (nor swallow one they had not).
     this.env.t = state.time.cycleSeconds % this.env.cycleLength;
@@ -38156,10 +38337,11 @@ class Game {
     /* 13. The win screen is modal state, not progression: if the save was taken with it
        up, put it back up, or the stage the player had already cleared could never be
        advanced past. */
-    if (this.awaitingAdvance) {
-      if (this.behemothDefeated && !this.pendingLevel2Transition) this.ui.triggerBossVictory();
-      else this.ui.triggerWinScreen(this.stage);
-    }
+    /* PHASE 36 — and there is only one kind of screen it can be. `awaitingAdvance` now
+       means a cleared stage and nothing else, so the discriminator that used to stand
+       here — `behemothDefeated`, which is true for the whole rest of the run — is gone
+       along with the ambiguity that made it necessary. */
+    if (this.awaitingAdvance) this.ui.triggerWinScreen(this.stage);
 
     return notes;
   }
@@ -38285,9 +38467,16 @@ class Game {
       try { stored = this.settings.storage.getItem(SETTINGS_STORAGE_KEY); } catch (e) { stored = null; }
       if (!stored) this.settings.applyJSON(read.state.settings);
     }
-    this._applyRestoredState(read.state);
+    const notes = this._applyRestoredState(read.state);
+    /* PHASE 36 — CONTINUE reports its repairs too. It discarded them, which was harmless
+       while a repair only ever moved the player off a block — and stopped being harmless
+       when one of them can hand back a Rift Core Disk. Same line, same place, same words
+       as LOAD: the settings panel's save status, never the HUD and never the world. */
+    const repairs = read.repairs.concat(notes);
+    this.ui.setSaveStatus('Continued: ' + describeSaveState(read.state) +
+                          (repairs.length ? ' — repaired: ' + repairs.join('; ') : ''));
     this._beginPlay();
-    return { ok: true, state: read.state };
+    return { ok: true, state: read.state, repairs: repairs };
   }
 
   hasSave() { return !!this.saves.peek(); }
@@ -38644,6 +38833,29 @@ class Game {
     this._enterFrameLoop();              // PHASE 30 — a no-op if the film already did
   }
 
+  /* PHASE 36 — DISMISSING THE BEHEMOTH'S SCREEN, AND NOTHING ELSE.
+
+     WHAT USED TO HAPPEN HERE. There was no separate path: the Behemoth's victory screen
+     shared the stage screen's button, `pendingLevel2Transition` is only ever true on the
+     frame a player walks into a rift, so the click always landed in `_advanceStage()`.
+     That raised the stage, raised the difficulty multiplier and the mob cap, put the
+     nights required from three to four, reset the fragment count — and TELEPORTED THE
+     PLAYER TO THE WORLD SPAWN, away from the Anchor they had just raised and the rift
+     they were one right-click from opening. The screen covers the viewport, releases
+     pointer lock and has no other exit, so this was not something a player could decline.
+
+     The Behemoth falling is not a stage change. It is one line of punctuation in the
+     middle of the third night, and the only correct thing for it to do is get out of the
+     way and give the night back. The objective line resolves to "Raise an Anchor." or
+     "Bring it to the Anchor." on the next tick, which is the real next step and always
+     was. */
+  _dismissBossVictory() {
+    this.ui.hideWinScreen();
+    this.ui.updateVitals(this.player);
+    this._refreshObjective();
+    this.canvas.requestPointerLock();
+  }
+
   // Called from the win screen button. Escalates difficulty and sends the player
   // back out rather than reloading the page — gear, inventory and every progression
   // latch (milestones included) persist across the stage change.
@@ -38919,6 +39131,16 @@ class Game {
   }
 
   _transitionToLevel4() {
+    /* PHASE 36 — AND ONLY IF THE SEQUENCE THAT SCHEDULED THIS IS STILL THE ONE RUNNING.
+
+       This is the far side of a 1.5-second timer started by _beginFakeHavenSequence, and
+       O opens the settings panel during those 1.5 seconds (O and Escape are deliberately
+       never gated — see PlayerController._playing). A New Game taken inside that window
+       cleared the latch, rebuilt the Overworld, and was then flushed into the Haven by a
+       timer belonging to a run that no longer existed. One comparison closes it; the
+       latch is set before the timer is armed and cleared by the one teardown path. */
+    if (!this.fakeHavenTriggered) return;
+
     /* PHASE 35 — the shared crossing teardown, with mob spawning latched off: the Haven
        is meant to contain no threat. It clears the Anchor and its rift too, which the
        Haven's own teardown never did — a powered Anchor surviving into the Haven would
@@ -39286,6 +39508,16 @@ class Game {
     window.location.reload();
   }
 
+  /* PHASE 36 — is a Level 1 Core Disk lying on the ground, unclaimed? Asked by the
+     Behemoth gate, which must not send a second one after a Behemoth that has already
+     died and dropped its Disk two paces from the player's feet. A linear scan of a list
+     that holds a handful of entities, once per frame, behind three cheaper tests. */
+  _coreDiskAwaitingPickup() {
+    const es = this.itemManager.entities;
+    for (let i = 0; i < es.length; i++) if (es[i].itemType === ITEM.CORE_DISK) return true;
+    return false;
+  }
+
   /* ===================================================================================
      PHASE 25 — THE OBJECTIVE SNAPSHOT
 
@@ -39435,6 +39667,23 @@ class Game {
        The frame is still RENDERED, so the panel sits over the world rather than over
        black, and getDelta() is still consumed every frame, so resuming cannot deliver one
        enormous dt that teleports the player or advances the clock in a jump. */
+    /* PHASE 36 — AND SO DOES THE WIN SCREEN, FOR THE SAME REASON AND WITH MORE AT STAKE.
+
+       #winScreen covers the whole viewport at 95% opacity, releases pointer lock and has
+       exactly one way out. The world carried on underneath it. That is survivable for the
+       stage screen, which arrives at dawn — and it was not for the Behemoth's, which
+       arrives in the middle of the third night with whatever else that night has spawned
+       still walking around. The player was being asked to read a modal while being
+       attacked behind it, unable to see or aim.
+
+       Same shape as the settings pause above and for the same stated reason: a
+       full-screen panel with a button is not part of play. The frame is still rendered
+       and getDelta() is still consumed, so nothing jumps when it closes. */
+    if (this.ui.winScreenMode) {
+      this.postfx.render(dt, this.sanity ? this.sanity.fraction : 1.0);
+      return;
+    }
+
     if (this.ui.settingsOpen) {
       this.postfx.render(dt, this.sanity ? this.sanity.fraction : 1.0);
       return;
@@ -39682,10 +39931,35 @@ class Game {
       }
     }
 
-    // Hollowed Behemoth: spawns once, on Night 3, near the Anchor Monument (or the
-    // player if no anchor has been placed yet). Guarded against the Farmlands
-    // pocket, which has no mob spawns wired up yet.
-    if (this.env.isNight && this.dayCount === 3 && !this.behemothSpawned && !this.player.inFarmlands && !this.player.inSuburbia && !this.player.inFakeHaven) {
+    /* THE HOLLOWED BEHEMOTH. It arrives on the third night, near the Anchor Monument or
+       near the player if none has been raised, and it carries the only Level 1 Core Disk
+       in the game. Guarded against the Farmlands, Suburbia and the Haven, none of which
+       has overworld spawning wired up.
+
+       PHASE 36 — THIS GATE WAS A ONE-SHOT BOOLEAN AND IT COULD END A RUN IN SILENCE.
+
+       `behemothSpawned` is written into the save. The Behemoth is not, because no mob
+       is. So a player who saved on the third night and loaded — or simply refreshed the
+       page and pressed CONTINUE — came back to a world in which the gate had already
+       fired and the thing it fired was gone. There is no other source of the Disk, so
+       the Farmlands, Static Suburbia, the Fake Haven and the finale were unreachable for
+       the rest of that save, with nothing on screen to say why.
+
+       The second route to the same dead end needed no save at all. The Behemoth stops
+       chasing past AGGRO_RANGE and is slower than the player; walk far enough and its
+       chunk is disposed, at which point it falls out of the world (see MOB_VOID_Y).
+
+       THE GATE IS LIVE STATE NOW, NOT A LATCH. It asks the four things that are actually
+       true at the moment a player has no way forward: the third night has come, the Disk
+       has never been collected, no Disk is lying on the ground waiting to be, and no
+       Behemoth is standing anywhere. `dayCount >= 3` rather than `=== 3` because a run
+       that lost its Behemoth on night three must be able to recover on night four.
+
+       `behemothSpawned` is still set and still saved — the debug report reads it and an
+       older save carries it — it simply no longer decides anything. */
+    if (!this.player.inFarmlands && !this.player.inSuburbia && !this.player.inFakeHaven &&
+        this.env.isNight && this.dayCount >= 3 && !this.behemothDefeated &&
+        !this.mobs.hasBehemoth() && !this._coreDiskAwaitingPickup()) {
       this.behemothSpawned = true;
       const spawnPos = this.anchorManager.activeAnchor ? this.anchorManager.activeAnchor.pos.clone() : this.player.position.clone();
       this.mobs.spawnBehemoth(spawnPos);
@@ -39718,15 +39992,21 @@ class Game {
     if (this.player.inSuburbia) this.dimensionsBreached.add(DIMENSION.SUBURBIA);
     if (this.player.inFakeHaven) this.dimensionsBreached.add(DIMENSION.FAKE_HAVEN);
 
-    // Core Disk pickup marks the boss defeated & Level 2 unlocked (bonus directive step 6)
+    /* Core Disk pickup marks the boss defeated & Level 2 unlocked (bonus directive step 6).
+
+       PHASE 36 — AND IT NO LONGER SETS `awaitingAdvance`. That flag means one thing: a
+       STAGE has been cleared and the player has not yet chosen to descend into the next
+       one. It is saved, and on load it is what puts the screen back so the stage can
+       still be advanced past. The Behemoth's screen borrowed it, which made the two
+       indistinguishable in a save file — and, because `behemothDefeated` is true forever
+       afterwards, every stage screen taken later in the run came back from a reload
+       wearing the Behemoth's title. Nothing is pending here: the screen is punctuation,
+       it is dismissed by its own button, and there is nothing to restore if it is not. */
     if (!this.behemothDefeated && this.player.inventory.hasItem(ITEM.CORE_DISK)) {
       this.behemothDefeated = true;
       // PHASE 26 — the defeat itself advances progression. No XP bridges it any more.
       this._reachMilestone('behemoth');
-      if (!this.awaitingAdvance) {
-        this.awaitingAdvance = true;
-        this.ui.triggerBossVictory();
-      }
+      if (!this.awaitingAdvance) this.ui.triggerBossVictory();
     }
 
     /* PHASE 26 — MILESTONE: the player has somewhere to come back to. The Anchor is
@@ -39742,9 +40022,19 @@ class Game {
     this.ui.updateObjectiveHUD(!!this.anchorManager.activeAnchor, fuel,
                                this.memoryFragments, this.stage, this.nightsRequired, this.dayCount);
     /* PHASE 25 — the journey ordinal advances every frame (it is two floors and a
-       comparison); the OBJECTIVE re-resolves four times a second. */
+       comparison); the OBJECTIVE re-resolves four times a second.
+
+       PHASE 36 — FOUR TIMES A SECOND OF REAL TIME, NOT OF SIMULATED TIME. `dt` is
+       clamped to 0.06 so the simulation can never be handed a frame big enough to tunnel
+       the player through a wall, which makes elapsed time a function of frame rate: on a
+       machine drawing ten frames a second the accumulator only reaches a quarter-second
+       after five real ones, and the line telling the player what to do next lagged the
+       thing it was describing by that much. The objective is a HUD element, not physics,
+       so it takes the same real-time delta the opening film takes and for the same
+       reason (see the note at the top of this method). Evaluating it is idempotent and
+       allocation-free on the ticks that do not change the text. */
     this._updateFarmJourneyObjective();
-    this.objectives.update(dt, this._objectiveSnapshotFn);
+    this.objectives.update(filmDt, this._objectiveSnapshotFn);
 
     this.ui.updateHotbarSelection();
     this.ui.updateVitals(this.player);

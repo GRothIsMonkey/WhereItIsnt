@@ -32,6 +32,12 @@ const ROOT = path.join(__dirname, '..', '..');
 const RUNTIME = path.join(ROOT, 'assets', 'audio', 'runtime');
 const PORT = Number(process.env.WII_MEASURE_PORT || 8253);
 const PEAK_CEIL_DB = -1.5;         // the ceiling build_runtime.py states and intends
+/* PHASE 36 — a hundredth of a decibel of measurement tolerance. A file BUILT to land on
+   the ceiling decodes at -1.4999... as often as at -1.5001..., and listing it as "above
+   the ceiling" is arithmetic noise, not a finding. It is deliberately far too small to
+   hide anything: the smallest real overshoot this instrument has ever reported was
+   0.02 dB and the largest was 8.9. */
+const PEAK_EPS_DB = 0.01;
 
 let chromium = null;
 try { chromium = require('playwright').chromium; }
@@ -117,7 +123,7 @@ function list() {
   const db = (x) => 20 * Math.log10(Math.max(x, 1e-9));
   const bad = rows.filter(r => r.error);
   const ok = rows.filter(r => !r.error);
-  const hot = ok.filter(r => db(r.peak) > PEAK_CEIL_DB).sort((a, b) => db(b.peak) - db(a.peak));
+  const hot = ok.filter(r => db(r.peak) > PEAK_CEIL_DB + PEAK_EPS_DB).sort((a, b) => db(b.peak) - db(a.peak));
   const clipped = ok.filter(r => r.pinned > 4).sort((a, b) => b.pinned - a.pinned);
   const dcy = ok.filter(r => Math.abs(r.dc) > 0.005).sort((a, b) => Math.abs(b.dc) - Math.abs(a.dc));
   const quiet = ok.filter(r => db(r.rms) < -60);

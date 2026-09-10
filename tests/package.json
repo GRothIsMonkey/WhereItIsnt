@@ -41,7 +41,10 @@
     "browser-audio": "node browser-audio.js",
     "audio-audit": "node audio-audit.js",
     "transitions": "node transitions.js",
-    "browser-transitions": "node browser-transitions.js"
+    "browser-transitions": "node browser-transitions.js",
+    "preview-suburbia-sanity": "node preview-suburbia-sanity.js",
+    "playability": "node playability.js",
+    "browser-playability": "node browser-playability.js"
   },
   "dependencies": {
     "three": "0.128.0"

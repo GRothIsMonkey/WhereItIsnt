@@ -898,11 +898,36 @@ head('8b. THE CORRECTION: WHAT THE HUMAN PLAYTEST FOUND');
       `and ${(20 * Math.log10(gainRange)).toFixed(1)} dB of level between the loudest and quietest of them`);
   const lps = new Set(steps.map((h) => h.lp || 0));
   chk(lps.size >= 3, `with ${lps.size} different filter settings across the walk`);
-  const rustles = heard.filter((h) => h.k === 'sfx.crop' || h.k === 'sfx.leaves' ||
-                                      h.k === 'sfx.bush' || h.k === 'sfx.grass');
+  /* THE MOVEMENT LAYER. It is DELIBERATELY OCCASIONAL — `Math.random() < 0.45` inside
+     AudioDirector.footstep, so that it reads as continuous movement rather than as a
+     repeated event — which means one pass over nine surfaces has about a one-in-twenty
+     chance of producing none at all and failing a test that is not about probability.
+     (PHASE 36: it did exactly that, once, and a flaky assertion in an audio suite is
+     precisely the kind of noise that gets a real audio failure waved through.)
+
+     So the walk is repeated. The PROPERTY is unchanged and the bound is tightened rather
+     than loosened: rustles must happen, they must only ever happen on soft ground, and
+     every single one must sit well under the footfall it is layered beneath. */
+  const softWalk = ['grass', 'crop', 'leaves', 'mud'];
+  for (let pass = 0; pass < 12; pass++) {
+    for (const surf of softWalk) {
+      lib._last.clear(); lib._perKey.clear(); lib.voices = 0;
+      d.footstep(1, surf);
+    }
+  }
+  const RUSTLE = ['sfx.crop', 'sfx.leaves', 'sfx.bush', 'sfx.grass'];
+  const rustles = heard.filter((h) => RUSTLE.indexOf(h.k) >= 0);
+  const loudestStep = Math.max.apply(null, steps.map((h) => h.gain));
   chk(rustles.length > 0 && rustles.every((r) => r.gain < 0.25),
-      `${rustles.length} movement rustles were layered under the soft-ground steps, every one ` +
-      'well under the footfall itself');
+      `${rustles.length} movement rustles were layered under the soft-ground steps across ` +
+      `${12 * softWalk.length + walk.length} footfalls, every one well under the footfall itself`);
+  chk(rustles.length < 12 * softWalk.length,
+      `and they are OCCASIONAL, not one per step (${rustles.length} of ${12 * softWalk.length} soft footfalls)`);
+  chk(rustles.every((r) => r.gain < loudestStep),
+      `and none of them is as loud as the loudest footstep (${loudestStep.toFixed(3)})`);
+  /* Repeat the last surface so lastStepSurface() still describes the walk above. */
+  lib._last.clear(); lib._perKey.clear(); lib.voices = 0;
+  d.footstep(1, walk[walk.length - 1]);
   chk(d.lastStepSurface() === walk[walk.length - 1],
       `and the director reports the surface it last used ('${d.lastStepSurface()}')`);
 }

@@ -438,8 +438,19 @@ const textFor = (over) => { const o = new ObjectiveSystem(null); o.evaluate(snap
   const count = (re) => (SRC.match(re) || []).length;
 
   chk(count(/new ObjectiveSystem\(/g) === 1, 'exactly one ObjectiveSystem is constructed');
-  chk(/this\.objectives\.update\(dt, this\._objectiveSnapshotFn\)/.test(SRC),
+  /* The property is the THUNK, not the name of the delta: nothing may be built on the
+     fifty-nine frames out of sixty that return without evaluating. PHASE 36 moved the
+     delta from the simulation's clamped one to the real-time one and the assertion is
+     written against what it is for. */
+  chk(/this\.objectives\.update\(\w+, this\._objectiveSnapshotFn\)/.test(SRC),
       'the frame loop drives it with a thunk, so no snapshot is built on an idle frame');
+  /* PHASE 36 — AND IT TICKS ON REAL TIME. `dt` is clamped to 0.06 for physics safety, so
+     on a machine drawing ten frames a second the quarter-second accumulator only fills
+     after five real ones and the objective line lags the state it describes by that
+     much. The objective is a HUD element; it takes the same real-time delta the opening
+     film takes. */
+  chk(/this\.objectives\.update\(filmDt, /.test(SRC),
+      'and on the REAL-TIME delta, so the line does not lag the game on a slow machine');
   chk(count(/_refreshObjective\(\)/g) >= 5,
       'and it is forced to re-resolve on every transition, load and ending');
 

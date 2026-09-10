@@ -11,7 +11,18 @@ NEVER writes to an original. Everything it makes lands under assets/audio/runtim
 import os, sys, glob, json, math, array, struct, subprocess, wave
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import audio_inventory as I
+
+# PHASE 36 — the selector takes a KIND ('sfx', 'bed', 'step') or a comma-separated list of
+# asset KEYS ('sfx.electric,sfx.creak.a'). The second form exists because Phase 35's peak
+# fix changed the gain of a MINORITY of one-shots and left the rest alone: rebuilding a
+# file whose computed gain has not moved would rewrite it for nothing, and every runtime
+# asset is a binary in the repository. Nothing else about the tool changed.
 ONLY = sys.argv[1] if len(sys.argv) > 1 else None
+ONLY_KEYS = set(ONLY.split(',')) if (ONLY and ('.' in ONLY or ',' in ONLY)) else None
+def selected(kind, key):
+    if ONLY is None: return True
+    if ONLY_KEYS is not None: return key in ONLY_KEYS
+    return kind == ONLY
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 SRCDIR = os.path.join(ROOT, 'assets', 'audio')
@@ -70,8 +81,53 @@ PEAK_CEIL  = -1.5      # no asset may clip once its gain is applied
 # climb than one-shots, whose quiet parts are silence and should stay silent.
 MAX_BOOST  = {'bed': 42.0, 'sfx': 26.0, 'step': 26.0}
 
+def true_peak_db(path, extra_in=None):
+    """The highest sample in the file, in dBFS, MEASURED IN THE DOMAIN THE FILE IS IN.
+
+    PHASE 36 — THE CEILING STILL COULD NOT BE ENFORCED, FOR A DIFFERENT REASON.
+
+    `volumedetect` converts its input to 16-bit before it counts anything, and a 16-bit
+    conversion CLAMPS. So for a floating-point source whose samples go above full scale it
+    reports max_volume: 0.0 dB and cannot, by construction, report anything higher — which
+    means `PEAK_CEIL - peak` was computed against a number that had already been cut off at
+    the ceiling it was supposed to be defending.
+
+    One asset in the library is like that and it is the worst possible one:
+    `sfx.ui.click`, the interface click Phase 34.2 bound to every control in the game, is a
+    32-bit float WAV whose true peak is +8.89 dBFS — two and a half times full scale.
+    Phase 35 gave it -1.5 dB, which is 8.9 dB short, and it shipped with 132 samples pinned
+    flat. Measured, not inferred: tests/tools/measure_runtime.js decoded it and counted them.
+
+    `astats` reports Peak level in the float domain and does not clamp, so it can see a
+    number above zero and the ceiling becomes enforceable everywhere. Every other source in
+    the library agrees with volumedetect to within 0.05 dB, which is why only one file
+    changed when this landed.
+
+    AND THE LESSON, FOR THE THIRD TIME. Phase 34.1: a level is only meaningful if the file
+    was measured. Phase 35: measure the thing you are about to bound, not something near it
+    — a peak taken from a mono 22 kHz downmix is not a peak. This is the same sentence
+    again with a different instrument: a peak taken from a measurement that saturates is
+    not a peak either. When a number is a LIMIT, check that the thing measuring it can
+    represent a value past the limit.
+    """
+    args = ['ffmpeg', '-hide_banner']
+    if extra_in: args += extra_in
+    args += ['-i', path, '-af', 'astats', '-f', 'null', '-']
+    r = subprocess.run(args, capture_output=True, text=True)
+    best = None
+    for line in r.stderr.splitlines():
+        if 'Peak level dB:' not in line: continue
+        try: v = float(line.split('Peak level dB:')[1].strip())
+        except ValueError: continue
+        best = v if best is None else max(best, v)
+    return best
+
 def measure(path, extra_in=None):
-    """mean (RMS) and max (peak) level in dBFS, straight from ffmpeg's volumedetect."""
+    """mean (RMS) in dBFS from ffmpeg's volumedetect, and the TRUE peak from astats.
+
+    The two numbers come from two instruments on purpose: volumedetect's windowed mean is
+    the right measure of a bed's loudness and its 16-bit conversion costs that measurement
+    nothing, while its peak saturates. See true_peak_db."""
     args = ['ffmpeg', '-v', 'info']
     if extra_in: args += extra_in
     args += ['-i', path, '-af', 'volumedetect', '-f', 'null', '-']
@@ -80,6 +136,8 @@ def measure(path, extra_in=None):
     for line in r.stderr.splitlines():
         if 'mean_volume:' in line: mean = float(line.split('mean_volume:')[1].split('dB')[0])
         if 'max_volume:' in line:  peak = float(line.split('max_volume:')[1].split('dB')[0])
+    tp = true_peak_db(path, extra_in)
+    if tp is not None and (peak is None or tp > peak): peak = tp
     return mean, peak
 
 def window_rms_db(path, win=0.30, extra_in=None):
@@ -250,6 +308,35 @@ def slice_steps(fsid, src, maxout=8):
         made.append(name)
     return made
 
+def encode_within_ceiling(encode, out_path, gdb, label):
+    """Encode, MEASURE WHAT CAME OUT, and encode once more from the original if it landed
+    above the ceiling.
+
+    PHASE 36 — WHY A COMPUTED GAIN IS NOT A GUARANTEE. Every asset in this library is
+    written at 44.1 kHz and a third of the sources are not recorded there. Sample-rate
+    conversion reconstructs the waveform BETWEEN the original samples, and the
+    reconstruction routinely rises above the highest sample it was given: a file whose
+    source peak is -3.0 dBFS, given +1.5 dB and resampled, measured -0.49 dBFS out. Lossy
+    encoding does the same thing for the same reason. So `PEAK_CEIL - peak` computed on the
+    INPUT is a prediction, and for anything resampled or re-encoded it is a prediction that
+    is routinely a decibel wrong.
+
+    The remedy is not a cleverer prediction. It is to look at the file that was produced —
+    which is the discipline three consecutive audio phases were each missing a different
+    half of. One correction pass is enough in practice (the overshoot does not grow when
+    the level comes down) and the second encode is made FROM THE ORIGINAL, never from the
+    first output, so an MP3 is never encoded twice."""
+    encode(gdb)
+    out = true_peak_db(out_path)
+    if out is None or out <= PEAK_CEIL + 0.01:
+        return gdb, out
+    corrected = round(gdb - (out - PEAK_CEIL), 2)
+    encode(corrected)
+    after = true_peak_db(out_path)
+    print('    %-20s resample/encode overshoot %+.2f dB -> regained %.2f dB, now %.2f dBFS'
+          % (label, out - PEAK_CEIL, corrected, after if after is not None else float('nan')))
+    return corrected, after
+
 # --------------------------------------------------------------------------------------
 def main():
     os.makedirs(STEPS, exist_ok=True)
@@ -259,7 +346,7 @@ def main():
         src = find(fsid)
         if not src: print('MISSING SOURCE', fsid); continue
         dur, ch = probe(src)
-        if ONLY and kind != ONLY:
+        if not selected(kind, key):
             continue
         if kind == 'step':
             made = slice_steps(fsid, src)
@@ -268,12 +355,14 @@ def main():
         elif kind == 'sfx' and dur <= 8.0:
             name = fsid + '.wav'
             gdb, mean, peak = gain_for(src, 'sfx')
-            run(['ffmpeg','-v','error','-y','-i',src,'-af','volume=%.2fdB' % gdb,
-                 '-ar',str(SR),'-ac', '1' if ch == 1 else '2','-sample_fmt','s16',
-                 os.path.join(OUT, name)])
+            dst = os.path.join(OUT, name)
+            gdb, outpeak = encode_within_ceiling(
+                lambda g: run(['ffmpeg','-v','error','-y','-i',src,'-af','volume=%.2fdB' % g,
+                               '-ar',str(SR),'-ac', '1' if ch == 1 else '2','-sample_fmt','s16', dst]),
+                dst, gdb, key)
             report[key] = {'id': fsid, 'kind': 'sfx', 'file': name, 'dur': round(dur,2),
                            'src': os.path.basename(src), 'gain_db': gdb, 'src_rms': mean,
-                           'src_peak': peak}
+                           'src_peak': peak, 'out_peak': outpeak}
         else:
             """LENGTH IS CAPPED HERE, AND IT IS A MEMORY DECISION, NOT A DOWNLOAD ONE.
 
@@ -290,15 +379,18 @@ def main():
             # a 200-second drone that fades in has a very different mean level from its
             # first thirty seconds, and the first thirty seconds are what ships.
             gdb, mean, peak = gain_for(src, kind, extra_in=trim)
-            args = ['ffmpeg','-v','error','-y','-i',src] + trim
-            args += ['-af','volume=%.2fdB' % gdb,
-                     '-ar',str(SR),'-ac','1' if ch == 1 else '2',
-                     '-codec:a','libmp3lame','-q:a','6', os.path.join(OUT, name)]
-            run(args)
+            dst = os.path.join(OUT, name)
+            def enc(g, _src=src, _trim=trim, _ch=ch, _dst=dst):
+                a = ['ffmpeg','-v','error','-y','-i',_src] + _trim
+                a += ['-af','volume=%.2fdB' % g, '-ar',str(SR),'-ac','1' if _ch == 1 else '2',
+                      '-codec:a','libmp3lame','-q:a','6', _dst]
+                run(a)
+            gdb, outpeak = encode_within_ceiling(enc, dst, gdb, key)
             report[key] = {'id': fsid, 'kind': kind, 'file': name,
                            'dur': round(min(dur, cap), 2), 'srcdur': round(dur, 2),
                            'capped': dur > cap, 'src': os.path.basename(src),
-                           'gain_db': gdb, 'src_rms': mean, 'src_peak': peak}
+                           'gain_db': gdb, 'src_rms': mean, 'src_peak': peak,
+                           'out_peak': outpeak}
     if ONLY:
         prev = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'runtime_report.json')
         if os.path.exists(prev):

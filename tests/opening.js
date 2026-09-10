@@ -338,8 +338,28 @@ head('6. NO LEAKS');
      film into a 4.5-minute one. It has to sit above any plausible slow frame. */
   chk(parseFloat(clamp) >= 0.5,
       `and its stall clamp is ${clamp}s — above any ordinary slow frame, so a weak machine still tracks real time`);
-  chk(/this\.film\.update\(filmDt\)/.test(LIVE) && (LIVE.match(/filmDt/g) || []).length === 2,
-      'and filmDt has exactly one consumer — nothing in the simulation can see it');
+  /* AND NOTHING IN THE SIMULATION MAY SEE IT. The property is not "one consumer" — it is
+     that every consumer is PRESENTATION. Phase 36 added the second: the objective line,
+     which is a HUD element and was lagging the state it describes by up to five real
+     seconds on a slow machine for exactly the reason written above. The list is
+     enumerated rather than counted so that adding a third is a deliberate act. */
+  const filmDtUses = (LIVE.match(/filmDt/g) || []).length;
+  const consumers = [
+    [/this\.film\.update\(filmDt\)/, 'the opening film'],
+    [/this\.objectives\.update\(filmDt, /, 'the objective line'],
+  ];
+  for (const [re, what] of consumers) chk(re.test(LIVE), `${what} is ticked on wall-clock time`);
+  chk(filmDtUses === 1 + consumers.length,
+      `and those ${consumers.length} are the only consumers of filmDt — nothing in the simulation can see it`);
+  /* The things that must NOT be on it, named, because each of them can move the player
+     through a wall if it is handed a frame big enough. */
+  for (const sim of ['this.player.update', 'this.mobs.update', 'this.world.updateChunks',
+                     'this.arrows.update', 'this.itemManager.update']) {
+    /* Line-scoped: the film's own tick sits on the line after player.update() and a
+       window measured in characters would read it as the same call. */
+    const bad = LIVE.split('\n').filter(l => l.indexOf(sim) >= 0 && l.indexOf('filmDt') >= 0);
+    chk(bad.length === 0, `${sim}() is still on the physics-clamped delta`);
+  }
 
   /* LISTENERS BOUND ONCE, IN THE CONSTRUCTOR, GATED ON `active`. Binding on begin() would
      leak one set per New Game. */
