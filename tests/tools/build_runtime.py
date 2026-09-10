@@ -114,9 +114,35 @@ def window_rms_db(path, win=0.30, extra_in=None):
 
 
 def gain_for(path, kind, extra_in=None):
-    """dB of gain that puts this file on its class reference without clipping it."""
+    """dB of gain that puts this file on its class reference without clipping it.
+
+    PHASE 35 — THE CEILING WAS NEVER ACTUALLY ENFORCED FOR A ONE-SHOT, AND HERE IS WHY.
+
+    `window_rms_db` decodes with `-ac 1 -ar 22050`, because a windowed RMS is what a
+    one-shot's LOUDNESS is and neither the channel count nor the top octave changes that
+    number meaningfully. But its PEAK was being used for the ceiling as well, and a peak
+    is exactly the measurement those two flags destroy:
+
+      * resampling to 22.05 kHz low-passes at 11 kHz, and a one-shot is made of
+        transients — the material whose height lives up there;
+      * `-ac 1` averages the channels, so a stereo take with its loudest moment on one
+        side reads several dB quieter than the file the encoder is actually given, which
+        keeps its channel count.
+
+    So `PEAK_CEIL - peak` was computed against a peak that under-read the real one, the
+    gain overshot, and it shipped. Measured in a real decoder afterwards (see
+    tests/tools/measure_runtime.js): FOURTEEN one-shots above the -1.5 dBFS ceiling and
+    three of them clipped, `sfx.electric` with 173 samples pinned at full scale. Every
+    BED was correct, because a bed has always taken both numbers from `measure()`.
+
+    The fix is to take each number from the measurement that is right for it: the LEVEL
+    from the windowed RMS, the PEAK from ffmpeg's own volumedetect on the file as it
+    stands. Verify a rebuild with tests/tools/measure_runtime.js — that is the instrument
+    that would have caught this the first time.
+    """
     if kind == 'sfx':
-        mean, peak = window_rms_db(path, 0.30, extra_in)
+        mean, _ = window_rms_db(path, 0.30, extra_in)
+        _, peak = measure(path, extra_in)     # full rate, full channel count — the real peak
     else:
         mean, peak = measure(path, extra_in)
     if mean is None or peak is None: return 0.0, None, None
@@ -246,7 +272,8 @@ def main():
                  '-ar',str(SR),'-ac', '1' if ch == 1 else '2','-sample_fmt','s16',
                  os.path.join(OUT, name)])
             report[key] = {'id': fsid, 'kind': 'sfx', 'file': name, 'dur': round(dur,2),
-                           'src': os.path.basename(src), 'gain_db': gdb, 'src_rms': mean}
+                           'src': os.path.basename(src), 'gain_db': gdb, 'src_rms': mean,
+                           'src_peak': peak}
         else:
             """LENGTH IS CAPPED HERE, AND IT IS A MEMORY DECISION, NOT A DOWNLOAD ONE.
 
@@ -271,7 +298,7 @@ def main():
             report[key] = {'id': fsid, 'kind': kind, 'file': name,
                            'dur': round(min(dur, cap), 2), 'srcdur': round(dur, 2),
                            'capped': dur > cap, 'src': os.path.basename(src),
-                           'gain_db': gdb, 'src_rms': mean}
+                           'gain_db': gdb, 'src_rms': mean, 'src_peak': peak}
     if ONLY:
         prev = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'runtime_report.json')
         if os.path.exists(prev):

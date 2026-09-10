@@ -258,8 +258,19 @@ const textFor = (over) => { const o = new ObjectiveSystem(null); o.evaluate(snap
       'and the property is only called a house once the player is close enough to see one');
   chk(textFor({ farmlands: true, farmOrd: 0, farmHouseSeen: false }) === 'Explore the Shattered Farmlands.',
       'arriving in the Farmlands does not inherit an Overworld objective');
-  chk(textFor({ farmlands: true, farmCoreTaken: true, hasDisk: true }) === 'Bring it to the Anchor.',
+  /* PHASE 35 — THE DISK LINE IS TWO LINES, AND WHICH ONE SHOWS DEPENDS ON WHETHER THERE
+     IS AN ANCHOR TO BRING IT TO. An Anchor is a block standing in one dimension and it
+     does not cross a rift with the player, so a player holding the Level 2 Disk in the
+     Farmlands normally has none — and the single line this used to assert was pointing
+     at a monument that did not exist. */
+  chk(textFor({ farmlands: true, farmCoreTaken: true, hasDisk: true, hasAnchor: true })
+        === 'Bring it to the Anchor.',
       'once the player is carrying what they found, the line says where it goes');
+  chk(textFor({ farmlands: true, farmCoreTaken: true, hasDisk: true, hasAnchor: false })
+        === 'Raise an Anchor.',
+      'and with no Anchor standing it names the missing half instead of pointing at nothing');
+  chk(textFor({ overworld: true, hasDisk: true, hasAnchor: false }) === 'Raise an Anchor.',
+      'the same holds in the Overworld — the line never assumes a monument is there');
   chk(textFor({ farmlands: true, farmCoreTaken: true, hasDisk: true, riftActive: true }) === 'Enter the Rift.',
       'and once that opens something, it says so');
 

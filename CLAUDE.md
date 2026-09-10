@@ -1422,7 +1422,7 @@ Phase 34 — Final Audio Integration                (COMPLETE — see section 61
 Phase 34.1 — Audio Correction (human playtest)    (see section 61.05)
 Phase 34.2 — Audio Runtime Correction             (see section 61.06 — awaiting replay)
 Phase 34.3 — Audio Forensic Investigation         (see section 61.07 — awaiting replay)
-Phase 35 — Complete Dimension Cohesion
+Phase 35 — Complete Dimension Cohesion            (COMPLETE — see section 62)
 Phase 36 — Complete Playable Alpha / Full Audit
 
 Exact numbering may evolve, but previous completed phases must not be lost.
@@ -2503,9 +2503,123 @@ Do not spam screen shake.
 
 ---
 
-# 62. PHASE 35 — DIMENSION COHESION
+# 62. PHASE 35 — COMPLETE DIMENSION COHESION — COMPLETE
 
-Eventually audit:
+PHASE 35 CARRIED THIS OUT. The chain from the Overworld to Static Suburbia was BROKEN in
+normal play and is not any more; every dimension crossing now runs one teardown; and the
+Farmlands contain the material the next rift needs. This section is now a statement about
+the code, not an intention. See `PROGRESS.md` section 0.0000000000000000.
+
+The original brief is kept below, because it is still the standard the dimensions are
+held to.
+
+# 62.1. THE FAULT PHASE 35 EXISTED FOR
+
+**THE LEVEL 2 -> 3 RIFT COULD NOT BE OPENED. AT ALL. IN ANY BUILD.**
+
+`AnchorMonumentManager.powerRiftCore` refuses outright if a rift is already open on that
+manager — correctly, since one Anchor holds one record. Nothing put the rift down when
+the player walked through one: `removeAnchor()` was called when the Anchor BLOCK was
+broken and by the New Game / Load teardown, and by nothing else.
+
+So `riftActive` stayed true from the moment the player first crossed into the Farmlands,
+and every consequence followed from that one boolean:
+
+- A player who reached the Farmlands, found the Level 2 Rift Core Disk exactly where
+  section 45 guarantees it, raised an Anchor and fed the Disk to it got **nothing** — no
+  rift, no glyph, and the Disk not even consumed. **Static Suburbia, the Fake Haven and
+  the finale were unreachable without a developer command.**
+- A powered rift is the highest-priority objective override in the game, so
+  **"Enter the Rift." was on screen from the first frame of the Farmlands and never
+  left** — the whole Phase 20 journey chain was unreachable.
+- The audio director selects the Rift scene within 20m of a powered Anchor, against an
+  `activeAnchor` whose coordinates were in a dimension that had been unloaded.
+- The monument's chunk stayed pinned, so a chunk of the previous dimension stayed
+  resident for the rest of the session.
+
+It was measured in a real browser before and after, and both are in
+`tests/browser-transitions.js`, which now walks the entire chain with no debug command
+in it.
+
+# 62.2. THE RULES THAT CAME OUT OF IT
+
+- **A CROSSING PUTS DOWN THE DIMENSION IT IS LEAVING BEFORE IT PICKS UP THE NEXT ONE, AND
+  IT DOES IT IN ONE PLACE.** `Game._leaveDimension()`. There were four ways out of a
+  dimension and each put down a different amount: the Haven's teardown was thorough, the
+  developer teleports kept a second copy of it, and the two RIFT transitions — the ones a
+  player actually uses — wiped the chunks and flipped a boolean. There is one now, and the
+  dev teleports call it rather than keeping their own list, which is what makes "no
+  transition needs a debug command" a structural property instead of something to
+  re-check.
+- **WHAT A CROSSING DOES NOT TOUCH IS AS FIXED AS WHAT IT DOES.** Not the inventory (what
+  the player carries is theirs), not the compass or the milestones (progression, not
+  dimension state), not the environmental-story latch (a callback needs the memory of its
+  original — that is the entire point of Phase 31), not the save, and not the objective:
+  the caller re-resolves that AFTER flipping the dimension flags, because an objective
+  resolved inside the teardown is resolved against the dimension being left.
+  `tests/transitions.js` asserts both halves.
+- **AN ANCHOR IS A BLOCK, AND THE BLOCK STAYS WHERE IT IS.** This is STORY.md section 7
+  and section 9 read literally: an Anchor is crafted, not found, and feeding it a Core
+  does not move the player — "the world around them is re-decided, and they are standing
+  in the result". The monument is part of the volume being re-decided. It does not cross.
+  So the player raises a NEW one on the other side, which is the canon's own model of
+  progression: they assert, they are not awarded.
+- **THEREFORE A DIMENSION THAT HANDS OUT A CORE DISK MUST CONTAIN FOUR PLANKS.** The
+  Farmlands did not. `ASH_WOOD` is the only tree in the dimension, it is in `WOOD_BLOCKS`,
+  it takes an axe, the Phase 28 cue reads CHOP against it — and `destroyBlock` dropped
+  **nothing** for it, in every build. `ITEM.ASH_LOG` and one recipe row close it. It is
+  its own item rather than a second source of Oak Log, because an ashen trunk is not an
+  oak and section 14 is about not lying to the player with a label.
+- **AN ITEM ID IS A SAVE-FILE VALUE. APPEND, NEVER INSERT.** The same rule section 57
+  wrote for the furniture catalogue, and for the same reason. `ASH_LOG` is the last id.
+- **A RIFT DOES NOT FIRE ON THE FRAME IT OPENS.** The trigger is a radius around the
+  monument and the monument is something the player RIGHT-CLICKS, so they are standing
+  inside the radius at the moment they feed it the Disk: the dome recolouring, the glyph
+  spinning up and the zap were all being rendered into a world that had already been
+  replaced. `riftArming` is one number `dt` is subtracted from — not a countdown, not a
+  mechanic, and nothing to escape. Standing outside the radius is unaffected.
+- **A PLAYER RESPAWNS IN THE DIMENSION THEY DIED IN.** Phase 5A carved the Haven out of
+  `_respawn` because the Overworld was no longer loaded and sending them there was
+  sending them into a void. Every word of that was equally true of the Farmlands and
+  Suburbia, and `_respawn` sent them there anyway — with the Core Disk spent and the
+  Anchor in another dimension, one death would have ended the run in place. Latent rather
+  than live, because nothing in Levels 2 or 3 damages the player; closed now, before
+  something does.
+- **AN ANCHOR IN A SAVE BELONGS TO THE DIMENSION THE SAVE NAMES.** The three dimensions
+  are disjoint bands of one coordinate space, so this is a pure coordinate test
+  (`dimensionOfWorldPos`). A record that fails it is dropped and the repair is reported —
+  which is how a save written by a pre-Phase-35 build in the Farmlands, carrying the
+  Overworld's powered Anchor, is repaired in place instead of rebuilding the fault.
+- **THE RIFT CHAIN IS ONE-WAY, AND THAT IS THE DESIGN.** There is no return rift, and
+  there should not be: there are exactly three Cores and each is a hinge (STORY.md
+  section 9). "Returning through a Rift where intended" is therefore satisfied vacuously,
+  and a future phase that wants a return needs a fourth Core, which section 9 forbids.
+
+# 62.3. AND THE AUDIO LESSON, IN A NEW PLACE
+
+`build_runtime.py` states a peak ceiling of -1.5 dBFS and says no asset may clip once its
+gain is applied. It computed a one-shot's peak from a **mono 22.05 kHz downmix** — which
+low-passes at 11 kHz and averages the channels, i.e. destroys exactly the measurement it
+was being used for — and then applied the gain to the full-rate file. The ceiling was
+never enforced for any `sfx`: fourteen shipped above it and three shipped clipped.
+
+- **MEASURE THE THING YOU ARE ABOUT TO BOUND, NOT SOMETHING NEAR IT.** The level came
+  from a windowed RMS, which that downmix is right for. The peak came from the same
+  downmix, which it is wrong for. Every bed in the library is correct because a bed has
+  always taken both numbers from `measure()`.
+- **`tests/tools/measure_runtime.js` IS THE INSTRUMENT THAT WOULD HAVE CAUGHT IT**, and it
+  asserts nothing: it decodes all 274 runtime files in a real browser and prints what is
+  in them. It had to be a browser, because 121 of them are MP3 and nothing offline in this
+  repository can decode one — which is how a fault could sit in half the library unseen.
+  Run it after any rebuild of `assets/audio/runtime/`.
+- **NO RUNTIME ASSET WAS EDITED BY THIS PHASE.** Attenuating a file that is already
+  flat-topped does not un-clip it, and lowering it below its class reference would degrade
+  the mix that was tuned against it. The build tool is fixed; the remedy is a rebuild on a
+  machine with a full ffmpeg, and this container has none.
+
+# 62.4. THE ORIGINAL BRIEF, KEPT
+
+Audit:
 
 Overworld
 →

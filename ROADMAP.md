@@ -2220,7 +2220,25 @@ Their rarity creates impact.
 
 ---
 
-# 53. PHASE 35 — COMPLETE DIMENSION / STORY COHESION PASS
+# 53. PHASE 35 — COMPLETE DIMENSION / STORY COHESION PASS — COMPLETE
+
+DELIVERED. The audit below was carried out and its central finding was not a matter of
+tone: **the chain it asks about was physically broken.** The Level 1 -> 2 crossing never
+put its rift down, so `powerRiftCore(3)` refused for the rest of the session and the
+Level 2 -> 3 rift could not be opened at all — Static Suburbia, the Fake Haven and the
+finale were unreachable in normal play, and the Farmlands objective was pinned to
+"Enter the Rift." from its first frame. Fixed, with a shared crossing teardown, and both
+rifts are now opened and walked through by the real interaction path in a real browser in
+`tests/browser-transitions.js`.
+
+Two more dead ends in the same chain were closed with it: the Farmlands contained no wood
+a player could pick up, so the Anchor the Level 2 Disk needs could not be built there; and
+a respawn ejected the player out of the dimension they died in, into an Overworld whose
+chunks the crossing had disposed.
+
+See `CLAUDE.md` section 62 for the rules this produced and `PROGRESS.md` section
+0.0000000000000000 for the full record. The brief below is kept because it is still the
+standard the dimensions are held to.
 
 Audit the complete relationship between:
 
@@ -3507,16 +3525,22 @@ Claude Code should inspect the repository before making assumptions.
 
 Current completed milestone:
 
-Phase 31 — Environmental Storytelling
-(Phase 30 opening lore film, Phase 29 main-menu rebirth + UI typography, Phase 28 tutorial removal, Phase 27 HUD rebirth, Phase 26 XP removal, Phase 25
-dynamic objectives, Phase 24 canonical story foundation, Phase 23 save/load, Phase 22
-settings, Phase 21 dropped item ground contact, and Phase 20 including the 20.1
-journey revision and the 20.2 guidance pass — see PROGRESS.md, and STORY.md for the
-canon)
+Phase 35 — Complete Dimension Cohesion
+(Phase 34 final audio integration and its 34.1/34.2/34.3 corrections, Phase 33 final
+creature, Phase 32 Fake Haven, Phase 31 environmental storytelling, Phase 30 opening lore
+film, Phase 29 main-menu rebirth + UI typography, Phase 28 tutorial removal, Phase 27 HUD
+rebirth, Phase 26 XP removal, Phase 25 dynamic objectives, Phase 24 canonical story
+foundation, Phase 23 save/load, Phase 22 settings, Phase 21 dropped item ground contact,
+and Phase 20 including the 20.1 journey revision and the 20.2 guidance pass — see
+PROGRESS.md, and STORY.md for the canon)
 
 Current next major phase:
 
-Phase 32 — Fake Haven Dream Sequence            COMPLETE
+Phase 36 — Complete Playable Alpha / Full Audit
+
+NOTE. Phases 34.1 through 35 all changed what the game SOUNDS like or how it MOVES between
+dimensions, and no human has played any of them. Phase 36 is where that happens, and it
+must be played from a SERVED build (http://localhost:8000/game.html), never from disk.
 
 Current game build baseline:
 

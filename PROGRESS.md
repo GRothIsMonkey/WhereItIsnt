@@ -4,8 +4,8 @@
 HOW TO RUN IT              SERVE IT. python3 -m http.server 8000, then
                            http://localhost:8000/game.html  — opening game.html
                            from disk plays NO recorded audio at all (section 0.000000000000000)
-Current phase              34.3 — AUDIO FORENSIC INVESTIGATION (needs a human replay)
-Next phase                 35 — COMPLETE DIMENSION COHESION
+Current phase              35 — COMPLETE DIMENSION COHESION (needs a human replay)
+Next phase                 36 — COMPLETE PLAYABLE ALPHA / FULL AUDIT
 Phase 19                   COMPLETE
 Phase 20                   COMPLETE
 Phase 20 journey revision  COMPLETE           (20.1 — see section 0)
@@ -27,6 +27,10 @@ Phase 34                   COMPLETE           (see section 0.000000000000)
 Phase 34.1 correction      IMPLEMENTED        (see section 0.0000000000000)
 Phase 34.2 correction      IMPLEMENTED        (see section 0.00000000000000)
 Phase 34.3 correction      IMPLEMENTED        (see section 0.000000000000000 — NOT yet replayed)
+Phase 35                   COMPLETE           (see section 0.0000000000000000 — NOT yet replayed)
+Rift chain                 REPAIRED           (Level 2 -> 3 was IMPOSSIBLE in every earlier build)
+Dimension crossings        ONE TEARDOWN       (Game._leaveDimension; the dev teleports call it too)
+Ash Log                    ITEM 42            (the Farmlands had no wood a player could pick up)
 Exploration music          REMOVED            (34.1; four authored music moments remain)
 XP                         REMOVED            (no runtime XP exists; see section 0.0000)
 Hearts / vital bars        REMOVED            (no runtime HUD bar exists; see section 0.00000)
@@ -38,9 +42,11 @@ Haven mining               REFUSED            (the cabin cannot be taken apart)
 Final creature             185m, 7 BEATS      (32s; a silhouette, never lit, never named)
 Void Sovereign             REMOVED            (the 8m monolith was a boss; section 0.00000000000)
 Audio library              187 ASSETS         (assets/audio/AUDIO_INDEX.md is the map)
-Audio runtime copies       assets/audio/runtime/  DISPOSABLE (rebuild: tests/tools/build_runtime.py)
+Audio runtime copies       assets/audio/runtime/  DISPOSABLE (rebuild: tests/tools/build_runtime.py,
+                           then VERIFY with tests/tools/measure_runtime.js — 35 fixed a peak-ceiling
+                           bug in the builder that could not be exercised here; 17 files ship over it)
 Settings                   SEVEN              (34 added ambienceVolume)
-Save schema                VERSION 5          (4 -> 5 adds progression.noticed; 34 did NOT change it)
+Save schema                VERSION 5          (4 -> 5 adds progression.noticed; 34 and 35 did NOT change it)
 Authoritative build        game.html          (there is no other game file)
 Canonical story            STORY.md           (read before writing ANY player text)
 Validation suite           tests/             (see tests/README.md)
@@ -50,11 +56,408 @@ Phases 1–19 are as their sections in `ROADMAP.md` describe them. This file rec
 state of Phase 20 specifically: what was built, what was measured, what was found and
 fixed along the way, and what is honestly not verified.
 
-**Sections 0.000000000000–0.5 describe the phases that followed (34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 23, 22, 21, 20.2). Sections 1–5
+**Sections 0.0000000000000000–0.5 describe the phases that followed (35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 23, 22, 21, 20.2). Sections 1–5
 describe Phase 20 as it was first delivered, and Section 0 describes the 20.1 journey
 revision that followed a human playtest and supersedes them wherever they disagree** — principally the beat table, the landmark set, the distances, and the
 performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
 instruction and the compass and changed no world generation at all.
+
+---
+
+## 0.0000000000000000. PHASE 35 — COMPLETE DIMENSION COHESION
+
+**The phase was briefed as a cohesion pass. What it found first was that the game could
+not be finished.**
+
+Every previous phase built a dimension, a sequence or a system and validated it in place.
+Nobody had walked the whole chain end to end in one run without a developer command, and
+the chain had a break in it that no test in this repository could see, because every
+suite tested one dimension at a time.
+
+---
+
+# 1. THE ROOT CAUSE, AND IT IS ONE BOOLEAN
+
+`AnchorMonumentManager.powerRiftCore()` opens with:
+
+```js
+if (!this.activeAnchor || this.riftActive) return false;
+```
+
+That gate is correct: one Anchor holds one record, and a monument already holding an open
+rift cannot be handed a second one.
+
+`removeAnchor()` — the only thing that clears `riftActive` — was called from exactly two
+places. Breaking the Anchor block, and the New Game / Load teardown.
+
+**It was not called when the player walked through a rift.**
+
+So from the moment a player first crossed into the Farmlands, `riftActive` was true for
+the rest of the session, `activeAnchor` still pointed at a monument in a dimension that
+had been unloaded, and:
+
+| what it broke | how it presented |
+|---|---|
+| **the Level 2 -> 3 rift** | a player who found the Level 2 Rift Core Disk exactly where section 45 guarantees it, crafted an Anchor, placed it and fed the Disk to it got NOTHING. No rift, no glyph, and the Disk not even consumed. **Static Suburbia, the Fake Haven and the finale were unreachable in normal play.** |
+| **the whole Phase 20 journey** | a powered rift is the highest-priority objective override in the game. `Enter the Rift.` was on screen from the first frame of the Farmlands and never left. Every Farmland journey line — the road, the water tower, the property — was unreachable text. |
+| **the Farmlands ambience** | the audio director selects the Rift scene within 20m of a powered Anchor. Measured: `bed.rift.pulse / bed.rift.static / bed.rift.drone` playing in the Farmlands, against a monument thirty thousand blocks away in a dimension that no longer existed. |
+| **memory** | the monument's chunk stays pinned so radial streaming cannot take the safe-zone dome away. With no monument left to protect, that pin outlived its reason and one chunk of the previous dimension stayed resident for the rest of the session. |
+
+Measured in a real Chromium over HTTP, before the fix, driving the real interaction path:
+
+```
+### after stepping into the rift (should be the Farmlands)
+ dim: farmlands   anchor: [43, 25, 41]        <- an OVERWORLD coordinate
+ riftActive: true  riftTarget: 2
+ objective: "Enter the Rift."
+ beds: air bed.farm.day ...
+### after feeding the Level 2 disk to a Farmlands anchor
+ riftActive: true  riftTarget: 2              <- powerRiftCore(3) returned false
+ stillHoldingDisk: true                       <- the Disk was not even consumed
+ beds: air bed.rift.pulse, layer bed.rift.static, tension bed.rift.drone
+### after stepping into that rift (should be Static Suburbia)
+ dim: farmlands                               <- nothing happened, and never would
+```
+
+---
+
+# 2. THE REPAIR: ONE TEARDOWN FOR EVERY CROSSING
+
+There were **four** ways out of a dimension and each put down a different amount of it.
+The Haven's was thorough. The developer teleports kept a second, separately maintained
+copy of nearly the same list. The two RIFT transitions — the ones a player actually
+uses — wiped the chunks and flipped a boolean.
+
+`Game._leaveDimension(opts)` is now the only one. It:
+
+- **puts the Anchor and its rift down** (`removeAnchor()`, which also releases the pin);
+- clears the mobs, the Stalker, the hallucinations, the arrows in flight, the dropped
+  item entities, the ash particle field and the Farmland animal rigs;
+- resets `stalkerDistance`, the body's velocity, its mining state and — the one that
+  matters quietly — `stationaryTimer`, which Static Suburbia's Sanity drain reads, so a
+  player who stood still in the Farmlands for a minute no longer arrives in Suburbia
+  already being drained for it;
+- closes any open panel.
+
+`_transitionToLevel2`, `_transitionToLevel3`, `_transitionToLevel4` and the developer
+teleports all call it. The dev teleports' `clearEntities` is now a one-line delegation,
+which is what makes **"no transition needs a debug command"** structural rather than
+something to re-check: a teleport and a rift arrive in identical state because they are
+the same call.
+
+**What it deliberately does not touch** is asserted as hard as what it does: the inventory
+(what the player carries is theirs and crosses with them), the compass and the milestones
+(progression, not dimension state), the environmental-story latch (a callback needs the
+memory of its original — the entire point of Phase 31), the save, and the objective. The
+objective is re-resolved by the CALLER, after the dimension flags flip, because an
+objective resolved inside the teardown is resolved against the dimension being left.
+
+---
+
+# 3. THE OTHER TWO DEAD ENDS IN THE SAME CHAIN
+
+## 3.1 The Farmlands had no wood a player could pick up
+
+An Anchor Monument costs four planks. STORY.md section 7 is emphatic that this is the
+point — "it must be crafted, not found | nobody gives the player authority; they assert
+it" — and section 9 says feeding a Core to one does not move the player: "the world
+around them is re-decided, and they are standing in the result." The monument is part of
+the volume being re-decided. It does not cross.
+
+So the dimension that hands out the Level 2 Rift Core Disk has to contain four planks.
+It did not. `ASH_WOOD` is the only tree in the Farmlands, it is in `WOOD_BLOCKS`, it takes
+an axe, the Phase 28 cue reads **CHOP** when you look at it — and `destroyBlock` dropped
+nothing at all for it, in every build. The tree the game tells the player to chop gave
+them a hole in the forest.
+
+`ITEM.ASH_LOG` ("Ash Log"), one drop line, one recipe row (`ash_planks`, one log to four
+planks — the same yield as oak, so this is a second SOURCE and not a better one), and it
+is accepted as Anchor fuel alongside oak. It is its own item rather than a second source
+of Oak Log because an ashen trunk is not an oak and CLAUDE.md section 14 is about not
+lying to the player with a label.
+
+**Its id is 42 — the last one.** An item id is a save-file value; appending is safe and
+inserting rewrites every save. That is the same rule Phase 31 wrote for the furniture
+catalogue, for the same reason.
+
+## 3.2 A respawn ejected the player out of the dimension they died in
+
+Phase 5A carved the Fake Haven out of `PlayerController._respawn` for exactly the right
+reason, and said so in exactly the right words: the Overworld no longer exists, its chunks
+were flushed, and sending the player there is sending them into a void.
+
+Every word of that was equally true of the Farmlands and Static Suburbia. `_respawn` sent
+them there anyway — clearing `inFarmlands` / `inSuburbia` and teleporting to the Overworld
+spawn. With the Core Disk that opened the rift spent and the Anchor standing in a
+dimension the player was no longer in, **one death would have ended the run in place.**
+
+It is a latent defect rather than a live one: nothing in Levels 2 or 3 damages the player,
+because nothing hostile spawns in either and the build has no fall damage and no drowning.
+That is precisely why it was worth closing now, before something in either dimension ever
+does. A respawn now goes to the arrival point of the dimension the player is in — cleared,
+pinned and always resident in both, which is exactly what a respawn needs.
+
+---
+
+# 4. THREE SMALLER CROSSING DEFECTS
+
+**The Level 2 -> 3 crossing did not generate its arrival ring.** The comment standing over
+it said Suburbia was "already fully generated up front in `_genStaticSuburbiaRegion`",
+which has not been true since Phase 9 made the suburb a streaming terrain variant: the
+region boot pins a 3x3 core and everything else arrives through the ordinary radial
+streamer. Collision reads `chunk.data` directly. The Level 1 -> 2 crossing has generated
+its ring synchronously since Phase 16 and the Suburbia dev teleport since Phase 9; only
+the real rift did not.
+
+**A rift fired on the frame it opened.** The trigger is a radius around the monument and
+the monument is something the player RIGHT-CLICKS — so they are standing inside the radius
+at the moment they feed it the Disk. The dome recolouring, the glyph spinning up and the
+zap were all being rendered into a world that had already been replaced: the player
+right-clicked and was somewhere else. `riftArming` (`RIFT_ARM_TIME`, 1.6s) is one number
+`dt` is subtracted from — no timer, nothing to escape, and standing outside the radius is
+unaffected. `AnchorMonumentManager.riftReady()` is the single question the frame loop now
+asks, instead of spelling the conditions out at the call site, which is how the arming
+condition came to be missing from it in the first place.
+
+**A Suburbia occupancy footfall could land in another dimension.** Phase 31's occupancy
+cue is two footfalls a third of a second apart, the second frame-driven. A dimension
+crossing inside that window put the second one in the Farmlands or the Haven — a sound
+from the wrong environment, which is the one thing an occupancy cue must never be. It is
+abandoned if the player is no longer in Suburbia.
+
+---
+
+# 5. THE SAVE REPAIR
+
+A save written by a pre-Phase-35 build in the Farmlands carries the OVERWORLD's Anchor,
+still powered, because crossing the rift did not put it down. Restoring it rebuilds
+exactly the state that broke the game.
+
+The three dimensions are disjoint bands of one coordinate space, so "which dimension is
+this monument in" is a pure coordinate test. `dimensionOfWorldPos()` answers it in the
+save file's own vocabulary, and the validator drops an Anchor whose coordinates do not
+match the dimension the save names — reported, never silent. Nothing the player earned is
+lost: an Anchor is four planks, and the block itself is still standing where they left it.
+
+**The save schema did NOT change.** This is a validation rule, not a new field.
+
+---
+
+# 6. TWO PLAYER-FACING TEXT DEFECTS
+
+**The boss victory headline was cut off at both edges of the screen.** `#winScreen h1`
+borrowed Phase 29's start-screen rule, which is sized (to 62px), tracked (to 15px) and
+`white-space: nowrap`'d for the four words of the title — and the nowrap is load-bearing
+there, because WHERE IT ISN'T must never break. The win screen puts twenty-seven
+characters in it. Measured in Chromium at 1280x720, "THE HOLLOWED BEHEMOTH FALLS" laid out
+about 1400px wide inside a container with `overflow: hidden`: the T and the S were simply
+not on screen, on the one moment the first dimension has been building to. The win screen
+now has a headline sized for its own words — same face, same colour, same shadow token,
+one step down the scale, allowed to wrap, and inside a gutter at every width.
+
+**"THE RUIN GROWS DARKER"** was the second word of BLOCK & RUIN, the abandoned working
+name, sitting capitalised in player-facing text as if it were a place — the only surviving
+instance in the build. CLAUDE.md section 1 is explicit that the name does not come back.
+It reads "THE NIGHTS COME HARDER", which is what the stage change actually does
+(`difficultyMult`, the mob cap and `nightsRequired` all rise with the stage) and names
+nothing the canon keeps unexplained.
+
+---
+
+# 7. THE AUDIT THAT FOUND THE AUDIO FAULT
+
+`build_runtime.py` states `PEAK_CEIL = -1.5` and says no asset may clip once its gain is
+applied. Nothing had ever checked that it did.
+
+`tests/tools/measure_runtime.js` is the instrument that should have existed: it fetches all
+274 files in `assets/audio/runtime/` over HTTP and decodes each one with a **real
+AudioContext**, then reports duration, true peak, RMS, DC offset, samples pinned at full
+scale and leading silence. It asserts nothing. It had to be a browser because 121 of those
+files are MP3 and nothing offline in this repository can decode one — which is exactly how
+a build-time fault could sit in half the library unseen.
+
+It found one on its first run:
+
+```
+PEAK ABOVE THE -1.5 dBFS CEILING (17):
+  342898.wav   sfx.ui.click        0.00 dBFS   132 samples at FS
+  407233.wav   sfx.electric        0.00 dBFS   173 samples at FS
+  342926.mp3   sfx.clock.pendulum  0.00 dBFS    11 samples at FS
+  ... eleven more one-shots between 0.00 and -1.43 dBFS ...
+  640651.mp3   bed.rain.heavy     -1.22 dBFS     0        (MP3 decode overshoot)
+  387128.mp3   bed.haven.hearth   -1.38 dBFS     0        (MP3 decode overshoot)
+  523374.mp3   bed.farm.wind      -1.50 dBFS     0        (exactly at the ceiling)
+```
+
+**Every asset genuinely over the ceiling is an `sfx`, and every bed is correct.** That is
+the diagnosis, not a coincidence. `gain_for` took a one-shot's LEVEL from `window_rms_db`,
+which decodes `-ac 1 -ar 22050` — right for a windowed RMS — and then took its PEAK from
+that same downmix. Resampling to 22.05 kHz low-passes at 11 kHz, which is where a
+transient's height lives, and `-ac 1` averages the channels while the encoder keeps them.
+So `PEAK_CEIL - peak` was computed against a peak that under-read the real one, the gain
+overshot, and it shipped. A bed has always taken both numbers from `measure()`, which
+reads the file as it stands — which is why not one bed is affected.
+
+`gain_for` now takes each number from the measurement that is right for it. **The fix is
+in the tool and could not be exercised here**: this container's only ffmpeg is
+Playwright's, built `--disable-everything`, with no audio codecs at all. The remedy is a
+rebuild on a machine with a full ffmpeg, followed by `measure_runtime.js`.
+
+**No runtime asset was edited.** Attenuating a file that is already flat-topped does not
+un-clip it, and lowering it below its class reference would degrade the mix that was tuned
+against it. In play the consequence is small and bounded: these cues reach the buses at
+gains of 0.14-0.6, so nothing clips at output, and the RMS spread across the whole library
+is -41.5 to -14.6 dBFS with a median of -28.2 — which is the class structure (-26 beds,
+-20 windowed one-shots, -22 footfalls) and not a mix that wanders.
+
+Also recorded and NOT acted on, because six files is not a reason to filter 274:
+
+```
+DC OFFSET above 0.005 (6):
+  542254.mp3 sfx.crop -0.0313   135074.mp3 bed.sub.day2 -0.0266
+  567662.mp3 sfx.swell.odd 0.0145   steps/152004_07.wav -0.0141
+  470619.wav sfx.cabinet2 -0.0093   803224.mp3 bed.overworld.day -0.0050
+```
+
+---
+
+# 8. WHAT ELSE THE COHESION AUDIT CHECKED AND FOUND SOUND
+
+- **The objective system.** The chain that a crossing selects, the overrides, the
+  migration and the save round trip are all correct once the stale rift is gone. One
+  authored line was split: "Bring it to the Anchor." was shown to a player holding a Core
+  Disk with no Anchor anywhere — which, correctly, is the normal state of a player who has
+  just walked out of the Farmlands' Disconnected Home. It now shows "Raise an Anchor."
+  instead, which explains no mechanic, names no key, and is the canon's own model of
+  progression.
+- **The compass.** Correct across both crossings, correct across a save/load, and
+  `_syncProgressionHUD()` is called on all three transitions. `tests/compass.js` unchanged
+  and passing.
+- **The HUD.** The dimension banner, the condition ticks, the perception trace, the
+  objective and the hotbar are all re-derived per frame from player state, so nothing can
+  go stale across a crossing. Verified live in both arrival screenshots.
+- **The audio scene machinery.** `_audioDim` is derived from the player's dimension flags
+  every frame rather than from an entry hook, so a rift, a teleport, a load and a New Game
+  are indistinguishable to it — and `resumeContext()` is called on every dimension change.
+  Measured live: `bed.farm.day / bed.farm.crop / bed.farm.wind` on the Farmlands arrival
+  and `bed.sub.day / bed.sub.traffic / bed.hum.mech` on the Suburbia arrival, with no Rift
+  bed surviving either.
+- **Chunk disposal.** `disposeChunk` takes down torch and portal lights and decor
+  geometry; the only thing it was leaving behind across a crossing was the Anchor's own
+  pin, which is now released with the Anchor.
+- **The environmental-story latch.** Cross-dimension by design — a callback requires the
+  memory of its original — and correctly untouched by a crossing. `tests/environment.js`
+  unchanged and passing.
+- **Blood Nights.** Unchanged, and the code has no Blood Night flag: they are expressed as
+  the stage escalation, and the audio's `*.blood` scenes key off `stage >= 2` at night. The
+  mob difficulty multiplier and cap rise with the stage too, so the escalation is real. The
+  SKY does not change, which means the audio thickens on a night that looks like any other.
+  That is a known and deliberate gap, not a defect introduced here, and a red sky is new
+  visual direction — which section 14 of the Phase 35 brief forbids.
+
+---
+
+# 9. VALIDATION
+
+**Offline suites** (`cd tests && node <file>`): determinism, core-disk, journey, chain,
+compass, items, settings, save, story, objectives, progression, hud, onboarding, menu,
+opening, environment, haven, finale, audio, red-light, runtime, regression, performance,
+and the new **transitions**. All pass.
+
+Two existing assertions were UPDATED rather than worked around, and both got stronger:
+
+- `objectives.js` asserted that a Farmlands player holding a Disk is told "Bring it to the
+  Anchor." — the line that pointed at a monument that did not exist. It now asserts both
+  branches and the Overworld case.
+- `haven.js` grepped `_transitionToLevel4`'s body for four `clearAll` calls. Those calls
+  moved into the shared teardown, so it now follows the call: the Haven must ASK for the
+  teardown with spawning latched off, AND the teardown must contain the clears AND put the
+  Anchor down. Three claims where there was one.
+
+**Browser suites**, each in a real Chromium with a real WebGL context and a real
+AudioContext, served over **HTTP** and never `file://`: browser-transitions (new),
+browser-save, browser-onboarding, browser-menu, browser-opening, browser-environment,
+browser-haven, browser-finale, browser-audio.
+
+`tests/browser-transitions.js` is the one that matters. It walks the entire chain with no
+debug command in it: a real New Game -> an Anchor placed with a real right-click on real
+ground -> a real Hollowed Behemoth killed through the real damage path, so the Core Disk
+arrives as a real dropped entity and is collected by the real pickup radius -> the real
+right-click that feeds it to the Anchor -> the real trigger radius walked into -> **THE
+SHATTERED FARMLANDS** -> a real ashen trunk chopped and collected -> the real recipes
+turning it into an Anchor -> the guaranteed chest opened for the Level 2 Disk -> that Disk
+fed to the second Anchor -> that rift **walked into on the player's own feet** -> **STATIC
+SUBURBIA** -> a reload and CONTINUE.
+
+**A note on one test-construction fact, because it matters to what is claimed.** A headless
+page is never granted pointer lock, and `PlayerController.update` returns early without it.
+So every walk in that suite forces `locked` and steps `p.update(1/60)` directly. The code
+doing the walking is the shipped movement code at a real timestep; what is NOT proved there
+is that a physical keypress reaches it, which `browser-onboarding.js` proves separately.
+
+**Measurement, not tests:** `tests/tools/measure_runtime.js` (new) and
+`tests/audio-audit.js`. The audit walked all three dimensions by day and night on the
+final build and every one of them has LIVE recorded beds at real levels on the real graph:
+
+```
+OVERWORLD  day    bed.overworld.day@0.85   bed.air.still@0.34                master -31.6 dBFS
+OVERWORLD  night  bed.overworld.night@0.80 bed.wind.open@0.26                master -33.3 dBFS
+FARMLANDS  day    bed.farm.day@0.85  bed.farm.crop@0.42  bed.farm.wind@0.26  master -36.5 dBFS
+FARMLANDS  night  bed.farm.night@0.80 bed.farm.wind@0.28                     master -34.9 dBFS
+SUBURBIA   day    bed.sub.day@0.85 bed.sub.traffic@0.34 bed.hum.mech@0.30    master -31.5 dBFS
+SUBURBIA   night  bed.sub.night@0.80 bed.hum.powerline@0.30 bed.hum.buzz@0.24 master -31.9 dBFS
+```
+
+No slot reported LOADING or DEAD, every footstep surface the walk crossed resolved to a
+recording rather than the synthesised fallback (grass 25/0, soil 38/0, pavement 15/0,
+gravel 2/0), and the ambient event rate is one per 36-55s outdoors and one per 71-80s
+indoors. No page errors.
+
+**ONE HONEST NOTE ON A FLAKY SUITE.** `browser-menu.js` failed one assertion on its first
+run of the final build (`CONDITION occupies a real box (0x0px)`) and a DIFFERENT one on
+its second (`the scene canvas followed the resize`), then passed three times in a row when
+run on its own. The same file was also run once against the pre-Phase-35 build and passed.
+Both failing assertions are layout-timing ones, the second is the viewport race the file
+itself already carries a comment about, and both failures happened while other work was
+competing for the machine. It is CPU contention under SwiftShader rather than a
+regression — but it is recorded here rather than quietly re-run until green, because a
+suite that fails one run in three is worth knowing about.
+
+---
+
+# 10. WHAT IS HONESTLY NOT DONE
+
+- **No human has played this build.** Unchanged and permanent. Phases 34.1, 34.2, 34.3 and
+  35 have all changed what the game sounds like or how it moves between dimensions and not
+  one of them has been played. Phase 36 is where that happens, and it must be played from
+  a SERVED build.
+- **The runtime audio library was not rebuilt.** The peak-ceiling bug is fixed in
+  `build_runtime.py` and the fix could not be exercised: this container has no
+  audio-capable ffmpeg. Seventeen files are still over the stated ceiling and three are
+  still clipped. Bounded, measured, and listed above.
+- **Water and weather are still placed by no scene.** Phase 34 recorded them as Phase 35
+  work; they are not. Weather needs a weather state the game does not have, and water needs
+  a POSITIONED looping source rather than a bed — a bed is dimension-wide and a pond is
+  local — which is new placement machinery, in a phase briefed not to replace the
+  architecture, that no one here could hear the result of. Deferred with a concrete
+  recommendation rather than half-built.
+- **The Farmlands arrival point sits one block above its surface**, so the player falls
+  that block on arrival. Measured, unchanged from every previous build, invisible in play,
+  and left alone rather than moved: `farmlandsSpawn` is an authored composition (the
+  carriageway, facing east) and its y is the least interesting thing about it.
+- **The win screen's voice.** "PURGE COMPLETE", "STAGE 1 CLEARED", "LEVEL 2: THE SHATTERED
+  FARMLANDS UNLOCKED" and "DESCEND TO STAGE 2" are the last of the pre-Phase-27 interface
+  voice in the build. Only the one carrying the abandoned working title was changed here;
+  a voice pass on that screen belongs to Phase 36, which is the playable-alpha audit.
+- **Dimension 1 pacing.** The brief asks why it can feel slow and says not to rewrite it.
+  Recorded for Era 2 rather than acted on: the Overworld's guidance is a five-step chain
+  with no landmark to walk toward, which is the opposite of what the Farmlands does with
+  the water tower and what section 66 says guidance should be. The Behemoth is gated on
+  Night 3, so the middle of the dimension is three real nights of survival with one
+  objective line covering all of it. Neither is a bug and both are structural.
+- **`tests/hud.js`'s pre-Phase-27 comparison did not run.** The commit it names (`c05efbe`)
+  is not in this repository's history — game.html's history begins at Phase 34 — so the
+  before/after DOM-write count is skipped. The suite's own assertions all ran and passed.
 
 ---
 

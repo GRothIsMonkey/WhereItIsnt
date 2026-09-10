@@ -787,6 +787,43 @@
     text-shadow: var(--hud-shadow); margin-bottom: 40px;
   }
 
+  /* =================================================================================
+     PHASE 35 — THE WIN SCREEN'S HEADLINE IS NOT THE MENU'S, AND IT WAS WEARING ITS
+     CLOTHES.
+
+     The h1 rule above is Phase 29's. It is sized (up to 62px), tracked (up to 15px) and
+     `white-space: nowrap`'d for the FOUR WORDS of the title, and the nowrap is
+     load-bearing there: WHERE IT ISN'T must never break across two lines.
+
+     The win screen borrows the same element and puts up to twenty-seven characters in
+     it. Measured in Chromium at 1280x720, "THE HOLLOWED BEHEMOTH FALLS" laid out about
+     1400px wide inside a container with `overflow: hidden`, so it was CUT OFF AT BOTH
+     EDGES — the T and the S were simply not on screen. That screen is the boss victory,
+     which every playthrough passes through, and it is the one place the game announces
+     the thing the whole first dimension has been building to.
+
+     So the win screen gets a headline sized for its own words: same face, same colour,
+     same shadow token, one step down the scale, allowed to wrap, and held inside a
+     gutter at every width. Nothing about the start screen's title changes.
+     ================================================================================= */
+  #winScreen { padding: 24px 20px; }
+  #winScreen h1 {
+    font-size: clamp(20px, 3.4vw, 40px);
+    letter-spacing: clamp(3px, 0.7vw, 9px);
+    white-space: normal;
+    max-width: min(92vw, 900px);
+    line-height: 1.28;
+  }
+  #winScreen .sub { max-width: min(92vw, 760px); line-height: 1.7; }
+  #winScreen .action-btn {
+    max-width: min(92vw, 620px);
+    white-space: normal; line-height: 1.4;
+  }
+  @media (max-width: 560px) {
+    #winScreen .action-btn { font-size: 15px; padding: 12px 20px; letter-spacing: 2px; }
+    #winScreen .sub { letter-spacing: 3px; }
+  }
+
   /* PHASE 29 — THE CONTROLS.
 
      No boxes. A menu entry is a word, a hairline under it, and enough space around it to
@@ -1280,7 +1317,7 @@
 
 <div id="winScreen">
   <h1 id="winTitle">PURGE COMPLETE</h1>
-  <div class="sub" id="winSub">STAGE 1 CLEARED &bull; THE RUIN GROWS DARKER</div>
+  <div class="sub" id="winSub">STAGE 1 CLEARED &bull; THE NIGHTS COME HARDER</div>
   <button id="nextLevelBtn" class="action-btn">DESCEND TO STAGE 2</button>
 </div>
 
@@ -1302,7 +1339,11 @@ const ITEM = {
   CORRUPTED_STONE_ITEM: 37, CORE_DISK_L2: 38, LANTERN: 39, SOUL_ANCHOR: 40,
   // PHASE 5A PART 2 — the Level 4 dimension key, recovered from Static Suburbia's
   // own Disconnected Home.
-  CORE_DISK_L3: 41
+  CORE_DISK_L3: 41,
+  /* PHASE 35 — ASH LOG. Appended, never inserted: an id is a save-file value and every
+     number in this table has to keep meaning what it meant. See below for why the
+     Farmlands needed a wood the player can actually pick up. */
+  ASH_LOG: 42
 };
 
 const ITEM_DATA = {
@@ -1344,7 +1385,24 @@ const ITEM_DATA = {
   // PHASE 5A PART 2 — recovered from Static Suburbia's own Disconnected Home.
   [ITEM.CORE_DISK_L3]: { name: 'Level 3 Rift Core Disk', isBlock: false, color: '#ffe066' },
   [ITEM.LANTERN]: { name: 'Lantern', isBlock: true, blockId: 24, color: '#FFCC66' },
-  [ITEM.SOUL_ANCHOR]: { name: 'Soul Anchor', isBlock: true, blockId: 25, color: '#5be0c8' }
+  [ITEM.SOUL_ANCHOR]: { name: 'Soul Anchor', isBlock: true, blockId: 25, color: '#5be0c8' },
+  /* PHASE 35 — THE FARMLANDS HAD NO WOOD A PLAYER COULD PICK UP.
+
+     ASH_WOOD is in WOOD_BLOCKS, it takes an axe, the cue above the hotbar reads CHOP
+     when you look at it, and the Ashen Forest is full of it — and destroyBlock dropped
+     NOTHING for it, in any build. Nothing else in the dimension yields wood either.
+
+     That was a soft lock rather than an oversight. An Anchor Monument costs four planks,
+     the Anchor is what a Rift Core Disk is fed to, and the Anchor a player raised in the
+     Overworld stays in the Overworld. So a player who crossed into the Farmlands without
+     spare planks, found the Level 2 Rift Core Disk exactly where the game guarantees it,
+     and then went looking for wood, could not open the rift and could not get any. The
+     tree the game tells them to chop gave them a hole in the forest.
+
+     It is deliberately its own item rather than a second source of Oak Log: an ashen
+     trunk is not an oak, section 14 is about not lying to the player with a label, and
+     the recipe table already knows how to turn either one into planks. */
+  [ITEM.ASH_LOG]: { name: 'Ash Log', isBlock: true, blockId: 22, color: '#4c4239' }
 };
 ITEM_DATA[ITEM.STONE_PICKAXE].isPickaxe = true; ITEM_DATA[ITEM.STONE_PICKAXE].pickaxeTier = 2;
 ITEM_DATA[ITEM.IRON_PICKAXE].isPickaxe = true; ITEM_DATA[ITEM.IRON_PICKAXE].pickaxeTier = 3;
@@ -1358,6 +1416,10 @@ ITEM_DATA[ITEM.IRON_PICKAXE].isPickaxe = true; ITEM_DATA[ITEM.IRON_PICKAXE].pick
    not, so removing it takes nothing away — it hands the gate back to the world. */
 const CRAFTING_RECIPES = [
   { id: 'planks', result: ITEM.WOOD_PLANK, count: 4, reqs: [{ item: ITEM.OAK_LOG, count: 1 }] },
+  /* PHASE 35 — the same four planks out of the Farmlands' own timber, so the Anchor a
+     Level 2 Rift Core Disk needs can be raised in the dimension that hands out the
+     Disk. Same yield as oak: this is a second SOURCE, not a better one. */
+  { id: 'ash_planks', result: ITEM.WOOD_PLANK, count: 4, reqs: [{ item: ITEM.ASH_LOG, count: 1 }] },
   { id: 'sticks', result: ITEM.STICK, count: 4, reqs: [{ item: ITEM.WOOD_PLANK, count: 2 }] },
   { id: 'torches', result: ITEM.TORCH, count: 4, reqs: [{ item: ITEM.STICK, count: 1 }, { item: ITEM.COAL, count: 1 }] },
   { id: 'wooden_pickaxe', result: ITEM.WOODEN_PICKAXE, count: 1, reqs: [{ item: ITEM.WOOD_PLANK, count: 3 }, { item: ITEM.STICK, count: 2 }] },
@@ -1412,6 +1474,7 @@ function _drawItemIcon(ctx, itemId, s) {
     case ITEM.SAFEHOUSE_ANCHOR: _iconAnchor(ctx, s); break;
     case ITEM.COBBLESTONE: _iconCobblestone(ctx, s); break;
     case ITEM.OAK_LOG: _iconOakLog(ctx, s); break;
+    case ITEM.ASH_LOG: _iconOakLog(ctx, s, '#4c4239', '#2c2620'); break;
     case ITEM.WOODEN_SWORD: _iconSword(ctx, s, '#b58a59', '#8a6238'); break;
     case ITEM.STONE_SWORD: _iconSword(ctx, s, '#b8b8b8', '#777777'); break;
     case ITEM.IRON_INGOT: _iconIngot(ctx, s); break;
@@ -1576,10 +1639,13 @@ function _iconCobblestone(ctx, s) {
   ctx.strokeRect(1, 1, s - 2, s - 2);
 }
 
-function _iconOakLog(ctx, s) {
-  ctx.fillStyle = '#6e4a28';
+/* PHASE 35 — the two colours are parameters so an Ash Log reuses the log drawing rather
+   than adding a second near-identical one. Oak's values are the defaults, so every
+   existing call site is unchanged. */
+function _iconOakLog(ctx, s, bark, grain) {
+  ctx.fillStyle = bark || '#6e4a28';
   ctx.fillRect(1, 1, s - 2, s - 2);
-  ctx.strokeStyle = '#4a2f18';
+  ctx.strokeStyle = grain || '#4a2f18';
   ctx.lineWidth = 1;
   for (let i = 0; i < 4; i++) {
     const x = 2 + i * ((s - 4) / 3) + 0.5;
@@ -8010,6 +8076,21 @@ class AnchorMonumentManager {
     this.riftTargetLevel = null;
     this.riftTriggerRadius = 3;
     this.riftCoreMesh = null;
+    /* PHASE 35 — SECONDS BEFORE A NEWLY OPENED RIFT WILL TAKE ANYONE.
+
+       The trigger is a radius around the monument, and the monument is something the
+       player right-clicks — so they are standing INSIDE the radius at the exact moment
+       they feed it the Disk. The transition therefore fired on the same frame as the
+       interaction, and the whole of the feedback the game had authored for opening a
+       rift — the dome changing colour, the glyph spinning up, the zap — was rendered
+       into a world that was replaced before it was drawn. The player right-clicked and
+       was somewhere else.
+
+       This is not a countdown or a mechanic and there is nothing to escape: it is one
+       number `dt` is subtracted from, long enough for the Anchor to visibly answer.
+       Standing outside the radius is unaffected — walking in still transitions on
+       contact, exactly as it always did. */
+    this.riftArming = 0;
 
     // Glowing Particle Dome
     const count = 350;
@@ -8040,13 +8121,37 @@ class AnchorMonumentManager {
     this.updateDomePositions();
   }
 
+  /* PHASE 35 — THE ANCHOR DOES NOT TRAVEL, AND NEITHER DOES ITS RIFT.
+
+     This used to be called from exactly two places: breaking the Anchor block, and the
+     New Game / Load teardown. It was NOT called when the player walked through a rift,
+     and that omission was the single most damaging bug in the build.
+
+     `riftActive` is the gate at the top of powerRiftCore(). Left true by the Level 1->2
+     crossing, it made powerRiftCore(3) return false FOREVER: a player who reached the
+     Farmlands, found the Level 2 Rift Core Disk in the Disconnected Home, crafted an
+     Anchor, placed it and fed the Disk to it got nothing at all — no rift, no glyph, and
+     the Disk not even consumed. Static Suburbia, the Haven and the finale were
+     unreachable in normal play. It also pinned the objective line to "Enter the Rift."
+     from the first frame of the Farmlands (a powered rift outranks every chain), which
+     buried the whole Phase 20 journey; and it kept the Rift audio scene selected against
+     an Anchor standing in a dimension the player had left.
+
+     Called from Game._leaveDimension(), which every crossing and every dev teleport now
+     runs. See that method for the rest of what a crossing has to put down. */
   removeAnchor() {
     this.activeAnchor = null;
     this.domeParticles.visible = false;
     this.riftActive = false;
     this.riftTargetLevel = null;
+    this.riftArming = 0;
     if (this.riftCoreMesh) this.riftCoreMesh.visible = false;
     this.domeParticles.material.color.setHex(0xffb53d);
+    /* The chunk the monument stands in was pinned so radial streaming could never take
+       the safe-zone dome away underneath the player. With no monument there is nothing
+       left to protect, and a pin that outlives its reason is a chunk of one dimension
+       resident for the rest of the session inside another. */
+    if (this.world && this.world.releaseAnchorPin) this.world.releaseAnchorPin();
   }
 
   addFuel(seconds) {
@@ -8069,6 +8174,7 @@ class AnchorMonumentManager {
   powerRiftCore(targetLevel) {
     if (!this.activeAnchor || this.riftActive) return false;
     this.riftActive = true;
+    this.riftArming = RIFT_ARM_TIME;
     this.riftTargetLevel = targetLevel || 2;
     const glowColor = this.riftTargetLevel === 3 ? 0xb98cff : 0x7effe8;
     this.domeParticles.material.color.setHex(glowColor);
@@ -8113,6 +8219,14 @@ class AnchorMonumentManager {
     this.domeParticles.geometry.attributes.position.needsUpdate = true;
   }
 
+  /* PHASE 35 — the one test the frame loop asks before firing a transition. A rift with
+     no monument is not a rift, and a rift that opened on this frame has not been seen
+     yet. Both conditions used to be spelled out at the call site, which is how the
+     second one came to be missing. */
+  riftReady() {
+    return !!(this.riftActive && this.activeAnchor && this.riftArming <= 0);
+  }
+
   isInsideSafeZone(pos) {
     if (!this.activeAnchor || this.activeAnchor.fuel <= 0) return false;
     return this.activeAnchor.pos.distanceTo(pos) <= this.radius;
@@ -8133,6 +8247,9 @@ class AnchorMonumentManager {
     // RIFT CORE ANIMATION — once powered, the glyph spins on two axes and pulses
     // its opacity/bob independently of the Anchor's fuel-driven shield dome (the
     // rift, once opened, stays open regardless of fuel remaining).
+    if (this.riftActive) {
+      if (this.riftArming > 0) this.riftArming = Math.max(0, this.riftArming - dt);
+    }
     if (this.riftActive && this.riftCoreMesh) {
       this._riftT = (this._riftT || 0) + dt;
       this.riftCoreMesh.rotation.y += dt * 1.4;
@@ -8164,6 +8281,10 @@ class AnchorMonumentManager {
    half a block on purpose: the gutter pan dishes 1/16 below the carriageway, so the
    real rise from standing in the gutter onto the kerb is 0.5625, and a 0.55 ceiling
    would have left the player stuck at the edge of every road. */
+/* PHASE 35 — see AnchorMonumentManager.riftArming. Long enough that the Anchor is seen
+   to answer the Disk; short enough that it never reads as a wait. */
+const RIFT_ARM_TIME = 1.6;
+
 const PLAYER_STEP_HEIGHT = 0.62;
 const PLAYER_STEP_STEPS = 8;     // probe granularity, ~0.069 blocks per attempt
 
@@ -9742,6 +9863,22 @@ function isStaticSuburbiaWorldPos(wx, wz) {
 }
 function isStaticSuburbiaChunk(cx, cz) {
   return isStaticSuburbiaWorldPos(cx * CHUNK_SX + 1, cz * CHUNK_SZ + 1);
+}
+
+/* PHASE 35 — WHICH DIMENSION IS THIS COORDINATE IN?
+
+   The four dimensions occupy disjoint bands of one coordinate space — that is what lets
+   a single streamer serve all of them — so the question has an exact answer and needs no
+   game state to ask. The vocabulary is deliberately the save file's and
+   EnvironmentStorySystem.dimensionOf's, so a place and a player can be compared directly.
+
+   The Haven is tested first because its pocket sits INSIDE Suburbia's band, exactly as
+   isStaticSuburbiaWorldPos already has to allow for. */
+function dimensionOfWorldPos(wx, wz) {
+  if (isFakeHavenWorldPos(wx, wz)) return 'haven';
+  if (isFarmlandsWorldPos(wx, wz)) return 'farmlands';
+  if (isStaticSuburbiaWorldPos(wx, wz)) return 'suburbia';
+  return 'overworld';
 }
 
 const SUBURBIA_BASE_Y = 24;
@@ -13928,6 +14065,11 @@ class EnvironmentStorySystem {
     if (this._occCooldown > 0) this._occCooldown = Math.max(0, this._occCooldown - dt);
     const g = this.game;
     if (this._occStep > 0) {
+      /* PHASE 35 — and it is abandoned if the player is no longer in Suburbia. The pair
+         of footfalls is a third of a second apart, and a dimension crossing inside that
+         window used to land the second one in the Farmlands or the Haven: a sound from
+         the wrong environment, which is the one thing an occupancy cue must never be. */
+      if (!player.inSuburbia) { this._occStep = 0; return; }
       this._occStep -= dt;
       if (this._occStep <= 0) {
         this._occStep = 0;
@@ -14115,6 +14257,10 @@ class VoxelWorld {
     this._genQueue = [];            // [{cx, cz}, ...] pending async batched generation
     this._queuedKeys = new Set();   // keys already sitting in _genQueue (avoid dupes)
     this.pinnedChunkKeys = new Set(); // chunk keys that streaming must never dispose (the Farmlands pocket)
+    /* PHASE 35 — the one pin in that set that belongs to a player-placed Anchor
+       Monument, so leaving the dimension can put it down again. Null when no Anchor
+       stands, or when the monument's chunk was already pinned for its own reason. */
+    this._anchorPinKey = null;
     this.editedChunks = new Map();  // key -> Map(localIdx -> blockId), player edits that survive unload/reload
 
     this._genFarmlandsRegion();
@@ -14434,6 +14580,17 @@ class VoxelWorld {
     for (const chunk of Array.from(this.chunks.values())) this.disposeChunk(chunk);
   }
 
+  /* PHASE 35 — releases the pin an Anchor Monument placement added, and only that one.
+     `_anchorPinKey` is null when the monument stood in a chunk that was already pinned
+     for its own reason (a region core), so this can never unpin something that was not
+     the Anchor's to pin. Safe to call when no Anchor was ever placed. */
+  releaseAnchorPin() {
+    if (!this._anchorPinKey) return false;
+    this.pinnedChunkKeys.delete(this._anchorPinKey);
+    this._anchorPinKey = null;
+    return true;
+  }
+
   /* LEVEL 4 — TOTAL WORLD FLUSH (PHASE 5A PART 3).
      wipeOverworldChunks() above deliberately spares pinned chunks (the Farmlands and
      Suburbia pockets), because Levels 2 and 3 are meant to stay resident. The Fake
@@ -14445,6 +14602,7 @@ class VoxelWorld {
      forever with no chunk left to own them. */
   wipeAllChunks() {
     this.pinnedChunkKeys.clear();
+    this._anchorPinKey = null;   // PHASE 35 — the registry it referred to is gone
     for (const chunk of Array.from(this.chunks.values())) this.disposeChunk(chunk);
     this._genQueue.length = 0;
     this._queuedKeys.clear();
@@ -26379,6 +26537,11 @@ class VoxelWorld {
       // never be disposed by radial streaming — once placed it stays permanently
       // loaded so the safe-zone dome and its geometry are always there when the
       // player returns, however far they've roamed since.
+      /* PHASE 35 — and it is remembered as OURS only if we are the ones who added it.
+         A region core chunk is already pinned for its own reason; releasing that pin
+         when the Anchor goes would let the streamer dispose a chunk another system is
+         relying on. See releaseAnchorPin. */
+      this._anchorPinKey = this.pinnedChunkKeys.has(k) ? null : k;
       this.pinnedChunkKeys.add(k);
     }
     if (id === BLOCK.NETHER_PORTAL) this._addPortalLight(wx, wy, wz);
@@ -27011,6 +27174,9 @@ class VoxelWorld {
     const centerPos = new THREE.Vector3(wx + 0.5, wy + 0.5, wz + 0.5);
     if (id === BLOCK.OAK_LOG) {
       this.itemManager.spawnDrop(ITEM.OAK_LOG, 1, centerPos);
+    } else if (id === BLOCK.ASH_WOOD) {
+      // PHASE 35 — see ITEM_DATA[ITEM.ASH_LOG]. This line is the whole fix for it.
+      this.itemManager.spawnDrop(ITEM.ASH_LOG, 1, centerPos);
     } else if (id === BLOCK.LEAVES) {
       this.itemManager.spawnDrop(Math.random() < 0.5 ? ITEM.SAPLING : ITEM.STICK, 1, centerPos);
     } else if (id === BLOCK.GRASS) {
@@ -27581,23 +27747,47 @@ class PlayerController {
     this._respawnTimer = setTimeout(() => { this._respawnTimer = null; this._respawn(); }, 900);
   }
 
+  /* PHASE 35 — A PLAYER RESPAWNS IN THE DIMENSION THEY DIED IN.
+
+     The Haven was already carved out of this method by Phase 5A, for the right reason
+     and stated in the right words: the Overworld no longer exists, its chunks were
+     flushed, and ejecting the player there would put them in a void. Every word of that
+     is equally true of the Farmlands and Static Suburbia, and this method ejected them
+     from both — clearing the dimension flags and teleporting to the Overworld spawn,
+     whose chunks the crossing had disposed.
+
+     That would have been unrecoverable rather than merely wrong: the Core Disk that
+     opened the rift is spent, the Anchor stands in a dimension the player is no longer
+     in, and nothing in the game can carry them forward again. A single death would have
+     ended the run in place.
+
+     It is a latent defect rather than a live one — nothing in Levels 2 or 3 damages the
+     player, because nothing hostile spawns in either — which is precisely why it needs
+     closing now, before something in either dimension ever does.
+
+     THE ARRIVAL POINT IS THE RESPAWN POINT for the two streamed dimensions: it is a
+     cleared, pinned, always-resident landing pad in both, which is exactly what a
+     respawn needs and is where the game put the player when they arrived. */
   _respawn() {
     this.dead = false;
     this.hp = this.maxHp;
-    // LEVEL 4 — dying inside the Haven must NOT eject the player back to the
-    // overworld spawn (the overworld no longer exists — its chunks were flushed).
-    // Respawn in the cabin instead and leave the dimension flags alone.
-    if (this.inFakeHaven && this.world.fakeHavenSpawn) {
-      this.position.copy(this.world.fakeHavenSpawn);
-      this.velocity.set(0, 0, 0);
+    this.velocity.set(0, 0, 0);
+
+    let to = null;
+    if (this.inFakeHaven) to = this.world.fakeHavenSpawn;
+    else if (this.inFarmlands) to = this.world.farmlandsSpawn;
+    else if (this.inSuburbia) to = this.world.suburbiaSpawn;
+
+    if (to) {
+      this.position.copy(to);
       if (this.ui) this.ui.updateVitals(this);
       return;
     }
+
     this.inFarmlands = false;
     this.inSuburbia = false;
     this.position.copy(this.spawnPosition);
     this._snapToGround();
-    this.velocity.set(0, 0, 0);
     if (this.ui) this.ui.updateVitals(this);
   }
 
@@ -28158,7 +28348,7 @@ class PlayerController {
         return;
       }
 
-      if (slot.item === ITEM.OAK_LOG || slot.item === ITEM.WOOD_PLANK) {
+      if (slot.item === ITEM.OAK_LOG || slot.item === ITEM.ASH_LOG || slot.item === ITEM.WOOD_PLANK) {
         if (this.world.anchorManager.addFuel(30)) {
           this.inventory.consumeItemInSlot(this.selectedSlot, 1);
           return;
@@ -34573,7 +34763,13 @@ class UIManager {
   triggerWinScreen(stage) {
     document.exitPointerLock();
     if (this.winTitle) this.winTitle.textContent = 'PURGE COMPLETE';
-    if (this.winSub) this.winSub.textContent = `STAGE ${stage} CLEARED \u2022 THE RUIN GROWS DARKER`;
+    /* PHASE 35 — "THE RUIN" was the second half of the retired working title, sitting
+       capitalised in player-facing text as if it were a place. CLAUDE.md section 1 is
+       explicit that the old name does not come back, and tests/story.js checks the whole
+       file for it — this comment deliberately does not spell it out either. The
+       replacement says what the stage change actually does (difficultyMult, the mob cap
+       and nightsRequired all rise with it) and names nothing the canon keeps unexplained. */
+    if (this.winSub) this.winSub.textContent = `STAGE ${stage} CLEARED \u2022 THE NIGHTS COME HARDER`;
     if (this.nextLevelBtn) this.nextLevelBtn.textContent = `DESCEND TO STAGE ${stage + 1}`;
     this.winScreen.style.display = 'flex';
   }
@@ -36499,6 +36695,23 @@ function validateSaveState(input) {
         rep.push('the anchor claimed an open rift with no destination; the rift was closed');
         anchor.riftActive = false;
       }
+      /* PHASE 35 — AN ANCHOR BELONGS TO ONE DIMENSION, AND IT IS THE ONE IT STANDS IN.
+
+         The three dimensions occupy disjoint bands of the same coordinate space, so
+         "which dimension is this monument in" is a pure coordinate test. A record that
+         fails it is not a recoverable Anchor: the block it stands for is not in the
+         world the player is about to load into, so restoring it would put an invisible
+         safe zone, a fuel counter and — far worse — a POWERED RIFT into a dimension that
+         has no monument to walk up to. That is exactly the state a save written by a
+         pre-Phase-35 build carries, because crossing a rift did not put the Anchor down;
+         see Game._leaveDimension. Dropping it repairs those saves in place.
+
+         Nothing the player earned is lost: an Anchor is four planks and the block itself
+         is still standing where they left it. */
+      if (anchor && dimensionOfWorldPos(anchor.x, anchor.z) !== dimension) {
+        rep.push('the anchor stood in a different dimension from the one saved; it was dropped');
+        anchor = null;
+      }
     }
   }
 
@@ -36993,9 +37206,20 @@ const OBJECTIVE_OVERRIDES = [
   { id: 'enter_rift', text: 'Enter the Rift.', when: (s) => s.riftActive },
 
   /* Carrying a Core Disk with no rift open. The Anchor is where it goes; the line says
-     where, and nothing about why. */
+     where, and nothing about why.
+
+     PHASE 35 — SPLIT IN TWO, BECAUSE THE ANCHOR IS NOT ALWAYS THERE. An Anchor is a
+     block standing in one dimension, and it does not cross with the player (see
+     Game._leaveDimension). So a player who walks out of the Farmlands' Disconnected Home
+     holding the Level 2 Disk has, correctly, no Anchor anywhere — and "Bring it to the
+     Anchor." was then pointing at a thing that did not exist, in the dimension where it
+     matters most. The second line names the missing half instead. It explains no
+     mechanic and names no key: the player raised one in the Overworld to survive their
+     first night, so they already know what raising one means. */
   { id: 'bring_disk', text: 'Bring it to the Anchor.',
-    when: (s) => s.hasDisk && !s.riftActive && (s.overworld || s.farmlands) },
+    when: (s) => s.hasDisk && !s.riftActive && s.hasAnchor && (s.overworld || s.farmlands) },
+  { id: 'raise_anchor', text: 'Raise an Anchor.',
+    when: (s) => s.hasDisk && !s.riftActive && !s.hasAnchor && (s.overworld || s.farmlands) },
 
   /* NIGHT. Two lines, and which one shows depends on where the player is standing: if
      they have an Anchor and are outside its glow, the useful sentence is where to go. */
@@ -37140,7 +37364,8 @@ const ONBOARDING_CUES = Object.freeze([
        thing they were going to want. */
     id: 'craft',
     key: 'E',
-    when: (c) => c.inv.hasItem(ITEM.OAK_LOG) || c.inv.hasItem(ITEM.WOOD_PLANK),
+    when: (c) => c.inv.hasItem(ITEM.OAK_LOG) || c.inv.hasItem(ITEM.ASH_LOG) ||
+                 c.inv.hasItem(ITEM.WOOD_PLANK),
     verb: () => 'CRAFT',
   },
   {
@@ -37846,7 +38071,12 @@ class Game {
       const a = state.anchor;
       this.anchorManager.placeAnchor(a.x, a.y, a.z);
       this.anchorManager.activeAnchor.fuel = a.fuel;
-      w.pinnedChunkKeys.add(w.key(Math.floor(a.x / CHUNK_SX), Math.floor(a.z / CHUNK_SZ)));
+      /* PHASE 35 — recorded as the Anchor's pin exactly as placing one records it, so a
+         later dimension crossing releases it rather than leaving a loaded chunk of the
+         previous dimension behind. */
+      const apk = w.key(Math.floor(a.x / CHUNK_SX), Math.floor(a.z / CHUNK_SZ));
+      w._anchorPinKey = w.pinnedChunkKeys.has(apk) ? null : apk;
+      w.pinnedChunkKeys.add(apk);
       if (a.riftActive && a.riftTargetLevel) this.anchorManager.powerRiftCore(a.riftTargetLevel);
     }
 
@@ -38479,10 +38709,79 @@ class Game {
     this.ui.setCompassVisible(this.compassAcquired);
   }
 
+  /* ===================================================================================
+     PHASE 35 — ONE TEARDOWN FOR EVERY DIMENSION CROSSING.
+
+     WHAT WAS WRONG. There were four ways out of a dimension — the two rift transitions,
+     the Haven entry and the developer teleports — and each one put down a different
+     amount of the dimension it was leaving. The Haven's was thorough. The dev teleports'
+     was nearly as thorough and was written separately. The two RIFT transitions, which
+     are the ones a player actually uses, put down almost nothing: they wiped the chunks
+     and flipped a boolean.
+
+     The worst of what they left behind was the ANCHOR. See AnchorMonumentManager.
+     removeAnchor for the full account; the short version is that a live `riftActive`
+     from the Level 1->2 crossing made the Level 2->3 rift impossible to open, pinned the
+     objective to "Enter the Rift." for the whole of the Farmlands, and held the Rift
+     audio scene against a monument in a dimension that was no longer loaded.
+
+     Everything else it left behind was smaller but the same kind of thing: a zombie
+     mid-lunge, an arrow in flight, the Stalker's distance, dropped items ticking at
+     coordinates thirty thousand blocks away, the ash particle field, the animal rigs,
+     the mining state and the block highlight.
+
+     THE RULE THIS ESTABLISHES: A CROSSING PUTS DOWN THE DIMENSION IT IS LEAVING BEFORE
+     IT PICKS UP THE NEXT ONE, AND IT DOES IT HERE. There is one of these. The dev
+     teleports call it instead of keeping their own copy, which is why a teleport and a
+     rift now arrive in identical state — and why "no transition may require a debug
+     command" is a structural property rather than something to re-check.
+
+     It deliberately does NOT touch: the inventory (what the player carries is theirs and
+     crosses with them), the compass and the milestones (progression, not dimension
+     state), the environmental-story latch (a callback needs the memory of its original,
+     which is the entire point of that system), the save, or the objective — the caller
+     re-resolves that once it has flipped the dimension flags, because an objective
+     resolved here would be resolved against the dimension being left.
+     =================================================================================== */
+  _leaveDimension(opts) {
+    const disableSpawning = !!(opts && opts.disableSpawning);
+    const p = this.player;
+
+    /* THE ANCHOR IS A BLOCK, AND THE BLOCK STAYS WHERE IT IS. */
+    this.anchorManager.removeAnchor();
+
+    /* NOTHING HOSTILE, NOTHING IN FLIGHT, NOTHING ON THE GROUND FOLLOWS. */
+    this.mobs.clearAll(disableSpawning);
+    if (!disableSpawning) this.mobs.spawningDisabled = false;
+    this.stalker.clearAll();
+    this.phantoms.clearAll();
+    this.arrows.clearAll();
+    for (const e of this.itemManager.entities.slice()) e.destroy();
+    this.itemManager.entities.length = 0;
+    this.ashParticles.setActive(false);
+    if (this.farmAnimals) this.farmAnimals.clearAll();
+    this.stalkerDistance = Infinity;
+
+    /* THE BODY'S TRANSIENT STATE. stationaryTimer is the one that matters: Static
+       Suburbia's Sanity drain reads it, so a player who stood still in the Farmlands for
+       a minute used to arrive in Suburbia already being drained for it. */
+    p.velocity.set(0, 0, 0);
+    p.stationaryTimer = 0;
+    if (p._cancelMining) p._cancelMining();
+    if (this.ui.storageOpen) this.ui.closeStorage();
+    if (this.ui.craftingOpen) { this.ui.craftingOpen = false; this.ui.craftingOverlay.classList.remove('active'); }
+    if (this.ui.backpackOpen) { this.ui.backpackOpen = false; this.ui.backpackOverlay.classList.remove('active'); }
+  }
+
   _transitionToLevel2() {
     this.pendingLevel2Transition = false;
     this.awaitingAdvance = false;
     this.ui.hideWinScreen();
+
+    /* PHASE 35 — put the Overworld down before picking the Farmlands up. This is what
+       clears the powered Anchor whose survival used to make the NEXT rift impossible to
+       open; see _leaveDimension. */
+    this._leaveDimension();
 
     this.world.wipeOverworldChunks();
 
@@ -38539,16 +38838,30 @@ class Game {
   // the CORE_DISK_L2 branch of the item-use handler). Unlike _transitionToLevel2()
   // this fires immediately with no win-screen detour, since there's no "survive N
   // nights" milestone to celebrate first. Dissolves the Farmlands away
-  // (wipeOverworldChunks leaves the pinned Static Suburbia pocket — already fully
-  // generated up front in _genStaticSuburbiaRegion — and the Anchor Monument's own
-  // pinned chunk untouched), drops the player at Suburbia's pre-cleared landing
-  // pad, and flips the dimension flags the rest of the loop (HUD banner, mob/
-  // stalker/sanity gating) reads.
+  // (wipeOverworldChunks leaves the 3x3 core _genStaticSuburbiaRegion pinned; PHASE 35
+  // generates the ring around it here, and the Anchor's own pin is released by the
+  // shared teardown), drops the player at Suburbia's pre-cleared landing pad, and flips
+  // the dimension flags the rest of the loop (HUD banner, mob/stalker/sanity gating)
+  // reads.
   _transitionToLevel3() {
+    /* PHASE 35 — the same teardown the Level 1->2 crossing runs, which includes the
+       animal rigs this method used to release by hand (PHASE 18: nothing may be left
+       holding a position in a world that no longer exists). */
+    this._leaveDimension();
+
     this.world.wipeOverworldChunks();
-    // PHASE 18 — release every animal rig before the dimension flag flips, so nothing
-    // is left holding a position in a world that no longer exists.
-    this.farmAnimals.clearAll();
+
+    /* PHASE 35 — ARRIVAL INTO A STREAMED DIMENSION, and this was missing.
+
+       The comment that used to stand here said Suburbia was "already fully generated up
+       front in _genStaticSuburbiaRegion". That has not been true since Phase 9 made the
+       suburb a streaming terrain variant: the region boot pins a 3x3 core and everything
+       else arrives through the ordinary radial streamer. Collision reads chunk.data
+       directly, so a player who walks off the pinned core before the ring around it has
+       been generated reads air and falls. The Level 1->2 crossing has generated its
+       arrival ring synchronously since Phase 16 and the Suburbia dev teleport has done
+       the same since Phase 9; only the real Level 2->3 rift did not. */
+    this.world._eagerLoadAround(this.world.suburbiaSpawn.x, this.world.suburbiaSpawn.z, 3);
 
     this.player.inFarmlands = false;
     this.player.inSuburbia = true;
@@ -38556,6 +38869,7 @@ class Game {
     this.player.hp = this.player.maxHp;
     this.player.velocity.set(0, 0, 0);
     this.player.position.copy(this.world.suburbiaSpawn);
+    this.player.pitch = 0;
     this.sanity.value = 100;
 
     this.ui.showToast('The Rift tears open \u2014 Static Suburbia awaits.', 3000);
@@ -38605,27 +38919,25 @@ class Game {
   }
 
   _transitionToLevel4() {
+    /* PHASE 35 — the shared crossing teardown, with mob spawning latched off: the Haven
+       is meant to contain no threat. It clears the Anchor and its rift too, which the
+       Haven's own teardown never did — a powered Anchor surviving into the Haven would
+       have put "Enter the Rift." on screen over the one dimension whose objective is a
+       single word. */
+    this._leaveDimension({ disableSpawning: true });
+
     // --- WORLD: flush everything, then build the Haven in its place -----------------
     // wipeAllChunks (unlike wipeOverworldChunks) also clears the pin registry, so the
     // Farmlands and Suburbia pockets are genuinely unloaded rather than left resident.
     this.world.wipeAllChunks();
     const spawn = this.world.generateFakeHaven();
 
-    // Clear every hostile/entity system so nothing follows the player through, and
-    // latch mob spawning off entirely — the Haven is meant to contain no threat.
-    this.mobs.clearAll(true);
-    this.stalker.clearAll();
-    this.phantoms.clearAll();
-    this.arrows.clearAll();
-    for (const e of this.itemManager.entities.slice()) e.destroy();
-    this.itemManager.entities.length = 0;
-    this.ashParticles.setActive(false);
     /* PHASE 18 — the Haven flushes the WORLD, not just its entities, so world life gets
-       the full teardown here rather than the cheap release: the pooled rigs leave the
-       scene graph too. The geometry and material caches are module-level and survive,
-       which is correct — they are shared, and rebuilding them would be the leak. */
+       the full teardown here rather than the cheap release the shared path does: the
+       pooled rigs leave the scene graph too. The geometry and material caches are
+       module-level and survive, which is correct — they are shared, and rebuilding them
+       would be the leak. */
     this.farmAnimals.destroyAll();
-    this.stalkerDistance = Infinity;
     // The Behemoth night-spawn gate is latched shut so it can never fire in the Haven.
     this.behemothSpawned = true;
 
@@ -39002,7 +39314,8 @@ class Game {
       suburbia: suburbia, haven: haven,
 
       // --- survival -------------------------------------------------------------------
-      hasWood: inv.hasItem(ITEM.OAK_LOG) || inv.hasItem(ITEM.WOOD_PLANK) || inv.hasItem(ITEM.STICK),
+      hasWood: inv.hasItem(ITEM.OAK_LOG) || inv.hasItem(ITEM.ASH_LOG) ||
+               inv.hasItem(ITEM.WOOD_PLANK) || inv.hasItem(ITEM.STICK),
       hasTool: hasTool,
       hasCoal: inv.hasItem(ITEM.COAL),
       hasTorch: inv.hasItem(ITEM.TORCH),
@@ -39238,7 +39551,7 @@ class Game {
     // the rift radius (riftTriggerRadius padded by the player's own halfWidth so
     // it's a true touch test, not just a center-point crossing). Level 2->3 still
     // calls _transitionToLevel3() directly, same as before.
-    if (this.anchorManager.riftActive && this.anchorManager.activeAnchor) {
+    if (this.anchorManager.riftReady()) {
       const distToRift = this.player.position.distanceTo(this.anchorManager.activeAnchor.pos);
       const touchRadius = this.anchorManager.riftTriggerRadius + (this.player.halfWidth || 0);
       if (distToRift <= touchRadius) {
@@ -39499,20 +39812,15 @@ class Game {
   }
 
   /* Tears down every entity/effect system that could otherwise follow the player
-     through a teleport. This is the same set the real Level 4 transition clears —
-     which is exactly why teleporting cannot duplicate mobs, arrows, dropped items,
-     the Stalker or a Phantom. */
+     through a teleport.
+
+     PHASE 35 — THIS IS NO LONGER A SECOND COPY. It used to be its own list, kept
+     approximately in step with the real Level 4 transition by hand; the real RIFT
+     transitions had no list at all. There is now one crossing teardown on the Game —
+     Game._leaveDimension — and this delegates to it, so a dev teleport and a rift arrive
+     in identical state and neither can drift from the other. */
   function clearEntities(g, { disableSpawning }) {
-    g.mobs.clearAll(!!disableSpawning);
-    if (!disableSpawning) g.mobs.spawningDisabled = false;
-    g.stalker.clearAll();
-    g.phantoms.clearAll();
-    g.arrows.clearAll();
-    for (const e of g.itemManager.entities.slice()) e.destroy();
-    g.itemManager.entities.length = 0;
-    g.ashParticles.setActive(false);
-    if (g.farmAnimals) g.farmAnimals.clearAll();   // PHASE 18 — world life never travels
-    g.stalkerDistance = Infinity;
+    g._leaveDimension({ disableSpawning: !!disableSpawning });
   }
 
   /* Unloads the Fake Haven pocket AND resets its build latch.
