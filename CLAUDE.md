@@ -1423,7 +1423,8 @@ Phase 34.1 — Audio Correction (human playtest)    (see section 61.05)
 Phase 34.2 — Audio Runtime Correction             (see section 61.06 — awaiting replay)
 Phase 34.3 — Audio Forensic Investigation         (see section 61.07 — awaiting replay)
 Phase 35 — Complete Dimension Cohesion            (COMPLETE — see section 62)
-Phase 36 — Complete Playable Alpha / Full Audit
+Phase 36 — Complete Playable Alpha / Full Audit   (COMPLETE — see section 62.5)
+Phase 37 — Architecture split, then Era 2
 
 Exact numbering may evolve, but previous completed phases must not be lost.
 
@@ -2642,6 +2643,136 @@ Do not add unnecessary major gameplay during cohesion work.
 
 ---
 
+# 62.5. PHASE 36 — COMPLETE PLAYABLE ALPHA / FULL GAME AUDIT — COMPLETE
+
+PHASE 36 CARRIED THIS OUT. The whole game has been walked from a real New Game to the
+credits in a real browser, over HTTP, with no debug command in it — and five ways the
+build could take a run away from a player were found and closed. This section is now a
+statement about the code, not an intention. See `PROGRESS.md` section 0.00000000000000000.
+
+**THE FINDING THAT MATTERS MOST IS NOT ANY OF THE FIVE BUGS.** All thirty-one offline
+suites and all nine browser suites were GREEN on the build this phase started from. Every
+fault below was found by reading the shipped code against the question "what happens to a
+player here". None of them was a broken function. This is the same shape as 34.1, 34.2 and
+34.3, and it is the reason Phase 36 exists as a gate rather than as a feature.
+
+# 62.5.1. THE FIVE WAYS A RUN COULD END, AND WHAT NOW HOLDS
+
+- **A GATE THAT DECIDES WHETHER THE GAME CAN BE FINISHED MAY NOT BE A ONE-SHOT BOOLEAN
+  UNLESS THE THING IT GATES IS SAVED.** `behemothSpawned` was written into the save; the
+  Behemoth was not, because no mob is. Save on the third night, or refresh the page and
+  press CONTINUE, and the gate had fired on a creature that no longer existed — and it
+  carries the only Level 1 Core Disk in the game, so everything after it was unreachable
+  for the rest of that save. The same dead end was reachable with no save at all: walk
+  away from it past `CHUNK_UNLOAD_RADIUS` and it falls through a disposed chunk forever.
+  The gate now asks LIVE STATE — `dayCount >= 3`, the Disk never collected, no Disk on the
+  ground, no Behemoth standing. `behemothSpawned` is still written and still saved and no
+  longer decides anything.
+
+- **A MOB BELOW `MOB_VOID_Y` IS REAPED, AND IT IS NOT A DEATH.** No loot, no kill count,
+  no sound. It was never killed; it is not there. Without this the Behemoth's own gate
+  would stay shut on a Behemoth nobody can reach.
+
+- **A POWERED ANCHOR HANDS ITS DISK BACK WHEN IT IS BROKEN.** Feeding a Disk consumes it;
+  the monument is a block with three seconds of hardness that the game has spent the whole
+  run teaching the player to left-click. One click destroyed the rift and the only key
+  that could open it. Refusing the break would have been an invisible wall (section 65);
+  returning the Disk is the honest answer and needs no rule explained. It returns the
+  RIGHT Disk — a Level 1 Disk is inert against a Farmlands Anchor.
+
+- **A BUTTON MUST DO WHAT IT SAYS.** The Behemoth's victory screen offered ENTER THE
+  SHATTERED FARMLANDS and ran `_advanceStage()` — difficulty up, nights required three to
+  four, and the player teleported back to the world spawn away from the Anchor they had
+  just raised. `pendingLevel2Transition` is never true when that screen is up. The screen
+  now dismisses and says `CORE DISK RECOVERED` / `CONTINUE`; the crossing is the rift and
+  has been since Phase 5A. `UIManager.winScreenMode` is the record of which screen is up,
+  and the Behemoth's no longer borrows `awaitingAdvance`, which means one thing and is
+  saved.
+
+- **A FULL-SCREEN PANEL WITH ONE BUTTON IS NOT PART OF PLAY, SO THE WORLD STOPS BEHIND
+  IT.** Same shape as the Phase 22 settings pause and written directly above it. The
+  Behemoth's screen arrives in the middle of the third night, over live mobs, with pointer
+  lock released.
+
+- **EVERYTHING FULL-SCREEN IS CLEARED IN `resetPresentation()`.** `#blackCut` (z 65),
+  `#creditsScreen` (z 70), `#fadeWhite` (z 60) and `#winScreen` (z 60) were added and
+  never removed by anything, and all four sit ABOVE the settings panel at 56 — which is
+  where a New Game is taken from. Phase 33 fixed the HUD's inline `display` for exactly
+  this reason and stopped there. Section 53's rule now covers the whole document.
+
+# 62.5.2. THE RULES THAT CAME OUT OF IT
+
+- **A PROGRESSION ITEM THAT EXISTS ONLY AS A DROPPED ENTITY IS UNSAVED, AND THEREFORE
+  LOSABLE.** A Rift Core Disk lives in a container, then on the ground, then in the pack.
+  The middle state is not in the save and Q drops the held stack. The loader now returns a
+  Disk that was HELD, is not carried, and has not been SPENT — three questions answered by
+  fields the save already had (`riftDisks`, the inventory, `dimensionsBreached` / the
+  anchor record / `fakeHavenTriggered`). Reported like every other repair. **The save
+  schema did not change and is still version 5.**
+
+- **THE OBJECTIVE LINE IS PRESENTATION AND TICKS ON WALL-CLOCK TIME.** `dt` is clamped to
+  0.06 for physics safety, which makes elapsed time a function of frame rate: on a slow
+  machine the quarter-second accumulator took five real seconds and the line lagged the
+  state it described. It takes `filmDt`, for the reason Phase 30 wrote down. `filmDt`'s
+  consumers are now ENUMERATED BY NAME in `tests/opening.js` rather than counted, and the
+  five simulation systems are separately asserted to be on the clamped delta.
+
+- **A DRAIN THAT ONLY BOUNDS ONE SIDE IS HALF A MECHANIC.** Static Suburbia's Sanity had
+  two negative rates and no floor, so a player reached zero in sixty-seven seconds and
+  stayed there for the whole of the longest unguided search in the game — reading the
+  street through full-strength grain, a 1.15 vignette, channel split and the edge mirage.
+  Worse, "standing still is punished" cannot be felt from the bottom of the scale. Walking
+  now settles at 34 (`p-breaking`), standing still falls to 8 (`p-lost`), and walking
+  recovers at 2.2/s. Nothing else about the dimension changed and Sanity still costs no
+  health anywhere. This is the same sentence 61.05 wrote about audio, in a different
+  system.
+
+- **AND THE AUDIO LESSON, FOR THE THIRD TIME, IN ITS SHARPEST FORM YET: WHEN A NUMBER IS A
+  LIMIT, CHECK THAT THE THING MEASURING IT CAN REPRESENT A VALUE PAST THE LIMIT.**
+  `volumedetect` converts to 16-bit before it counts, and 16-bit CLAMPS — so it reported
+  `max_volume: 0.0 dB` for a float source whose true peak was **+8.89 dBFS**, and that
+  source was `sfx.ui.click`, the interface click bound to every control in the game. It
+  shipped with 132 samples pinned flat. `astats` reads the float domain and does not
+  clamp. Then a second layer under it: **a computed gain is a PREDICTION**, and
+  sample-rate conversion and lossy encoding both raise the peak above the highest sample
+  they were given — up to 1.33 dB, measured. `encode_within_ceiling()` encodes, measures
+  what came out, and encodes once more FROM THE ORIGINAL if it landed over. Result across
+  the 274-file library: **clipped 3 -> 0**, over the ceiling 17 -> 8, of which six measure
+  exactly -1.50.
+
+- **REBUILD WHAT CHANGED, NOT EVERYTHING.** A full rebuild rewrites 177 binaries;
+  recomputing every gain and comparing showed 145 unchanged. `build_runtime.py` takes a
+  comma-separated list of asset KEYS as well as a kind, and 27 files were rebuilt. **No
+  original was touched and no filename changed**, so `AUDIO_CREDITS` and `AUDIO_INDEX.md`
+  still join.
+
+- **`PLAYTEST.md` IS THE HUMAN GATE AND IT IS PART OF THE BUILD.** It says, first and in
+  the largest words available, to SERVE THE GAME OVER HTTP. Everything else in it is a
+  list of things to look at and the six questions to ask in each place. A phase that
+  changes what the game feels like is not complete until somebody has played it.
+
+- **`tests/playability.js` AND `tests/browser-playability.js` ARE THE GATE'S OWN SUITES.**
+  The browser one walks New Game -> opening -> Overworld timber -> real recipes -> a real
+  Anchor -> the third night -> the Behemoth's OWN GATE -> a save and a page reload -> the
+  kill -> the Disk -> the victory screen's button -> the rift -> the Farmlands -> ash ->
+  the guaranteed chest -> the second rift -> Suburbia -> the Disconnected Home -> the
+  Level 3 Disk -> the Haven -> the shift -> the finale -> the hard cut -> the credits -> a
+  New Game from the credits. **The Suburbia -> Haven leg had never been walked by any
+  suite.** Add to these when a future phase finds a new way to strand a player.
+
+# 62.5.3. WHAT PHASE 36 DELIBERATELY DID NOT DO
+
+- **NO ERA 2 WORK AND NO ARCHITECTURE SPLIT.** The voxel renderer, the terrain, the
+  structures and the one-file build are all untouched. That is Phase 37 and after.
+- **DIMENSION 1 WAS AUDITED FOR CORRECTNESS AND NOT IMPROVED.** It is slow and thin and it
+  is scheduled for replacement; polishing it is work thrown away. Its six structural
+  problems are written down in ROADMAP.md section 83.1 for the phase that rebuilds it. Do
+  not "fix" it with filler.
+- **NOTHING WAS ADDED.** No dimension, no mechanic, no enemy, no crafting, no quest. Every
+  change in the phase is a repair, a floor on an existing curve, or a test.
+
+---
+
 # 63. ERA 2
 
 Era 2 is the major visual identity revolution.
@@ -3141,9 +3272,21 @@ A phase is complete only when:
 
 # 84. CURRENT DEVELOPMENT PRIORITY
 
-The project is currently in Era 1.
+The project is currently in Era 1, and Era 1's implementation work is COMPLETE.
 
-The immediate phase after Phase 19 is:
+**THE OUTSTANDING GATE IS A HUMAN PLAYTHROUGH.** Phase 36 walked the whole game from a
+real New Game to the credits in a real browser and repaired five ways the build could take
+a run away from a player, but nothing in this repository has been played and nothing in it
+has been listened to. `PLAYTEST.md` is the script, and it must be played from a SERVED
+build (`python3 -m http.server 8000`, then `http://localhost:8000/game.html`) — opening
+the file from disk plays none of the 274 recorded sounds.
+
+The next implementation phase is Phase 37 (the architecture split), and then Era 2.
+
+The section below is kept because it is still the standard the Farmland chapter is held
+to. Phase 20 is COMPLETE.
+
+The immediate phase after Phase 19 was:
 
 PHASE 20:
 FARMLANDS JOURNEY + DISCONNECTED HOME 2.0

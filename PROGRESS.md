@@ -4,8 +4,8 @@
 HOW TO RUN IT              SERVE IT. python3 -m http.server 8000, then
                            http://localhost:8000/game.html  — opening game.html
                            from disk plays NO recorded audio at all (section 0.000000000000000)
-Current phase              35 — COMPLETE DIMENSION COHESION (needs a human replay)
-Next phase                 36 — COMPLETE PLAYABLE ALPHA / FULL AUDIT
+Current phase              36 — COMPLETE PLAYABLE ALPHA / FULL AUDIT (needs a human playthrough)
+Next phase                 37 — architecture split, then ERA 2
 Phase 19                   COMPLETE
 Phase 20                   COMPLETE
 Phase 20 journey revision  COMPLETE           (20.1 — see section 0)
@@ -28,6 +28,15 @@ Phase 34.1 correction      IMPLEMENTED        (see section 0.0000000000000)
 Phase 34.2 correction      IMPLEMENTED        (see section 0.00000000000000)
 Phase 34.3 correction      IMPLEMENTED        (see section 0.000000000000000 — NOT yet replayed)
 Phase 35                   COMPLETE           (see section 0.0000000000000000 — NOT yet replayed)
+Phase 36                   COMPLETE           (see section 0.00000000000000000 — NOT yet played by a human)
+Whole chain, one run       WALKED             (browser-playability.js: New Game -> credits, no debug command)
+Behemoth gate              LIVE STATE         (a saved latch made a reload unfinishable; 36)
+Powered Anchor             RETURNS ITS DISK   (breaking one used to end the run silently; 36)
+Boss victory screen        DISMISSES          (its button teleported the player and raised the difficulty)
+Win screen                 PAUSES THE WORLD   (it appears on the third night, over live mobs)
+Ending overlays            CLEARED            (blackCut/credits/white wash outlive nothing now)
+Suburbia Sanity            HAS A FLOOR        (it pinned at zero for the whole dimension)
+Runtime audio              0 CLIPPED          (was 3; the peak ceiling is enforceable at last)
 Rift chain                 REPAIRED           (Level 2 -> 3 was IMPOSSIBLE in every earlier build)
 Dimension crossings        ONE TEARDOWN       (Game._leaveDimension; the dev teleports call it too)
 Ash Log                    ITEM 42            (the Farmlands had no wood a player could pick up)
@@ -43,24 +52,372 @@ Final creature             185m, 7 BEATS      (32s; a silhouette, never lit, nev
 Void Sovereign             REMOVED            (the 8m monolith was a boss; section 0.00000000000)
 Audio library              187 ASSETS         (assets/audio/AUDIO_INDEX.md is the map)
 Audio runtime copies       assets/audio/runtime/  DISPOSABLE (rebuild: tests/tools/build_runtime.py,
-                           then VERIFY with tests/tools/measure_runtime.js — 35 fixed a peak-ceiling
-                           bug in the builder that could not be exercised here; 17 files ship over it)
+                           then VERIFY with tests/tools/measure_runtime.js — 36 rebuilt the 27 assets
+                           whose gain was wrong; 0 clipped, 2 over the ceiling by under 0.3 dB)
 Settings                   SEVEN              (34 added ambienceVolume)
 Save schema                VERSION 5          (4 -> 5 adds progression.noticed; 34 and 35 did NOT change it)
 Authoritative build        game.html          (there is no other game file)
 Canonical story            STORY.md           (read before writing ANY player text)
 Validation suite           tests/             (see tests/README.md)
+Human playtest script      PLAYTEST.md        (SERVE IT OVER HTTP; no debug commands)
 ```
 
 Phases 1–19 are as their sections in `ROADMAP.md` describe them. This file records the
 state of Phase 20 specifically: what was built, what was measured, what was found and
 fixed along the way, and what is honestly not verified.
 
-**Sections 0.0000000000000000–0.5 describe the phases that followed (35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 23, 22, 21, 20.2). Sections 1–5
+**Sections 0.00000000000000000–0.5 describe the phases that followed (36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 23, 22, 21, 20.2). Sections 1–5
 describe Phase 20 as it was first delivered, and Section 0 describes the 20.1 journey
 revision that followed a human playtest and supersedes them wherever they disagree** — principally the beat table, the landmark set, the distances, and the
 performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
 instruction and the compass and changed no world generation at all.
+
+---
+
+## 0.00000000000000000. PHASE 36 — COMPLETE PLAYABLE ALPHA / FULL GAME AUDIT
+
+**Phase 35 proved the rift chain worked. This phase asked the next question — can an
+ordinary player get from the main menu to the credits without the game taking the run
+away from them — and the answer was no, in five different places, on a build where all
+thirty-one offline suites and all nine browser suites were green.**
+
+That sentence is the finding. Every fault below was found by reading the shipped build
+against the question "what happens to a player here", not by a test going red. None of
+them was a broken function; all of them were correct code answering a question nobody had
+asked it.
+
+---
+
+# 1. THE FIVE WAYS THE BUILD COULD END A RUN
+
+## 1.1 THE BEHEMOTH GATE WAS A ONE-SHOT BOOLEAN — AND THE BEHEMOTH IS NOT SAVED
+
+```js
+if (this.env.isNight && this.dayCount === 3 && !this.behemothSpawned && ...) {
+  this.behemothSpawned = true;
+  this.mobs.spawnBehemoth(spawnPos);
+```
+
+`behemothSpawned` is written into the save file. The Behemoth is not, because **no mob
+is** — `_teardownForRestore` calls `mobs.clearAll(true)` and nothing puts one back.
+
+So: save on the third night, or simply refresh the browser and press CONTINUE, and the
+game came back with the gate already fired and the thing it fired gone. The Hollowed
+Behemoth carries the **only** Level 1 Core Disk in the game (one loot table, chance 1.0,
+one call site). Without it there is no rift, so the Shattered Farmlands, Static Suburbia,
+the Fake Haven and the finale were all unreachable **for the rest of that save**, with
+nothing on screen to say so and no way to tell it had happened.
+
+**The same dead end was reachable with no save at all.** The Behemoth stops chasing past
+`AGGRO_RANGE` (18 blocks) and is slower than the player, so it can be walked away from —
+which is the ordinary thing to do when a six-metre thing turns up on night three. Past
+`CHUNK_UNLOAD_RADIUS` (10 chunks, 160 blocks) its chunk is disposed; `getBlockWorld`
+answers `AIR` for a chunk that is not resident; `Mob.update` applies gravity
+unconditionally and there was no floor to find. It fell for the rest of the session.
+
+**THE REPAIR — THE GATE IS LIVE STATE, NOT A LATCH.** It now asks the four things that
+are true exactly when a player has no way forward:
+
+```js
+if (this.env.isNight && this.dayCount >= 3 && !this.behemothDefeated &&
+    !this.mobs.hasBehemoth() && !this._coreDiskAwaitingPickup() && ...)
+```
+
+`>= 3` rather than `=== 3`, because a run that lost its Behemoth on night three has to be
+able to recover on night four. `hasBehemoth()` is a three-line scan of a list that is
+almost always empty. `_coreDiskAwaitingPickup()` stops a kill being answered with a second
+Behemoth while the Disk is still lying on the ground. `behemothSpawned` is still written
+and still saved — the debug report reads it and older saves carry it — it simply no longer
+decides anything.
+
+And `MOB_VOID_Y` (-8): a mob below the floor of the world is **reaped, not left falling**.
+Not a death — no loot, no kill count, no sound. It was never killed; it is not there.
+
+## 1.2 A POWERED ANCHOR COULD BE MINED, AND THE DISK WENT WITH IT
+
+Feeding a Rift Core Disk to an Anchor consumes it. The Anchor is a block with 3.0 hardness
+and no tool requirement, and Phase 28's whole onboarding teaches that the left button is
+how you find out what a block is. One click on the thing that had just lit up ran
+`destroyBlock` -> `removeAnchor()` -> `riftActive = false`, returned the monument, and
+returned **nothing else**. The rift was gone, the Disk was gone, there is no second source
+of any Core (STORY.md section 9), and the run was over with nothing said.
+
+**THE REPAIR.** Refusing the break would have been an invisible wall, which CLAUDE.md
+section 65 rules out. The Disk is inside the monument, so taking the monument apart returns
+it:
+
+```js
+const spent = this.anchorManager.riftActive
+  ? (this.anchorManager.riftTargetLevel === 3 ? ITEM.CORE_DISK_L2 : ITEM.CORE_DISK)
+  : null;
+if (spent !== null) this.itemManager.spawnDrop(spent, 1, centerPos);
+```
+
+The **right** Disk, because a Level 1 Disk is inert against a Farmlands Anchor and handing
+back the wrong one would be a second, quieter softlock. An unpowered Anchor is untouched.
+
+## 1.3 THE VICTORY SCREEN'S BUTTON DID NOT DO WHAT IT SAID, AND WHAT IT DID WAS HARMFUL
+
+`triggerBossVictory()` put up **THE HOLLOWED BEHEMOTH FALLS**, a subtitle reading
+`CORE DISK RECOVERED • LEVEL 2: THE SHATTERED FARMLANDS UNLOCKED`, and one button labelled
+**ENTER THE SHATTERED FARMLANDS**.
+
+```js
+if (this.pendingLevel2Transition) this._transitionToLevel2();
+else this._advanceStage();
+```
+
+`pendingLevel2Transition` is set on exactly one line in the whole build, on the frame the
+player's body touches a rift's trigger radius, and it is cleared as the first statement of
+`_transitionToLevel2`. **It is never true when this screen is up.** So the button always
+fell through to `_advanceStage()`, which raises the stage, raises the difficulty multiplier
+and the mob cap, puts the nights required from three to four, resets the fragment count and
+**teleports the player to the world spawn** — away from the Anchor they had just raised and
+the rift they were one right-click from opening. The screen covers the viewport, releases
+pointer lock and has no other exit, so nobody could decline it.
+
+**THE REPAIR.** `UIManager.winScreenMode` records which of the two screens is up
+(`'stage'` or `'boss'`), the button asks, and the Behemoth's screen now runs
+`_dismissBossVictory()` — hide, repaint the vitals, re-resolve the objective, take pointer
+lock back. Nothing else. Its subtitle is `CORE DISK RECOVERED` and its button is
+`CONTINUE`, because since Phase 5A the crossing has been the rift and only the rift.
+
+**And it no longer borrows `awaitingAdvance`.** That flag means one thing — a stage has
+been cleared and not yet descended past — and it is saved, and on load it is what puts the
+screen back. The Behemoth's screen setting it made the two indistinguishable in a save
+file, and because `behemothDefeated` is true forever afterwards, the restore branch's
+discriminator meant **every** stage screen taken later in the run came back from a reload
+wearing the Behemoth's title. The restore is now one line.
+
+## 1.4 THE WORLD SIMULATED BEHIND THAT SCREEN
+
+`#winScreen` is `position: fixed; inset: 0` at 95% opacity, z-index 60, and
+`document.exitPointerLock()` is called as it goes up. The frame loop kept running: mobs
+kept moving, kept attacking, and the clock kept turning. The Behemoth's screen appears in
+the **middle of the third night**, which is the most dangerous moment in the Overworld, and
+the player was being asked to read a modal while being attacked behind it, unable to look
+or aim.
+
+**THE REPAIR** is the shape Phase 22 already established for the settings panel, written
+directly above it so the two cannot drift apart: if a win screen is up, render the frame
+and return. The frame is still drawn so the panel sits over the world, and `getDelta()` is
+still consumed every frame, so closing it cannot deliver one enormous `dt`.
+
+## 1.5 NOTHING EVER TOOK THE ENDING'S FULL-SCREEN LAYERS DOWN
+
+`hardCutToBlack()` adds `#blackCut.on` (z 65). `showCredits()` adds `#creditsScreen.active`
+(z 70). `_beginFakeHavenSequence` drives `#fadeWhite` to opacity 1 (z 60). **Nothing in the
+build removed any of the three**, and `resetPresentation()` — which CLAUDE.md section 53
+names as the one place anything transient is cleared — cleared none of them, nor the win
+screen.
+
+All four sit **above the settings panel at z 56**, which is where a New Game is taken from.
+Phase 33 made a New Game from the ending reachable on purpose (requirement 25) and fixed
+the HUD's inline `display:none`; these four were the rest of it. Without them the next run
+played out under an opaque sheet for the rest of the session, recoverable only by reloading
+the page.
+
+Four lines in `resetPresentation()`. And one more in the same family:
+`_transitionToLevel4()` is the far side of a 1.5-second timer, and O opens settings during
+those 1.5 seconds — a New Game taken inside that window was flushed into the Haven by a
+timer belonging to a run that no longer existed. `if (!this.fakeHavenTriggered) return;`.
+
+---
+
+# 2. STATIC SUBURBIA SPENT THE WHOLE DIMENSION AT THE BOTTOM OF THE SCALE
+
+Not a softlock; a severe presentation defect, and it was measured rather than argued about.
+
+```js
+const BASE_DRAIN = 1.5;       // while moving
+const STATIONARY_DRAIN = 6.0; // once still
+const delta = -(accelerating ? STATIONARY_DRAIN : BASE_DRAIN);
+```
+
+Both rates negative, neither bounded, and `_transitionToLevel3` sets Sanity to 100 on
+arrival. **A player reached zero in about sixty-seven seconds and stayed there.** The
+post-FX shader reads Sanity directly, so from that minute onward the search happened
+through full-strength grain (0.64), a 1.15 vignette, radial channel split and the edge
+mirage at full amplitude — and Static Suburbia is the **longest unguided stretch in the
+game**, because the Disconnected Home sits four to six superblocks out on a ring with
+nothing pointing at it.
+
+Rendered rather than reasoned about, per CLAUDE.md section 78 —
+`tests/renders/sanity-suburbia-{100,60,34,30,8,0}.png`. At 30 the street is atmospheric and
+completely legible. At 0 it is a grey rectangle.
+
+**The mechanic also stopped being a mechanic.** "Standing still is punished" cannot be felt
+from the bottom of the scale: once pinned, stopping did nothing and moving did nothing, so
+the beat the system exists for stopped landing after the first minute — and the Phase 27
+perception instrument, whose whole job is to report how steady the line is, reported
+`p-lost` and nothing else for the rest of the dimension.
+
+**THE REPAIR** is the same two rates with the two floors that make them mean something, and
+one slow climb back:
+
+| | value | perception state | measured |
+|---|---|---|---|
+| walking settles at | 34 | `p-breaking` | 44s from arrival, then held for ten minutes |
+| standing still falls to | 8 | `p-lost` | ~4.5s from the walking floor |
+| walking recovers at | 2.2/s | | back to 34 in ~12s |
+
+Slower than either drain, so relief is never instant; and ten minutes of walking never
+gets back to comfortable. Nothing else about the dimension changed: no torch, no safe
+zone, no Stalker, and Sanity still costs no health anywhere.
+
+---
+
+# 3. THE AUDIO PEAK CEILING, AND THE THIRD INSTALMENT OF THE SAME LESSON
+
+Phase 35 found that `build_runtime.py` took a one-shot's peak from a mono 22.05 kHz
+downmix, fixed the tool, and could not rebuild anything because this container had no
+ffmpeg. It recorded the debt honestly: **fourteen assets above the -1.5 dBFS ceiling,
+three of them clipped** (a fresh measurement at the start of this phase found seventeen,
+the extra three being marginal MP3 overshoot it had rounded past). Phase 36 had a full
+ffmpeg and paid it — and found two more layers of the same mistake underneath.
+
+## 3.1 `volumedetect` SATURATES, SO IT CANNOT SEE A PEAK ABOVE THE CEILING IT DEFENDS
+
+`volumedetect` converts to 16-bit before it counts anything, and a 16-bit conversion
+**clamps**. For a floating-point source whose samples go above full scale it reports
+`max_volume: 0.0 dB` and cannot, by construction, report anything higher — so
+`PEAK_CEIL - peak` was computed against a number that had already been cut off at the
+limit it was supposed to be enforcing.
+
+**One asset in the library is like that and it is the worst possible one.**
+`sfx.ui.click` — the interface click Phase 34.2 bound to every control in the game — is a
+32-bit float WAV whose true peak is **+8.89 dBFS**, two and a half times full scale.
+Phase 35 gave it -1.5 dB, which is 8.9 dB short, and it shipped with 132 samples pinned
+flat. Every button press in the game played a clipped sample.
+
+`true_peak_db()` reads `astats`, which reports in the float domain and does not clamp.
+All 169 non-footstep sources in the library were measured both ways; the other 168 agree
+with `volumedetect` to within 0.05 dB, which is why exactly one file's gain changed when
+this landed.
+
+**WHAT THE CLICK NOW SOUNDS LIKE IS A THING TO LISTEN FOR.** Bringing a source whose body
+sits 8.9 dB over full scale under the ceiling necessarily brings its body down with it: the
+click went from -24.0 dBFS RMS with 132 samples flat-topped to -32.5 with none, against a
+one-shot median of -29.1. It is clean and slightly quiet rather than loud and distorted,
+and the two variants of the cue (`sfx.ui.click` and `sfx.ui.click2`) are now 6 dB apart
+where they used to be 9.6. Whether it still reads as a click is a judgement for a person —
+`PLAYTEST.md` asks for it on the start screen.
+
+## 3.2 A COMPUTED GAIN IS A PREDICTION, AND FOR ANYTHING RESAMPLED IT IS WRONG
+
+Every runtime asset is written at 44.1 kHz and a third of the sources are not recorded
+there. Sample-rate conversion reconstructs the waveform **between** the original samples
+and routinely rises above the highest sample it was given; lossy encoding does the same.
+Measured: `sfx.electric`, source peak -3.01 dBFS, given +1.5 dB, landed at **-0.49**.
+`sfx.branch.crackle` overshot by **1.33 dB**.
+
+`encode_within_ceiling()` encodes, **measures what came out**, and encodes once more from
+the ORIGINAL (never from the first output, so an MP3 is never encoded twice) with the
+overshoot subtracted. Nine of the thirteen it was pointed at needed the second pass.
+
+## 3.3 WHAT WAS ACTUALLY REBUILT, AND WHY NOT MORE
+
+A full rebuild changes 177 of 274 binaries. Recomputing every gain with the corrected tool
+and comparing showed **145 unchanged and 24 changed** — the beds and the footstep sets were
+right all along, because a bed has always taken both numbers from `measure()`. So
+`build_runtime.py` learned to take a comma-separated list of asset KEYS as well as a kind,
+and **27 files** were rebuilt: the 24 whose gain the peak fix moved, plus the three BEDS
+whose encoded output overshot the ceiling after it (`bed.haven.hearth`, `bed.farm.wind`,
+`bed.rain.heavy` — their input gains were right, their output peaks were not).
+
+Measured end to end with `tests/tools/measure_runtime.js` — 274 files decoded in a real
+browser, which is the only thing here that can decode the 121 MP3s:
+
+| | before | after |
+|---|---|---|
+| clipped (>4 samples at full scale) | **3** | **0** |
+| above the -1.5 dBFS ceiling | 17 | 8, of which 6 measure exactly -1.50 |
+| genuinely over, and by how much | 8.9 dB worst | 0.30 dB worst (`sfx.branch.crackle`) |
+| RMS spread across the library | -41.5 .. -14.6 | -39.9 .. -19.4 |
+
+**NO ORIGINAL WAS TOUCHED.** `assets/audio/` is never read by the game and never written by
+the tools. Filenames are unchanged, so `AUDIO_CREDITS` and `AUDIO_INDEX.md` still join.
+
+**WHAT WAS DELIBERATELY LEFT.** Six files carry a DC offset between 0.005 and 0.027. DC at
+that level is inaudible, costs at most 0.24 dB of headroom, and removing it means a
+highpass on files that are otherwise correct. Measured, judged, and recorded rather than
+churned. The two files still over the ceiling are over it by 0.30 and 0.03 dB with zero
+pinned samples: that is MP3 decoder disagreement between ffmpeg and the browser, not a
+build fault.
+
+---
+
+# 4. TWO SMALLER REPAIRS
+
+**The objective line lagged the game on a slow machine.** `objectives.update(dt, ...)` took
+the physics-clamped delta, so the quarter-second accumulator filled in a quarter-second of
+SIMULATED time — five real seconds on a machine drawing ten frames a second. It is a HUD
+element, so it takes the same wall-clock delta the opening film takes, for the reason
+Phase 30 wrote down. `tests/opening.js` now enumerates `filmDt`'s consumers by name instead
+of counting them, and separately asserts that the five simulation systems are still on the
+clamped one.
+
+**A Rift Core Disk that was held, is not carried, and has not been spent comes back on
+load.** A Disk lives in a container, then on the ground as an `ItemEntity`, then in the
+pack. The middle one is not saved. Q drops the held stack. So a player who dropped a Disk
+and saved — or saved in the second between a container opening and the drop reaching their
+feet — loaded into a run that could not be finished. The loader now asks three questions of
+state the save already carries (`riftDisks`, the inventory, and `dimensionsBreached` /
+the anchor record / `fakeHavenTriggered` for "spent") and reports the repair like every
+other repair. **The save schema did not change; it is still version 5.**
+
+---
+
+# 5. WHAT WAS AUDITED AND FOUND CORRECT
+
+Recorded because "we looked and it was fine" is worth as much as a fix, and because the
+next phase should not re-derive it:
+
+- **The whole rift chain**, end to end, in a real browser over HTTP, with no debug command
+  in it — see `tests/browser-playability.js`. It walks New Game -> opening -> Overworld
+  timber -> real recipes -> real Anchor -> the third night -> the Behemoth's own gate ->
+  a save and a page reload -> the kill -> the Disk -> the victory screen's button -> the
+  rift -> the Farmlands -> ash -> the guaranteed chest -> the second rift -> Suburbia ->
+  the Disconnected Home -> the Level 3 Disk -> the Haven -> the shift -> the finale -> the
+  hard cut -> the credits -> a New Game from the credits. **The Suburbia -> Haven leg had
+  never been walked by any suite.**
+- **Respawn** puts the player back in the dimension they died in (Phase 35), and nothing in
+  Levels 2 or 3 damages them, so the Suburbia drain cannot kill.
+- **The Farmlands can pay for their own Anchor** (Phase 35's Ash Log), confirmed live.
+- **`_leaveDimension` is still the one teardown** and every crossing still runs it.
+- **The Haven still refuses to save** and its schema is still absent from `SAVE_DIMENSIONS`.
+- **The audio director** selects the right scene in every dimension, day and night, with
+  live beds and measurable signal on every bus — `tests/audio-audit.js`, re-run after the
+  rebuild.
+- **STORY.md was not changed.** Nothing in this phase writes player-facing text except the
+  two strings on the victory screen, and both were shortened toward saying less: the line
+  that claimed a dimension was "UNLOCKED" is gone.
+
+---
+
+# 6. WHAT IS HONESTLY NOT DONE
+
+- **NO HUMAN HAS PLAYED THIS BUILD.** Everything above is automated and browser validation.
+  `PLAYTEST.md` is the script for the playthrough that is the actual Phase 36 gate.
+- **Nothing in this repository has been listened to.** Headless Chromium renders audio to a
+  null device. The peak repair is a measurement, not a judgement about how anything sounds.
+- **Dimension 1 was audited functionally and deliberately not improved.** It is slow and
+  thin and Era 2 replaces it. Its structural problems are recorded in ROADMAP.md, not fixed.
+- **The Disconnected Home in Static Suburbia is the least-guided thing in the game.** It is
+  256-384 blocks from arrival on a deterministic ring, the objective line is "Find what
+  doesn't belong.", and nothing points at it. It is REACHABLE — proved live — and whether
+  it is FINDABLE by a person in a reasonable time is the single most important question in
+  `PLAYTEST.md`. No change was made on a guess.
+- **The suburb's inverted house is entered from the side, not the front.** The buried gable
+  leaves a four-block face under the front wall and a one-block step at the ridge line, so
+  the way in is round the side rather than through the door. It IS walkable, and that is
+  now proved rather than assumed: `playability.js` section 11 walks a body with the
+  player's real dimensions, through the game's own collision, from standable street
+  eighteen blocks out to a position **5.76 blocks from eye to chest against a reach of
+  6** — 4,310 positions searched, no block broken. It works; it is not gracious, and a
+  future phase that rebuilds this structure should give it a door.
+- **Six runtime files carry a small DC offset** and two sit 0.03-0.30 dB above the peak
+  ceiling. Both are recorded in section 3.3 and neither was churned.
 
 ---
 

@@ -2303,7 +2303,13 @@ Fix contradictions and weak connective tissue.
 
 ---
 
-# 54. PHASE 36 — TECHNICAL DEBT / LEGACY CLEANUP
+# 54. TECHNICAL DEBT / LEGACY CLEANUP  (was numbered "Phase 36" here)
+
+**NUMBERING NOTE.** This section was written when "Phase 36" meant a legacy-cleanup pass.
+The phase that was actually delivered as 36 is the PLAYABLE ALPHA / FULL GAME AUDIT
+(section 83), and the cleanup below now belongs with Phase 37's architecture split, which
+is where the file is opened up anyway. The brief is kept verbatim because it is still
+correct about what needs doing; only its number moved.
 
 Purpose:
 
@@ -3525,22 +3531,64 @@ Claude Code should inspect the repository before making assumptions.
 
 Current completed milestone:
 
-Phase 35 — Complete Dimension Cohesion
-(Phase 34 final audio integration and its 34.1/34.2/34.3 corrections, Phase 33 final
-creature, Phase 32 Fake Haven, Phase 31 environmental storytelling, Phase 30 opening lore
-film, Phase 29 main-menu rebirth + UI typography, Phase 28 tutorial removal, Phase 27 HUD
-rebirth, Phase 26 XP removal, Phase 25 dynamic objectives, Phase 24 canonical story
-foundation, Phase 23 save/load, Phase 22 settings, Phase 21 dropped item ground contact,
-and Phase 20 including the 20.1 journey revision and the 20.2 guidance pass — see
-PROGRESS.md, and STORY.md for the canon)
+Phase 36 — Complete Playable Alpha / Full Game Audit
+(Phase 35 dimension cohesion, Phase 34 final audio integration and its 34.1/34.2/34.3
+corrections, Phase 33 final creature, Phase 32 Fake Haven, Phase 31 environmental
+storytelling, Phase 30 opening lore film, Phase 29 main-menu rebirth + UI typography,
+Phase 28 tutorial removal, Phase 27 HUD rebirth, Phase 26 XP removal, Phase 25 dynamic
+objectives, Phase 24 canonical story foundation, Phase 23 save/load, Phase 22 settings,
+Phase 21 dropped item ground contact, and Phase 20 including the 20.1 journey revision and
+the 20.2 guidance pass — see PROGRESS.md, and STORY.md for the canon)
+
+**THE HUMAN PLAYTHROUGH IS THE OUTSTANDING GATE.** Phase 36 walked the entire game from a
+real New Game to the credits in a real browser with no debug command in it, and repaired
+five ways the build could take a run away from a player. Nobody has PLAYED it. The script
+for that playthrough is `PLAYTEST.md`, and it must be played from a SERVED build
+(http://localhost:8000/game.html), never from disk — opening the file directly plays none
+of the 274 recorded sounds.
 
 Current next major phase:
 
-Phase 36 — Complete Playable Alpha / Full Audit
+Phase 37 — Architecture split (then Era 2)
 
-NOTE. Phases 34.1 through 35 all changed what the game SOUNDS like or how it MOVES between
-dimensions, and no human has played any of them. Phase 36 is where that happens, and it
-must be played from a SERVED build (http://localhost:8000/game.html), never from disk.
+---
+
+# 83.1 DIMENSION 1 — WHAT PHASE 36 FOUND, KEPT FOR THE ERA 2 REPLACEMENT
+
+Phase 36 audited the Overworld for CORRECTNESS and deliberately did not improve it: it is
+already scheduled for wholesale replacement, and polishing it would be work thrown away.
+It is functionally complete — everything the chain needs from it works, and the faults it
+did have are fixed. What is wrong with it is STRUCTURAL, and this is the list, written
+down now while it is fresh rather than re-derived later:
+
+1. **THE PACING IS A TIMER, NOT A JOURNEY.** The whole of dimension 1 is "survive until
+   night three". Nothing in the world moves the player toward anything; the only reason to
+   walk anywhere is to find wood, coal and stone, and those are everywhere. Compare the
+   Farmlands, where a road, a tower and a property do the work. D1 has no spine.
+
+2. **THE ONLY AUTHORED PLACE IS THE ANCIENT CHEST**, and it is placed procedurally with
+   nothing pointing at it. The compass — the single most important progression item in the
+   first hour — is therefore found by accident or not at all.
+
+3. **THE BEHEMOTH IS THE ONLY EVENT.** One arrival, on one night, with two nights of
+   nothing before it. It is also the only thing between the player and the rest of the
+   game, which is why its gate being a one-shot boolean was able to end runs.
+
+4. **THE SURVIVAL LOOP IS THE PART THAT LOOKS MOST LIKE THE GAME IT IS NOT SUPPOSED TO BE.**
+   Chop tree, craft plank, craft pickaxe, mine stone, place torch, build shelter, night
+   falls, things spawn. Sections 4 and 73 of CLAUDE.md exist because of this stretch.
+
+5. **THE STAGE MACHINE IS VESTIGIAL.** "PURGE COMPLETE / DESCEND TO STAGE n+1" raises a
+   difficulty multiplier and a mob cap and sends the player back to spawn. It predates the
+   rift chain, it is not part of the story, and no objective line mentions it. It should
+   not survive into the rebuilt dimension.
+
+6. **THE HUD STILL REPORTS IT.** `FRAGMENTS n/3 · STAGE 1` sits under the objective line in
+   every dimension, including Static Suburbia and the Farmlands, where neither number means
+   anything. Phase 27 kept it as a dim status line; a rebuilt D1 should decide whether it
+   exists at all.
+
+None of the above is a bug and none of it was changed.
 
 Current game build baseline:
 

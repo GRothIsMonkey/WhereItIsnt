@@ -234,6 +234,28 @@ const LOOK_AND_USE = (bx, by, bz) => {
     })()`);
     await page.waitForFunction('window.game.player.inventory.hasItem(ITEM.CORE_DISK)', null, { timeout: 60000 })
       .catch(() => {});
+
+    /* PHASE 36 — THE VICTORY SCREEN NOW STOPS THE WORLD, so it has to be dismissed
+       before anything else can happen. It always covered the viewport and released
+       pointer lock; what changed is that the simulation no longer carries on behind it,
+       which is the whole point (the Behemoth's screen fires in the middle of the third
+       night). A player presses the one button on it; so does this. */
+    await page.waitForFunction('window.game.ui.winScreenMode === "boss"', null, { timeout: 60000 })
+      .catch(() => {});
+    if (await page.evaluate('window.game.ui.winScreenMode === "boss"')) {
+      await page.click('#nextLevelBtn');
+      await page.waitForTimeout(400);
+    }
+    chk(await page.evaluate('window.game.ui.winScreenMode === null'),
+        'the Behemoth’s victory screen is raised, and its one button puts it away');
+
+    /* And the objective answers the Disk. Waited for rather than sampled: the line
+       re-resolves four times a second and this container draws about one frame in that
+       time, so a snapshot taken on the same millisecond as the pickup is measuring the
+       previous tick and nothing about the game. */
+    await page.waitForFunction(
+      `['raise_anchor', 'bring_disk', 'endure'].indexOf(window.game.objectives.currentId) >= 0`,
+      null, { timeout: 60000 }).catch(() => {});
     const s2 = await page.evaluate(SNAP);
     chk(/(^|,)36x/.test(s2.inv), `the Core Disk is picked up off the ground (pack: ${s2.inv})`);
     chk(s2.objectiveId === 'raise_anchor' || s2.objectiveId === 'bring_disk' || s2.objectiveId === 'endure',
