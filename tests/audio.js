@@ -25,7 +25,9 @@ const { makeWorld, genRegion } = require('./harness/util.js');
 const { S, w: WORLD, ev } = makeWorld();
 
 const ROOT = path.join(__dirname, '..');
-const SRC = fs.readFileSync(path.join(ROOT, 'game.html'), 'utf8');
+const SRC = require('./harness/source.js').buildSource()   /* ERA 1.5: the WHOLE build — every
+   src/ module plus the inline <script>. Reading game.html directly would scan less
+   and less code as Era 1.5 extracts, while going on passing. See ARCHITECTURE.md §0. */;
 const AUDIO_DIR = path.join(ROOT, 'assets', 'audio');
 const strip = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 const LIVE = strip(SRC);

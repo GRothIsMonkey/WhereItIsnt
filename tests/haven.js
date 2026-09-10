@@ -20,7 +20,9 @@ const path = require('path');
 const { makeWorld } = require('./harness/world.js');
 
 const ROOT = path.join(__dirname, '..');
-const SRC = fs.readFileSync(path.join(ROOT, 'game.html'), 'utf8');
+const SRC = require('./harness/source.js').buildSource()   /* ERA 1.5: the WHOLE build — every
+   src/ module plus the inline <script>. Reading game.html directly would scan less
+   and less code as Era 1.5 extracts, while going on passing. See ARCHITECTURE.md §0. */;
 const STORY = fs.readFileSync(path.join(ROOT, 'STORY.md'), 'utf8');
 const strip = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '')
                       .replace(/(^|[^:])\/\/[^\n]*/g, '$1');

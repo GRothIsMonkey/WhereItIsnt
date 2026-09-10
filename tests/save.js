@@ -23,7 +23,9 @@ const fs = require('fs');
 const path = require('path');
 const { makeWorld, genRegion } = require('./harness/util.js');
 
-const SRC = fs.readFileSync(path.join(__dirname, '..', 'game.html'), 'utf8');
+const SRC = require('./harness/source.js').buildSource()   /* ERA 1.5: the WHOLE build — every
+   src/ module plus the inline <script>. Reading game.html directly would scan less
+   and less code as Era 1.5 extracts, while going on passing. See ARCHITECTURE.md §0. */;
 let fail = 0;
 const chk = (ok, msg) => { console.log((ok ? 'PASS  ' : 'FAIL  ') + msg); if (!ok) fail++; };
 const note = (msg) => console.log('      ' + msg);

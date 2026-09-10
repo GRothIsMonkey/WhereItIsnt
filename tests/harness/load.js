@@ -146,18 +146,43 @@ function canvasSizes(html) {
   return out;
 }
 
-function load(htmlPath) {
-  const html = fs.readFileSync(htmlPath, 'utf8');
-  const canvasDims = canvasSizes(html);
+/* ERA 1.5 — THE BUILD IS NO LONGER ONE SCRIPT.
+
+   game.html now loads ordered classic <script src> modules from src/ before its inline
+   <script>. Classic scripts share ONE global lexical scope, which is the whole reason
+   the extraction needed no code change: a `const` or `class` declared in a module is
+   visible to every later script and to `ev(...)` exactly as it was when all of it lived
+   in one block. This function reproduces that, in order, in one VM context.
+
+   A module <script src> that is a URL (three.js from the CDN) is supplied by the sandbox
+   instead and is skipped here. */
+function scriptsOf(htmlPath, html) {
+  const dir = path.dirname(path.resolve(htmlPath));
+  const out = [];
+  const re = /<script\s+src="([^"]+)"\s*><\/script>/g;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const rel = m[1];
+    if (/^[a-z]+:\/\//i.test(rel) || rel.startsWith('//')) continue;
+    const abs = path.join(dir, rel);
+    if (!fs.existsSync(abs)) throw new Error('game.html loads a module that does not exist: ' + rel);
+    out.push({ name: rel, code: fs.readFileSync(abs, 'utf8'), lineOffset: 0 });
+  }
   const lines = html.split('\n');
-  // The single inline <script> body: everything between the tag on line 541 and </script>.
   let start = -1, end = -1;
   for (let i = 0; i < lines.length; i++) {
     if (start < 0 && /^<script>\s*$/.test(lines[i])) { start = i + 1; continue; }
     if (start >= 0 && /^<\/script>\s*$/.test(lines[i])) { end = i; break; }
   }
   if (start < 0 || end < 0) throw new Error('could not locate the inline <script> body');
-  const src = lines.slice(start, end).join('\n');
+  out.push({ name: 'game.html:script', code: lines.slice(start, end).join('\n'), lineOffset: start });
+  return out;
+}
+
+function load(htmlPath) {
+  const html = fs.readFileSync(htmlPath, 'utf8');
+  const canvasDims = canvasSizes(html);
+  const scripts = scriptsOf(htmlPath, html);
 
   const elements = new Map();
   const doc = {
@@ -220,7 +245,9 @@ function load(htmlPath) {
   sandbox.webkitAudioContext = sandbox.AudioContext;
 
   vm.createContext(sandbox);
-  vm.runInContext(src, sandbox, { filename: 'game.html:script', lineOffset: start });
+  for (const s of scripts) {
+    vm.runInContext(s.code, sandbox, { filename: s.name, lineOffset: s.lineOffset });
+  }
   return sandbox;
 }
 

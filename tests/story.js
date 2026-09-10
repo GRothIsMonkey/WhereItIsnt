@@ -23,7 +23,9 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const STORY = fs.readFileSync(path.join(ROOT, 'STORY.md'), 'utf8');
-const GAME = fs.readFileSync(path.join(ROOT, 'game.html'), 'utf8');
+const GAME = require('./harness/source.js').buildSource()   /* ERA 1.5: the WHOLE build — every
+   src/ module plus the inline <script>. Reading game.html directly would scan less
+   and less code as Era 1.5 extracts, while going on passing. See ARCHITECTURE.md §0. */;
 const CLAUDEMD = fs.readFileSync(path.join(ROOT, 'CLAUDE.md'), 'utf8');
 const ROADMAP = fs.readFileSync(path.join(ROOT, 'ROADMAP.md'), 'utf8');
 const PROGRESS = fs.readFileSync(path.join(ROOT, 'PROGRESS.md'), 'utf8');

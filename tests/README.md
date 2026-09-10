@@ -94,6 +94,44 @@ node tools/measure_runtime.js      # Phase 35 — MEASUREMENT of every runtime a
 node preview-suburbia-sanity.js    # Phase 36 — REAL screenshots of the Sanity ramp
 node playability.js                # Phase 36 — the five ways a run could end
 node browser-playability.js        # Phase 36 — THE WHOLE GAME, New Game to credits
+node architecture.js               # Era 1.5 — the module mechanism and the boundaries
+node tools/inventory.js            # Era 1.5 — MEASUREMENT of the build's shape
+```
+
+## ERA 1.5 — THE BUILD IS NO LONGER ONE FILE
+
+`game.html` now loads ordered **classic** `<script src>` modules from `src/` before its
+inline `<script>`, and Era 1.5 will keep moving code out there for several more phases.
+Two things follow, and both are already handled:
+
+**No suite reads `game.html` directly any more.** Eighteen of them scanned it as text — for
+a forbidden string, a stylesheet rule, an element id, an XP symbol, a `setTimeout` in a
+class that may not have one. Every extraction would have shrunk what they scan while they
+went on passing, which is exactly the failure shape `CLAUDE.md` §61.05–61.07 names three
+times. `harness/source.js` reassembles the whole build — modules in declared order, then
+the inline body — and that is what `SRC` is now.
+
+```js
+const SRC = require('./harness/source.js').buildSource();   // the WHOLE build, as text
+```
+
+**The offline harness replays the modules in order** into the one VM context, exactly as a
+browser does. This works because classic scripts share one global lexical scope, which is
+also the reason the extraction needed no code change at all. `architecture.js` re-measures
+that property rather than assuming it.
+
+`node architecture.js` is the gate for any future extraction: it proves every declared
+module exists and loads in order, that nothing is declared twice, that no module reaches a
+later one at load time, that `src/shared/` depends on nothing, and that the P0 hotspots in
+`ARCHITECTURE-INVENTORY.md` have not grown. It needs `acorn`; without it the AST half skips
+and says so.
+
+**After ANY extraction, run the four comparison suites against the pre-move build.** World
+generation must come back bit-identical:
+
+```
+git show <pre-move-ref>:game.html > tests/baseline.html
+node regression.js && node journey.js && node chain.js && node performance.js
 ```
 
 **`browser-playability.js` is the one that answers the question the whole suite exists

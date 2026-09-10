@@ -30,7 +30,9 @@ catch (e) {
 }
 if (!chromium) { console.log('SKIP  playwright is not installed — no HUD type preview taken.'); process.exit(0); }
 
-const SRC = fs.readFileSync(path.join(ROOT, 'game.html'), 'utf8');
+const SRC = require('./harness/source.js').buildSource()   /* ERA 1.5: the WHOLE build — every
+   src/ module plus the inline <script>. Reading game.html directly would scan less
+   and less code as Era 1.5 extracts, while going on passing. See ARCHITECTURE.md §0. */;
 const css = SRC.slice(SRC.indexOf('<style>') + 7, SRC.indexOf('</style>'));
 const hud = SRC.slice(SRC.indexOf('<div id="hud">'), SRC.indexOf('<div id="dimensionBanner">'));
 

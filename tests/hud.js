@@ -28,7 +28,9 @@ const path = require('path');
 const { load } = require('./harness/load.js');
 
 const ROOT = path.join(__dirname, '..');
-const SRC = fs.readFileSync(path.join(ROOT, 'game.html'), 'utf8');
+const SRC = require('./harness/source.js').buildSource()   /* ERA 1.5: the WHOLE build — every
+   src/ module plus the inline <script>. Reading game.html directly would scan less
+   and less code as Era 1.5 extracts, while going on passing. See ARCHITECTURE.md §0. */;
 const STYLE = SRC.slice(SRC.indexOf('<style>'), SRC.indexOf('</style>'));
 const BODY = SRC.slice(SRC.indexOf('<body>'), SRC.indexOf('<script src='));
 /* Comments are stripped wherever a check is about what the build DOES rather than what

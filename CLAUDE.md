@@ -1424,7 +1424,8 @@ Phase 34.2 — Audio Runtime Correction             (see section 61.06 — await
 Phase 34.3 — Audio Forensic Investigation         (see section 61.07 — awaiting replay)
 Phase 35 — Complete Dimension Cohesion            (COMPLETE — see section 62)
 Phase 36 — Complete Playable Alpha / Full Audit   (COMPLETE — see section 62.5)
-Phase 37 — Architecture split, then Era 2
+Era 1.5.1 — Architecture inventory & contracts   (COMPLETE — see section 62.6)
+Era 1.5.2-1.5.5 — the extraction phases, then Era 2
 
 Exact numbering may evolve, but previous completed phases must not be lost.
 
@@ -2773,6 +2774,93 @@ player here". None of them was a broken function. This is the same shape as 34.1
 
 ---
 
+# 62.6. ERA 1.5.1 — ARCHITECTURE INVENTORY & CONTRACTS — COMPLETE
+
+ERA 1.5.1 CARRIED THIS OUT. The build was measured rather than described, the map and the
+contracts were written down, the module skeleton exists, and four isolated blocks were moved
+to prove the mechanism end to end. See `ARCHITECTURE.md`, `ARCHITECTURE-INVENTORY.md` and
+`PROGRESS.md` section 0.000000000000000000.
+
+**THE SPLIT HAS NOT HAPPENED. DO NOT SAY IT HAS.** 843 lines moved out of 39,992 — 2.1%. The
+correct description is: "Era 1.5.1 established the architectural map, contracts and module
+skeleton required for the remaining Era 1.5 extraction phases."
+
+THE ONE PROPERTY EVERYTHING ELSE STANDS ON:
+
+  **CLASSIC SCRIPTS SHARE ONE GLOBAL LEXICAL SCOPE.** A `const`, `class` or `function`
+  declared at the top level of one classic `<script>` is visible to every script after it,
+  including the inline one. So Era 1.5 can move code out of `game.html` WITHOUT CHANGING A
+  LINE OF IT — no `import`, no `export`, no bundler, no `window.X =` shims. It was measured
+  in Node's `vm` and in a real Chromium BEFORE anything moved, and `tests/architecture.js`
+  re-proves it on every run rather than remembering it.
+
+WHAT THE MEASUREMENTS FOUND (all AST-derived, all re-derivable with `tests/tools/inventory.js`):
+
+  **`VoxelWorld` IS FOUR DIMENSION GENERATORS WEARING ONE CLASS.** 13,404 lines, 270
+  methods — and 9,611 of those lines (85% of the class, 24% of the whole build) are
+  dimension CONTENT, not a world engine: Farmlands 5,469, Suburbia 3,174, Haven 625,
+  Overworld 343. The actual engine — streaming, meshing, block access, edits, water,
+  light — is about 1,680 lines. It holds 1,107 `BLOCK.` references and 81 `THREE.` ones.
+
+  **DIMENSION IDENTITY IS THREE BOOLEANS ON THE PLAYER.** `player.inFarmlands` /
+  `.inSuburbia` / `.inFakeHaven`: 112 references, 35 of them WRITES, across eight owners,
+  the Overworld encoded as "all false", and two-true representable. A `DIMENSION` enum
+  exists and is used TEN times in the entire build. Adding The Below means a fourth boolean.
+
+  **AND EIGHT PIECES OF GLOBAL MUTABLE STATE IN FORTY THOUSAND LINES.** That is the reason
+  a mechanical extraction is safe at all, and it is the best news in the inventory.
+
+RULES THAT NOW HOLD:
+
+- **`src/**/*.js` ARE CLASSIC SCRIPTS.** No `import`, no `export`, no `type="module"`.
+  `tests/architecture.js` fails on any of them.
+- **ORDER IS THE CONTRACT.** `game.html` declares the load order and nothing else may. A
+  module may name a later module only from inside a function body, never at load time —
+  which is asserted, not hoped for.
+- **A MOVE IS VERBATIM.** The payload of an extracted file must be byte-identical to the
+  text removed, plus a header and the `"use strict";` an external classic script does not
+  get for free. Tidying while moving makes a behaviour change indistinguishable from a
+  relocation. Improve it afterwards, on its own, where a test can see it.
+- **NO SUITE READS `game.html` DIRECTLY ANY MORE.** Eighteen of them scanned it as text.
+  Left alone, each extraction would have shrunk their coverage while they went on passing —
+  the exact failure shape sections 61.05-61.07 name three times. `tests/harness/source.js`
+  reassembles the whole build and is what `SRC` means now. **A future phase that adds a
+  text-scanning suite uses it too.**
+- **THE ERA 2 SEAM IS AT THE STAMPER, NOT AT THE BLOCK.** Putting an interface in front of
+  `getBlockWorld` does not help: the problem is that what a farmstead IS and how it is MADE
+  are the same 197 lines. Phase 31 already solved this for ten objects — content (`what`,
+  block-free) / sites (`where`) / stampers (`how`, and the only code that knows a block id).
+  Era 1.5.3 generalises that shape to the other 9,611 lines. Content and sites survive Era 2;
+  stampers are replaced wholesale.
+- **`tests/architecture.js` IS A RATCHET.** The P0 hotspot counts are CEILINGS measured on
+  the Phase 36 build. A phase that adds a fourth dimension boolean, or a THREE reference to
+  the HUD, fails. Lower a ceiling when a phase actually improves it; never raise one.
+- **THE SAVE SCHEMA IS FROZEN AT VERSION 5 FOR THE WHOLE OF ERA 1.5.** Save keys, item ids,
+  block ids, progression ids, dimension names and the edit representation with it. A new
+  internal representation gets an ADAPTER, not a version bump.
+- **THE AUDIO SYSTEM IS NOT TO BE IMPROVED WHILE IT IS MOVED.** Section 61's three layers
+  were re-measured and both hold: `AudioDirector` makes 0 Web Audio calls, `AudioLibrary`
+  reads 0 block ids. `SoundEngine` is 2,151 lines of synthesis that works. Move it; change
+  nothing in it.
+
+**⚠ AN UNRESOLVED CANON CONFLICT, FLAGGED AND NOT ACTED ON** (section 64 says to flag rather
+than implement through it). The `STORY.md` and `ROADMAP.md` uploaded after Phase 36 renumber
+the dimensions — new D1 = Shattered Farmlands, D2 = Static Suburbia, **D3 = The Below** —
+while the code, this file, the `DIMENSION` enum and `SAVE_DIMENSIONS` all still have D1 =
+Overworld. `ROADMAP.md` also says the Era 1 Overworld is discarded as the final D1.
+**Nothing was changed to resolve this.** The architecture is deliberately built not to care:
+a dimension descriptor carries `id`, `saveName` and a display name as three separate fields,
+so a renumbering costs one table edit and no migration.
+
+**AND THE BASELINE IS NOT ALL GREEN, AND IT WAS NOT WHEN THIS PHASE STARTED.** Those same
+two doc commits restructured `STORY.md` from `## N. HEADING` markdown to bare numbered
+lines and renumbered its sections, which fails 22 document-structure assertions in
+`story.js`, `objectives.js`, `haven.js` and `finale.js`. Not one of them is a gameplay or
+code check. They were failing before Era 1.5.1 touched anything and they fail identically
+after. Reconciling those suites with the new `STORY.md` is a canon decision, not an
+architecture one, and it is the author's to make.
+
+
 # 63. ERA 2
 
 Era 2 is the major visual identity revolution.
@@ -3281,7 +3369,11 @@ has been listened to. `PLAYTEST.md` is the script, and it must be played from a 
 build (`python3 -m http.server 8000`, then `http://localhost:8000/game.html`) — opening
 the file from disk plays none of the 274 recorded sounds.
 
-The next implementation phase is Phase 37 (the architecture split), and then Era 2.
+The project is also in ERA 1.5, the architecture split. Era 1.5.1 is COMPLETE (section
+62.6): the map, the contracts and the module skeleton exist and four blocks have moved.
+**The split itself has not happened** — 843 lines of 39,992, 2.1%. `ARCHITECTURE.md` is the
+map and each `src/*/LAYER.md` is that layer's work order, listing by current line range
+what moves there and in which phase. The next implementation phase is Era 1.5.2.
 
 The section below is kept because it is still the standard the Farmland chapter is held
 to. Phase 20 is COMPLETE.

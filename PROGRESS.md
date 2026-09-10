@@ -4,8 +4,12 @@
 HOW TO RUN IT              SERVE IT. python3 -m http.server 8000, then
                            http://localhost:8000/game.html  — opening game.html
                            from disk plays NO recorded audio at all (section 0.000000000000000)
-Current phase              36 — COMPLETE PLAYABLE ALPHA / FULL AUDIT (needs a human playthrough)
-Next phase                 37 — architecture split, then ERA 2
+Current phase              ERA 1.5.1 — ARCHITECTURE INVENTORY & CONTRACTS (COMPLETE)
+                           Phase 36 is COMPLETE and still needs a human playthrough
+Next phase                 ERA 1.5.2 — the first real extraction, then 1.5.3-1.5.5, then ERA 2
+Architecture               ARCHITECTURE.md (the map) + ARCHITECTURE-INVENTORY.md (the numbers)
+                           src/<layer>/LAYER.md is that layer's work order
+THE SPLIT HAS NOT HAPPENED 843 of 39,992 script lines have moved (2.1%). Not modular yet.
 Phase 19                   COMPLETE
 Phase 20                   COMPLETE
 Phase 20 journey revision  COMPLETE           (20.1 — see section 0)
@@ -56,7 +60,7 @@ Audio runtime copies       assets/audio/runtime/  DISPOSABLE (rebuild: tests/too
                            whose gain was wrong; 0 clipped, 2 over the ceiling by under 0.3 dB)
 Settings                   SEVEN              (34 added ambienceVolume)
 Save schema                VERSION 5          (4 -> 5 adds progression.noticed; 34 and 35 did NOT change it)
-Authoritative build        game.html          (there is no other game file)
+Authoritative build        game.html + src/   (ordered CLASSIC scripts, ONE shared scope)
 Canonical story            STORY.md           (read before writing ANY player text)
 Validation suite           tests/             (see tests/README.md)
 Human playtest script      PLAYTEST.md        (SERVE IT OVER HTTP; no debug commands)
@@ -73,6 +77,178 @@ performance figures. **Section 0.5 describes Phase 20.2**, which added the openi
 instruction and the compass and changed no world generation at all.
 
 ---
+
+## 0.000000000000000000. ERA 1.5.1 — ARCHITECTURE INVENTORY & CONTRACTS
+
+**WHAT THIS PHASE IS NOT.** It is not the architecture split. 843 lines moved out of 39,992
+— two per cent. The build is still a monolith and must not be described as modular. What
+exists now is the map, the contracts, the skeleton, the enforcement suite, and a proven
+mechanism for the four extraction phases that follow.
+
+### THE ONE THING THAT MADE THE PLAN POSSIBLE, AND IT WAS MEASURED BEFORE ANYTHING MOVED
+
+**Classic scripts share one global lexical scope.** A `const`, `class` or `function`
+declared at the top of one classic `<script>` is visible to every script after it and to the
+inline one — it is a binding in the global *lexical* environment, not a property of `window`.
+
+So the whole of Era 1.5 can move code out of `game.html` **without changing a line of it**.
+No `import`, no `export`, no bundler, no build step, no `window.X = X` re-export shims. A
+file move is a file move.
+
+It was not assumed. It was probed twice before the first byte was moved: in Node's `vm`
+(what the offline suites run in — a second `runInContext` sees the first's declarations) and
+in a real Chromium over HTTP (`a.js` declares, `b.js` and a following inline script both
+read it, zero page errors). Both probes are now in `tests/architecture.js`, so the property
+is re-proved on every run instead of remembered.
+
+### WHAT THE MEASUREMENTS FOUND
+
+Everything below is AST-derived — the build parsed with a real JavaScript parser, references
+counted by walking the tree, not by grep. Re-derive any of it with
+`node tests/tools/inventory.js`.
+
+**`VoxelWorld` is four dimension generators wearing one class.** 13,404 lines, 270 methods.
+Classified by what they generate:
+
+| | methods | lines |
+|---|---:|---:|
+| Farmlands content | 105 | **5,469** |
+| Suburbia content | 66 | **3,174** |
+| Haven content | 12 | 625 |
+| Overworld content | 6 | 343 |
+| *the actual world engine* — streaming, meshing, edits, water, light, doors | 81 | *1,680* |
+
+**9,611 lines — 85% of the class and 24% of the whole build — are dimension content, not a
+world engine**, and every one of them is written as `set(x, y, z, BLOCK.SOMETHING)`. The
+class holds 1,107 `BLOCK.` references and 81 `THREE.` ones. `Chunk`, by contrast, is 27
+lines: a `Uint16Array` and four accessors.
+
+**Dimension identity is three booleans on the player.** `player.inFarmlands` /
+`.inSuburbia` / `.inFakeHaven` — **112 references, 35 of them writes**, across eight owners
+(`Game` 47, the dev-tools IIFE 33, `PlayerController` 15, `EnvironmentStorySystem` 5,
+`MobManager` 5, `VoxelWorld` 3, `UIManager` 3, `FarmAnimalManager` 1). The Overworld is
+encoded as "all false" and two-true is representable. A `DIMENSION` enum exists and is
+referenced **ten times in the entire build**. Adding The Below to that means a fourth
+boolean and 112 sites to re-audit — precisely the "giant branch of `if (dimension === ...)`"
+the brief says the architecture must prevent.
+
+That number is itself a small lesson. The first census this phase ran reported 73, because
+it matched `inStaticSuburbia` — a flag that does not exist; the real one is `inSuburbia`.
+The ratchet in `tests/architecture.js` is what caught it, on its first run, by disagreeing
+with the document. **A census is only as good as the spelling of what it counts.**
+
+**And the best news: eight pieces of global mutable state in forty thousand lines.** That
+is the reason a mechanical extraction is safe at all.
+
+### THE ERA 2 SEAM — AND IT ALREADY EXISTS IN THIS REPOSITORY
+
+The obvious boundary — "put an interface in front of `getBlockWorld`" — does not help. The
+problem is not block *access*; it is that what a farmstead **is** and how a farmstead is
+**made** are the same 197 lines, so replacing the renderer throws away the design with it.
+
+Phase 31 already solved this, for ten objects, and wrote down why: content
+(`ENVIRONMENT_STORY_EVENTS` — *what*, block-free) / sites (`ENV_SITES` — *where*) / stampers
+(`ENV_STAMPERS` — *how*, and the only code that knows what a block is). Two of its sites
+point at objects Phase 20 already built and add no blocks at all.
+
+**Era 1.5.3's job is to generalise that shape to the other 9,611 lines.** Content and sites
+survive Era 2 because they never mention a block. Stampers are replaced wholesale. That is
+the difference between Era 2 being a rewrite and Era 2 being a re-render.
+
+### THE TRAP THAT WAS CLOSED BEFORE IT COULD SPRING
+
+Eighteen offline suites read `game.html` as text and grep it — for a string literal longer
+than 140 characters, a stylesheet rule that reaches both instruments, an XP symbol, a
+`setTimeout` in a class that may not have one. **Every extraction phase would have shrunk
+what they scan while they went on passing.**
+
+That is the same shape as sections 0.0000000000000 through 0.000000000000000, three times
+over: *a test that only bounds one side is half a test*. "Sparse" became cover for "silent";
+"distant" became cover for "silent"; "a footstep still sounds" became cover for "the world
+is silent". This would have been "the suite is green" becoming cover for "the suite is
+empty".
+
+`tests/harness/source.js` reassembles the whole build — modules in declared order, then the
+inline body — and **no suite reads `game.html` directly any more**.
+
+### WHAT ACTUALLY MOVED
+
+Four blocks, chosen because they are the *first* thing in the script and are load-time
+self-contained, so moving them to files loaded first preserves evaluation order **exactly**:
+
+| file | lines | was `game.html` | why it was safe |
+|---|---:|---|---|
+| `src/shared/items-catalog.js` | 115 | 1328–1442 | pure frozen data |
+| `src/ui/item-icons.js` | 381 | 1444–1824 | canvas drawing; no block, chunk or mesh |
+| `src/shared/simplex-noise.js` | 110 | 1826–1935 | pure deterministic math |
+| `src/core/settings.js` | 234 | 1937–2170 | one complete, isolated subsystem |
+
+Every payload is **byte-identical** to the text removed — verified by diff against a frozen
+copy of the Phase 36 build, not by eye. The only additions are a header comment and
+`"use strict";`, which an external classic script does not get for free and without which
+the moved code would silently become sloppy-mode.
+
+`SimplexNoise` was moved deliberately: every seeded generator in the game stands on it, so
+if the mechanism were wrong, world generation would change and the four comparison suites
+would say so immediately. They did not — generation is bit-identical.
+
+### THE BASELINE WAS NOT GREEN WHEN THIS PHASE STARTED, AND IT IS NOT THIS PHASE'S TO FIX
+
+Two commits after Phase 36 (`a1e6d09`, `db222ee`) replaced `STORY.md` and `ROADMAP.md` with
+new authored versions. The new `STORY.md` drops the `## N. HEADING` markdown for bare
+numbered lines **and renumbers its sections**. Twenty-two document-structure assertions in
+`story.js`, `objectives.js`, `haven.js` and `finale.js` match on the old headings and fail.
+
+**Not one of them is a gameplay or code check.** They failed before Era 1.5.1 touched
+anything and they fail identically after — same four suites, same twenty-two checks, no new
+ones. Reconciling those suites with the new canon is a story decision, not an architecture
+one; the brief for this phase says explicitly not to modify `STORY.md`, and CLAUDE.md §64
+says to flag a canon conflict rather than implement through it.
+
+The same two commits create an **unresolved dimension renumbering**: new `STORY.md` has
+D1 = Shattered Farmlands, D2 = Static Suburbia, **D3 = The Below**, while the code, CLAUDE.md,
+the `DIMENSION` enum and `SAVE_DIMENSIONS` all still have D1 = Overworld. Nothing was
+changed to resolve it. The architecture is built not to care: a dimension descriptor carries
+`id`, `saveName` and a display name as three separate fields, so a renumbering costs one
+table edit and no migration.
+
+### ALSO NOT GREEN AT BASELINE: ONE BROWSER FLAKE
+
+`browser-audio.js` fails one check on the **pristine Phase 36 build** in this container:
+
+```
+FAIL  while keeping all 108 decoded buffers — re-entering a place does not re-download it
+```
+
+It asserts `buffersAfter === buffersBefore` across a `director.reset()` with 900 ms of
+waiting either side, while decodes are still landing. The real invariant is that no buffer
+is **discarded** (`>=`), and the equality makes it a race. It was left alone: changing a
+test assertion is not architecture work, and this phase had no business touching the audio
+suite. Recorded here so the next phase does not mistake it for damage.
+
+### WHAT IS DELIBERATELY NOT DONE
+
+- **No system was extracted that is coupled.** The game loop, the transition logic, the
+  renderer, world generation and player movement are all exactly where they were.
+- **Nothing was improved while it was moved.** Not one line of the four moved blocks was
+  reformatted, renamed or tidied.
+- **No contract was written as a class with one implementation.** The contracts are in
+  `ARCHITECTURE.md`; the code contribution is `tests/architecture.js`, which turns the
+  parts a machine can hold into failing tests — including a **ratchet** on the P0 hotspot
+  counts, so an extraction phase that adds a fourth dimension boolean fails.
+- **No Era 2 work, no D1 redesign, no visual change, no gameplay change, no schema change.**
+
+### WHERE TO LOOK
+
+| what | where |
+|---|---|
+| the map, the layers, the contracts, the Era 2 seam, the D3 extension point | `ARCHITECTURE.md` |
+| the measurements, the dependency map, the ranked hotspots | `ARCHITECTURE-INVENTORY.md` |
+| what moves into a layer, and in which phase | `src/<layer>/LAYER.md` |
+| how to add a module | `src/README.md` |
+| the boundaries, enforced | `tests/architecture.js` |
+| re-deriving any number | `node tests/tools/inventory.js [--deps|--edges|--world|--dimensions]` |
+| the build as text, for a test | `tests/harness/source.js` |
 
 ## 0.00000000000000000. PHASE 36 — COMPLETE PLAYABLE ALPHA / FULL GAME AUDIT
 

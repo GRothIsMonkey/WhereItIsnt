@@ -44,9 +44,15 @@
     "browser-transitions": "node browser-transitions.js",
     "preview-suburbia-sanity": "node preview-suburbia-sanity.js",
     "playability": "node playability.js",
-    "browser-playability": "node browser-playability.js"
+    "browser-playability": "node browser-playability.js",
+    "architecture": "node architecture.js",
+    "inventory": "node tools/inventory.js"
   },
   "dependencies": {
     "three": "0.128.0"
+  },
+  "devDependencies": {
+    "acorn": "^8.11.0",
+    "acorn-walk": "^8.3.0"
   }
 }

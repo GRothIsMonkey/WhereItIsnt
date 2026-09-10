@@ -16,7 +16,9 @@ const fs = require('fs');
 const path = require('path');
 const { makeWorld } = require('./harness/util.js');
 const { S } = makeWorld();
-const SRC = fs.readFileSync(path.join(__dirname, '..', 'game.html'), 'utf8');
+const SRC = require('./harness/source.js').buildSource()   /* ERA 1.5: the WHOLE build — every
+   src/ module plus the inline <script>. Reading game.html directly would scan less
+   and less code as Era 1.5 extracts, while going on passing. See ARCHITECTURE.md §0. */;
 /* The whole of one method, brace-matched. It replaces a fixed-length slice, which is a
    trap: each phase that adds a paragraph of comment to _animate pushes the token a later
    check is looking for out of a hard-coded window, and the check then fails for a reason
