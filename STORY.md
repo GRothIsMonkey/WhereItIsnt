@@ -1,774 +1,2337 @@
-# WHERE IT ISN'T — CANONICAL STORY BIBLE
 
-**Status:** canonical as of Phase 24. This file is the authority on what the game means.
-`ROADMAP.md` says what gets built; `PROGRESS.md` says what was built; **this says why any
-of it is there.**
 
-**Read this before writing any player-facing text, objective line, environmental detail,
-cinematic, or creature.** It exists so a future session does not have to guess, and so
-that two different sessions do not invent two different explanations for the same room.
 
-> **THE RULE THAT OUTRANKS EVERYTHING ELSE IN THIS FILE.**
-> The game must be **coherent**, not **explained**. Every section below has an answer.
-> The player is meant to receive perhaps a third of them, indirectly, and to leave with
-> the shape of the thing rather than its definition. Section 22 lists what must never be
-> stated outright. If a future phase is ever choosing between "the player understands"
-> and "the player wonders" — and both are consistent with this document — choose wonder.
+WHERE IT ISN'T — CANONICAL STORY & HORROR BIBLE
+Status: Canonical replacement for the previous STORY.md, prepared after the completion of Era 1.
 
----
+This document is the authoritative source for what Where It Isn’t means, what its world is doing, what each dimension is meant to make the player feel, and what future phases must preserve.
 
-## 0. HOW THIS CANON WAS DERIVED
+ROADMAP.md says what gets built.
+PROGRESS.md says what has been built.
+This document says why it is there, what the player is supposed to experience, and what must remain mysterious.
 
-This is not a story invented and then imposed on the build. It was read **out of** it.
+Read this before writing player-facing dialogue, objectives, environmental storytelling, creature behavior, cinematics, major scares, dimension rules, or endings.
 
-Five systems that were written in five different phases, by five different passes, all
-independently key off the same thing:
+0. THE RULE THAT OUTRANKS EVERYTHING
+The game must be coherent, frightening, and mysterious — not explained.
 
-| system | behaviour already in `game.html` |
-|---|---|
-| The water tower's red light | dormant under direct gaze; flashes only in peripheral vision |
-| The Disconnected Home's mailbox | vanishes only once the player is away **and not looking** |
-| The Stalker | freezes and stops animating the moment it is looked at |
-| Farm animals | freeze when watched; disappear only when unobserved |
-| Static Suburbia | rearranges its houses when the player stands still and looks away |
+The player should understand enough to make the world feel intentional, but never enough to reduce it to a solved explanation.
 
-Nobody planned that as a theme. It emerged because it is what felt frightening each time.
-**Phase 24's central decision is to promote it to the canon**, because a story assembled
-out of what the game already does will always be more coherent than one bolted on top.
+The horror is not a puzzle with a final answer.
 
-Everything below follows from one sentence:
+The player should leave with:
 
-> **The world resolves under attention and lets go of what nobody is looking at.**
+a strong understanding of how dangerous each place feels
 
----
+a growing suspicion that the places are connected
 
-## 1. CANONICAL PREMISE
+a growing certainty that the world is not behaving normally
 
+several moments they cannot comfortably explain
+
+an emotional memory of what happened
+
+unanswered questions that remain unanswered on purpose
+
+Whenever a future phase must choose between:
+
+explaining an event, or
+
+making the player feel the event,
+
+choose the feeling.
+
+Whenever a future phase must choose between:
+
+repeating a successful scare because it worked, or
+
+creating a new feeling that belongs to that dimension,
+
+choose the new feeling.
+
+The game is allowed to be legible.
+
+It is not allowed to become safe because the player understands it.
+
+1. CANONICAL PREMISE
 Something has lost the world and is trying to put it back.
 
-It is not malicious and it is not a designer. It works from a **record** — an incomplete,
-uneven impression of a place that used to exist — and it rebuilds from that record the way
-a flooded room dries: unevenly, in the shape of whatever was pressed hardest into it.
+The thing doing the rebuilding is never named, shown, personified, or given a motive.
 
-The record is good at some things. Geometry. Roads. The way a barn is put together. The
-direction north. It is catastrophically bad at others. **People are almost entirely
-absent from it.** So are the reasons for things.
+It works from an incomplete record — an uneven impression of a place that used to exist.
 
-And the reconstruction is **lazy in a specific, physical way**: it only has to be right
-where something is looking. Detail is spent where attention falls and released everywhere
-else. That is not a metaphor in this game — it is the mechanic, and it is why the tower's
-light waits until you look away, why the suburb rearranges behind you, and why a mailbox
-in a basement can simply stop having been there.
+The record contains some things extremely well:
 
-The player is walking further and further into the parts of that reconstruction where the
-record was thinnest, and where it has been rebuilt from copies of copies.
+geometry
 
-**One paragraph, for the next session that only reads one:**
+roads
 
-> Reality was damaged. Something is rebuilding it from an incomplete record of what was
-> there, and the rebuild only resolves under observation. The further the player travels,
-> the worse the record gets and the more of the work is being done from imitations of
-> imitations — until the distinction between the place and the copy stops being
-> answerable. Nothing in the game ever names the thing doing the rebuilding, and nothing
-> ever explains why it is doing it.
+cardinal direction
 
----
+repeated architecture
 
-## 2. THE PLAYER
+objects people looked at often
 
-**Deliberately underdefined, and that is a decision, not a gap.**
+simple behaviors
 
-Canonically:
+It contains other things badly or not at all:
 
-- The player is **a person the record has an impression of.** Not a chosen one, not an
-  investigator, not a survivor of a documented catastrophe. Someone who was here enough
-  to leave a mark.
-- They begin believing this is an ordinary world that has gone dangerous. That belief is
-  correct about the danger and wrong about the world.
-- **Why they cannot leave:** there is nowhere that is not this. The world does not end at
-  a wall; it ends at the edge of what has been rebuilt, and walking there just produces
-  more reconstruction. Leaving is not forbidden — it is not a coherent action.
-- **What pulls them deeper:** the reconstruction resolves toward attention, and the player
-  is the only sustained attention in it. They are not being lured. They are being
-  *followed*, in the sense that the world's best work happens wherever they are.
+people
 
-**Never establish:** their name, their face, their history, whether they died, whether
-they are the original of anything. The game must never answer "am I real?" — asking it is
-the point.
+relationships
 
-**No amnesia trope.** The player is not a mystery to themselves. The *world* is the
-mystery.
+reasons
 
----
+interior meaning
 
-## 3. THE OVERWORLD
+anything that depended on being understood rather than merely observed
 
-**Narrative role: the baseline that the rest of the game violates.**
+The resulting world is not a clean reconstruction.
 
-This is the part of the record that is *thickest* — the most-observed, most-reinforced
-region, and therefore the most convincing. Grass behaves. Stone behaves. Water behaves.
-Trees are trees. The player learns the rules here, and the rules hold.
+It is an unstable approximation.
 
-That is its entire job. Every later dimension is frightening in proportion to how much the
-Overworld taught the player to trust.
+The reconstruction has one defining physical property:
 
-Its small wrongnesses are **seams, not warnings**: caves that open where a hillside is
-steep, ore that is exactly where ore should be, a horizon that never quite arrives.
-Nothing here should be explained. The Overworld's inconsistencies are meant to be
-noticed only in hindsight, after Suburbia has taught the player what a seam looks like.
+Things are held together more convincingly where attention falls, and are allowed to become less certain where attention does not.
 
-**Do not rewrite the Overworld.** Phase 24 changes nothing about it.
+This is not merely a metaphor.
 
----
+It governs:
 
-## 4. BLOOD NIGHTS
+anomalies
 
-**Canon: night is when the reconstruction stops spending detail on the surface.**
+structures
 
-Not "the veil thins." Nothing tears. What happens is cheaper and worse: with no light and
-almost nothing being looked at, the world stops holding the surface to a high standard,
-and the things that live in the unresolved parts can hold shape at ground level.
+entities
+
+certain forms of movement
+
+the behavior of light
+
+the strange relationship between observation and reality
+
+the way one reconstruction can disagree with another
+
+The world is repeatedly rebuilt from the record.
+
+Each major dimension is not a separate universe.
+
+It is another version of the same place, rebuilt from an increasingly degraded source or from previous reconstructions.
+
+The deeper the player goes, the more the distinction between:
+
+the original place,
+
+the reconstruction,
+
+and the thing the reconstruction is trying to represent
+
+becomes impossible to answer cleanly.
+
+2. WHAT THE PLAYER IS
+The player is deliberately underdefined.
+
+They are a person the record has an impression of.
+
+They are not:
+
+a chosen one
+
+an investigator sent to solve a disaster
+
+a documented survivor
+
+a hero
+
+a scientist
+
+a soldier
+
+a person with a lore-heavy biography
+
+They are simply someone who was here enough to leave a mark.
+
+They begin the game believing:
+
+“This is a real place, and something dangerous is happening here.”
+
+That belief is partly correct and fundamentally incomplete.
+
+The player is real enough to move, suffer, remember, and make choices.
+
+Whether they are the original person represented by the record is never established.
+
+Whether they were always part of this place is never established.
+
+Whether they died, disappeared, were reconstructed, or simply continued living somewhere outside the player's understanding is never established.
+
+Do not give the player a canonical:
+
+name
+
+face
+
+childhood
+
+family tree
+
+diary
+
+body reveal
+
+definitive origin
+
+definitive explanation of why they are here
+
+No amnesia twist.
+
+The player is not a mystery to themselves.
+
+The world is.
+
+3. THE CENTRAL IDEA OF FEAR
+The game's horror should escalate in kind, not merely in quantity.
+
+The player should not experience:
+
+scary → scarier → loudest
+
+The player should experience:
+
+uncertain → vulnerable → hunted → trapped → overwhelmed → horrified
+
+Each major dimension has its own physical fear.
+
+The dimensions must not feel like the same horror recipe wearing different scenery.
+
+Dimension 1 — Shattered Farmlands
+Core fear: exposure and unseen danger.
+
+The player has too much space and too little certainty.
+
+The darkness, flashlight, enormous fields, farm structures, tree lines, fences, and distant sounds create the feeling that the player is visible to something they cannot see.
+
+The fear is:
+
+“Something is out there.”
+
+Dimension 2 — Static Suburbia
+Core fear: pursuit and being cornered.
+
+The player can often see farther.
+
+Streets, houses, porches, windows, driveways, and streetlights provide visual information.
+
+That should not make the player feel safer.
+
+It should make the player realize that something can see them too.
+
+The fear is:
+
+“It knows where I am.”
+
+Dimension 3 — The Below
+Core fear: helplessness, claustrophobia, sensory threat, and overwhelming physical danger.
+
+The player enters a space that is not supposed to be accessible.
+
+The environment is already broken beyond recognition.
+
+The player is not learning how the world is wrong.
+
+They are trying to survive inside the wrongness.
+
+The fear is:
+
+“I was never supposed to be here.”
+
+Haven
+Core feeling: relief.
+
+The player should genuinely want to stay.
+
+That makes the eventual failure of safety hurt.
+
+The fear becomes:
+
+“There is nowhere safe.”
+
+Finale
+Core feeling: insignificance.
+
+The player finally reaches the thing the reconstruction has been obscuring.
+
+There is no boss fight and no clean answer.
+
+The fear becomes:
+
+“The world was a picture of something much worse.”
+
+4. DIMENSION 1 — SHATTERED FARMLANDS
+4.1 Narrative role
+The Farmlands replace the old Overworld as the first major dimension of the final game.
+
+They are the first place where the record is visibly poor and physically hostile.
+
+The player has already learned enough in the opening to trust ordinary space.
+
+The Farmlands weaponize that trust.
+
+Buildings, roads, fences, barns, farms, water towers, trees, and fields look like real things.
+
+They simply sit inside a world where human absence has become frighteningly complete.
+
+4.2 The environment
+The final Farmlands should feel:
+
+enormous
+
+rural
+
+isolated
+
+difficult to visually parse at night
+
+sparsely populated
+
+physically believable
+
+quietly hostile
+
+The player should often see:
+
+long roads disappearing into darkness
+
+tree lines
+
+fences
+
+barns
+
+sheds
+
+silos
+
+farm machinery
+
+distant lamps
+
+isolated homes
+
+utility poles
+
+the water tower
+
+fields large enough to make the player feel small
+
+The environment must not become a constant spectacle.
+
+Large stretches should be quiet.
+
+That quiet is part of the fear.
+
+4.3 The flashlight
+The flashlight is a major emotional tool.
+
+It does not make the player powerful.
+
+It gives them a small amount of certainty.
+
+Its beam should:
+
+reveal enough to move
+
+leave the world outside the beam frightening
+
+create hard contrast between known and unknown
+
+make the player choose where to look
+
+The darkness should not merely be black.
+
+It should contain:
+
+faint silhouettes
+
+tree movement
+
+distant structures
+
+occasional reflections
+
+movement at the edge of perception
+
+The player must repeatedly confront the fact that:
+
+Seeing one thing means not seeing everything else.
+
+4.4 Why the Farmlands are abandoned
+There was no documented evacuation.
+
+No plague is established.
+
+No war is established.
+
+The people are absent because the record did not preserve them well enough.
+
+The world remembers:
+
+barns
+
+farms
+
+roads
+
+signs
+
+tools
+
+fences
+
+It does not reconstruct the people who once occupied those places in enough detail to restore them.
+
+The player should therefore encounter:
+
+work interrupted rather than destroyed
+
+tools left in plausible places
+
+gates half-open
+
+machinery that looks recently used but has nobody using it
+
+houses with evidence of occupancy but no occupants
+
+animals that seem intact but wrong
+
+The horror is absence, not an explanatory disaster.
+
+4.5 Rural repetition
+The record has a limited vocabulary.
+
+The same:
+
+mailbox
+
+chair
+
+fence break
+
+shed shape
+
+porch detail
+
+farm sign
+
+may appear in unrelated places.
+
+This repetition should initially feel like ordinary asset reuse.
+
+Later it should become disturbing.
+
+The player should eventually notice:
+
+“I have already seen this.”
+
+And then:
+
+“That shouldn't be here.”
+
+The game must never display an explanation for the repetition.
+
+4.6 Animals
+Animals survive because simple behavior is easier for the record to preserve than human interiority.
+
+They can:
+
+graze
+
+walk
+
+turn
+
+stare
+
+freeze
+
+follow simple routes
+
+They should sometimes appear unnaturally synchronized.
+
+They are not demons.
+
+They are good reconstructions of simple loops that become horrifying because the thing that should be inside them is absent.
+
+4.7 The water tower
+The water tower remains one of the most important landmarks.
+
+It is enormous because it was one of the most-observed objects in the region.
+
+It is:
+
+mundane
+
+familiar
+
+too large
+
+visible from too far away
+
+more convincing than the land surrounding it
+
+Its red light remains unexplained.
+
+The red light:
+
+must never become an objective
+
+must never become a warning message
+
+must never be given a lore explanation
+
+may appear to behave differently in peripheral vision
+
+should create doubt rather than answers
+
+Correct reaction:
+
+“Did that just flash?”
+
+Wrong reaction:
+
+“The tower is sending me a signal.”
+
+The game must never settle that question.
+
+4.8 Farmlands horror escalation
+The Farmlands should begin with unease and progressively become physically frightening.
+
+A useful emotional progression is:
+
+Early
+The player is mostly alone.
+
+Sounds are distant.
+
+The player occasionally notices something impossible but harmless.
+
+Middle
+The player begins hearing movement beyond the flashlight.
+
+The player sees shapes crossing open spaces.
+
+Certain sounds begin repeating in ways that make the player doubt distance.
+
+Later
+The player learns that some of the sounds correspond to actual threats.
+
+The player is forced into darker or more enclosed sections.
+
+The existing major Farmlands jumpscare should remain part of this escalation.
+
+Late
+The player understands:
+
+The darkness is not empty.
+
+That realization should happen before the dimension's strongest physical chase/horror moments.
+
+4.9 Farmlands rule
+Do not make the entire dimension permanently pitch black.
+
+The fear depends on contrast.
+
+The player should experience:
+
+dusk
+
+moonlight
+
+artificial light
+
+lit interiors
+
+dark fields
+
+brief visibility
+
+near-total darkness in deliberate sequences
+
+The player must feel that the darkness is a condition, not the entire game's visual identity.
+
+5. DIMENSION 2 — STATIC SUBURBIA
+5.1 Narrative role
+Static Suburbia is the same place rebuilt again.
+
+It is a second-generation reconstruction:
+the world rebuilt from a copy of itself rather than from the original impression.
 
 This is why:
 
-- they are periodic and inevitable rather than triggered — it is a **duty cycle**, not an
-  event
-- light and fire push them back; a torch is a small, local demand that this specific
-  volume be rendered properly
-- they escalate by Stage: each cycle the local record is a little more worn from being
-  rebuilt, so less of it survives the dark
+houses repeat
 
-**Never say:** "the boundary weakens", "the veil is thin", "they come from the Rift."
-Blood Nights are not an incursion. They are what this place is like when nobody is
-insisting otherwise.
+spaces fail to agree
 
----
+details degrade
 
-## 5. THE STALKER
+interiors become impossible
 
-**Canon: the Stalker is the reconstruction's attempt at rendering a person, built from the
-only person it can currently observe.**
+objects migrate between places
 
-It is not native. It is not an invader. It is a **draft**.
+the environment becomes increasingly artificial
 
-That is why, in the build as it already exists:
+The player should gradually recognize that they are still inside the same world.
 
-- it stops the instant it is looked at directly — it is being resolved *by* the player's
-  attention, and it cannot both be watched and continue being assembled
-- a torch banishes it — light is a demand for fidelity, and it cannot survive being
-  rendered properly
-- it does not fight so much as **arrive**; it teleports, because it is not travelling
-- it costs sanity to be near, because standing near a bad copy of a person is the single
-  most direct evidence the game offers that something is copying
+5.2 Core fear
+Suburbia is the opposite of Farmlands.
 
-**Does it understand the player?** No. It is not a mind. It is a shape being fitted, and
-the fitting is going badly. That is scarier than a hunter, and it is what the existing
-freeze-when-watched behaviour actually depicts.
+Farmlands says:
 
-**Preserve entirely.** Do not give it dialogue, a name, a motive, or a backstory. Do not
-connect it explicitly to the final creature.
+“You cannot see what is near you.”
 
----
+Suburbia says:
 
-## 6. THE HOLLOWED BEHEMOTH
+“You can see everything, and you are still not safe.”
 
-**Canon: a region-sized quantity of unresolved world that has settled into an animal
-shape because an animal shape is the nearest thing in the record.**
+The player should often have:
 
-It is *hollow* in the name and hollow in fact — there is nothing inside it, in the sense
-that there is nothing inside a dune.
+long sightlines
 
-- **Why so large:** it is not a creature that grew. It is an amount. It is big for the
-  same reason a drift is big.
-- **Why the Overworld:** it forms where the most reconstruction work is happening, which
-  is wherever the player has been insisting on detail. It arrives near the Anchor because
-  the Anchor is the largest sustained demand in the region.
-- **Why Night 3:** by the third cycle enough has been rebuilt and re-released for that
-  much loose material to exist.
-- **Its Darkness Aura** (snuffing torches, and pointedly *not* lanterns) is not an attack
-  spell. Where it is, fidelity is being spent on *it* instead of on the room.
+visible streets
 
-**Do not give it a biography.** No origin scene, no name beyond what it is, no "it was
-once…". It is a consequence, not a character. It should read as weather that has decided
-on a silhouette.
+lit windows
 
-**Its relationship to the final creature: none, and this must stay true.** The Behemoth is
-a local accumulation. Suggesting it is a lesser form of the final entity would turn the
-finale into a boss ladder, which Section 18 forbids.
+identifiable buildings
 
----
+places to hide
 
-## 7. THE ANCHOR
+The threat should use that visibility against them.
 
-**Canon: an Anchor is a declaration of attention, made physical, and it works because the
-world is the kind of thing that answers attention.**
+5.3 Environmental behavior
+Nothing changes while directly watched.
 
-This is the most important symbol in the game, and its power comes from how *ordinary* it
-is. The player builds it out of four planks. Nothing is granted to them. Nothing ancient
-is discovered. They make a thing, they put it down, and they **keep feeding it** — wood,
-planks, torches — and while it burns, that volume of the world is held to a standard.
+Change is discovered.
 
-Everything the mechanic already does follows:
+The rule is absolute.
 
-| mechanic | meaning |
-|---|---|
-| it must be crafted, not found | nobody gives the player authority; they assert it |
-| it consumes fuel and runs out | attention is not free and cannot be left unattended |
-| its dome halts and reverses Sanity loss | inside a properly-held volume, what you see stays what you saw |
-| its chunk is never unloaded | the one place in the world that does not get released |
-| feeding it a **Rift Core** does something else entirely | see Sections 8 and 9 |
+If a future anomaly system ever visibly changes an object while the player is directly watching it, it violates the core premise and must be corrected.
 
-**Did anything create it?** No — and this is the canon's sharpest point. The Anchor is not
-an artefact of a lost civilisation. It is a **technique**, and the player is not the first
-to use it. Ruined and unlit anchors may appear in later phases as evidence that other
-people once held their own small volumes of the world steady, and stopped.
+The player should discover:
 
-**What the player may eventually understand:** that the Anchor holds the world still.
-**What is never explained:** why a thing made of planks can do that.
+a door in the wrong place
 
----
+a room that has shifted
 
-## 8. THE RIFT
+an object that moved
 
-**Canon: the Rift is not a door and not a wound. It is the seam where two reconstructions
-of the same record meet and disagree.**
+a repeated house
 
-The world is not being rebuilt once. It is being rebuilt **repeatedly**, from the same
-worn record, and the results do not match. Where two of those attempts abut, the geometry
-cannot be reconciled — and a volume that cannot decide which version it is becomes
-passable in a direction that is not a direction.
+a changed interior
 
-This is why:
+a familiar object in an impossible location
 
-- reality is least reliable near it — that is definitionally what it is
-- familiar places appear on the other side, wrongly — the other side is *the same
-  material*, rebuilt worse
-- the player can interact with it at all — a powered Anchor is a volume being held to one
-  version; that is exactly the leverage needed to choose a side of a seam
+The game must never explain the change.
 
-**The single most important consequence, and the thing the whole game is built to
-deliver:**
+5.4 The player is hunted
+The Suburbia threat should not behave like the Stalker.
 
-> The dimensions are not other worlds. They are **the same world, rebuilt again**, each
-> time from a more degraded record.
+The Stalker is a draft of a person.
 
-The player should reach this understanding somewhere in Static Suburbia — not from being
-told, but from recognising an object.
+The Suburbia threat is occupancy.
 
----
+It belongs in the neighborhood.
 
-## 9. RIFT CORES
+It should feel like something that already considers the area home.
 
-**Canon: a Rift Core is a fragment of the record itself.**
+Its behavior should escalate through:
 
-Not a key, not a battery, not a collectible. A compressed, physical piece of the
-impression the world is being rebuilt from — dense enough to hold, small enough to carry.
+observation → positioning → interception → pursuit
 
-Feeding one to an Anchor does not open a portal. It gives the Anchor **a different record
-to hold stable**, and the held volume resolves to *that* version instead. The player does
-not travel. The world around them is re-decided, and they are standing in the result.
+The player should eventually realize:
 
-- **Level 1 Core** — recovered from the Behemoth. A piece of the record shed by the
-  largest mass of unresolved material in the region.
-- **Level 2 Core** — waiting in a chest under the Disconnected Home. See Section 14 for
-  why a house that should not exist is holding a piece of the record.
-- **Level 3 Core** — inside the Suburbia Disconnected Home. Picking it up does not power
-  anything. Something else decides where the player goes next, which is the first moment
-  the player is not the one choosing. (See Section 17.)
+“It is not following me the way an animal follows prey.”
 
-**There must never be a Core index, a lore screen, or a fourth "collect them all" Core.**
-Three is the count, and each one is a hinge, not a trophy.
+It is getting ahead of me.
 
----
+That is the horror.
 
-## 10. THE SHATTERED FARMLANDS
+5.5 Existing Suburbia jumpscare
+The major Suburbia jumpscare previously designed for the project remains canonical in concept and should be preserved during Era 2 implementation.
 
-**Narrative role: consequence, and the first place the record is visibly poor.**
+Its execution may be rebuilt visually and technically to fit the new non-voxel presentation.
 
-The Farmlands are the part of the record made of **wide, repetitive, lightly-observed
-land**. Miles of field that nobody looked at closely, because there was no reason to.
+Do not replace a proven scare merely because the environment changes.
 
-**Why it is abandoned — and this is the canonical answer, so do not invent another:**
+5.6 Houses as temporary safety
+Houses can provide brief safety.
 
-Nothing happened to the people. There was no evacuation, no plague, no exodus.
-**The record simply does not contain them well enough to rebuild them.**
+But safety should be unreliable.
 
-A farmhouse is geometry, observed thousands of times, from outside, by everyone who drove
-past. It comes back. A road comes back. A fence comes back, wrong at the joins. A *person*
-was only ever fully observed by a handful of others, briefly, and never as a shape — and
-so a person does not come back.
+A house may contain:
 
-This is why the region reads the way it already does: buildings standing, tools laid down
-mid-task, doors open, and **no one**, anywhere, ever. Not corpses. Not graves. Absence.
+quiet rooms
 
-**The names survive.** The region's signs already read ROTH FARM, JOHNSON FARM, MILLER
-FARM, OLD CHAPEL, COUNTY ROAD. This is canon and is exactly right: **a name painted on a
-board is geometry.** It was observed as a shape, thousands of times, by everyone who drove
-past — so it comes back perfectly, while the family it names does not come back at all.
-The signs are not a memorial. They are the most ordinary objects in the Farmlands, and
-they are the closest the region comes to a human being.
+lit interiors
 
-**The animals remain** because an animal is closer to a behaviour than a person: a loop of
-grazing, walking, turning. The record holds loops. It does not hold interiority. That is
-why the herds are *there* and why they stare, freeze, align themselves, and walk in
-straight lines — the loop is running, and the thing that should be inside it is not.
+familiar furniture
 
-**Why the region is so vast:** thin record, cheap to reproduce. It goes on because there
-is nothing in it expensive enough to stop it going on.
+doors
 
-**Why the player is drawn toward the Home:** they are not. They are following a road, and
-the road goes where roads went. The Home is at the end of it because that is where the
-record is densest — and density is exactly what makes the Home impossible.
+corridors
 
----
+upstairs spaces
 
-## 11. THE EASTWARD JOURNEY
+windows
 
-**Canon: east is where the record is thickest, and therefore where the reconstruction has
-worked hardest and failed most visibly.**
+Later, the same architecture can become a trap.
 
-East is not magic and must never be made magic. It is a **gradient**. The reconstruction
-radiates from wherever the record was pressed deepest, and detail accumulates in that
-direction — which means so does contradiction, because detail is what there is to get
-wrong. Empty land can hardly be incorrect. A house can be extremely incorrect.
+The player should have moments of:
 
-So the player is not being summoned east. They are walking up a slope of increasing
-fidelity, and fidelity is where the horror lives.
+“I made it inside.”
 
-**Preserve exactly as built (Phase 20.2):**
+followed by:
 
-- the compass is **earned once**, from the first Overworld Ancient Chest, and is
-  progression state rather than an inventory item
-- the opening instruction is the two lines *"At the crossroads, go east." / "Go east."*
-  and names nothing
-- the arrival crossroads has four genuine, unbroken roads — the player may refuse
-- the recall at the crossroads fires once
+“Wait. Something is already in here.”
 
-**Canonically, why the compass works at all** — and why its toast says *"A brass compass,
-still true. North holds."* — is that **direction is one of the few things the record has
-perfectly.** Which way is north survived when the people did not. That line is canon and
-should not be changed.
+5.7 The Neighbor / Suburbia entity
+The final entity should not have:
 
----
+a lore-heavy name
 
-## 12. THE WATER TOWER
+a human biography
 
-**Canon: it is enormous because it was the most-looked-at object for thirty miles.**
+a routine explained in dialogue
 
-Fidelity follows attention, historically as well as presently. A rural water tower is the
-thing every person in the region glanced at every day, from every direction, for
-generations — the single densest object in a thin record. So it comes back **more
-completely than the land it stands on**, and it is legible from impossibly far away
-because that is how it was held.
+a clearly defined mythology
 
-It is mundane and it is *too much*. That is the horror: nothing about it is supernatural,
-and it is still wrong, because it is more real than the fields.
+a conventional monster origin
 
-**The red light** is the seam, and the existing behaviour is exactly right and must be
-preserved: dormant under direct gaze, irregular and meaningless in peripheral vision. It
-is not a signal. It is not a warning. It is not a puzzle, and it must never acquire an
-objective. **Do not ever explain the light.** The correct player experience is:
+It is a person-shaped occupancy.
 
-> "Wait — did that just flash?"
+It should feel:
 
-**Never confirm** whether it is observation, memory, a beacon, or nothing.
+familiar without being known
 
----
+domestic without being friendly
 
-## 13. RURAL SETTLEMENTS
+confident without being theatrical
 
-**Canon: these are the places where the record was good enough for the building and not
-good enough for the life inside it.**
+physically present
 
-Every abandoned farmstead should read as one sentence: *this was working, and then it was
-simply not attended.* Not violence. Not flight. Cessation.
+It does not exist solely to scare the player.
 
-What that means concretely for Phase 31:
+It belongs here.
 
-- interrupted work, not disaster — a tool set down rather than dropped
-- infrastructure that implies people and contains none
-- deterioration that is uneven in ways weather cannot explain (the parts nobody looked at
-  are worse)
-- **repetition across properties**: the same mailbox, the same chair, the same fence
-  break, on farms that never shared an owner. The record has a limited vocabulary and
-  reuses it. This is the Farmlands' quietest and best horror, and it is already
-  half-implemented via the journey's echo marks.
+That distinction matters.
 
-**Never:** notes, journals, diaries, letters, audio logs, or anything with handwriting on
-it explaining what happened. There is no one to have written them, and their absence is
-the point. **A single readable human sentence anywhere in the Farmlands would cost more
-than it gives.**
+5.8 Recognition horror
+Suburbia should contain moments where the player recognizes objects from earlier parts of the game.
 
----
+Examples:
 
-## 14. THE DISCONNECTED HOME
+an object from a Farmland house
 
-**Canon: a house rebuilt from the memory of being inside it, attached to a landscape
-rebuilt from the memory of driving past it — and the two records were never reconciled.**
+something from the player's earlier shelter
 
-This is the game's thesis statement as a building.
+a room that resembles the Disconnected Home
 
-- **Why the exterior is believable:** it comes from the outside record, which is good.
-  Porch, siding, roofline, yard: all correct.
-- **Why it is *disconnected*:** the outside record contains the *approach* — tyre tracks, a
-  mailbox, a service road, field rows, drainage — but the inside record contains the
-  house. Nothing ever joined them, because no single observation ever contained both.
-  Hence tracks that lead to no driveway, fences that almost meet, a mailbox with no
-  access. **The evidence of a property arrives before the property, and does not fit it.**
-- **Why the interior starts normal and stops being normal:** an interior is remembered as
-  a sequence of rooms, not as a volume. Rebuilding it produces a correct *hallway* and a
-  correct *kitchen* and no consistent relationship between them. Corridors run further
-  than the footprint. Stairs descend past the ground. Rooms repeat because the memory of
-  a room repeated.
-- **Why it exceeds its own exterior:** nobody ever measured the inside against the
-  outside. There was no reason to. So nothing forced them to agree.
-- **Why Static Suburbia is visible through a window:** the window is a hole in one
-  reconstruction that happens to open onto another attempt at the same record. This is the
-  **first hard evidence in the entire game that the dimensions are the same place**, and
-  it must remain a thing the player finds rather than a thing they are shown.
-- **Why the Level 2 Core is here:** the densest, most-contradicted volume in the region is
-  precisely where a piece of the record is exposed. Contradiction is the record showing
-  through.
-- **Why the house seems to know things:** it does not. It contains **a diorama of itself**
-  — including a mailbox that then stops having been there once the player is away and not
-  looking. The house is not aware. The house is a copy that contains a copy, and the copy
-  is being maintained at the same slovenly standard as everything else. The player is
-  meant to leave that basement unsure whether they misremembered.
+a repeated furnishing
 
-**Guaranteed forever:** the Level 2 Rift Core Disk is always reachable on foot. This is
-canon *and* a hard technical invariant (`tests/core-disk.js`).
+a familiar road pattern
 
----
+Recognition should do more than surprise the player.
 
-## 15. STATIC SUBURBIA
+It should communicate:
 
-**Canon: the same record, rebuilt again — this time from a copy rather than from the
-original impression.**
+“This is the same place.”
 
-Suburbia is **not** a different place. It is a **second-generation reconstruction**: the
-world rebuilt from its own previous rebuild. Everything that is uncanny about it is a
-compression artefact.
+The player should discover that truth.
 
-That single decision explains the entire existing dimension:
+The game should not announce it.
 
-| what the build already does | what it means |
-|---|---|
-| every house is identical | a copy of a copy loses variation first |
-| houses get *worse* the more the player visits | each re-resolve is a further generation of loss |
-| doors and rooms move when unobserved | the reconstruction is not maintaining what nobody is looking at |
-| torches disintegrate into static | fire is a process, not a shape; a copy of a copy has geometry and no processes |
-| CRT static bleeds from every window | the sound of a signal with the content worn off it |
-| standing still accelerates Sanity loss | stillness is when the player can *see* it re-deciding |
-| the rooms are impossible in the same grammar as the Home | same failure mode, one generation further along |
+6. DIMENSION 3 — THE BELOW
+6.1 Purpose
+The Below is the game's major horror escalation.
 
-**Is it a memory, a copy, or a place?** Canonically: a **place**, made by copying a copy.
-It is physically real — the player walks on it, mines it, is hurt in it. It is simply
-*derived*. That is the strongest available answer and it preserves the horror: it is not
-a dream the player can wake from.
+It is not another ordinary environment.
 
-**The player should never be told this.** They should work it out from **recognition** —
-finding an object from the Farmlands, or from their own Overworld base, standing in a
-suburban kitchen.
+It is the point where the reconstruction has become so degraded that recognizable space has collapsed into an impossible interior.
 
----
+The player is no longer walking through a convincing version of the world.
 
-## 16. SUBURBIA ANOMALIES, AND WHY THE WORLD CHANGES
+They are walking inside a failure of the world.
 
-**Canon: it changes because it is still being rebuilt, continuously, and only where
-someone is looking is it obliged to agree with itself.**
+This is where the game is allowed to become its most physically terrifying.
 
-The suburb is not haunted and is not rearranging itself *at* the player. It is being
-**maintained**, badly, in real time — and maintenance of an unobserved volume is
-indistinguishable from vandalism.
+6.2 The Below is not literal Hell
+Do not build:
 
-Rules for any future phase implementing anomalies:
+lava
 
-1. **Nothing changes while it is being watched.** Ever. Breaking this once ruins the
-   entire premise.
-2. **Change is discovered, never witnessed.** The player turns around and it is different.
-3. **Change is never addressed to the player.** No arrows, no messages, no arrangements
-   that spell anything. It is not communicating.
-4. **Degradation accumulates.** The same house revisited is worse, not different-but-equal.
-5. **Repetition beats novelty.** The same wrong chair in the fortieth house is worse than
-   forty different wrong things.
+demonic statues
 
----
+generic infernal imagery
 
-## 17. THE NEIGHBOUR AND OTHER SUBURBIA ENTITIES
+religious punishment imagery
 
-**Not implemented. Do not implement in Phase 24.** This section exists so that whoever
-does implement it does not invent a ghost.
+an obvious underworld
 
-**Canon if and when one exists:** a Suburbia entity is **a person-shaped hole that the
-reconstruction has filled in.** The suburb is a copy of a place where people lived, so the
-copy contains *the space a person occupied* — and something has been fitted into that
-space, at the same fidelity as everything else here, which is to say badly.
+a named demon realm
 
-- It should read as **occupancy**, not predation. It belongs there. The player does not.
-- It should behave with the confidence of something at home and the detail of something
-  rendered from three photographs.
-- It must obey Section 16's rules: it does not move while watched.
-- **Do not settle its form now.** Do not make it a neighbour with a name, a house number,
-  a routine, or a face the player sees clearly. The moment it becomes a character, it
-  stops being the suburb.
+The Below is terrifying because it is familiar architecture with impossible relationships.
 
-It is **not** the Stalker (that is a draft of the *player*), and it is **not** related to
-the final creature.
+The player may see:
 
----
+a farmhouse embedded in concrete
 
-## 18. FAKE HAVEN
+a road running vertically
 
-**Canon: the one place in the game rebuilt from a record that is complete — and it is
-complete because it is small, and because whatever made the record cared about it.**
+a suburban bedroom suspended above a corridor
 
-Fake Haven is not a dream, not a trap laid by an intelligence, and not a test. It is the
-**best work the reconstruction is capable of**, and the reason it is so much better than
-everything else is the most disquieting fact in the game:
+a forest growing inside a chamber
 
-> Everywhere else, the world is being rebuilt from what was *observed*.
-> Here, it has been rebuilt from what was *loved*.
+a water tower buried in a ceiling
 
-That is why the cabin is warm, why the fire is lit, why the bed is made, why the light is
-gold, why the music is a lullaby, and why the player wants to stay. The detail is not
-generous. It is **specific**. Someone's actual cabin.
+a stairwell that should not fit inside the building containing it
 
-- **Whose memory?** — **never answered.** Not the player's, not confirmed as anyone's. The
-  correct reaction is a slow, unpleasant suspicion that it is a real place belonging to a
-  real person who is not here. Do not resolve it.
-- **Why is the player allowed to rest?** Because nothing here is trying to do anything to
-  them. Resting works. The bed genuinely restores. That is what makes it cruel.
-- **Why does it end?** Because it is finite. It is a small record, and the player reaches
-  the end of it — by lying down, or by simply being there long enough. There is nothing
-  past the edge of what was loved.
-- **The transition is not a betrayal.** Nothing turns on the player. The Haven *runs out*,
-  and what is underneath it was always underneath it.
+doors leading to spaces too large for the structure around them
 
-**Preserve:** the initial safety must be real, the player should want to stay, and the
-final creature must not be foreshadowed inside the intact Haven. **Do not** put a warning
-in the cabin. **Do not** make the wrongness legible before the shift.
+Everything is recognizable.
 
----
+Nothing belongs.
 
-## 19. THE FINAL CREATURE
+6.3 No horizon
+A defining visual rule:
 
-**Canon: it is what the record is *of*.**
+The Below should rarely offer a comfortable horizon.
 
-Not the cause of the damage. Not the author of the reconstruction. Not a god, a demon, an
-alien, or a boss. It is the thing that was always on the other side of every rebuilt
-surface in the game, and every dimension the player has walked through has been an
-increasingly poor attempt to represent a world that has this in it.
+Instead the player encounters:
 
-- **Did it cause the corruption?** Unknown, and must remain so. It is at minimum
-  *contemporary* with the damage.
-- **Does it predate the Rift?** Yes. Everything predates the Rift; the Rift is a symptom.
-- **Is it the source of the dimensions?** No. The dimensions are re-renders. It is
-  **in the subject matter**, not in the process.
-- **Why only at the end?** Because it was never hidden. The player has been getting
-  closer to the original record the entire game, and the last thing between them and it
-  was the only reconstruction good enough to obscure it.
-- **Why can it not be fought?** Fighting is an interaction between things of comparable
-  kind. Nothing about the player is the same *kind* of thing.
-- **What does seeing it mean?** That the reconstruction has stopped being between the
-  player and the subject. That is all. It is not a revelation; it is a **removal**.
+shafts
 
-The intended feeling is:
+tunnels
 
-> *"That was always there."*
+giant rooms
+
+vertical structures
+
+corridors
+
+crawlspaces
+
+industrial chambers
+
+impossible interiors
+
+Scale should alternate aggressively.
+
+A massive space can make the player feel insignificant.
+
+A tiny space can make the player feel trapped.
+
+Switching between those scales creates emotional whiplash.
+
+6.4 The sound rule
+The Below introduces a different survival relationship with sound.
+
+The environment is unusually quiet.
+
+Movement is meaningful.
+
+Certain actions produce louder sounds:
+
+running
+
+metal surfaces
+
+dropping objects
+
+opening damaged doors
+
+breaking material
+
+interacting with machinery
+
+The player should gradually realize:
+
+Noise can attract something.
+
+But do not reduce the system to a clean stealth meter.
+
+The player should not have a permanent number telling them exactly how safe they are.
+
+Instead:
+
+sound happens
+
+the world responds
+
+the player learns by surviving
+
+6.5 The creature of the Below
+Working name: The Collector.
+
+The name is internal only unless changed later.
+
+It is not:
+
+the Stalker
+
+the Neighbor
+
+the Behemoth
+
+the final creature
+
+It is a separate phenomenon belonging specifically to the Below.
+
+It appears to be made from incompatible matter and architectural forms.
+
+The player rarely sees the whole body.
+
+They may see:
+
+a hand
+
+a silhouette
+
+a face
+
+a leg
+
+fingers around a corner
+
+movement behind pipes
+
+something bending through a doorway
+
+The first rule is:
+
+Do not reveal the entire creature early.
+
+The player should construct it mentally before the game confirms its physical scale.
+
+6.6 The Collector's hunting behavior
+The Collector responds strongly to sound.
+
+Early:
+
+the player hears something
+
+nothing visibly happens
+
+Middle:
+
+the player makes a loud sound
+
+distant movement begins
+
+Later:
+
+the player realizes the movement is approaching
+
+Eventually:
+
+the creature actively hunts
+
+The player should be able to make mistakes.
+
+Running is fast but loud.
+
+Walking is slower but safer.
+
+Hiding works temporarily.
+
+Nothing should make the player completely invulnerable.
+
+6.7 Hiding must degrade
+The Below should initially provide hiding places.
+
+Then the rules change.
+
+Early:
+
+hiding works
+
+Middle:
+
+some hiding places fail
+
+Later:
+
+the creature checks hiding places
+
+Late:
+
+the player realizes hiding is no longer a solution
+
+This creates a deliberate loss of control:
+
+hide → hide carefully → hide and hope → nowhere safe → run
+
+That progression is one of the dimension's core horror structures.
+
+6.8 The recorded-player phenomenon
+The Below can weaponize the fact that the record contains impressions.
+
+The player may hear:
+
+their own footsteps somewhere else
+
+a door sound they made earlier
+
+movement ahead that matches their own movement
+
+a previously heard sound in an impossible location
+
+a fragment of their own voice or breathing
+
+This is not explained.
+
+Do not state:
+
+“The creature recorded you.”
+
+Let the player infer:
+
+“Something here has an impression of me.”
+
+6.9 The impossible chase
+At least one major sequence should involve the player fleeing through rapidly changing but physically connected spaces:
+
+industrial corridor
+
+farmhouse
+
+staircase
+
+room
+
+tunnel
+
+road
+
+bedroom
+
+chamber
+
+The transitions should feel impossible while still allowing the player to control movement.
+
+The horror is:
+
+the world itself is no longer helping the player understand where they are.
+
+The chase must be physically threatening.
+
+The player can die.
+
+The player must genuinely want to escape.
+
+6.10 The Below's central feeling
+By the late section, the player should think:
+
+“I need to leave this place.”
 
 Not:
 
-> *"So THAT'S what was behind it all."*
+“I want to understand this.”
 
-**Never give it:** a name in-fiction, dialogue, a motive, a weakness, an origin, a
-mythology, or a second appearance. **The internal working name "Void Sovereign" is
-retired from all player-facing text as of Phase 24** — it names a boss, and this is not
-one. It may persist in code identifiers; it must not appear on screen.
+Understanding can come later.
 
----
+Survival comes first.
 
-## 20. THE DIMENSIONS AS ONE STORY
+7. THE STALKER
+The Stalker remains a distinct entity.
 
-Five stages of the same place, each rebuilt from a worse source:
+Canonically:
 
-| stage | what it is | generation | what the player learns |
-|---|---|---|---|
-| **Overworld** | the thickest part of the record | 1st, best | the world has rules, and they hold |
-| **Shattered Farmlands** | the thin part of the record | 1st, poor | the buildings came back and the people did not |
-| **Disconnected Home** | two records that never met | 1st, contradictory | inside and outside disagree, and both are here |
-| **Static Suburbia** | the record rebuilt from a rebuild | 2nd | this is the same place, copied |
-| **Fake Haven** | a small record, rebuilt perfectly | — | fidelity was never the problem |
-| **The final scene** | the record's subject, unmediated | none | there was something on the other side of all of it |
+The Stalker is the reconstruction's draft of a person, assembled from the only person it can currently observe.
 
-**The escalation is not "more scary places."** It is **descending fidelity followed by one
-perfect place**, which is precisely why the Haven lands: the player has spent the whole
-game learning that better-rendered means more-observed, and then walks into the best-
-rendered room in the world.
+That is why:
 
----
+it can freeze when watched
 
-## 21. THE PLAYER KNOWLEDGE CURVE
+light can disrupt it
 
-What the player should be *feeling*, stage by stage. **These are never displayed as text.**
+it does not always travel normally
 
-| stage | the realisation |
-|---|---|
-| Early Overworld | "This is dangerous, and I understand how it works." |
-| Mid Overworld | "Some of this does not add up, and I am not sure it is supposed to." |
-| Anchor + first Blood Night | "I can make a piece of this hold still. That implies the rest does not." |
-| Rift opens | "There is more than this, and it is reachable from here." |
-| Early Farmlands | "People lived here. Their things are here. They are not." |
-| The water tower | "That is a perfectly ordinary object and it is wrong." |
-| Deep Farmlands | "The same details keep coming back on farms that never met." |
-| Disconnected Home exterior | "There should be a property here and the land cannot hold one." |
-| Disconnected Home interior | "This building does not fit inside itself." |
-| The window in the basement | "I have seen somewhere else through a window." |
-| Early Suburbia | "Every house is the same house." |
-| Deep Suburbia | "It is different when I turn around. It has always been different when I turn around." |
-| Suburbia recognition | "That object is from somewhere else. **This is the same place.**" |
-| Fake Haven arrival | "This is safe, and I do not want to leave." |
-| Fake Haven, late | "This is better made than anywhere I have been. Why is *this* the part that was kept?" |
-| The shift | "It was never a trap. It just ended." |
-| Final | "The problem was never the monsters. This has been a picture of something the entire time." |
+proximity harms perception
 
-**Rule for Phase 25 (Dynamic Objectives):** objective text may name only what the player
-has already seen. It may never name a destination they have not discovered, and it may
-never use any vocabulary from this document. The Phase 20 journey lines are the model —
-they are observations ("The fields are dying"), not instructions.
+it feels like an approximation instead of a complete being
 
----
+It is not:
 
-## 22. MYSTERY VERSUS EXPLANATION
+The Collector
 
-### The player should eventually be able to work out
+the Neighbor
 
-- that familiar places are being reproduced, and reproduced incorrectly
-- that the dimensions are the same place rather than different worlds
-- that things change when they are not observed, and hold still when they are
-- that the Anchor holds a volume of the world stable, and that this is why it matters
-- that the people are missing in a way that is not death
-- that the journey moves toward denser, worse-rebuilt reality
-- that the Haven was made with more care than anywhere else
+the final creature
 
-### The player must never be told
+an agent working for an unseen villain
 
-- **what is doing the rebuilding.** No name, no form, no agency, no motive. It is never
-  personified and never appears.
-- **why.** Not repair, not mourning, not preservation, not malice. Never stated.
-- **what the record is**, where it came from, or who made the observations.
-- **what happened to the people.** "The record does not contain them" is *this document's*
-  answer; the game shows only absence.
-- **whose memory the Haven is.**
-- **what the final creature is**, whether it caused anything, or what it wants.
-- **whether the player is original.**
-- **why an Anchor works.**
-- **what the water tower's light is.**
-- **whether any of it can be undone.** There is no cure, no reversal, and no ending in
-  which the world is repaired. Do not write one.
+Do not give it:
 
-> If a future phase finds itself needing to answer one of these to make something work,
-> the design is wrong, not this list.
+dialogue
 
----
+a backstory
 
-## 23. ENVIRONMENTAL STORYTELLING OPPORTUNITIES (for Phase 31)
+a personal motive
 
-Recorded here, **not implemented**. Every one of these communicates without text.
+a mythology
 
-**Overworld**
-- ruined, unlit anchors from people who held a volume and stopped
-- a cleared, squared-off patch of ground with nothing on it
-- ore in a seam that is a little too regular
+a relationship with the final creature
 
-**Farmlands**
-- work interrupted rather than abandoned: a tool laid down, a gate half-hung
-- **the same mailbox / chair / fence break on unrelated farms** (the record's vocabulary)
-- machinery with the wear patterns of use and no path to where it was used
-- herds standing aligned, facing one way, in a field with no gate
-- drainage that implies a building that is not there
-- a road that is better maintained than anything it connects
-- deterioration worst on the faces nobody would have looked at
-- a farm sign in perfect condition on a property that has nothing else intact
+The player should not know whether the Stalker is trying to imitate them, replace them, or simply happen to resemble them.
 
-**Disconnected Home**
-- a laid table with the chairs pushed in
-- a corridor that is longer on the way back
-- a room whose window shows a street
-- the basement diorama, and its mailbox (already built)
-- stairs with one more step than they had
+8. THE HOLLOWED BEHEMOTH
+The Behemoth remains a local accumulation of unresolved world.
 
-**Static Suburbia**
-- an object recognisably from the player's own Overworld base
-- family photographs where the arrangement of people changes and the frame does not
-- a house whose interior is the Disconnected Home's interior
-- the same car in two driveways on the same street
-- a room that exists in every house except one
+It is not:
 
-**Fake Haven**
-- specific, personal, non-generic objects: a particular mug, a particular blanket
-- a chair positioned for someone of a specific height
-- one object that is also in the Farmlands, unremarked
-- nothing overtly wrong, anywhere, until the shift
+a demon
 
----
+a boss in the conventional sense
 
-## 24. CANONICAL VOCABULARY
+a lower form of the final creature
 
-Terms this project uses, and what they mean. **Use these; do not invent synonyms.**
+the source of the reconstruction
 
-| term | status | meaning |
-|---|---|---|
-| **the record** | internal only | the incomplete impression the world is rebuilt from. Never spoken in game. |
-| **the reconstruction** | internal only | the ongoing rebuild. Never named in game, never personified. |
-| **Anchor / Anchor Monument** | in-game | a player-made volume of held reality |
-| **Rift** | in-game | the seam between two rebuilds that disagree |
-| **Rift Core Disk** | in-game | a carriable fragment of the record |
-| **Blood Night** | in-game | the low-fidelity part of the cycle |
-| **the Stalker** | in-game | the reconstruction's draft of a person |
-| **Hollowed Behemoth** | in-game | settled unresolved material in an animal shape |
-| **Shattered Farmlands** | in-game | the thin-record region |
-| **Static Suburbia** | in-game | the second-generation rebuild |
-| **the Disconnected Home** | in-game | a house whose inside and outside were never reconciled |
-| **Fake Haven** | internal | the player never hears the word "fake"; in game it is simply the Haven |
-| ~~Void Sovereign~~ | **retired** | do not use in player-facing text (Phase 24) |
-| ~~Block & Ruin~~ | **retired** | the project's old title (Phase 24 removed the last occurrences) |
+the guardian of a lore secret
 
----
+It is an amount of unresolved material that has settled into an animal silhouette because the record has animal shapes available.
 
-## 25. FUTURE-PHASE COMPATIBILITY NOTES
+Its immense size is not growth.
 
-| phase | what this canon requires of it |
-|---|---|
-| **25 — Dynamic Objectives** | observations, never destinations. No vocabulary from Section 24's "internal only" rows. Never name a place before it is seen. |
-| **26 — XP removal** | progression is capability, discovery and Cores. The Anchor is the model: the player *asserts*, they are not *awarded*. |
-| **27 — HUD rebirth** | Sanity is the reconstruction's fidelity where the player is standing, not a madness meter. Health is a body. Do not merge them. |
-| **28 — Organic onboarding** | the Overworld teaching real rules IS the story. Teach by trusting the world, so the later violation costs something. |
-| **29 — Main menu** | quiet, and it must not explain. Title treatment carries the meaning; see Section 26. |
-| **30 — Opening film** | ~20s, and it must not state the premise. Normality, one wrongness, glimpses, no answers. It may show that something is *rebuilding*; it may never show what. |
-| **31 — Environmental storytelling** | Section 23. No notes. No journals. No handwriting. |
-| **32 — Fake Haven** | Section 18. The safety must be real. |
-| **33 — Final creature** | Section 19. Not a boss, not a reveal, a removal. |
-| **34 — Climax A/V** | the Haven and the final scene are one continuous thing that stops being furnished. |
-| **35 — Dimension cohesion** | Section 20's table is the spine. Every dimension must answer "which generation of the rebuild is this?" |
+It is quantity.
 
----
+Its Darkness Aura is not a spell.
 
-## 26. THE TITLE
+It is an effect of fidelity being spent on the enormous mass rather than the surrounding environment.
 
-**WHERE IT ISN'T.**
+The Behemoth should feel like:
 
-The title is a description of the game's central failure mode, and it should accumulate
-meaning without ever being explained:
+weather that developed a body.
 
-- a mailbox that **isn't** there once you look away
-- people who **aren't** in the buildings that are
-- a driveway that **isn't** at the end of the tracks
-- a room that **isn't** the same size from inside
-- an interior that **isn't** inside the exterior
-- a street that **isn't** in the same place it was
-- a warmth that **isn't** anybody's
+Its purpose is to introduce the player to the idea that the world can produce physical things that are neither normal creatures nor conventional monsters.
 
-Never put the title in dialogue. Never have anything explain it. **The words themselves
-appear nowhere in the world and should stay that way** — the phrase is enacted, not
-written, and the basement diorama that removes its own mailbox already enacts it
-completely. That event is the title, and it never says so.
+9. THE ANCHOR
+The Anchor is one of the game's most important symbols.
+
+It is:
+
+a declaration of attention made physical.
+
+The player does not find a sacred object.
+
+They make one.
+
+They put it down.
+
+They feed it.
+
+While active, it holds a volume of the world to a more stable standard.
+
+This means:
+
+it consumes fuel
+
+it requires attention
+
+it keeps its volume stable
+
+it prevents certain perception degradation
+
+it creates leverage over a Rift
+
+The Anchor is not magic in the traditional sense.
+
+Do not explain why wood can do this.
+
+Its simplicity is the point.
+
+A player should eventually understand:
+
+“This thing holds reality still.”
+
+But they should not understand:
+
+“Here is the scientific reason it works.”
+
+10. THE RIFT
+A Rift is not:
+
+a portal to another universe
+
+a wound in reality
+
+a demon door
+
+an ordinary teleportation device
+
+A Rift is:
+
+the seam where two reconstructions of the same place disagree.
+
+Two versions of the world cannot occupy the same volume consistently.
+
+The seam becomes traversable.
+
+The player does not "travel to another world."
+
+The world is re-decided around them.
+
+This distinction is fundamental.
+
+The dimensions are all the same underlying place.
+
+The Rift should therefore feel:
+
+unnatural
+
+physical
+
+temporary
+
+structurally plausible within the game's rules
+
+frightening because it reveals a disagreement that should not exist
+
+Rift behavior
+When a Rift opens:
+
+it must stabilize before being entered
+
+the player should see a deliberate response from the Anchor
+
+the world should react audibly and visually
+
+the old dimension should be fully torn down
+
+the destination should load cleanly
+
+the player should arrive on walkable ground
+
+The old Rift does not persist after a transition.
+
+The Anchor does not travel with the player.
+
+The player's inventory, milestones, compass, and other persistent progression can survive the re-decision because the player persists even though the local reconstruction changes.
+
+11. RIFT CORES
+A Rift Core is a fragment of the record itself.
+
+It is not:
+
+a generic key
+
+a fuel cell
+
+a collectible set
+
+a magical crystal with lore text
+
+There are exactly three important Core milestones.
+
+Each Core is a hinge in the game's progression.
+
+Feeding a Core to an Anchor gives that Anchor a different version of the record to hold stable.
+
+The player does not travel.
+
+The world changes which reconstruction is being held.
+
+Never create a fourth Core merely to extend progression.
+
+12. THE DISCONNECTED HOME
+The Disconnected Home remains a critical bridge between Farmlands and Suburbia.
+
+It is a house reconstructed from two different kinds of observation:
+
+the approach and exterior landscape
+
+the interior of the home
+
+Those impressions were never reconciled.
+
+Therefore:
+
+tracks can lead to the wrong place
+
+fences almost meet
+
+a mailbox may imply access that does not exist
+
+exterior geometry can be believable while interior geometry fails
+
+The interior should feel like:
+
+correct rooms
+
+incorrect relationships
+
+repeated spaces
+
+excessive corridors
+
+stairs that exceed the exterior footprint
+
+The house is not sentient.
+
+It contains a copy of itself, and that copy can contain another copy.
+
+The player should leave unsure whether they actually saw something impossible or merely remembered it incorrectly.
+
+The Level 2 Core remains reachable.
+
+13. THE EASTWARD JOURNEY
+East is not mystical.
+
+It is a gradient of reconstruction density.
+
+As the player moves toward the thicker portions of the record:
+
+detail increases
+
+familiar structures become more convincing
+
+contradictions become more obvious
+
+The player is not being summoned by a force.
+
+They are walking toward increasingly dense reconstruction.
+
+The compass works because direction is one of the few things the record preserved extremely well.
+
+The cardinal direction system should remain:
+
+useful
+
+subtle
+
+reliable
+
+The compass is not GPS.
+
+14. THE FALSE LANGUAGE OF THE WORLD
+Player-facing language must remain restrained.
+
+Objectives should describe:
+
+what the player has seen
+
+what is immediately relevant
+
+what they can reasonably infer
+
+Objectives should not:
+
+name hidden dimensions before discovery
+
+explain the reconstruction
+
+use internal lore terms casually
+
+expose the horror's rules too early
+
+turn mystery into a quest checklist
+
+Good:
+
+“The road continues east.”
+
+Good:
+
+“Something moved beyond the trees.”
+
+Bad:
+
+“The reconstruction is degrading.”
+
+Bad:
+
+“Enter the second-generation rebuild.”
+
+Internal terminology belongs in design documents, not ordinary player dialogue.
+
+15. FAKE HAVEN / HAVEN
+Haven is the best reconstruction in the game.
+
+Not because it is the most supernatural.
+
+Because it is the most complete.
+
+It was rebuilt from a record that was:
+
+small
+
+detailed
+
+repeatedly loved
+
+Elsewhere the world was observed.
+
+Here the world was cared about.
+
+That difference matters.
+
+Haven should contain:
+
+warm light
+
+specific furniture
+
+a working fire
+
+a bed
+
+a sense of domestic normality
+
+highly specific objects
+
+no obvious horror warning signs
+
+The player should genuinely want to stay.
+
+The safety must be real for a while.
+
+That is important.
+
+Do not begin Haven with:
+
+obvious glitching
+
+monster eyes
+
+cryptic warnings
+
+blood
+
+screaming
+
+supernatural text
+
+The player needs to believe:
+
+“I am safe.”
+
+15.1 How Haven ends
+Haven does not reveal itself to be an elaborate trap.
+
+Nothing secretly turns evil because the player trusted it.
+
+It simply runs out.
+
+The player reaches the end of a finite, well-preserved reconstruction.
+
+What lies underneath has always existed.
+
+The transition is cruel because the safety was genuine.
+
+16. HAVEN HORROR ESCALATION
+The horror in Haven should be different from every earlier dimension.
+
+It begins with relief.
+
+Then tiny intrusions appear:
+
+a distant sound
+
+an object slightly displaced
+
+a room behaving incorrectly
+
+something moving elsewhere in the house
+
+a door opening where nobody should be
+
+Eventually:
+
+something is physically inside the place the player trusted.
+
+The strongest Haven sequence should be an actual survival event.
+
+The player should:
+
+hear movement
+
+search
+
+realize they are not alone
+
+attempt to move through the house
+
+experience the house becoming physically hostile
+
+escape the space
+
+The sequence must not become a generic haunted-house cliché.
+
+It should feel like the final failure of a beautiful reconstruction.
+
+17. THE FINAL CREATURE
+The final creature is:
+
+what the record is of.
+
+It is not:
+
+the reason the world is broken
+
+the being rebuilding the world
+
+a god
+
+a demon
+
+an alien
+
+a final boss
+
+an explanation
+
+The dimensions are increasingly poor representations of a place that has this thing somewhere inside its subject matter.
+
+The player reaches it only after the reconstruction has stopped standing between them and the original subject.
+
+It cannot be fought in a normal sense.
+
+The player and the creature are not the same kind of thing.
+
+The final encounter is therefore not combat.
+
+It is exposure.
+
+It is a removal.
+
+The intended player thought is:
+
+“That was always there.”
+
+Never:
+
+“So that monster caused everything.”
+
+The final creature gets:
+
+no dialogue
+
+no motive
+
+no weakness
+
+no mythology
+
+no explained origin
+
+no repeated appearances
+
+Its existence should be enough.
+
+18. THE FINAL SEQUENCE
+The ending should feel short compared with the rest of the game.
+
+The player has already spent hours surviving increasingly hostile versions of the same place.
+
+The final sequence should therefore remove distractions.
+
+The player sees:
+
+less furniture
+
+less structure
+
+less mediation
+
+more direct subject matter
+
+The world stops cushioning the player from the thing being represented.
+
+The final creature appears.
+
+The player cannot meaningfully defeat it.
+
+The sequence ends.
+
+The game does not state:
+
+whether reality can be restored
+
+whether the player survives in the conventional sense
+
+what the creature wants
+
+whether anything continues afterward
+
+The ending should feel like the game has reached the end of what it can show.
+
+19. HORROR ESCALATION ACROSS THE WHOLE GAME
+The game must become progressively scarier.
+
+This is now a canonical structural rule.
+
+Stage 1 — Farmlands
+Fear of exposure.
+
+The player is alone.
+
+Visibility is limited.
+
+The player hears things they cannot locate.
+
+Threats exist beyond the flashlight.
+
+The player's physical vulnerability is introduced.
+
+Stage 2 — Static Suburbia
+Fear of pursuit.
+
+The player can see more.
+
+The threat can see them.
+
+The environment provides routes and hiding places that become increasingly compromised.
+
+The player learns that being visible is not protection.
+
+Stage 3 — The Below
+Fear of helplessness.
+
+The world is no longer spatially trustworthy.
+
+The player is hunted by something physically overwhelming.
+
+Sound can bring danger.
+
+Hiding becomes less reliable.
+
+The environment itself becomes a source of threat.
+
+Haven
+Fear of losing safety.
+
+The player finally relaxes.
+
+That relaxation is real.
+
+Then the safe place fails.
+
+Finale
+Fear of insignificance.
+
+The player reaches the underlying subject.
+
+The reconstruction disappears as a protective layer.
+
+20. WHAT MAKES A SCARE CANONICALLY GOOD
+A scare is good when it creates:
+
+anticipation
+
+uncertainty
+
+physical vulnerability
+
+surprise that follows established rules
+
+an image or sound the player remembers
+
+A scare is weak when it is:
+
+constant
+
+random without context
+
+louder simply for the sake of volume
+
+dependent on a cheap UI pop-up
+
+repeated so often that players become immune
+
+disconnected from the environment
+
+explained immediately afterward
+
+The game should have both:
+
+slow dread
+
+and
+
+real panic.
+
+One does not replace the other.
+
+21. JUMPSCARES
+Jumpscares are allowed.
+
+They are not the enemy.
+
+Bad jumpscares are the enemy.
+
+The game should use:
+
+a small number of major authored jumpscares
+
+many smaller unsettling events
+
+strong audio timing
+
+rare large payoff moments
+
+A major jumpscare should ideally follow a period of calm.
+
+The player should have time to become comfortable.
+
+The game should then break that expectation.
+
+The existing strong Farmlands and Suburbia jumpscares remain part of the design.
+
+Future versions may rebuild their presentation to fit the final art direction.
+
+22. STREAMER / SPECTATOR HORROR
+The game should be frightening for the person playing and legible to people watching.
+
+This means major horror moments should sometimes produce:
+
+clear silhouettes
+
+readable movement
+
+strong sound cues
+
+visible environmental changes
+
+obvious pursuit
+
+moments of decision
+
+memorable locations
+
+A spectator should be able to understand why the player reacted.
+
+Do not make the game dependent on:
+
+microscopic texture changes
+
+inaudible sounds
+
+random one-frame glitches
+
+unreadable darkness
+
+lore text only the player notices
+
+The game should create natural streamer reactions such as:
+
+“What was that?”
+
+“No way. It moved.”
+
+“It's following me.”
+
+“I know this house.”
+
+“Why is it in here?”
+
+“I want out.”
+
+The goal is not to manufacture viral clips.
+
+The goal is to create genuine moments worth sharing.
+
+23. PLAYER TRUST AND BETRAYAL
+The game should establish rules and then violate them carefully.
+
+Do not violate every rule constantly.
+
+The player needs to learn:
+
+light sometimes helps
+
+hiding sometimes works
+
+spaces generally connect
+
+objects generally stay where they are
+
+roads generally lead somewhere
+
+safe rooms generally feel safe
+
+Then the game can break one expectation at a time.
+
+A useful structure is:
+
+establish rule → reinforce rule → violate rule once → never fully explain why
+
+This makes the world feel coherent even when it is terrifying.
+
+24. OBSERVATION RULES
+Observation remains one of the game's fundamental horror mechanics.
+
+Canonical rules:
+
+Some things change only when not observed.
+
+Some entities freeze when watched.
+
+Observation does not make the player safe.
+
+Looking away should sometimes create risk.
+
+Watching for too long can itself become dangerous.
+
+The game should never explain every observation-dependent event.
+
+The player should eventually develop a complicated relationship with looking.
+
+At first:
+
+“I need to look.”
+
+Later:
+
+“I don't want to look.”
+
+That contradiction is valuable.
+
+25. THE WORLD REMEMBERS
+This is a future-facing design concept, not a license for random behavior.
+
+The world may remember:
+
+where the player spends time
+
+where the player hides
+
+what routes the player repeatedly uses
+
+which objects they move
+
+where they died
+
+what they repeatedly inspect
+
+Such memory should only be used when it produces a meaningful horror or world effect.
+
+It must not become:
+
+an RPG reputation meter
+
+a visible stats system
+
+a gimmick
+
+random punishment
+
+The intended feeling is:
+
+“This world noticed me.”
+
+Not:
+
+“The game is tracking my statistics.”
+
+26. THINGS THE GAME MUST NEVER EXPLAIN
+The player must never be given a definitive answer to:
+
+what is doing the rebuilding
+
+why it is rebuilding
+
+what exactly the record is
+
+who originally created the record
+
+what happened to the missing people
+
+whether the player is original
+
+why the Anchor works
+
+why the water tower's light behaves as it does
+
+whether Haven belongs to the player
+
+what the final creature ultimately is
+
+whether the final creature caused the damage
+
+whether the world can be repaired
+
+whether the player escaped the reconstruction
+
+what exactly lies beyond the final scene
+
+If a mechanic requires one of these to be explained, redesign the mechanic.
+
+The mystery list outranks exposition.
+
+27. THINGS THE PLAYER MAY EVENTUALLY FIGURE OUT
+Through observation and experience, the player may reasonably infer that:
+
+the dimensions are the same underlying place
+
+reality is being reconstructed
+
+some parts of the reconstruction are stronger than others
+
+attention stabilizes certain things
+
+the world changes where nobody is watching
+
+people are missing from the reconstruction in a way that is not ordinary death
+
+the Anchor holds a local volume more steadily
+
+Rifts are seams between incompatible reconstructions
+
+the journey moves toward denser and increasingly contradictory reconstruction
+
+Static Suburbia is derived from an earlier reconstruction
+
+Haven is unusually complete because the record behind it was unusually specific
+
+These discoveries must come from:
+
+recognition
+
+repeated evidence
+
+environmental detail
+
+gameplay consequences
+
+Never from a lore dump.
+
+28. THE CANONICAL KNOWLEDGE CURVE
+The following feelings should emerge in sequence.
+
+Early Farmlands
+“This place is real.”
+
+First strange event
+“Something is wrong.”
+
+First major threat
+“Something is out there.”
+
+Mid Farmlands
+“I don't want to be here after dark.”
+
+Static Suburbia
+“This place is repeating.”
+
+Deeper Suburbia
+“It knows where I am.”
+
+Recognition
+“I've seen this somewhere else.”
+
+The Below
+“This isn't a normal place anymore.”
+
+The Hunt
+“I don't know how to survive this.”
+
+Haven
+“Finally. I am safe.”
+
+Haven failure
+“There is nowhere safe.”
+
+Finale
+“The entire world I trusted was only a reconstruction of something else.”
+
+Final feeling
+“That was always there.”
+
+29. DIMENSIONS AS ONE STORY
+The final structure is:
+
+Stage	What it is	Fear
+Shattered Farmlands	thin first-generation reconstruction	exposure
+Static Suburbia	second-generation reconstruction	pursuit
+The Below	catastrophic interior failure	helplessness
+Haven	unusually complete reconstruction	loss of safety
+Final scene	subject without reconstruction between it and the player	insignificance
+The emotional escalation is intentional.
+
+The game should not merely add larger enemies.
+
+Each stage removes another layer of safety.
+
+30. VISUAL AND AUDIO HORROR RULES
+Visual
+Fear benefits from contrast.
+
+Do not make everything:
+
+dark
+
+red
+
+foggy
+
+distorted
+
+desaturated
+
+full of monsters
+
+Use:
+
+normality
+
+warm spaces
+
+open spaces
+
+clean silhouettes
+
+ordinary objects
+
+strong lighting contrasts
+
+occasional impossible geometry
+
+rare extreme visual events
+
+The player should remember the normal scenes.
+
+That gives the abnormal scenes power.
+
+Audio
+Audio should create:
+
+anticipation
+
+direction confusion
+
+distance uncertainty
+
+physical presence
+
+silence
+
+sudden contrast
+
+Use:
+
+room tone
+
+environmental ambience
+
+distant movement
+
+footsteps
+
+machinery
+
+animal calls
+
+wind
+
+electrical hum
+
+structural creaks
+
+carefully timed silence
+
+Do not fill every second with music.
+
+Silence is an active sound design tool.
+
+Do not let constant ambience erase important footsteps or threat sounds.
+
+31. SAFE SPACE RULE
+Every major horror game needs places where the player can breathe.
+
+A safe place should initially be actually safe.
+
+Then, when the game eventually violates that safety, the player feels something more serious than surprise:
+
+loss.
+
+Do not constantly betray safe spaces.
+
+A safe room that is always secretly dangerous teaches the player nothing except distrust.
+
+A safe room that is genuinely safe for a long time makes its eventual failure terrifying.
+
+32. PHYSICAL HORROR VERSUS PSYCHOLOGICAL HORROR
+The final game is intentionally both.
+
+Psychological horror provides:
+
+uncertainty
+
+anticipation
+
+mystery
+
+recognition
+
+paranoia
+
+Physical horror provides:
+
+chase
+
+confinement
+
+danger
+
+helplessness
+
+survival decisions
+
+actual consequences
+
+Neither is sufficient alone.
+
+The intended mix is:
+
+psychological setup → physical threat → emotional aftermath
+
+Example:
+
+The player hears movement for ten minutes.
+
+Then the thing actually appears.
+
+Then the player has to escape.
+
+Afterward the player is afraid to walk back through the same area.
+
+That is the ideal relationship between the two.
+
+33. WHAT NOT TO DO
+Do not turn the final game into:
+
+a Minecraft horror clone
+
+a jumpscare compilation
+
+a walking simulator with no physical danger
+
+a generic liminal-space game
+
+a demon game
+
+an SCP imitation
+
+a generic haunted-house game
+
+a constant chase game
+
+a gore showcase
+
+an exposition-heavy lore game
+
+a game where every anomaly means the same thing
+
+a game where every dimension is pitch black
+
+a game where every problem is solved by a flashlight
+
+a game where the player is safe because a HUD icon says so
+
+The final game should always feel like Where It Isn't.
+
+34. ERA 2 ART DIRECTION RULE
+Era 2 is a full non-voxel transformation.
+
+The story survives.
+
+The old voxel presentation does not.
+
+The final game should preserve:
+
+geography where meaningful
+
+progression concepts
+
+landmarks where meaningful
+
+narrative relationships
+
+emotional beats
+
+entity concepts
+
+the three-Core structure
+
+Rift logic
+
+Anchor logic
+
+It should replace the old presentation with:
+
+normal 3D terrain
+
+intentional meshes
+
+authored architecture
+
+realistic or stylized materials
+
+cinematic lighting
+
+more deliberate composition
+
+stronger creature silhouettes
+
+more controlled interior spaces
+
+The purpose of the visual rebuild is not simply to make the same world prettier.
+
+It is to make the horror more physically convincing.
+
+35. FINAL CANONICAL PRINCIPLES
+Keep these principles visible during every future phase:
+
+1.
+The world is the mystery.
+
+2.
+The player should fear continuing.
+
+3.
+Each dimension must create a different physical fear.
+
+4.
+The game must escalate in actual scariness.
+
+5.
+The player deserves relief before relief is taken away.
+
+6.
+Jumpscares are tools, not the whole game.
+
+7.
+Physical danger matters.
+
+8.
+Observation is a mechanic, not a lore gimmick.
+
+9.
+Mystery must survive implementation.
+
+10.
+Nothing should exist only to explain itself.
+
+11.
+Rare extraordinary moments are more powerful than constant spectacle.
+
+12.
+A scene should still work if the player never reads a lore document.
+
+13.
+A streamer should be able to react naturally because the event is actually scary, not because the game told them to scream.
+
+14.
+The final creature is not a boss.
+
+15.
+The horror should intensify until the player wants to leave, and then make leaving impossible.
+
+36. TITLE MEANING
+WHERE IT ISN'T
+
+The title should accumulate meaning through the player's experience.
+
+It can describe:
+
+an object that disappears
+
+a person who is absent
+
+a driveway that does not lead where it should
+
+a room that cannot fit inside a house
+
+a road that does not remain where the player expects
+
+an entity that is suddenly somewhere it was not
+
+a safe place that no longer contains safety
+
+Never explain the title in dialogue.
+
+Never place the title on a wall as an in-world phrase.
+
+Never have a character say:
+
+“Where it isn't.”
+
+The game should make the title true.
+
+37. FUTURE-PHASE COMPATIBILITY
+Future phases should use this document as the story/horror authority.
+
+Phase 37 — Era 1.5 Architecture Split
+Organize code without changing the canon.
+
+Era 2 — Foundation / Rebirth
+Separate gameplay logic from final presentation while preserving the story.
+
+Era 2 — Dimension 1 Rebirth
+Build Farmlands as the first final-horror dimension.
+
+Era 2 — Dimension 2 Rebirth
+Build Static Suburbia around pursuit, recognition, and cornering.
+
+Era 2 — Dimension 3 / The Below
+Build the game's strongest horror chapter.
+
+Era 2 — Haven
+Preserve genuine safety before invasion.
+
+Era 2 — Finale
+Preserve the final creature as a removal, not a boss.
+
+Later horror expansion
+Add remembered-world behavior only when it strengthens the central horror philosophy.
+
+38. THE ONE-PARAGRAPH RULE
+For a future development session that reads only one paragraph:
+
+Where It Isn’t is a horror game about a world that is being reconstructed from an incomplete record of the place it used to be. The player moves through increasingly degraded versions of the same world: first the exposed darkness of the Shattered Farmlands, then the actively hunting streets of Static Suburbia, then The Below, where recognizable space collapses and a sound-hunting creature makes survival itself frightening. Haven becomes a brief, genuinely safe refuge before that safety runs out, and the final scene removes the last reconstruction between the player and the thing the record was always about. The game should escalate from unease to physical terror to helplessness while preserving the central mystery: the player may understand what the world is doing, but they must never be told why.
+
+39. CANONICAL VOCABULARY
+Use these terms consistently.
+
+Term	Status	Meaning
+the record	internal only	incomplete impression from which the world is reconstructed
+the reconstruction	internal only	ongoing process of rebuilding
+Anchor / Anchor Monument	in-game	player-made volume of held reality
+Rift	in-game	seam between incompatible reconstructions
+Rift Core Disk	in-game	physical fragment of the record
+Blood Night	in-game	low-fidelity nighttime cycle
+the Stalker	in-game	reconstruction's draft of a person
+Hollowed Behemoth	in-game	large accumulation of unresolved material
+Shattered Farmlands	in-game	thin first-generation reconstruction
+Static Suburbia	in-game	second-generation reconstruction
+the Disconnected Home	in-game	structure whose inside/outside observations were never reconciled
+The Below	working / internal	third major horror dimension; final in-world name may change
+The Collector	working / internal	Below's primary hunting entity; name may change
+Haven	in-game	unusually complete reconstruction
+Void Sovereign	retired	never use player-facing
+Block & Ruin	retired	old project title; never use
+40. FINAL RULE
+If a future designer ever asks:
+
+“What is the game trying to make the player feel here?”
+
+The answer should come before the answer to:
+
+“What is happening in the lore?”
+
+The game's canon exists to make the horror coherent.
+
+The horror exists to make the player's experience memorable.
+
+And the player should finish Where It Isn't carrying one final thought:
+
+“I don't know what that world was trying to become. I just know I did not want to be there when it finished.”
