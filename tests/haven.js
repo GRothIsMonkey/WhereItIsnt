@@ -403,10 +403,23 @@ head('7. NOTHING HOSTILE EXISTS HERE, AND THE FINALE CANNOT LEAK IN');
 // =====================================================================================
 {
   const flush = methodBody(LIVE, '_transitionToLevel4') || '';
-  chk(/this\.mobs\.clearAll\(true\)/.test(flush) && /this\.stalker\.clearAll\(\)/.test(flush) &&
-      /this\.phantoms\.clearAll\(\)/.test(flush) && /this\.arrows\.clearAll\(\)/.test(flush),
-      'entering the Haven clears mobs, the Stalker, hallucinations and arrows');
-  chk(/spawningDisabled\s*=\s*true/.test(flush) || /mobs\.spawningDisabled/.test(flush) ||
+  /* PHASE 35 — THE CLEARS MOVED, THE CLAIM DID NOT. Every dimension crossing in the
+     build now runs ONE teardown (Game._leaveDimension) instead of each keeping its own
+     approximate copy; the Haven's copy was the thorough one and the two RIFT crossings
+     had none, which is how a powered Anchor used to cross into the Farmlands and make
+     the next rift impossible to open. So this follows the call rather than grepping the
+     method body: the Haven must ASK for the teardown, with spawning latched off, and the
+     teardown must contain the clears. Both halves are checked, which is strictly more
+     than the single grep proved. */
+  chk(/this\._leaveDimension\(\s*\{\s*disableSpawning:\s*true\s*\}\s*\)/.test(flush),
+      'entering the Haven runs the shared crossing teardown, with spawning latched off');
+  const leave = methodBody(LIVE, '_leaveDimension') || '';
+  chk(/this\.mobs\.clearAll\(/.test(leave) && /this\.stalker\.clearAll\(\)/.test(leave) &&
+      /this\.phantoms\.clearAll\(\)/.test(leave) && /this\.arrows\.clearAll\(\)/.test(leave),
+      'and that teardown clears mobs, the Stalker, hallucinations and arrows');
+  chk(/this\.anchorManager\.removeAnchor\(\)/.test(leave),
+      'and puts the Anchor and its rift down, so no rift can be open inside the Haven');
+  chk(/spawningDisabled\s*=\s*true/.test(leave) || /mobs\.spawningDisabled/.test(leave) ||
       /this\.behemothSpawned\s*=\s*true/.test(flush),
       'and latches spawning off so nothing can arrive after the door closes');
   chk(/behemothSpawned\s*=\s*true/.test(flush),

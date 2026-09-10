@@ -39,7 +39,9 @@
     "browser-finale": "node browser-finale.js",
     "audio": "node audio.js",
     "browser-audio": "node browser-audio.js",
-    "audio-audit": "node audio-audit.js"
+    "audio-audit": "node audio-audit.js",
+    "transitions": "node transitions.js",
+    "browser-transitions": "node browser-transitions.js"
   },
   "dependencies": {
     "three": "0.128.0"
