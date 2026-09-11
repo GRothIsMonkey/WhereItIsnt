@@ -96,6 +96,7 @@ node playability.js                # Phase 36 — the five ways a run could end
 node browser-playability.js        # Phase 36 — THE WHOLE GAME, New Game to credits
 node architecture.js               # Era 1.5 — the module mechanism and the boundaries
 node tools/inventory.js            # Era 1.5 — MEASUREMENT of the build's shape
+node tools/launch-check.js         # Era 1.5 — does it still BOOT AND PLAY? (~1 min)
 ```
 
 ## ERA 1.5 — THE BUILD IS NO LONGER ONE FILE
@@ -133,7 +134,12 @@ CREATURE')` — never by number. Before it existed each suite sliced the bible w
 hard-coded `indexOf('## 18. FAKE HAVEN')`, which is why one authored revision of STORY.md
 broke twenty-two checks across four files at once. Numbers are the author's to change.
 
-**After ANY extraction, run the four comparison suites against the pre-move build.** World
+**After ANY extraction, run `node tools/launch-check.js` first.** It opens the real page
+in a real Chromium, checks every declared module was served and is in scope, presses NEW
+GAME, walks the player forward and screenshots the result — the one question no offline
+suite can answer, in about a minute rather than twenty.
+
+**Then run the four comparison suites against the pre-move build.** World
 generation must come back bit-identical:
 
 ```

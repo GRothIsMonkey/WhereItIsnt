@@ -586,6 +586,24 @@ engine, the CSS and the markup. And the three dimension booleans: `dimensionOfPl
 already exists as the single translation point, but **deleting the booleans is 1.5.4's
 job**, after the descriptor table is load-bearing.
 
+### A latent defect to fix on the way past
+
+**`riftArming` ticks on the clamped physics delta.** `AnchorMonumentManager.update(dt)`
+takes the `dt` that is clamped to 0.06 for physics safety, so the arming delay's real
+duration is `RIFT_ARM_TIME / min(realDt, 0.06)` seconds — 1.6s at 60fps, **about 27s at
+1fps**. It is a presentation delay (the player must SEE the rift answer the Disk), and
+presentation ticks on `filmDt`; Phase 36 wrote that rule down after finding the objective
+line had the same defect.
+
+Measured, not inferred: at 0.7fps under software GL, `riftArming` sat at 1.6 across
+thirteen game frames, while thirty hand-called `update(0.06)` ticks took it to 0 and
+`riftReady()` to true. It is why `browser-transitions.js` times out in a slow container
+while `browser-playability.js` crosses both rifts.
+
+Era 1.5.2 did not fix it, because changing it changes gameplay timing. **Whoever touches
+`AnchorMonumentManager.update` next should move this one number onto `filmDt`** and add
+it to the enumerated consumer list in `tests/opening.js`.
+
 ### The Era 2 seam is ready when
 
 every block id inside `src/dimensions/` lives in a file named `stampers.js`, and

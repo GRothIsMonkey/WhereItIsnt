@@ -220,10 +220,40 @@ block atlas and tile painters stayed: they build textures, which is rendering.
 constants did. The scanner refused the save block first and the chunk constants were the
 answer — the load-order contract doing exactly what it was built for.
 
+### ONE BROWSER SUITE FAILS, AND IT IS NOT THIS PHASE'S — BUT IT FOUND SOMETHING REAL
+
+`browser-transitions.js` times out at the Level 1 -> 2 crossing in this container. It was
+run down rather than re-run and shrugged at, and the answer has three parts:
+
+1. **It is not a regression.** The identical failure — same 14 passes, same timeout at the
+   same line — reproduces on the phase-start build `4796b40`, which this phase did not
+   touch.
+2. **The rift chain is not broken.** `browser-playability.js`, which walks the whole game
+   from New Game to the credits, passes **71/71 on this build** and crosses BOTH rifts:
+   "the player crosses into the Farmlands on their own feet", "the Level 2 Disk opens a
+   rift toward Static Suburbia".
+3. **The cause is frame rate, and it exposes a latent defect.** A live probe measured the
+   container at **0.7-0.9 fps** under software GL. With `running` true and no film
+   active, `riftArming` sat at exactly 1.6 and the Anchor's fuel at exactly 300 across
+   thirteen game frames. Ticking the manager by hand — `update(0.06)` thirty times —
+   took arming 1.6 -> 0, fuel 300 -> 298.2 and `riftReady()` to true. **The manager is
+   healthy; the frame loop simply is not reaching it often enough.**
+
+   `riftArming` is decremented by the CLAMPED physics delta (max 0.06), so its real
+   duration is `1.6 / min(realDt, 0.06)` seconds: 1.6s at 60fps, and **about 27s at
+   1fps** — just past the suite's 30-second wait.
+
+**That is the same defect Phase 36 wrote down for the objective line** (section
+0.00000000000000000): a presentation delay ticking on clamped physics time becomes a
+function of frame rate. The fix is the one Phase 36 used — take `filmDt` — but making it
+would change gameplay timing, which Era 1.5.2 may not do. **Recorded for a later phase;
+see ARCHITECTURE.md section 9.5.**
+
 ### VALIDATION
 
-All **24 offline suites green, 0 failures** (the baseline carried 22). All **10 browser
-suites green**. **294 chunks across all four dimension bands hash bit-identical** against
+All **24 offline suites green, 0 failures** (the baseline carried 22). **9 of 10 browser
+suites green**, including `browser-playability` at 71/71 — the tenth is the pre-existing
+`browser-transitions` timeout above, which fails identically on the phase-start build. **294 chunks across all four dimension bands hash bit-identical** against
 the Phase 36 monolith, and 12 pure-function probes agree. No gameplay, visual, story,
 audio or schema change.
 

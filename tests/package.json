@@ -46,7 +46,8 @@
     "playability": "node playability.js",
     "browser-playability": "node browser-playability.js",
     "architecture": "node architecture.js",
-    "inventory": "node tools/inventory.js"
+    "inventory": "node tools/inventory.js",
+    "launch-check": "node tools/launch-check.js"
   },
   "dependencies": {
     "three": "0.128.0"
