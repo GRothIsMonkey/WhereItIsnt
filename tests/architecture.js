@@ -232,7 +232,70 @@ else {
   }
   const R = (cls, kind) => (ref[cls] && ref[cls][kind]) || 0;
 
-  console.log('\n=== 5. THE BOUNDARIES THAT ARE ALREADY CLEAN, AND MUST STAY CLEAN ===\n');
+  console.log('\n=== 4b. EACH LAYER OBEYS ITS OWN DEPENDENCY RULE ===\n');
+
+  /* ARCHITECTURE.md section 1 states, per layer, what it may never touch. This turns that
+     table into assertions, and it generalises: it holds for every module that lands in
+     these directories in 1.5.3, 1.5.4 and 1.5.5 without anyone editing this test.
+
+     A DATA MODULE THAT CONSTRUCTS A MESH IS NOT A DATA MODULE, and the whole point of
+     Era 2 is that the renderer can be replaced — which is only true if the things that
+     describe the world do not build it. */
+  {
+    const FORBIDDEN = {
+      shared:      ['THREE', 'DOM', 'STORAGE', 'AUDIO', 'BLOCK'],
+      world:       ['THREE', 'DOM', 'STORAGE', 'AUDIO'],
+      dimensions:  ['THREE', 'DOM', 'STORAGE', 'AUDIO'],
+      progression: ['THREE', 'DOM', 'STORAGE', 'AUDIO', 'BLOCK'],
+      persistence: ['THREE', 'AUDIO'],
+      audio:       ['THREE', 'DOM'],
+      gameplay:    ['THREE', 'DOM', 'AUDIO'],
+      horror:      ['DOM'],
+      rendering:   ['DOM', 'AUDIO'],
+      ui:          ['THREE', 'BLOCK'],
+      core:        ['THREE', 'BLOCK'],
+    };
+    const PROBE = {
+      THREE:   (n) => n.type === 'Identifier' && n.name === 'THREE',
+      DOM:     (n) => n.type === 'Identifier' && /^(document|window|navigator)$/.test(n.name),
+      STORAGE: (n) => n.type === 'Identifier' && n.name === 'localStorage',
+      AUDIO:   (n) => n.type === 'Identifier' && /^(AudioContext|webkitAudioContext)$/.test(n.name),
+      BLOCK:   (n) => n.type === 'Identifier' && n.name === 'BLOCK',
+    };
+    let violations = 0;
+    for (const u of units) {
+      if (u.name === 'game.html:script') continue;
+      const layer = u.name.split('/')[1];
+      const rules = FORBIDDEN[layer];
+      if (!rules) { chk(false, `${u.name} is in an unknown layer — add it to ARCHITECTURE.md §1`); continue; }
+      const hit = [];
+      walk.full(u.ast, (n) => {
+        for (const r of rules) if (PROBE[r](n) && hit.indexOf(r) < 0) hit.push(r);
+      });
+      if (hit.length) violations++;
+      chk(hit.length === 0,
+          `${u.name} touches none of: ${rules.join(', ')}` +
+          (hit.length ? `  — VIOLATES: ${hit.join(', ')}` : ''));
+    }
+    chk(violations === 0,
+        `all ${units.length - 1} extracted modules obey their layer's dependency rule`);
+
+    /* THE ONE DELIBERATE EXCEPTION, ASSERTED RATHER THAN LEFT SILENT. `audio` is the only
+       layer above whose forbidden list omits BLOCK, because AUDIO_SURFACE_GROUPS maps
+       block ids to footstep surfaces — which Phase 34 already named, along with
+       AudioDirector.surfaceAt(), as the two things Era 2 replaces. The exception is
+       exactly one table; the LIBRARY reading a block id is still a failure (section 5). */
+    const audioUnit = units.find(u => u.name === 'src/audio/audio-tables.js');
+    if (audioUnit) {
+      let blockRefs = 0;
+      walk.full(audioUnit.ast, (n) => { if (n.type === 'Identifier' && n.name === 'BLOCK') blockRefs++; });
+      chk(blockRefs > 0,
+          `src/audio/audio-tables.js names ${blockRefs} block ids — the ONE audio table that ` +
+          'may, and one of the two things Era 2 replaces');
+    }
+  }
+
+console.log('\n=== 5. THE BOUNDARIES THAT ARE ALREADY CLEAN, AND MUST STAY CLEAN ===\n');
 
   chk(R('AudioDirector', 'WebAudio') === 0,
       'AudioDirector creates no AudioNode — it is POLICY (CLAUDE.md §61)');
