@@ -421,3 +421,4 @@ const INTERIOR_SHADE_BOOST = 1.30;
 // Functional-door tuning. The state map is bounded on purpose: see the door system.
 const DOOR_STATE_CAP = 512;      // remembered open doors, oldest evicted
 const DOOR_SWING_POOL = 4;       // animated leaves alive at once, ever
+const DOOR_SWING_TIME = 0.34;    // seconds for a full swing
