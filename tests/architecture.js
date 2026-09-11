@@ -207,6 +207,7 @@ else {
     return o;
   };
   const ref = {};
+  const dimFlagFiles = {};                 // file -> how many flag references it makes
   const bump = (o, p) => { (ref[o] = ref[o] || {})[p] = (ref[o][p] || 0) + 1; };
   for (const u of units) {
     const own = owner(u);
@@ -222,7 +223,10 @@ else {
         const p = n.property.name;
         if (/^(createGain|createOscillator|createBufferSource|createBiquadFilter|createPanner|createStereoPanner|createAnalyser|createDynamicsCompressor|decodeAudioData|createBuffer|createWaveShaper|createDelay|createConvolver)$/.test(p))
           bump(o, 'WebAudio');
-        if (/^(inFarmlands|inSuburbia|inFakeHaven)$/.test(p)) bump(o, 'DIMFLAG');
+        if (/^(inFarmlands|inSuburbia|inFakeHaven)$/.test(p)) {
+          bump(o, 'DIMFLAG');
+          dimFlagFiles[u.name] = (dimFlagFiles[u.name] || 0) + 1;
+        }
       }
     });
   }
@@ -251,10 +255,29 @@ else {
     voxelWorldTHREE:   81,   // P0-3 — world generation building meshes
     playerDOM:         10,   // P1-2 — PlayerController binding raw input
   };
-  const dimTotal = Object.values(ref).reduce((t, c) => t + (c.DIMFLAG || 0), 0);
-  chk(dimTotal <= CEILING.dimensionFlagRefs,
-      `dimension-flag references: ${dimTotal} (ceiling ${CEILING.dimensionFlagRefs}) — ` +
+  /* THE FLAGS MAY NOT SPREAD, AND THAT IS A SHARPER RULE THAN A RAW COUNT.
+
+     The ceiling covers the MONOLITH — the inline script, where all 112 of them live.
+     Era 1.5.2 added a translation helper (dimensionOfPlayerFlags) whose entire purpose
+     is to be the one place that reads these booleans so Era 1.5.4 can delete them, and
+     it tripped the raw count on its first run. Raising the ceiling for it would have
+     been the wrong answer: the number to hold down is how much of the BUILD depends on
+     the booleans, and a single designated reader that exists in order to remove them is
+     the opposite of that.
+
+     So: the inline script is capped, and exactly one extracted module may read them. */
+  const DIM_TRANSLATOR = 'src/dimensions/dimension-descriptors.js';
+  const inlineDim = dimFlagFiles['game.html:script'] || 0;
+  chk(inlineDim <= CEILING.dimensionFlagRefs,
+      `dimension-flag references in the monolith: ${inlineDim} (ceiling ${CEILING.dimensionFlagRefs}) — ` +
       'three booleans on the player, and P0-2 says do not add a fourth');
+  const otherReaders = Object.keys(dimFlagFiles)
+    .filter(f => f !== 'game.html:script' && f !== DIM_TRANSLATOR);
+  chk(otherReaders.length === 0,
+      `and ${DIM_TRANSLATOR} is the ONLY extracted module that reads them` +
+      (otherReaders.length ? ` — ALSO READ BY: ${otherReaders.join(', ')}` : ''));
+  chk((dimFlagFiles[DIM_TRANSLATOR] || 0) > 0,
+      'which does read them — it is the translation point Era 1.5.4 deletes the rest through');
   chk(R('VoxelWorld', 'THREE') <= CEILING.voxelWorldTHREE,
       `VoxelWorld THREE references: ${R('VoxelWorld','THREE')} (ceiling ${CEILING.voxelWorldTHREE}) — P0-3`);
   chk(R('PlayerController', 'DOM') <= CEILING.playerDOM,
@@ -269,8 +292,17 @@ console.log('\n=== 7. WHAT ERA 1.5 IS FORBIDDEN TO CHANGE ===\n');
       'the save schema is still version 5 — frozen for the whole of Era 1.5');
   chk(/const SAVE_STORAGE_KEY = 'whereitisnt\.save\.v1';/.test(build),
       "and the save key is still 'whereitisnt.save.v1'");
-  chk(/const SAVE_DIMENSIONS = \['overworld', 'farmlands', 'suburbia'\];/.test(build),
-      'and the saved dimension names are unchanged');
+  /* ERA 1.5.2 — SAVE_DIMENSIONS is now DERIVED from the dimension registry, so the
+     literal this used to match no longer exists. The VALUE is pinned at runtime in
+     tests/save.js, which is the stronger place for it; what belongs here is the
+     structural claim: there is ONE source of truth and it is the registry. */
+  chk(/const SAVE_DIMENSIONS = SAVEABLE_DIMENSIONS;/.test(build),
+      'the saveable-dimension list is DERIVED from the dimension registry, not duplicated');
+  chk(/const SAVE_DIMENSION_NAMES = SAVEABLE_DIMENSION_NAMES;/.test(build),
+      'and so are the labels — one source of truth, not three');
+  for (const n of ['overworld', 'farmlands', 'suburbia'])
+    chk(new RegExp("saveName: '" + n + "'").test(build),
+        `the registry still declares saveName '${n}' — a save-file value, frozen at v5`);
   chk(/const DIMENSION = \{ OVERWORLD: 1, FARMLANDS: 2, SUBURBIA: 3, FAKE_HAVEN: 4 \};/.test(build),
       'and the DIMENSION ids are unchanged — an id is a save-file value');
   /* The build's TEXT must still contain what the eighteen text-scanning suites look for.
@@ -303,6 +335,47 @@ console.log('\n=== 7. WHAT ERA 1.5 IS FORBIDDEN TO CHANGE ===\n');
   chk(/class SimplexNoise/.test(body) && /class VoxelWorld/.test(body) && /class GameSettings/.test(body),
       'and that block holds BOTH the extracted modules and the inline body — ' +
       `${b - a} lines, not ${SRC.inlineBody().code.split('\n').length}`);
+}
+
+console.log('\n=== 7b. STABLE IDs ARE NOT CREATIVE DIMENSION NUMBERS ===\n');
+
+/* THE LOCKED ARCHITECTURE DECISION, MADE MECHANICAL.
+
+   stable id 1 is the Overworld. Creative D1 is the Shattered Farmlands. A bare integer
+   says nothing about which question is being asked, so the registry gives every identity
+   a NAMED field and the accessors refuse the wrong kind of number. These checks are
+   here, in the architecture suite, because this is an architecture rule rather than a
+   gameplay one — and because the cost of getting it wrong is a save file. */
+{
+  const reg = fs.existsSync(path.join(SRCDIR, 'dimensions', 'dimension-descriptors.js'))
+    ? fs.readFileSync(path.join(SRCDIR, 'dimensions', 'dimension-descriptors.js'), 'utf8') : '';
+  chk(reg.length > 0, 'the dimension registry exists');
+  for (const field of ['stableId', 'creativeNumber', 'canonicalName', 'saveName'])
+    chk(new RegExp('\\b' + field + ':').test(reg),
+        `it distinguishes ${field} as its own named field`);
+
+  /* The Overworld and the Haven must carry NO creative number. That is what makes code
+     which assumed "the stable id is the dimension number" fail loudly. */
+  chk(/DIMENSION\.OVERWORLD\]:[\s\S]{0,400}?creativeNumber: null/.test(reg),
+      'the Overworld carries creativeNumber null — it is not the canon\'s D1');
+  chk(/DIMENSION\.FAKE_HAVEN\]:[\s\S]{0,400}?creativeNumber: null/.test(reg),
+      'and so does the Haven — a refuge is not a numbered chapter');
+  chk(/DIMENSION\.FARMLANDS\]:[\s\S]{0,400}?creativeNumber: 1/.test(reg),
+      'the Shattered Farmlands is creative D1 on stable id 2 — the two numbers differ, by design');
+  chk(/DIMENSION\.SUBURBIA\]:[\s\S]{0,400}?creativeNumber: 2/.test(reg),
+      'and Static Suburbia is creative D2 on stable id 3');
+
+  /* Both accessors must REJECT the other kind of number rather than coerce it. */
+  chk(/function dimensionByStableId[\s\S]{0,600}?throw new Error/.test(reg),
+      'dimensionByStableId throws on a value that is not a stable id');
+  chk(/function dimensionByCreativeNumber[\s\S]{0,700}?throw new Error/.test(reg),
+      'dimensionByCreativeNumber throws on a value that is not a creative number');
+
+  /* THE BELOW IS REPRESENTABLE AND NOT IMPLEMENTED. */
+  chk(/canonicalName: 'The Below',\s*stableId: null/.test(reg),
+      'The Below has a planned row with NO stable id — representable, not implemented');
+  const belowBuilt = /generateBelow|_belowChunk|BELOW_SPAWN/.test(SRC.buildScript());
+  chk(!belowBuilt, 'and no generator for it exists anywhere in the build');
 }
 
 console.log('\n=== 8. THE SKELETON IS DOCUMENTED ===\n');

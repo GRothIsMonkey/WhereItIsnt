@@ -195,6 +195,26 @@ function goodSave(over) {
   chk(allRejected, rejects.length + ' kinds of invalid save are rejected, each with a reason');
   chk(validateSaveState(goodSave({ version: SAVE_VERSION + 1 })).error.indexOf('newer') >= 0,
       'and a save from a newer build says so rather than being silently repaired');
+  /* ERA 1.5.2 — THE EXACT LIST, PINNED AT RUNTIME.
+
+     SAVE_DIMENSIONS is now DERIVED from the dimension registry rather than written out
+     as a literal, and the literal was what architecture.js had been matching. A derived
+     value needs a value check, not a text check, so this is where the three names and
+     their ORDER are now nailed down — which is a stronger assertion than the one it
+     replaces, because it would also catch a registry that produced them in a different
+     order or with a different spelling. These are save-file values: frozen at schema v5. */
+  chk(JSON.stringify(SAVE_DIMENSIONS) === JSON.stringify(['overworld', 'farmlands', 'suburbia']),
+      `the saveable dimensions are exactly ['overworld','farmlands','suburbia'], in that order ` +
+      `— got ${JSON.stringify(SAVE_DIMENSIONS)}`);
+  const LABELS = g('SAVE_DIMENSION_NAMES');
+  chk(LABELS.overworld === 'The Overworld' &&
+      LABELS.farmlands === 'The Shattered Farmlands' &&
+      LABELS.suburbia === 'Static Suburbia',
+      'and the CONTINUE button labels them exactly as it always has — including the ' +
+      '"The" on the Farmlands, which the canon\'s own name for it does not carry');
+  chk(Object.keys(LABELS).length === SAVE_DIMENSIONS.length,
+      'with no label for a dimension that cannot be saved');
+
   chk(SAVE_DIMENSIONS.indexOf('fake_haven') < 0,
       'the Fake Haven is deliberately not in the saveable dimension set');
 }
