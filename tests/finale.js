@@ -25,7 +25,9 @@ const ROOT = path.join(__dirname, '..');
 const SRC = require('./harness/source.js').buildSource()   /* ERA 1.5: the WHOLE build — every
    src/ module plus the inline <script>. Reading game.html directly would scan less
    and less code as Era 1.5 extracts, while going on passing. See ARCHITECTURE.md §0. */;
-const STORY = fs.readFileSync(path.join(ROOT, 'STORY.md'), 'utf8');
+const BIBLE = require('./harness/story.js');   /* ERA 1.5.2 — one parser, shared with
+   story.js, haven.js and objectives.js. Ask by TITLE, never by section number. */
+const STORY = BIBLE.TEXT;
 const strip = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '')
                       .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 const LIVE = strip(SRC);
@@ -656,15 +658,27 @@ head('12. IT NEVER EXPLAINS ANYTHING');
       'the creature is never named or labelled');
 
   /* AND THE CANON STILL SAYS WHAT IT SAID. */
-  const s19 = STORY.slice(STORY.indexOf('## 19. THE FINAL CREATURE'),
-                          STORY.indexOf('## 20. THE DIMENSIONS AS ONE STORY'));
-  chk(s19.length > 200, 'STORY.md section 19 is present and is what this phase was built from');
-  chk(/or a boss/i.test(s19) && /Not the cause/i.test(s19),
+  /* ERA 1.5.2 — asked of the shared bible parser by TITLE. The final creature moved from
+     section 19 to section 17 when the author rewrote STORY.md. Every rule below is the
+     same rule; two of them are now stated more plainly than before. */
+  const beast = BIBLE.byTitle('THE FINAL CREATURE');
+  chk(beast.length > 200, 'the bible\'s final-creature section is present and is what this was built from');
+  chk(/a god/i.test(beast) && /a demon/i.test(beast) && /an alien/i.test(beast) &&
+      /a final boss/i.test(beast),
       'it says the creature is not a god, a demon, an alien or a boss');
-  chk(/removal/i.test(s19), 'and that seeing it is a removal rather than a revelation');
-  chk(/retired/i.test(s19), 'and that the internal name is retired from player-facing text');
-  chk(/never give it/i.test(s19) || /Never give it/.test(s19),
-      'and forbids giving it a name, dialogue, a motive or a weakness');
+  chk(/the reason the world is broken/i.test(beast),
+      'and is not the cause of the damage');
+  chk(/It is a removal/i.test(beast),
+      'and that seeing it is a removal rather than a revelation');
+  /* The name's retirement lives in the vocabulary table, which is where retirements are
+     recorded for every term rather than only for this one. */
+  chk(/Void Sovereign[^\n]*retired/i.test(BIBLE.byTitle('CANONICAL VOCABULARY')),
+      'and that the internal name is retired from player-facing text');
+  chk(/no dialogue/i.test(beast) && /no motive/i.test(beast) && /no weakness/i.test(beast) &&
+      /no explained origin/i.test(beast),
+      'and forbids giving it dialogue, a motive, a weakness or an origin');
+  chk(/That was always there/i.test(beast),
+      'and fixes the intended player thought, which the credits line still carries');
 }
 
 // =====================================================================================

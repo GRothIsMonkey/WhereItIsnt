@@ -23,7 +23,9 @@ const ROOT = path.join(__dirname, '..');
 const SRC = require('./harness/source.js').buildSource()   /* ERA 1.5: the WHOLE build — every
    src/ module plus the inline <script>. Reading game.html directly would scan less
    and less code as Era 1.5 extracts, while going on passing. See ARCHITECTURE.md §0. */;
-const STORY = fs.readFileSync(path.join(ROOT, 'STORY.md'), 'utf8');
+const BIBLE = require('./harness/story.js');   /* ERA 1.5.2 — one parser, so four suites
+   cannot disagree about the bible. Ask by TITLE; numbers are the author's to change. */
+const STORY = BIBLE.TEXT;
 const strip = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '')
                       .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 const LIVE = strip(SRC);
@@ -702,13 +704,23 @@ head('12. THE TWO EXITS, AND THE ONE LINE THAT ENDS IT');
 head('13. THE CANON IT IS BUILT AGAINST');
 // =====================================================================================
 {
-  const s18 = STORY.slice(STORY.indexOf('## 18. FAKE HAVEN'), STORY.indexOf('## 19. THE FINAL CREATURE'));
-  chk(s18.length > 200, 'STORY.md section 18 is present and is what this phase was built from');
-  chk(/initial safety must be real/i.test(s18), 'it requires the initial safety to be real');
-  chk(/never answered/i.test(s18), 'it forbids answering whose memory the Haven is');
-  chk(/runs out/i.test(s18), 'and it says the Haven RUNS OUT rather than turning on the player');
-  chk(/not be foreshadowed inside the intact Haven|must not be foreshadowed/i.test(s18),
-      'and forbids foreshadowing the final creature inside it');
+  /* ERA 1.5.2 — asked of the shared bible parser by TITLE rather than sliced with a
+     hard-coded '## 18. FAKE HAVEN'. The author renumbered STORY.md and the Haven moved
+     from section 18 to section 15; the RULES below are unchanged and several are now
+     stated more strongly, so nothing here was weakened to accommodate the move. */
+  const haven = BIBLE.byTitle('FAKE HAVEN / HAVEN');
+  chk(haven.length > 200, 'the bible\'s Haven section is present and is what this phase was built from');
+  chk(/safety must be real/i.test(haven), 'it requires the initial safety to be real');
+  /* Whose memory it is, is forbidden by the never-explain list rather than in-section. */
+  chk(/whether Haven belongs to the player/i.test(BIBLE.byTitle('MUST NEVER EXPLAIN')),
+      'it forbids answering whose memory the Haven is');
+  chk(/It simply runs out/i.test(haven),
+      'and it says the Haven RUNS OUT rather than turning on the player');
+  chk(/does not reveal itself to be an elaborate trap/i.test(haven) &&
+      /Nothing secretly turns evil/i.test(haven),
+      'and forbids reframing the whole sequence as a betrayal');
+  chk(/Do not begin Haven with[\s\S]{0,300}monster eyes/i.test(haven),
+      'and forbids foreshadowing inside the intact Haven');
 
   /* Whose memory it is, is never answered — checked against every string the Haven can
      put on screen, which after Phase 32 is one word. */

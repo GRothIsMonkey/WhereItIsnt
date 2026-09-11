@@ -1,28 +1,44 @@
-/* PHASE 24 — CANONICAL STORY FOUNDATION.
+/* THE CANONICAL STORY BIBLE, AND THE BUILD THAT HAS TO AGREE WITH IT.
 
    WHAT THIS FILE CAN AND CANNOT DO.
 
    It CANNOT test whether the story is good. Nothing in this repository can, nothing here
    pretends to, and no assertion below makes a claim about writing quality, atmosphere,
-   pacing or whether a premise lands. Phase 24's real deliverable is a document, and a
-   document is judged by a person.
+   pacing or whether a premise lands. The real deliverable is a document, and a document is
+   judged by a person.
 
-   What it CAN do is protect the document and the fragments it was built from:
+   What it CAN do is protect the document and the build it governs:
 
-     1. the bible exists, and every canonical section the brief requires is in it
-     2. the retired project name is gone from the shipped build, everywhere
-     3. the finale is not named on screen like a boss
-     4. the narrative fragments the Phase 24 audit catalogued are STILL THERE — the whole
-        risk of a story phase is that it quietly replaces the material it was supposed to
-        preserve, so every surviving string is pinned here by exact text
-     5. Phase 24 did not smuggle a lore dump into the game
+     1. the bible exists and is structurally sound, and every canonical subject has its own
+        section — asked for BY TITLE, so the author may renumber freely
+     2. the canon is anchored to mechanics that are actually in the build
+     3. the retired names are gone from the shipped build, everywhere
+     4. the finale is not named on screen like a boss
+     5. the narrative fragments the audit catalogued are STILL THERE — the whole risk of a
+        story phase is that it quietly replaces the material it was supposed to preserve,
+        so every surviving string is pinned here by exact text
+     6. no lore dump was smuggled into the game
+     7. the vocabulary table is ENFORCED: no term the bible marks internal, working or
+        retired reaches the player
+     8. the never-explain list still names the core unknowns
 
-   Points 4 and 5 are the ones with teeth. They are why this file exists. */
+   Points 5, 6 and 7 are the ones with teeth. They are why this file exists.
+
+   ERA 1.5.2 REWROTE THE DOCUMENT-FACING HALF OF THIS FILE. The bible was replaced by its
+   author with a new canonical story and horror bible: renumbered, restructured, and with
+   The Below promoted to a full dimension. Twenty-two checks across four suites were still
+   matching `^## 18. FAKE HAVEN` and similar, and failed — not because the canon was wrong
+   but because the tests were pinned to the old document's typography.
+
+   They were not weakened and no coverage was dropped. They now ask the shared parser in
+   harness/story.js for a section BY TITLE, and assert the RULES the bible states rather
+   than the heading syntax it states them under. */
 const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const STORY = fs.readFileSync(path.join(ROOT, 'STORY.md'), 'utf8');
+const BIBLE = require('./harness/story.js');
+const STORY = BIBLE.TEXT;
 const GAME = require('./harness/source.js').buildSource()   /* ERA 1.5: the WHOLE build — every
    src/ module plus the inline <script>. Reading game.html directly would scan less
    and less code as Era 1.5 extracts, while going on passing. See ARCHITECTURE.md §0. */;
@@ -48,53 +64,87 @@ function gameScript() {
 const SCRIPT = gameScript();
 
 // =====================================================================================
-// 1. THE BIBLE EXISTS, AND CONTAINS THE CANON THE BRIEF REQUIRES
+// 1. THE BIBLE EXISTS, IS STRUCTURALLY SOUND, AND COVERS EVERY CANONICAL SUBJECT
 // =====================================================================================
 {
   chk(STORY.length > 12000, `STORY.md exists and is substantial (${STORY.length} characters)`);
-  chk(/^# WHERE IT ISN'T — CANONICAL STORY BIBLE/m.test(STORY),
-      'and declares itself the canonical story bible');
+  chk(/CANONICAL STORY & HORROR BIBLE/.test(STORY.slice(0, 400)),
+      'and declares itself the canonical story and horror bible in its opening lines');
+  chk(/authoritative source/i.test(STORY.slice(0, 1200)),
+      'and says it is the authoritative source, so a future session knows it outranks a brief');
 
-  /* The twenty-two subjects the phase brief demands an answer for. Matched on the section
-     heading, so a section cannot be satisfied by a passing mention somewhere else. */
+  /* THE DOCUMENT PARSES. Not a formatting check — a check that the thing the other three
+     suites slice by section really does have unambiguous sections. Section 35 is a
+     numbered list of fifteen principles, and a naive parse reported sixteen extra
+     sections numbered 1-15, which would have made every slice after it silently wrong. */
+  const ns = BIBLE.numbers();
+  chk(ns.length >= 40, `${ns.length} numbered sections parse out of the bible`);
+  chk(ns.every((n, i) => i === 0 || n > ns[i - 1]),
+      'and they are strictly ascending with no duplicates — section slicing is unambiguous');
+  chk(ns[0] === 0, 'the document opens at section 0, the rule that outranks everything');
+
+  /* EVERY CANONICAL SUBJECT HAS ITS OWN SECTION, ASKED FOR BY TITLE.
+
+     By title, not by number, and that is the whole point of this rewrite. The author
+     renumbered the bible between Phase 36 and Era 1.5.2 and it cost twenty-two checks;
+     matched this way, the next renumbering costs nothing. A subject cannot be satisfied
+     by a passing mention somewhere else, because a section is where the rules live. */
   const REQUIRED = [
-    ['canonical premise',        /^## 1\. CANONICAL PREMISE/m],
-    ['player role',              /^## 2\. THE PLAYER/m],
-    ['Overworld role',           /^## 3\. THE OVERWORLD/m],
-    ['Blood Nights',             /^## 4\. BLOOD NIGHTS/m],
-    ['Stalker',                  /^## 5\. THE STALKER/m],
-    ['Behemoth',                 /^## 6\. THE HOLLOWED BEHEMOTH/m],
-    ['Anchor',                   /^## 7\. THE ANCHOR/m],
-    ['Rift',                     /^## 8\. THE RIFT/m],
-    ['Rift Cores',               /^## 9\. RIFT CORES/m],
-    ['Farmlands',                /^## 10\. THE SHATTERED FARMLANDS/m],
-    ['Eastward Journey',         /^## 11\. THE EASTWARD JOURNEY/m],
-    ['Water Tower',              /^## 12\. THE WATER TOWER/m],
-    ['rural settlements',        /^## 13\. RURAL SETTLEMENTS/m],
-    ['Disconnected Home',        /^## 14\. THE DISCONNECTED HOME/m],
-    ['Static Suburbia',          /^## 15\. STATIC SUBURBIA/m],
-    ['Suburbia anomalies',       /^## 16\. SUBURBIA ANOMALIES/m],
-    ['Suburbia entities',        /^## 17\. THE NEIGHBOUR/m],
-    ['Fake Haven',               /^## 18\. FAKE HAVEN/m],
-    ['Final Creature',           /^## 19\. THE FINAL CREATURE/m],
-    ['dimension relationships',  /^## 20\. THE DIMENSIONS AS ONE STORY/m],
-    ['player knowledge curve',   /^## 21\. THE PLAYER KNOWLEDGE CURVE/m],
-    ['mystery vs explanation',   /^## 22\. MYSTERY VERSUS EXPLANATION/m],
+    ['the rule that outranks everything', 'THE RULE THAT OUTRANKS EVERYTHING'],
+    ['canonical premise',                 'CANONICAL PREMISE'],
+    ['what the player is',                'WHAT THE PLAYER IS'],
+    ['the central idea of fear',          'THE CENTRAL IDEA OF FEAR'],
+    ['Dimension 1, the Farmlands',        'SHATTERED FARMLANDS'],
+    ['Dimension 2, Static Suburbia',      'STATIC SUBURBIA'],
+    ['Dimension 3, The Below',            'THE BELOW'],
+    ['the Stalker',                       'THE STALKER'],
+    ['the Behemoth',                      'HOLLOWED BEHEMOTH'],
+    ['the Anchor',                        'THE ANCHOR'],
+    ['the Rift',                          'THE RIFT'],
+    ['Rift Cores',                        'RIFT CORES'],
+    ['the Disconnected Home',             'THE DISCONNECTED HOME'],
+    ['the Eastward Journey',              'THE EASTWARD JOURNEY'],
+    ['player-facing language',            'THE FALSE LANGUAGE OF THE WORLD'],
+    ['Haven',                             'FAKE HAVEN / HAVEN'],
+    ['Haven horror escalation',           'HAVEN HORROR ESCALATION'],
+    ['the final creature',                'THE FINAL CREATURE'],
+    ['the final sequence',                'THE FINAL SEQUENCE'],
+    ['horror escalation, whole game',     'HORROR ESCALATION ACROSS THE WHOLE GAME'],
+    ['what makes a scare good',           'WHAT MAKES A SCARE CANONICALLY GOOD'],
+    ['jumpscares',                        'JUMPSCARES'],
+    ['player trust',                      'PLAYER TRUST AND BETRAYAL'],
+    ['observation rules',                 'OBSERVATION RULES'],
+    ['the world remembers',               'THE WORLD REMEMBERS'],
+    ['what must never be explained',      'THINGS THE GAME MUST NEVER EXPLAIN'],
+    ['what may be figured out',           'THINGS THE PLAYER MAY EVENTUALLY FIGURE OUT'],
+    ['the knowledge curve',               'THE CANONICAL KNOWLEDGE CURVE'],
+    ['dimension relationships',           'DIMENSIONS AS ONE STORY'],
+    ['visual and audio horror rules',     'VISUAL AND AUDIO HORROR RULES'],
+    ['the safe space rule',               'SAFE SPACE RULE'],
+    ['physical vs psychological',         'PHYSICAL HORROR VERSUS PSYCHOLOGICAL HORROR'],
+    ['what not to do',                    'WHAT NOT TO DO'],
+    ['Era 2 art direction',               'ERA 2 ART DIRECTION RULE'],
+    ['final principles',                  'FINAL CANONICAL PRINCIPLES'],
+    ['title meaning',                     'TITLE MEANING'],
+    ['future-phase compatibility',        'FUTURE-PHASE COMPATIBILITY'],
+    ['the one-paragraph rule',            'THE ONE-PARAGRAPH RULE'],
+    ['canonical vocabulary',              'CANONICAL VOCABULARY'],
+    ['the final rule',                    'FINAL RULE'],
   ];
-  let missing = [];
-  for (const [label, re] of REQUIRED) if (!re.test(STORY)) missing.push(label);
+  const missing = REQUIRED.filter(([, title]) => !BIBLE.has(title)).map(([label]) => label);
   chk(missing.length === 0,
-      `all ${REQUIRED.length} required canonical subjects have their own section` +
+      `all ${REQUIRED.length} canonical subjects have their own section` +
       (missing.length ? ` — MISSING: ${missing.join(', ')}` : ''));
 
-  chk(/^## 23\. ENVIRONMENTAL STORYTELLING OPPORTUNITIES/m.test(STORY),
-      'future environmental-storytelling opportunities are recorded for Phase 31');
-  chk(/^## 24\. CANONICAL VOCABULARY/m.test(STORY),
-      'and a vocabulary table exists, so future sessions do not invent synonyms');
-  chk(/^## 25\. FUTURE-PHASE COMPATIBILITY NOTES/m.test(STORY),
-      'with per-phase compatibility notes through Phase 35');
-  chk(/^## 0\. HOW THIS CANON WAS DERIVED/m.test(STORY),
-      'and it records HOW the canon was derived, so it can be argued with rather than obeyed');
+  /* The one-paragraph rule is the bible's own handoff to a session that reads nothing
+     else. If it goes, a future session inherits 2,300 lines and no entry point. */
+  const para = BIBLE.byTitle('ONE-PARAGRAPH RULE');
+  chk(/reads only one paragraph/i.test(para),
+      'the one-paragraph rule exists — the entry point for a session that reads nothing else');
+  chk(/reconstructed from an incomplete record/i.test(para),
+      'and that paragraph still states the premise: a world rebuilt from an incomplete record');
+  chk(/never be told why/i.test(para),
+      'and still ends on the mystery rather than on an answer');
 }
 
 // =====================================================================================
@@ -114,8 +164,16 @@ const SCRIPT = gameScript();
     if (!re.test(SCRIPT)) { ok = false; console.log('        NOT IN THE BUILD: ' + label); }
   }
   chk(ok, `the five observation-keyed systems the canon is derived from are all still in the build`);
-  chk(/resolves under attention|only has to be right\s*\n?\s*where something is looking/i.test(STORY),
-      'and the bible states the principle they share');
+  /* THE PRINCIPLE THE FIVE SHARE, asserted against the section that states it rather than
+     against a remembered sentence. The old check matched one phrasing from the previous
+     bible; the rule itself is unchanged and is section 24's first two canonical rules. */
+  const obs = BIBLE.byTitle('OBSERVATION RULES');
+  chk(/change only when not observed/i.test(obs) && /freeze when watched/i.test(obs),
+      'and the bible states the principle they share: things change unwatched, things freeze watched');
+  chk(/never explain every observation-dependent event/i.test(obs),
+      'and forbids explaining them, which is why none of the five is ever announced');
+  chk(/Observation does not make the player safe/i.test(obs),
+      'and refuses to make looking a safety mechanic');
 
   // The Anchor's canon depends on it being player-crafted and fuel-hungry.
   chk(/result: ITEM\.SAFEHOUSE_ANCHOR/.test(SCRIPT) && /addFuel\(/.test(SCRIPT),
@@ -290,30 +348,164 @@ const SCRIPT = gameScript();
   chk(/STORY\.md/.test(PROGRESS), 'PROGRESS.md points at STORY.md');
   chk(/PHASE 24 — CANONICAL STORY FOUNDATION/.test(PROGRESS),
       'and PROGRESS.md records what Phase 24 actually did to the repository');
-  chk(/COMPLETE/.test(ROADMAP.slice(ROADMAP.indexOf('# 42. PHASE 24'), ROADMAP.indexOf('# 42. PHASE 24') + 120)),
-      'ROADMAP.md marks Phase 24 complete');
-  /* Phase 24's real invariant is that the roadmap still carries the phase order after it,
-     not that Phase 25 is literally the NEXT one — Phase 25 shipped, and Phase 26 after it.
-     Asserted as "Phase 25 is still in there, marked complete" so this keeps catching a
-     roadmap that loses a delivered phase without failing every time one lands. */
-  chk(/# 43\. PHASE 25 — DYNAMIC OBJECTIVE SYSTEM\s+— \*\*COMPLETE\*\*/.test(ROADMAP),
-      'and still carries Phase 25, marked complete');
+  /* THE ROADMAP STILL CARRIES THE DELIVERED PHASES, AND STILL MARKS THEM DELIVERED.
+
+     Matched on the roadmap's own `PHASE N — TITLE` / `STATUS: ...` shape rather than on a
+     section number and a markdown bold run, because the author rewrote ROADMAP.md at the
+     same time as STORY.md and the old pattern was pinned to the previous typography. The
+     invariant was never "Phase 25 is section 43" — it is "a delivered phase is not
+     quietly dropped from the record", and this catches that without failing every time a
+     new phase lands. Phase 24 is now marked superseded, which is still a completion. */
+  const phaseStatus = (n) => {
+    const m = ROADMAP.match(new RegExp('^PHASE ' + n + ' — [^\\n]*\\nSTATUS: ([^\\n]*)', 'm'));
+    return m ? m[1].trim() : null;
+  };
+  chk(/COMPLETE/.test(phaseStatus(24) || ''),
+      `ROADMAP.md still carries Phase 24, marked "${phaseStatus(24)}"`);
+  chk(/COMPLETE/.test(phaseStatus(25) || ''),
+      `and still carries Phase 25, marked "${phaseStatus(25)}"`);
+  chk(/COMPLETE/.test(phaseStatus(36) || ''),
+      `and Phase 36, marked "${phaseStatus(36)}"`);
+  /* The bible's own handoff to the phases that come next. */
+  chk(/Era 1\.5 Architecture Split/i.test(BIBLE.byTitle('FUTURE-PHASE COMPATIBILITY')),
+      'and the bible names the architecture split as a phase that must not change the canon');
 }
 
 // =====================================================================================
 // 8. THE THINGS THAT MUST STAY UNANSWERED ARE WRITTEN DOWN AS SUCH
 // =====================================================================================
 {
-  const tail = STORY.slice(STORY.indexOf('## 22. MYSTERY VERSUS EXPLANATION'));
-  const MUSTNOT = ['what is doing the rebuilding', 'whose memory the Haven is',
-                   'what the final creature is', 'whether the player is original',
-                   'why an Anchor works'];
-  const absent = MUSTNOT.filter(t => tail.toLowerCase().indexOf(t.toLowerCase()) < 0);
+  const never = BIBLE.byTitle('MUST NEVER EXPLAIN');
+  chk(never.length > 400, 'the never-explain section is present and substantial');
+
+  /* The core unknowns, in the NEW bible's own words. The previous list was phrased
+     against the previous document; the rules are the same and several are now stated
+     more strongly. Seven instead of five, because the new bible forbids more. */
+  const MUSTNOT = [
+    'what is doing the rebuilding',
+    'whether the player is original',
+    'why the Anchor works',
+    'whether Haven belongs to the player',
+    'what the final creature ultimately is',
+    'whether the world can be repaired',
+    'what exactly the record is',
+  ];
+  const absent = MUSTNOT.filter(t => never.toLowerCase().indexOf(t.toLowerCase()) < 0);
   chk(absent.length === 0,
       `the never-explain list names all ${MUSTNOT.length} core unknowns` +
       (absent.length ? ` — MISSING: ${absent.join('; ')}` : ''));
-  chk(/no cure, no reversal/i.test(tail),
+
+  /* A REPAIRED-WORLD ENDING IS RULED OUT. The previous bible said "no cure, no reversal";
+     the new one forbids ever answering whether the world CAN be repaired — the same
+     prohibition stated as a mystery rather than as an outcome. Both halves asserted so a
+     later phase cannot write a restoration ending by accident. */
+  chk(/whether the world can be repaired/i.test(never),
       'and rules out a repaired-world ending, so no later phase writes one by accident');
+  chk(/whether the player escaped the reconstruction/i.test(never),
+      'and an escaped-player ending with it');
+  chk(/redesign the mechanic/i.test(never),
+      'and says a mechanic needing one of them explained is the thing that must change');
+
+  /* THE OTHER HALF OF THE SAME RULE, which no test has ever covered: what the player IS
+     allowed to work out. A bible that only forbids becomes a bible that forbids
+     everything, and this section is what keeps the world legible. */
+  const may = BIBLE.byTitle('MAY EVENTUALLY FIGURE OUT');
+  chk(/the dimensions are the same underlying place/i.test(may) &&
+      /reality is being reconstructed/i.test(may),
+      'and the bible separately lists what the player MAY infer — the world stays legible');
+  chk(/Never from a lore dump/i.test(may),
+      'and requires those inferences to come from play rather than from a lore dump');
+}
+
+// =====================================================================================
+// 9. THE CANONICAL VOCABULARY IS ENFORCED, NOT MERELY LISTED
+//    The table marks every term in-game / internal only / working / retired. A term the
+//    bible marks internal or retired must never reach the player — and the list is
+//    derived FROM THE DOCUMENT, so it cannot drift away from it.
+// =====================================================================================
+{
+  const vocab = BIBLE.byTitle('CANONICAL VOCABULARY');
+  chk(vocab.length > 300, 'the vocabulary table exists, so future sessions do not invent synonyms');
+
+  const rows = vocab.split('\n')
+    .map(l => l.split('\t'))
+    .filter(c => c.length >= 3 && c[0].trim() && !/^Term$/i.test(c[0].trim()))
+    .map(c => ({ term: c[0].trim(), status: c[1].trim().toLowerCase() }));
+  chk(rows.length >= 15, `${rows.length} vocabulary rows parse out of the table`);
+
+  const inGame   = rows.filter(r => r.status === 'in-game').map(r => r.term);
+  const internal = rows.filter(r => /internal|working|retired/.test(r.status)).map(r => r.term);
+  chk(inGame.length >= 8 && internal.length >= 4,
+      `${inGame.length} terms are in-game, ${internal.length} internal / working / retired`);
+
+  /* THE PAGE MARKUP IS PURELY PLAYER-FACING — every word of it is read by somebody. This
+     is the mechanical version of the hand-written Void Sovereign and Block & Ruin checks
+     above, derived from the bible itself, so a future retirement is enforced the moment
+     it is written down rather than the next time someone remembers to add a test. */
+  const markup = GAME.slice(0, GAME.indexOf('<script>'));
+  const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const leaked = internal.filter(t => new RegExp('\\b' + esc(t) + '\\b', 'i').test(markup));
+  chk(leaked.length === 0,
+      'no internal, working or retired term appears in the page markup' +
+      (leaked.length ? ` — LEAKED: ${leaked.join(', ')}` : ''));
+
+  chk(/Void Sovereign[^\n]*retired/i.test(vocab),
+      "the finale's old name is recorded as RETIRED rather than pretending it never existed");
+  chk(/Block & Ruin[^\n]*retired/i.test(vocab),
+      'and so is the old project title');
+}
+
+// =====================================================================================
+// 10. THE THREE DIMENSIONS, AND THE ONE THAT DOES NOT EXIST YET
+//     The new bible promotes The Below to a full dimension and renumbers the CREATIVE
+//     order. That renumbering is canon, not code — see ARCHITECTURE.md section 5 and
+//     src/dimensions/. What this asserts is that the bible is internally consistent about
+//     it, and that the build has NOT started implementing The Below.
+// =====================================================================================
+{
+  const d1 = BIBLE.byTitle('SHATTERED FARMLANDS');
+  const d2 = BIBLE.byTitle('STATIC SUBURBIA');
+  const d3 = BIBLE.byTitle('THE BELOW');
+  chk(/DIMENSION 1/.test(d1), 'the bible names the Shattered Farmlands as creative Dimension 1');
+  chk(/DIMENSION 2/.test(d2), 'Static Suburbia as creative Dimension 2');
+  chk(/DIMENSION 3/.test(d3), 'and The Below as creative Dimension 3');
+  chk(d1.length > 2000 && d2.length > 2000 && d3.length > 2000,
+      'each of the three carries a substantial section of its own, not a paragraph');
+
+  /* THE BELOW IS CANON AND IS NOT BUILT. Era 1.5.2 established metadata that can
+     REPRESENT it; the game does not contain it, and a later phase builds it. */
+  const inBuild = ['The Collector'].filter(t => SCRIPT.indexOf(t) >= 0);
+  chk(inBuild.length === 0,
+      'The Below is canon but NOT implemented — its entity is nowhere in the build' +
+      (inBuild.length ? ` — FOUND: ${inBuild.join(', ')}` : ''));
+}
+
+// =====================================================================================
+// 11. THE LANGUAGE RULE THE OBJECTIVE LINES ARE WRITTEN TO
+// =====================================================================================
+{
+  const lang = BIBLE.byTitle('FALSE LANGUAGE');
+  chk(/what the player has seen/i.test(lang),
+      'the bible says an objective describes what the player has SEEN');
+  chk(/name hidden dimensions before discovery/i.test(lang),
+      'and forbids naming a hidden dimension before it is discovered');
+  chk(/use internal lore terms casually/i.test(lang),
+      'and forbids internal lore terms in player-facing language');
+  chk(/turn mystery into a quest checklist/i.test(lang),
+      'and forbids turning the mystery into a checklist');
+}
+
+// =====================================================================================
+// 12. THE TITLE IS NEVER EXPLAINED IN THE GAME
+// =====================================================================================
+{
+  const title = BIBLE.byTitle('TITLE MEANING');
+  chk(/Never explain the title in dialogue/i.test(title),
+      'the bible forbids explaining the title in dialogue');
+  chk(/Never place the title on a wall/i.test(title),
+      'and forbids putting it on a wall as an in-world phrase');
+  chk(/make the title true/i.test(title),
+      'and requires the game to make the title true instead');
 }
 
 console.log('\n' + (fail === 0 ? 'ALL STORY-FOUNDATION CHECKS PASS' : fail + ' FAILURES'));

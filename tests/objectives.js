@@ -27,7 +27,8 @@ const ROOT = path.join(__dirname, '..');
 const SRC = require('./harness/source.js').buildSource()   /* ERA 1.5: the WHOLE build — every
    src/ module plus the inline <script>. Reading game.html directly would scan less
    and less code as Era 1.5 extracts, while going on passing. See ARCHITECTURE.md §0. */;
-const STORY = fs.readFileSync(path.join(ROOT, 'STORY.md'), 'utf8');
+const BIBLE = require('./harness/story.js');   /* ERA 1.5.2 — the shared bible parser. */
+const STORY = BIBLE.TEXT;
 
 let fail = 0;
 const chk = (ok, msg) => { console.log((ok ? 'PASS  ' : 'FAIL  ') + msg); if (!ok) fail++; };
@@ -136,8 +137,16 @@ const textFor = (over) => { const o = new ObjectiveSystem(null); o.evaluate(snap
 
   chk(!/where the home is|find the home|go to the/i.test(all),
       'no objective points at an undiscovered destination');
-  chk(STORY.indexOf('observations, never destinations') > 0,
-      'STORY.md section 25 states the rule these lines are written to');
+  /* ERA 1.5.2 — the rule survived the bible's rewrite; the sentence it was quoted from
+     did not. "Observations, never destinations" is now stated as a four-line prohibition
+     in the section on player-facing language, and asserted here clause by clause, which
+     is a stronger check than matching one remembered phrase. */
+  const lang = BIBLE.byTitle('FALSE LANGUAGE');
+  chk(/what the player has seen/i.test(lang) && /what is immediately relevant/i.test(lang),
+      'the bible states the rule these lines are written to: describe what has been SEEN');
+  chk(/name hidden dimensions before discovery/i.test(lang) &&
+      /turn mystery into a quest checklist/i.test(lang),
+      'and forbids naming an undiscovered destination or building a checklist');
 }
 
 // =====================================================================================
