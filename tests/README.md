@@ -122,9 +122,16 @@ that property rather than assuming it.
 
 `node architecture.js` is the gate for any future extraction: it proves every declared
 module exists and loads in order, that nothing is declared twice, that no module reaches a
-later one at load time, that `src/shared/` depends on nothing, and that the P0 hotspots in
+later one at load time, that `src/shared/` depends on nothing, that stable dimension ids
+are kept distinct from creative dimension numbers, and that the P0 hotspots in
 `ARCHITECTURE-INVENTORY.md` have not grown. It needs `acorn`; without it the AST half skips
 and says so.
+
+**`harness/story.js` is the one reader of STORY.md**, shared by `story.js`, `haven.js`,
+`finale.js` and `objectives.js`. Ask it for a section **by title** — `byTitle('THE FINAL
+CREATURE')` — never by number. Before it existed each suite sliced the bible with its own
+hard-coded `indexOf('## 18. FAKE HAVEN')`, which is why one authored revision of STORY.md
+broke twenty-two checks across four files at once. Numbers are the author's to change.
 
 **After ANY extraction, run the four comparison suites against the pre-move build.** World
 generation must come back bit-identical:

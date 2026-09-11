@@ -16,7 +16,7 @@
 | 2172–4322 | `SoundEngine` — 2,151 lines of synthesis that works. **Move it; do not improve it.** | 1.5.2 |
 | 5815–6295 | `AudioLibrary` | 1.5.2 |
 | 6593–7001 | `AudioDirector` | 1.5.2 |
-| 5541–7061 | `AUDIO_ASSETS`, `AUDIO_SCENES`, `AUDIO_EVENTS`, `AUDIO_CUES`, surfaces | 1.5.2 |
+| ✅ — | `audio-tables.js` — the manifest, limits, surfaces, scenes, events, preload, cues | **1.5.2 · done** |
 | 39705–39790 | `Game._updateEnvironmentAudio` — 82 lines of POLICY in the wrong place (P2-3) | 1.5.4 |
 
 > **MEASURED, NOT ASSUMED:** `AudioDirector` makes 0 Web Audio calls and `AudioLibrary`

@@ -4,12 +4,16 @@
 HOW TO RUN IT              SERVE IT. python3 -m http.server 8000, then
                            http://localhost:8000/game.html  — opening game.html
                            from disk plays NO recorded audio at all (section 0.000000000000000)
-Current phase              ERA 1.5.1 — ARCHITECTURE INVENTORY & CONTRACTS (COMPLETE)
+Current phase              ERA 1.5.2 — PURE DATA / HELPERS EXTRACTION (COMPLETE)
                            Phase 36 is COMPLETE and still needs a human playthrough
-Next phase                 ERA 1.5.2 — the first real extraction, then 1.5.3-1.5.5, then ERA 2
+Next phase                 ERA 1.5.3 — the VoxelWorld split. The dangerous one.
 Architecture               ARCHITECTURE.md (the map) + ARCHITECTURE-INVENTORY.md (the numbers)
                            src/<layer>/LAYER.md is that layer's work order
-THE SPLIT HAS NOT HAPPENED 843 of 39,992 script lines have moved (2.1%). Not modular yet.
+THE SPLIT HAS NOT HAPPENED 2,920 of 39,992 inline script lines moved (7.3%), 15 modules. Every
+                           system that DOES anything is still in game.html. Not modular yet.
+Dimension identity         stableId != creativeNumber. stable 1 = Overworld; D1 = Farmlands.
+                           src/dimensions/dimension-descriptors.js — accessors THROW on the
+                           wrong kind of number. No id renumbered, no migration, schema v5.
 Phase 19                   COMPLETE
 Phase 20                   COMPLETE
 Phase 20 journey revision  COMPLETE           (20.1 — see section 0)
@@ -77,6 +81,151 @@ performance figures. **Section 0.5 describes Phase 20.2**, which added the openi
 instruction and the compass and changed no world generation at all.
 
 ---
+
+## 0.0000000000000000000. ERA 1.5.2 — PURE DATA / HELPERS EXTRACTION
+
+**WHAT THIS PHASE IS NOT.** Still not the architecture split. The inline script shrank by
+2,077 lines in this phase and by 2,920 across both — 7.3% of the original 39,992 — and every system that *does* anything is exactly where it was: the world,
+the game loop, the renderer, the player, the UI, the audio engine. What moved is data and
+pure functions. The dangerous extractions are 1.5.3, 1.5.4 and 1.5.5.
+
+### THE RULE THAT MATTERS MOST HERE: THERE ARE TWO NUMBERS
+
+```
+    stable id 1  is  the Overworld            — a save-file value, permanent
+    D1           is  the Shattered Farmlands  — the canon's creative order
+```
+
+A bare `1` means two different places and nothing in the integer says which. The project
+owner locked the decision: stable technical ids and creative dimension numbers are
+different concepts, and **a stable id is never renumbered to tidy the creative order**.
+
+`src/dimensions/dimension-descriptors.js` makes that mechanical rather than remembered.
+Every identity is a named field; `dimensionByStableId` and `dimensionByCreativeNumber`
+**throw** on the other kind of number with an error that names the confusion; and
+`creativeNumber` is deliberately `null` for the Overworld and the Haven, so code that
+assumed "the stable id IS the dimension number" fails loudly instead of quietly returning
+the wrong world.
+
+| | stableId | creativeNumber | saveName | status |
+|---|---:|---:|---|---|
+| The Overworld | 1 | — | `overworld` | legacy — discarded as the final D1 |
+| Shattered Farmlands | 2 | **D1** | `farmlands` | built |
+| Static Suburbia | 3 | **D2** | `suburbia` | built |
+| The Haven | 4 | — | *never saved* | built |
+| The Below | *none* | **D3** | — | **canon, not implemented** |
+
+**No stable id was renumbered. No save migration. Schema stays v5.**
+
+It also removed two duplicate sources of truth: `SAVE_DIMENSIONS` and
+`SAVE_DIMENSION_NAMES` are now derived from the registry. The values are byte-identical —
+including the "The" on "The Shattered Farmlands", which the canon's own name for the place
+does not carry. That is why a descriptor keeps `canonicalName` and `saveLabel` as two
+fields: deriving one from the other would have silently changed what a player reads.
+
+### THE STORY SUITES, REALIGNED — AND STORY.md NOT TOUCHED
+
+Era 1.5.1 recorded 22 failures across four suites and correctly refused to fix them: they
+were a canon question, not an architecture one. The owner then ruled that the new bible is
+authoritative and the tests were to be updated.
+
+They were failing because each suite sliced the document with its own hard-coded
+`indexOf('## 18. FAKE HAVEN')`. That is why one authored revision broke twenty-two checks
+at once and why not one of them said anything useful about what had changed.
+
+`tests/harness/story.js` is now **one parser, shared by all four**, and they ask for a
+section **by title**. The next renumbering costs nothing.
+
+**The parser requires an upper-case heading, and that is the discriminator, not
+decoration.** Section 35 is a numbered list of fifteen sentence-case principles, and a
+naive `^\d+\.` split swallowed section 35 whole and then reported sixteen more sections
+numbered 1-15 — which would have made `section(1)` ambiguous and every slice after it
+silently wrong. `story.js` now asserts the section numbers are strictly ascending so that
+can never pass again.
+
+**Nothing was weakened, and coverage grew:**
+
+| suite | before | after |
+|---|---|---|
+| `story` | 26 pass / 11 fail | **67 / 0** |
+| `objectives` | 80 / 1 | **82 / 0** |
+| `haven` | 143 / 5 | **149 / 0** |
+| `finale` | 196 / 5 | **203 / 0** |
+
+The best of the additions is that **the vocabulary table is now enforced rather than
+merely present**: the terms the bible marks *internal only*, *working* or *retired* are
+parsed out of the bible itself and asserted absent from the page markup. A future
+retirement is enforced the moment it is written down, instead of the next time somebody
+remembers to add a test.
+
+### WHAT MOVED
+
+| file | lines | what |
+|---|---:|---|
+| `src/audio/audio-tables.js` | 646 | manifest, limits, surfaces, scenes, events, preload, cues |
+| `src/world/block-catalog.js` | 399 | BLOCK ids, colours, id ceiling, door constants |
+| `src/world/block-shapes.js` | 405 | the sub-voxel shape system |
+| `src/world/block-properties.js` | 301 | hardness, tool tiers, `computeBreakTime`, display names |
+| `src/progression/objective-tables.js` | 126 | chain ids, tick, overrides, the four chains |
+| `src/gameplay/entity-tuning.js` | 86 | knockback, step assist, item physics, rift arming |
+| `src/world/world-constants.js` | 51 | chunk dims, cave-mouth tuning, streaming radii |
+| `src/gameplay/onboarding-cues.js` | 26 | the three cues, and there are only ever three |
+| `src/persistence/save-schema.js` | 24 | version, keys, coordinate and edit ceilings |
+| `src/dimensions/dimension-registry.js` | 8 | the `DIMENSION` enum |
+| `src/dimensions/dimension-descriptors.js` | *new* | the two-numbers registry |
+
+**Block data went to `world/`, not `shared/`** — correcting the 1.5.1 work order. It *is*
+pure data, which is what filed it there; but it is the vocabulary of the voxel world and
+Era 2 replaces it. `shared/` is for what survives the renderer. The mistake was visible
+because `tests/architecture.js` fails a `shared/` module that names a block id — and it
+would have failed the module that *defines* them.
+
+**Hardness and display names are one file on purpose.** They look like two concerns and
+are not separable: one load-time loop writes `BLOCK_DISPLAY_NAME` and `BLOCK_HARDNESS` for
+the same eighteen roof ids. Splitting them means splitting that loop, which is a refactor.
+
+### FOUR THINGS THAT WENT WRONG, AND WHAT EACH ONE COST
+
+1. **A range started one line inside a block comment.** The produced file's header ran
+   straight into orphaned comment text, and the failure surfaced as a SyntaxError three
+   steps later inside a test. **The extractor now parses every file it writes** and aborts
+   without touching `game.html`.
+
+2. **The ratchet fired on the translation helper.** `dimensionOfPlayerFlags` — which
+   exists so 1.5.4 can delete the booleans — pushed the dimension-flag count from 112 to
+   115. The answer was not to raise the ceiling: it now covers the **monolith**, and
+   exactly one extracted module may read the flags, asserted by name. The number worth
+   holding down is how much of the build depends on them, and a designated reader that
+   exists in order to remove them is the opposite of that.
+
+3. **A derived value lost its only test.** `SAVE_DIMENSIONS` stopped being a literal, and
+   the only thing pinning it was a source-text match in `architecture.js`; `save.js` read
+   the array but only checked that `fake_haven` was absent. It now pins the exact list,
+   its **order** and the three CONTINUE labels at runtime — stronger than what it replaced.
+
+4. **A one-line tail error stranded `DOOR_SWING_TIME`** in the monolith, away from
+   `DOOR_STATE_CAP` and `DOOR_SWING_POOL`. Caught by re-reading the scanner output rather
+   than by a test, which is worth writing down: the boundary of an extraction is the part
+   no assertion is watching.
+
+### WHAT WAS DELIBERATELY NOT MOVED
+
+`SAVE_MIGRATIONS`, `validateSaveState`, `captureWorldState` and `findSafeLanding` — the
+save **lifecycle**, not its schema; 1.5.4. The cave-mouth tuning stayed in `world/` rather
+than moving to `dimensions/`, because moving it now would pre-empt 1.5.3's split. The
+block atlas and tile painters stayed: they build textures, which is rendering.
+
+**`SAVE_CHUNK_VOXELS` is why `world-constants.js` exists.** It is the product of
+`CHUNK_SX/SY/SZ`, evaluated at load, so the save schema could not move until the chunk
+constants did. The scanner refused the save block first and the chunk constants were the
+answer — the load-order contract doing exactly what it was built for.
+
+### VALIDATION
+
+All **24 offline suites green, 0 failures** (the baseline carried 22). All **10 browser
+suites green**. **294 chunks across all four dimension bands hash bit-identical** against
+the Phase 36 monolith, and 12 pure-function probes agree. No gameplay, visual, story,
+audio or schema change.
 
 ## 0.000000000000000000. ERA 1.5.1 — ARCHITECTURE INVENTORY & CONTRACTS
 

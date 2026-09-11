@@ -1425,7 +1425,8 @@ Phase 34.3 — Audio Forensic Investigation         (see section 61.07 — await
 Phase 35 — Complete Dimension Cohesion            (COMPLETE — see section 62)
 Phase 36 — Complete Playable Alpha / Full Audit   (COMPLETE — see section 62.5)
 Era 1.5.1 — Architecture inventory & contracts   (COMPLETE — see section 62.6)
-Era 1.5.2-1.5.5 — the extraction phases, then Era 2
+Era 1.5.2 — Pure data / helpers extraction       (COMPLETE — see section 62.7)
+Era 1.5.3-1.5.5 — the dangerous extractions, then Era 2
 
 Exact numbering may evolve, but previous completed phases must not be lost.
 
@@ -2861,6 +2862,101 @@ after. Reconciling those suites with the new `STORY.md` is a canon decision, not
 architecture one, and it is the author's to make.
 
 
+# 62.7. ERA 1.5.2 — PURE DATA / HELPERS EXTRACTION — COMPLETE
+
+ERA 1.5.2 CARRIED THIS OUT. The inline script is 2,077 lines smaller, in eleven new
+modules (fifteen in total across Era 1.5 so far); the story suites were realigned to the new canonical bible without touching it;
+and dimension identity is unambiguous for the first time. See `ARCHITECTURE.md`,
+`src/*/LAYER.md` and `PROGRESS.md` section 0.0000000000000000000.
+
+**THE SPLIT STILL HAS NOT HAPPENED.** 2,920 lines of 39,992 have left the inline script
+across both phases — 7.3%. Every system that
+DOES anything is exactly where it was: the world, the game loop, the renderer, the player,
+the UI, the audio engine. Do not describe the game as modular.
+
+## THE TWO NUMBERS. THIS IS THE RULE THAT MATTERS MOST IN THIS SECTION.
+
+      stable id 1  is  the Overworld            — a save-file value, permanent
+      D1           is  the Shattered Farmlands  — the canon's creative order
+
+A bare `1` means two different places and NOTHING IN THE INTEGER SAYS WHICH. The project
+owner locked this: stable technical ids and creative dimension numbers are different
+concepts, and a stable id is NEVER renumbered to tidy the creative order.
+
+`src/dimensions/dimension-descriptors.js` makes it mechanical:
+
+- every identity is a NAMED FIELD — `stableId`, `creativeNumber`, `canonicalName`,
+  `saveName`, and `saveLabel` (because what the CONTINUE button shows and what the canon
+  calls a place are two different strings — "The Shattered Farmlands" vs "Shattered
+  Farmlands", and deriving one from the other would silently change what a player reads);
+- `dimensionByStableId` and `dimensionByCreativeNumber` THROW on the other kind of number
+  rather than coercing it, with an error that names the confusion;
+- `creativeNumber` is deliberately `null` for the Overworld and the Haven, so code that
+  assumed "the stable id IS the dimension number" fails loudly instead of quietly
+  returning the wrong world.
+
+**NO STABLE ID WAS RENUMBERED. NO SAVE MIGRATION. SCHEMA STAYS v5.** `SAVE_DIMENSIONS` and
+`SAVE_DIMENSION_NAMES` are now DERIVED from the registry — one source of truth instead of
+three — and their values are byte-identical to the hand-written ones.
+
+**THE BELOW IS REPRESENTABLE AND NOT IMPLEMENTED.** `DIMENSION_PLAN` carries it at
+creative 3 with `stableId: null`, no generator and no entity. Building it means adding a
+descriptor, not editing a branch in twelve files.
+
+## THE STORY SUITES WERE REALIGNED, AND STORY.md WAS NOT TOUCHED
+
+The 22 failures Era 1.5.1 recorded were tests pinned to the PREVIOUS bible's typography
+(`^## 18. FAKE HAVEN`), not a wrong canon. `tests/harness/story.js` is now ONE parser
+shared by story.js, haven.js, finale.js and objectives.js, and they ask for a section
+**BY TITLE** — so the next renumbering costs nothing.
+
+- **THE PARSER REQUIRES AN UPPER-CASE HEADING, AND THAT IS THE DISCRIMINATOR.** Section 35
+  is a numbered list of fifteen sentence-case principles; a naive `^\d+\.` split swallowed
+  section 35 whole and reported sixteen more sections numbered 1-15, which would have made
+  every slice after it silently wrong. `story.js` now asserts the numbers are strictly
+  ascending so that can never pass again.
+- **NOTHING WAS WEAKENED AND COVERAGE GREW** (26/11 -> 67/0). The vocabulary table is now
+  ENFORCED rather than merely present: the internal / working / retired terms are parsed
+  out of the bible itself and asserted absent from the page markup, so a future retirement
+  is enforced the moment it is written down.
+
+## RULES THAT NOW HOLD
+
+- **A DATA MODULE DESCRIBES; A SYSTEM DECIDES.** The objective TABLES moved and
+  `ObjectiveSystem` did not. The audio TABLES moved and `SoundEngine`, `AudioLibrary` and
+  `AudioDirector` did not. A data table that quietly executes progression is not a data
+  table, and `tests/architecture.js` fails a `src/` module that creates an AudioNode, a
+  mesh, or a DOM node.
+- **BLOCK DATA LIVES IN `world/`, NOT `shared/`.** It is pure data, which is what the
+  1.5.1 work order filed it under — but it is the VOCABULARY OF THE VOXEL WORLD and Era 2
+  replaces it. `shared/` is for what SURVIVES the renderer.
+- **THE EXTRACTOR PARSES EVERY FILE IT WRITES.** The first run of this phase cut a range
+  one line inside a block comment and produced a file whose header ran straight into
+  orphaned comment text. That is now an abort, not a SyntaxError three steps later.
+- **A DERIVED VALUE NEEDS A VALUE TEST, NOT A TEXT TEST.** `SAVE_DIMENSIONS` stopped being
+  a literal, and the only thing pinning it was a source-text match in `architecture.js`.
+  `tests/save.js` now pins the exact list, its ORDER and the three CONTINUE labels at
+  runtime — stronger than what it replaced.
+- **THE RATCHET IS NOT RAISED TO ACCOMMODATE NEW CODE.** The translation helper tripped the
+  dimension-flag count on its first run. The ceiling now covers the MONOLITH and exactly
+  one extracted module may read the flags, asserted by name. A designated reader that
+  exists in order to REMOVE them is the opposite of the spread the ratchet guards against.
+- **DEFER WHAT ONLY WORKS BECAUSE VoxelWorld EXISTS.** `SAVE_MIGRATIONS`,
+  `validateSaveState`, `captureWorldState` and `findSafeLanding` stayed: they are the save
+  LIFECYCLE, not its schema. The cave-mouth tuning stayed in `world/` rather than moving to
+  `dimensions/`, because moving it now would pre-empt 1.5.3's split.
+
+## WHAT 1.5.2 DELIBERATELY DID NOT DO
+
+`VoxelWorld` was NOT split (1.5.3). `Game` was NOT split (1.5.4). CSS and markup were NOT
+separated (1.5.5). No Era 2 work, no D1 redesign, no new mechanic, no visual change, no
+horror change, no gameplay change, no schema change, and The Below was not implemented.
+
+**VALIDATION:** all 24 offline suites GREEN with 0 failures (the baseline had 22), all 10
+browser suites GREEN, and 294 chunks across all four dimension bands hash BIT-IDENTICAL
+against the Phase 36 monolith.
+
+
 # 63. ERA 2
 
 Era 2 is the major visual identity revolution.
@@ -3369,11 +3465,13 @@ has been listened to. `PLAYTEST.md` is the script, and it must be played from a 
 build (`python3 -m http.server 8000`, then `http://localhost:8000/game.html`) — opening
 the file from disk plays none of the 274 recorded sounds.
 
-The project is also in ERA 1.5, the architecture split. Era 1.5.1 is COMPLETE (section
-62.6): the map, the contracts and the module skeleton exist and four blocks have moved.
-**The split itself has not happened** — 843 lines of 39,992, 2.1%. `ARCHITECTURE.md` is the
-map and each `src/*/LAYER.md` is that layer's work order, listing by current line range
-what moves there and in which phase. The next implementation phase is Era 1.5.2.
+The project is also in ERA 1.5, the architecture split. Era 1.5.1 (section 62.6) drew the
+map; Era 1.5.2 (section 62.7) moved the pure data and the pure helpers — fifteen modules,
+2,077 lines. **The split itself has not happened** — 7.3% of the monolith across both
+phases, and every
+system that DOES anything is where it was. `ARCHITECTURE.md` is the map and each
+`src/*/LAYER.md` is that layer's work order. The next implementation phase is Era 1.5.3,
+the `VoxelWorld` split — the largest and most dangerous of them.
 
 The section below is kept because it is still the standard the Farmland chapter is held
 to. Phase 20 is COMPLETE.

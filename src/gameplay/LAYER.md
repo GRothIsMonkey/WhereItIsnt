@@ -17,7 +17,9 @@ touch the DOM, own a THREE object, or decide what is on screen.
 | 8655–8764 | `Inventory` | 1.5.2 |
 | 8365–8648 | `ItemEntity`, `ItemEntityManager` | 1.5.2 |
 | 33380–33466 | `Arrow`, `ArrowManager` | 1.5.2 |
-| 5254–5445 | `computeBreakTime` and the mining constants | 1.5.2 |
+| ✅ — | `entity-tuning.js` — knockback, step assist, dropped-item physics, rift arming | **1.5.2 · done** |
+| ✅ — | `onboarding-cues.js` — the three cues, and there are only ever three | **1.5.2 · done** |
+| ~~5254–5445~~ | `computeBreakTime` and the mining constants — **went to `world/block-properties.js`**, because one load-time loop writes hardness and display names together | 1.5.2 |
 
 > **P1-1.** Gameplay currently pushes straight to the HUD — `PlayerController` 21 call
 > edges, `Inventory` 7. All of them are guarded `if (this.ui)`, which is what makes the

@@ -7,6 +7,26 @@ re-derived rather than trusted.
 
 Measured against the Phase 36 build, commit `db222ee`, before any Era 1.5 change.
 
+> **ERA 1.5.2 UPDATE.** The numbers below are the BASELINE and are deliberately left as
+> they were measured — they are what the hotspot rankings and the `tests/architecture.js`
+> ceilings were derived from, and rewriting them would lose the before/after. What has
+> changed since:
+>
+> | | Phase 36 baseline | after Era 1.5.2 |
+> | --- | ---: | ---: |
+> | inline `<script>` | 39,992 | **37,072** |
+> | extracted modules | 0 | **15 files, 3,374 lines** |
+> | `VoxelWorld` dimension content | 9,611 (85%) | 9,788 (87%) † |
+> | dimension-flag references | 112 | 115 ‡ |
+>
+> † `VoxelWorld` did not grow — the classifier did. 1.5.2 moved the block tables out from
+> under it, so a few methods the regex previously mis-sorted now land in the content
+> buckets. The class body is unchanged; 1.5.3 is what shrinks it.
+>
+> ‡ The three new ones are `dimensionOfPlayerFlags`, the single designated translation
+> point that exists so 1.5.4 can delete the rest. `tests/architecture.js` caps the
+> MONOLITH at 112 and asserts that exactly one extracted module may read the flags.
+
 ---
 
 ## 1. THE BUILD

@@ -13,6 +13,10 @@ know the HUD, an objective, a save file, or what a dimension *means*.
 
 | From `game.html` | What | Phase |
 | --- | --- | --- |
+| ✅ — | `block-catalog.js` — BLOCK ids, colours, the id ceiling, door constants | **1.5.2 · done** |
+| ✅ — | `block-shapes.js` — the sub-voxel shape system, flattened once at load | **1.5.2 · done** |
+| ✅ — | `block-properties.js` — hardness, tool tiers, `computeBreakTime`, display names | **1.5.2 · done** |
+| ✅ — | `world-constants.js` — chunk dims, cave-mouth tuning, streaming radii | **1.5.2 · done** |
 | 10048–10074 | `Chunk` — a `Uint16Array` and four accessors | 1.5.3 |
 | 14137–27540 | `VoxelWorld`: streaming, meshing, block access, edits, water, skylight | 1.5.3 |
 | 13961–14131 | `EnvironmentStorySystem` | 1.5.3 |

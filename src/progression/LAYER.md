@@ -14,7 +14,7 @@ own a coordinate, a mesh, or a block id.
 | From `game.html` | What | Phase |
 | --- | --- | --- |
 | 37522–37615 | `ObjectiveSystem` | 1.5.2 |
-| 37325–37438 | `OBJECTIVE_OVERRIDES`, `OBJECTIVE_CHAINS` | 1.5.2 |
+| ✅ — | `objective-tables.js` — chain ids, tick, overrides, the four chains | **1.5.2 · done** |
 | 8060–8268 | `AnchorMonumentManager` — the progression half | 1.5.4 |
 | — | `PROGRESSION_MILESTONES` and `Game._reachMilestone` | 1.5.4 |
 

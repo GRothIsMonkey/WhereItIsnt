@@ -14,7 +14,8 @@ decide a gameplay outcome, or know a renderer detail.
 | From `game.html` | What | Phase |
 | --- | --- | --- |
 | 37149–37227 | `SaveSystem` | 1.5.2 |
-| 36393–36530 | `SAVE_VERSION`, keys, `SAVE_DIMENSIONS`, `SAVE_MIGRATIONS` | 1.5.2 |
+| ✅ — | `save-schema.js` — version, keys, coordinate and edit ceilings | **1.5.2 · done** |
+| — | `SAVE_MIGRATIONS` — lifecycle, not schema | 1.5.4 |
 | 36648–37130 | `validateSaveState`, `captureWorldState`, `findSafeLanding` | 1.5.2 |
 | 37842–38363 | `Game.captureSaveState`, `_applyRestoredState`, `_teardownForRestore` | 1.5.4 |
 

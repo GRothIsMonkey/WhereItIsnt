@@ -3,11 +3,13 @@
 **Status:** Era 1.5.1. This document is the architectural map, the ownership rules and the
 contracts. It is a developer document. It contains no lore and no player-facing text.
 
-> **THE SPLIT HAS NOT HAPPENED YET.** Era 1.5.1 established the map, the contracts and the
-> module skeleton, and moved four isolated blocks to prove the mechanism. The build is still
-> a monolith: **39,148 of the build's 40,044 script lines are still in `game.html`'s inline
-> `<script>`** — 843 lines of payload moved, 2.1% of the original 39,992.
-> The extraction is Phases 1.5.2 – 1.5.5. Do not describe the game as modular.
+> **THE SPLIT HAS NOT HAPPENED YET.** Era 1.5.1 drew the map; Era 1.5.2 moved the pure data
+> and the pure helpers. The build is still a monolith: **37,072 of the build's 40,446 script
+> lines are still in `game.html`'s inline `<script>`** — its body has shrunk by 2,920 lines
+> across fifteen modules, 7.3% of the original 39,992 (843 in 1.5.1, 2,077 in 1.5.2). Every system that *does* anything —
+> the world, the game loop, the renderer, the player, the UI, the audio engine — is exactly
+> where it was. The dangerous extractions are Phases 1.5.3 – 1.5.5. **Do not describe the
+> game as modular.**
 
 Read alongside:
 
@@ -418,31 +420,44 @@ true, become properties of the descriptor rather than special cases in `Game`:
 * the Haven is never saved (`rules.saveable === false`, and `SAVE_DIMENSIONS` is derived
   from the table rather than hand-written beside it).
 
-### ⚠ A CANON CONFLICT THAT IS NOT THIS PHASE'S TO RESOLVE
+### THE TWO NUMBERS — SETTLED IN ERA 1.5.2
 
-The `STORY.md` and `ROADMAP.md` uploaded after Phase 36 **renumber the dimensions**:
+The `STORY.md` and `ROADMAP.md` uploaded after Phase 36 renumber the dimensions. Era 1.5.1
+flagged that as an unresolved conflict; the project owner then locked the answer, and it is
+that **there are two different numbers and they must never be confused**:
 
-| | current code | new `STORY.md` |
+| | stable technical id | creative number |
 | --- | --- | --- |
-| D1 | Overworld | Shattered Farmlands |
-| D2 | Shattered Farmlands | Static Suburbia |
-| D3 | Static Suburbia | **The Below** |
-| D4 | Fake Haven | — |
+| Overworld | **1** | — (none; `ROADMAP.md`: discarded as the final D1) |
+| Shattered Farmlands | **2** | **D1** (`STORY.md` §4) |
+| Static Suburbia | **3** | **D2** (`STORY.md` §5) |
+| The Below | *not assigned* | **D3** (`STORY.md` §6) |
+| The Haven | **4** | — (a refuge, not a numbered chapter) |
 
-`ROADMAP.md` §21 also states "the current Era 1 Overworld is discarded as the final D1",
-which is consistent with the renumbering but not with the shipped code, `CLAUDE.md`, the
-save file (`SAVE_DIMENSIONS = ['overworld','farmlands','suburbia']`) or the `DIMENSION` enum.
+```
+    stable id 1  is  the Overworld            — a save-file value, permanent
+    D1           is  the Shattered Farmlands  — the canon's creative order
+```
 
-**Nothing was changed to resolve this, and nothing should be until the author says which
-numbering wins.** `CLAUDE.md` §64 says to stop and flag a story conflict rather than
-implement through it, and a renumbering is a save-file question as much as a canon one.
+A bare `1` therefore means two different places, and nothing in the integer says which.
+`src/dimensions/dimension-descriptors.js` makes that impossible to get wrong:
 
-The architecture is deliberately built so that it does not care. `id` is an opaque internal
-value, `saveName` is a separate string frozen at schema v5, and the human-facing name is a
-third field. Renumbering then costs one table edit and no migration. **That is the entire
-reason the descriptor carries three names instead of one.**
+* every identity is a **named field** — `stableId`, `creativeNumber`, `canonicalName`,
+  `saveName` (plus `saveLabel`, because what the CONTINUE button shows and what the canon
+  calls a place are two different strings);
+* `dimensionByStableId` and `dimensionByCreativeNumber` **throw** on the other kind of
+  number, with an error that names the confusion, rather than coercing it;
+* `creativeNumber` is deliberately `null` for the Overworld and the Haven, so any code
+  that assumed "the stable id is the dimension number" fails loudly instead of quietly
+  returning the wrong world.
 
----
+**No stable id was renumbered. No save migration was introduced. Schema stays v5.**
+`SAVE_DIMENSIONS` and `SAVE_DIMENSION_NAMES` are now *derived* from the registry, so
+"which dimensions are saveable" has one source of truth instead of three.
+
+**The Below is representable and not implemented.** `DIMENSION_PLAN` carries it at
+creative 3 with `stableId: null`, no generator and no entity. `tests/architecture.js`
+asserts all three, and `tests/story.js` asserts its entity is nowhere in the build.
 
 ## 6. THE TRANSITION LIFECYCLE
 
@@ -518,11 +533,71 @@ is remarkable, and it is the main reason a mechanical extraction is safe at all.
 
 ---
 
+## 9.5. HANDOFF TO ERA 1.5.3 — THE `VoxelWorld` SPLIT
+
+This is the phase the whole of Era 1.5 exists for, and the most dangerous one. What
+follows is the map as measured after 1.5.2 (`node tests/tools/inventory.js --world`).
+
+### What is engine, and what is content
+
+| | methods | lines | goes to |
+| --- | ---: | ---: | --- |
+| **Farmlands content** | 106 | **5,492** | `src/dimensions/farmlands/` |
+| **Suburbia content** | 75 | **3,280** | `src/dimensions/suburbia/` |
+| **Haven content** | 12 | 625 | `src/dimensions/haven/` |
+| **Overworld content** | 12 | 391 | `src/dimensions/overworld/` |
+| meshing / geometry | 7 | 415 | `src/rendering/` — **the Era 2 hinge** |
+| block access + edits | 8 | 273 | `src/world/` — the `edit()` write path |
+| streaming | 5 | 184 | `src/world/` |
+| torch / skylight | 11 | 144 | `src/world/` |
+| water | 10 | 117 | `src/world/` |
+| doors, anchors, finale, shared | 24 | 370 | `src/world/` mostly; audit each |
+| | | | |
+| **content total** | 205 | **9,788 (87%)** | `dimensions/` |
+| **engine total** | 65 | **1,503** | `world/` + `rendering/` |
+
+### The order to do it in
+
+1. **Take the engine out first, not the content.** The ~1,500 engine lines are what every
+   generator calls; lifted first, each dimension can then be moved against a stable
+   interface instead of against a moving one.
+2. **Then one dimension at a time, smallest first** — Overworld (391), Haven (625),
+   Suburbia (3,280), Farmlands (5,492). Run the four comparison suites between each.
+3. **Move each dimension AS content / sites / stampers** (§4). This is the whole point. A
+   generator lifted as one 5,000-line lump is a generator Era 2 throws away.
+
+### Where each piece belongs
+
+* **Stampers** — `src/dimensions/<dim>/stampers.js`. The only code in the dimension that
+  names a block id. Era 2 replaces these files and nothing else.
+* **`ENV_SITES`** — stays with the environmental-story framework, but its eight functions
+  are the template: a site says *where*, never *what it is made of*.
+* **Content tables** — `src/dimensions/<dim>/content.js`. Deterministic, seed-driven,
+  block-free. These survive Era 2.
+* **The cave-mouth tuning** currently in `src/world/world-constants.js` follows the
+  Overworld generator into `src/dimensions/overworld/`. It is parked, not filed.
+* **`SAVE_MIGRATIONS`, `validateSaveState`, `captureWorldState`, `findSafeLanding`** are
+  1.5.4's, not 1.5.3's — save lifecycle, not world.
+
+### What must NOT move in 1.5.3
+
+`Game`, the frame loop, the transition engine, `PlayerController`, `UIManager`, the audio
+engine, the CSS and the markup. And the three dimension booleans: `dimensionOfPlayerFlags`
+already exists as the single translation point, but **deleting the booleans is 1.5.4's
+job**, after the descriptor table is load-bearing.
+
+### The Era 2 seam is ready when
+
+every block id inside `src/dimensions/` lives in a file named `stampers.js`, and
+`tests/architecture.js` can assert it. That assertion is the finish line for 1.5.3.
+
+---
+
 ## 10. THE REMAINING PHASES
 
 | Phase | Moves | Risk |
 | --- | --- | --- |
-| **1.5.2** | pure data and pure helpers: block tables, shape tables, atlas, item/recipe data, icons, mesh builders, `SimplexNoise` consumers, audio tables. No behaviour, no state. | low |
+| ~~**1.5.2**~~ | ✅ **DONE.** Pure data and pure helpers: block catalogue, shape tables, block properties, audio tables, objective tables, entity tuning, world constants, save-schema constants, onboarding cues — plus the dimension registry. 15 modules; the inline body shrank by 2,077 lines. | low |
 | **1.5.3** | `VoxelWorld` split: engine (streaming, meshing, edits, water, light) away from the four dimension generators — **as content / sites / stampers**, which is the Era 2 seam. The largest and most dangerous phase. | high |
 | **1.5.4** | `Game` split: composition root away from the transition engine, the save orchestrator and the audio policy. Introduce `DimensionDescriptor` and delete the three player booleans. | high |
 | **1.5.5** | boundary repair: gameplay stops pushing to the HUD, input routing leaves `PlayerController`, `SanitySystem` stops reaching into `VoxelWorld`, CSS and markup leave `game.html`. | medium |
