@@ -1426,7 +1426,8 @@ Phase 35 — Complete Dimension Cohesion            (COMPLETE — see section 62
 Phase 36 — Complete Playable Alpha / Full Audit   (COMPLETE — see section 62.5)
 Era 1.5.1 — Architecture inventory & contracts   (COMPLETE — see section 62.6)
 Era 1.5.2 — Pure data / helpers extraction       (COMPLETE — see section 62.7)
-Era 1.5.3-1.5.5 — the dangerous extractions, then Era 2
+Era 1.5.3 — VoxelWorld split / world content seam (COMPLETE — see section 62.8)
+Era 1.5.4-1.5.5 — the Game split and the boundary repair, then Era 2
 
 Exact numbering may evolve, but previous completed phases must not be lost.
 
@@ -2831,8 +2832,8 @@ RULES THAT NOW HOLD:
   `getBlockWorld` does not help: the problem is that what a farmstead IS and how it is MADE
   are the same 197 lines. Phase 31 already solved this for ten objects — content (`what`,
   block-free) / sites (`where`) / stampers (`how`, and the only code that knows a block id).
-  Era 1.5.3 generalises that shape to the other 9,611 lines. Content and sites survive Era 2;
-  stampers are replaced wholesale.
+  Era 1.5.3 DID generalise that shape to the other 9,611 lines — see section 62.8. Content
+  and sites survive Era 2; stampers are replaced wholesale.
 - **`tests/architecture.js` IS A RATCHET.** The P0 hotspot counts are CEILINGS measured on
   the Phase 36 build. A phase that adds a fourth dimension boolean, or a THREE reference to
   the HUD, fails. Lower a ceiling when a phase actually improves it; never raise one.
@@ -2955,6 +2956,110 @@ horror change, no gameplay change, no schema change, and The Below was not imple
 **VALIDATION:** all 24 offline suites GREEN with 0 failures (the baseline had 22), all 10
 browser suites GREEN, and 294 chunks across all four dimension bands hash BIT-IDENTICAL
 against the Phase 36 monolith.
+
+
+# 62.8. ERA 1.5.3 — THE `VoxelWorld` SPLIT / WORLD CONTENT SEAM — COMPLETE
+
+ERA 1.5.3 CARRIED THIS OUT. `VoxelWorld` was 13,404 lines and 270 methods, of which 9,900
+described PLACES. It is now a 1,640-line engine of 57 methods plus four dimensions' content
+in ten files, and the line Era 2 has to cut along is drawn and asserted. See `ARCHITECTURE.md`
+section 4.5 and `PROGRESS.md` section 0.00000000000000000000.
+
+**THE SPLIT IS STILL NOT FINISHED.** 16,352 lines of 39,992 have left the inline script
+across the three Era 1.5 phases — 41%. `Game`, the frame loop, the transition engine,
+`PlayerController`, `UIManager`, `SoundEngine`, the CSS and the markup are exactly where
+they were. Do not describe the game as modular.
+
+## THE ONE RULE THAT MATTERS MOST IN THIS SECTION
+
+  **A `stampers.js` IS THE ONLY CODE IN THE BUILD THAT MAY NAME A BLOCK ID.**
+
+Not "should". `tests/architecture.js` fails, in both directions, if it ever stops being
+true: no dimension method outside a `stampers.js` places a block (72 do, all 72 are in
+one), and no dimension method outside one so much as NAMES one (zero). A `generation.js`
+therefore contains no block id at all — where a farm goes, how a street is laid out, which
+chunk holds what, the shape of the terrain, none of it mentions the renderer.
+
+**That is the whole Era 2 seam.** Era 2 replaces six `stampers.js` files and the engine.
+Everything else about what these places ARE survives the rebuild.
+
+WHAT THE TWO HALVES ARE:
+
+  ENGINE      `src/world/` — `VoxelWorld`, 1,640 lines, 57 methods. How a voxel world
+              WORKS: chunk map
+              and lifecycle, the one write path, meshing, light sources, doors, block and
+              terrain queries, and the orchestration that asks a dimension what goes in a
+              chunk without knowing the answer. It declares nothing that names a place.
+
+  CONTENT     `src/dimensions/<name>/` — 213 methods in ten files. What each place IS.
+              `generation.js` says where things go and survives Era 2; `stampers.js` says
+              how they are made and does not.
+
+  ATTACH      `registerWorldContent(dimension, role, class { … })` copies property
+              DESCRIPTORS onto `VoxelWorld.prototype` — descriptors, not assignment, so
+              `enumerable: false`, `writable`, `configurable` and `fn.name` are preserved
+              and a moved method is indistinguishable from a declared one. It REFUSES at
+              load time a name another dimension owns or a name the engine declares.
+
+  DISPATCH    `src/dimensions/dimension-generators.js` — three rows saying who fills a
+              chunk, resolved in the order the old if/else-if/else tested them. The engine
+              calls `chunkGeneratorFor(cx, cz).generateChunk(this, chunk)` and names no
+              dimension method at all.
+
+RULES THAT NOW HOLD:
+
+- **A MOVE IS VERBATIM, AND IT WAS PROVED BOTH TIMES.** The class reassembles byte-identical
+  from the files it was carved into; after the later stamper moves, the multiset of method
+  text blocks is identical before and after. Tidying while moving makes a behaviour change
+  indistinguishable from a relocation.
+- **DIMENSION CONTENT DEPENDS ON NOTHING ABOVE IT, AND ALL FIVE ARE ZERO.** No dimension
+  module reaches `Game`, the UI, the audio system, the horror systems or the DOM, and no
+  content method calls a `this` method the world does not declare. That is what lets Era 2
+  rebuild a dimension without reading any of them.
+- **THERE IS EXACTLY ONE CROSS-DIMENSION CALL EDGE AND IT IS NAMED.**
+  `shared/stampers.js::_subStampRoof` asks Suburbia's `_subHash` for its deterministic
+  variation, because these stampers began as Suburbia's house builder and five Farmlands
+  stampers reuse them. Documented in that file with its reason and asserted as the only
+  one, so a second is a failure rather than a precedent.
+- **THREE EDGES FROM THE ENGINE INTO CONTENT REMAIN, ALL LIFECYCLE, ALL 1.5.4's.** The
+  constructor's two eager region builds and `setBlockWorld`'s water notification. Eleven
+  before this phase, three after, and `tests/architecture.js` caps them at three so they
+  cannot grow while they wait.
+- **THE THREE-BAN IN `world/` AND `dimensions/` IS NOW A BUDGET, NOT A BAN, AND ONLY BY
+  NAME.** Those directories held nothing but tables until this phase; they now hold the
+  voxel engine and four generators, whose job is building geometry. The ban stands BY
+  DEFAULT and is lifted file by file under a ceiling — eight files, 81 references. **A
+  ceiling may fall. It may never rise.** Everything else in those directories is an Era 2
+  survivor and may not touch THREE at all.
+- **`ENV_SITES` STAYS WHOLE.** Era 1.5.2 flagged it for a decision; the decision is that the
+  site table does not split. Section 57 calls it "THE ERA 2 SEAM … every voxel-specific
+  number lives in these eight functions and nowhere else" — splitting it four ways turns one
+  place Era 2 edits into four. What moved is the half that belongs with its kind:
+  `_envStoryStamp`, the only part of the framework that knows a block, is now in
+  `src/dimensions/shared/stampers.js` with every other stamper.
+- **A RATCHET MUST BE RE-AIMED WHEN THE THING IT MEASURES IS CARVED UP.** Both P0 ceilings
+  would have gone on PASSING while measuring a fraction of what they were written to bound —
+  P0-3 was one lookup on a class declaration that now holds 36 of its 81 references. Both
+  are now measured across the whole build, at the same numbers, because the code moved
+  rather than grew. This is sections 61.05-61.07's lesson in a third place.
+- **THE SEAM TEST COUNTS NO LINES.** A smaller file is evidence that work happened, not the
+  contract. `tests/harness/world-seam.js` derives ownership, who writes blocks, the dispatch
+  and the cross-dimension edges from the source, and it reads the GENERATOR TABLE as well as
+  the prototype — otherwise "the dispatch is three edges" would be true and meaningless.
+- **THE MESHER DID NOT MOVE TO `rendering/`, DELIBERATELY.** The 1.5.1 map scheduled it
+  there as "the Era 2 hinge". It is not a renderer — it is the greedy voxel mesher, and
+  every method in it reads block ids, shapes and chunk neighbours through the engine's own
+  state. Lifting it out means inventing an interface for the thing Era 2 deletes.
+
+**AND A FIXTURE LESSON, BECAUSE IT COST THIS PHASE TIME.** `journey.js` and `chain.js`
+failed on real content assertions that had nothing wrong with them: the `tests/baseline.html`
+in the container held Phase 29 code rather than the pre-Phase-20 build it is documented to
+be, so both suites were subtracting a build from itself and getting zero. **NONE of the
+comparison fixtures (`baseline.html`, `phase20.html`, `phase20_2.html`, `phase26.html`) is
+tracked in git** — `tests/README.md` names the commit for each, and they must be regenerated
+with `git show` in a fresh container before any red from those suites means anything. **A
+stale fixture fails in the direction of "no difference", which reads as a broken feature
+rather than a broken test.**
 
 
 # 63. ERA 2
@@ -3466,12 +3571,13 @@ build (`python3 -m http.server 8000`, then `http://localhost:8000/game.html`) �
 the file from disk plays none of the 274 recorded sounds.
 
 The project is also in ERA 1.5, the architecture split. Era 1.5.1 (section 62.6) drew the
-map; Era 1.5.2 (section 62.7) moved the pure data and the pure helpers — fifteen modules,
-2,077 lines. **The split itself has not happened** — 7.3% of the monolith across both
-phases, and every
-system that DOES anything is where it was. `ARCHITECTURE.md` is the map and each
-`src/*/LAYER.md` is that layer's work order. The next implementation phase is Era 1.5.3,
-the `VoxelWorld` split — the largest and most dangerous of them.
+map; Era 1.5.2 (section 62.7) moved the pure data and the pure helpers; Era 1.5.3 (section
+62.8) split `VoxelWorld` into an engine and four dimensions' content and drew the Era 2
+seam. **The split itself is not finished** — 41% of the monolith across the three phases,
+and `Game`, the frame loop, the player, the UI and the audio engine are all still in
+`game.html`. `ARCHITECTURE.md` is the map and each `src/*/LAYER.md` is that layer's work
+order. The next implementation phase is Era 1.5.4, the `Game` split — which also deletes
+the three dimension booleans.
 
 The section below is kept because it is still the standard the Farmland chapter is held
 to. Phase 20 is COMPLETE.

@@ -114,6 +114,16 @@ Eleven directories under `src/`. The layer's job is to make one question answera
 privilege, and the price is that **nothing in `shared/` may depend on anything at all** —
 no THREE, no DOM, no block ids, no game state. It is pure values and pure functions.
 
+**THREE IS BANNED EVERYWHERE ABOVE EXCEPT WHERE IT IS BUDGETED.** Until Era 1.5.3 the
+`world/` and `dimensions/` directories held nothing but tables, so banning THREE in them
+cost nothing. They now hold the voxel engine and the four dimension generators — code
+whose whole job is to build geometry, and precisely the code Era 2 throws away. The ban
+therefore still applies BY DEFAULT, and is lifted file by file in `tests/architecture.js`
+under a ceiling measured on this build (81 references across eight files). A ceiling may
+fall. It may never rise. Everything else in those two directories — the block tables, the
+dimension descriptors, the generator table, the site table — is an Era 2 survivor and still
+may not touch THREE at all.
+
 ### The dependency rule, in one line each
 
 | Layer | May depend on | Must never |
@@ -122,7 +132,7 @@ no THREE, no DOM, no block ids, no game state. It is pure values and pure functi
 | `core/` | shared | construct a mesh, generate a chunk, or draw |
 | `gameplay/` | shared, core, world | touch the DOM, own a THREE object, or decide what is on screen |
 | `world/` | shared, core | know the HUD, an objective, a save file, or a dimension's *meaning* |
-| `dimensions/` | shared, core, world, progression | be named by anything outside its own descriptor table |
+| `dimensions/` | shared, core, world, progression | reach Game, the UI, audio, horror or the DOM · call another dimension |
 | `progression/` | shared, core | own a coordinate, a mesh, or a block id |
 | `horror/` | shared, core, world, gameplay | own the renderer or the HUD |
 | `audio/` | shared, core | read a block id (library) · create an AudioNode (director) |
@@ -176,7 +186,7 @@ a shipped class, that class is named — several of these are descriptions of co
 already exists and only needs a boundary drawn around it.
 
 ### WorldService — *what is there, and what happens when it changes*
-Today: `VoxelWorld` (the ~1,680 lines of it that are not dimension content).
+Today: `VoxelWorld` — since Era 1.5.3 that is the whole class, 1,640 lines and 57 methods.
 
 ```
   blockAt(x, y, z)                  -> id
@@ -364,6 +374,139 @@ because that is the only lift that Era 2 gets to keep.
 
 ---
 
+## 4.5. THE WORLD ENGINE AND THE DIMENSION CONTENT
+
+*Delivered by Era 1.5.3. This is not the Era 2 architecture — it is the seam Era 2 cuts
+along. The world below is still voxels, still `VoxelWorld`, still one prototype.*
+
+`VoxelWorld` was 13,404 lines and 270 methods, of which 9,900 described PLACES. It is now
+an engine of 1,640 lines and 57 methods, and four dimensions' worth of content in ten
+files, all of which arrive on the same prototype through `registerWorldContent`. Nothing was rewritten: every method is
+byte-identical to the text that was in `game.html`.
+
+### The two responsibilities
+
+| | **WORLD ENGINE** `src/world/` | **DIMENSION CONTENT** `src/dimensions/` |
+| --- | --- | --- |
+| answers | *how a voxel world works* | *what is in this particular place* |
+| owns | chunk map and lifecycle, the one write path, meshing, light sources, doors, block and terrain queries, generation orchestration | terrain shape, structures, interiors, roads, props, the Haven cabin, the Disconnected Home |
+| knows about dimensions | that they exist — three lifecycle edges, named below | only itself |
+| Era 2 | replaced | `stampers.js` replaced; `generation.js` survives |
+| may touch THREE | yes, under a ceiling | yes in stampers, under a ceiling |
+| may touch Game / UI / audio / horror / DOM | `soundEngine` only (pre-existing, 11 refs) | **never — asserted at zero** |
+
+### The module tree
+
+```
+src/world/                        THE ENGINE — and nothing else
+  voxel-world.js          1,681   chunks · the write path · meshing · light · doors
+  chunk.js                   45   a Uint16Array and four accessors
+  world-content.js           95   registerWorldContent — the attach mechanism
+  block-catalog.js                the block vocabulary (data)
+  block-properties.js             hardness, tools, drops (data)
+  block-shapes.js                 sub-voxel geometry (data)
+  world-constants.js              chunk dimensions, radii (data)
+
+src/dimensions/                   THE CONTENT
+  dimension-descriptors.js        identity: stableId · creativeNumber · saveName
+  dimension-registry.js           the DIMENSION enum
+  dimension-generators.js    77   WHO FILLS A CHUNK — the dispatch, as a table
+  shared/stampers.js        230   a shell, a roof, the env-story stamp
+  overworld/generation.js   174   height, caves, cave-mouth siting
+  overworld/stampers.js     292   terrain, trees, decor, chests, carving
+  haven/generation.js       333   the pocket's geometry and its anomaly schedule
+  haven/stampers.js         466   the cabin, its dressing, the corruption pass
+  suburbia/generation.js  1,511   streets, lots, floor plans, the revision layer
+  suburbia/stampers.js    2,107   houses, yards, interiors, the Disconnected Home
+  farmlands/generation.js 2,760   the lattice, routes, water levels, journey columns
+  farmlands/stampers.js   4,014   farmsteads, barns, the tower, the home, water
+  finale/scene.js            70   the finale's own ground
+```
+
+### Dependency direction — one way only
+
+```
+        Game / UI / audio / horror          (1.5.4 — not reachable from here)
+                  │
+                  ▼
+        ┌──────────────────────┐
+        │  DIMENSION CONTENT   │   generation.js  → what goes where
+        │  src/dimensions/     │   stampers.js    → how it is made
+        └──────────────────────┘
+                  │  calls the engine freely (99 edges)
+                  ▼
+        ┌──────────────────────┐
+        │     WORLD ENGINE     │   chunks · one write path · meshing · light
+        │     src/world/       │
+        └──────────────────────┘
+                  │  asks the table which dimension holds a chunk
+                  ▼
+        ┌──────────────────────┐
+        │ dimension-generators │   3 rows: suburbia · farmlands · overworld
+        └──────────────────────┘
+```
+
+The engine never names a dimension method to generate a chunk. It asks
+`chunkGeneratorFor(cx, cz)` and hands over the chunk. Three edges from the engine into
+content remain, and all three are LIFECYCLE rather than generation — the constructor's two
+eager region builds and `setBlockWorld`'s water notification. They belong to Era 1.5.4,
+which owns startup, and `tests/architecture.js` caps them at three so they cannot grow
+while they wait.
+
+### The three flows
+
+```
+GENERATION      updateChunks(x, z)                              engine
+                  └─ _generateChunk(cx, cz)                     engine
+                       └─ chunkGeneratorFor(cx, cz)             table   ← a row, not a branch
+                            └─ _genFarmlandsChunk(chunk)        content
+                                 └─ _farmStampStead(...)        stamper
+                                      └─ _farmSet / _subSet     engine  ← the one write path
+
+SITE            ENVIRONMENT_STORY_EVENTS  what is there, and why       (block-free)
+                  └─ ENV_SITES            where that is, right now     (coordinates)
+                       └─ ENV_STAMPERS    how it is made               (block ids)
+                            └─ _envStoryStamp                  src/dimensions/shared/stampers.js
+
+STAMPER         a stamper is the ONLY code that names a block id.
+                every one of them is in a file called stampers.js.
+                tests/architecture.js proves it, in both directions:
+                  · no method outside a stampers.js places a block
+                  · no method outside a stampers.js so much as names one
+```
+
+### Dimension identity
+
+Content modules carry **no** identity of their own. A dimension's name, its stable save id
+and its creative number live in `dimension-descriptors.js` (§5), its coordinate band lives
+in the predicates the generator table calls, and its content lives in
+`src/dimensions/<name>/`. The three are joined by the directory name and by the first
+argument to `registerWorldContent` — a string from a closed list. That is the whole
+coupling, which is why renumbering the creative order costs one table edit and no
+migration. **A stable id is never renumbered to tidy the creative order** (§5).
+
+### `ENV_SITES` — the ownership decision, made and recorded
+
+Era 1.5.2 flagged `ENV_SITES` for a decision in this phase. The decision is: **the site
+table stays whole, in one place, and does not move into the dimension modules.**
+
+Every one of its nine entries is dimension-specific in the sense that its coordinates fall
+in one band — so the naive reading says split it four ways. That reading is wrong, and for
+the reason the table exists. CLAUDE.md §57 names `ENV_SITES` "THE ERA 2 SEAM, and the most
+important thing in the phase … Every voxel-specific number lives in these eight functions
+and nowhere else", and "THE SITE TABLE IS WHERE A FUTURE PHASE LOOKS FIRST." Splitting it
+turns one place Era 2 must edit into four, and turns one table the event rows resolve
+against into four tables plus a dispatch that does not exist today. That is the opposite of
+this phase's mission.
+
+What *did* move is the half that belongs with its kind: **`_envStoryStamp`, the only part
+of the framework that knows what a block is, is now in
+`src/dimensions/shared/stampers.js`** with every other stamper in the build, and is
+therefore covered by the same assertion. Content stays content, sites stay sites, the
+stamper moved to the stampers.
+
+---
+
 ## 5. THE DIMENSION EXTENSION POINT — AND DIMENSION 3, THE BELOW
 
 ### What is there now
@@ -533,81 +676,82 @@ is remarkable, and it is the main reason a mechanical extraction is safe at all.
 
 ---
 
-## 9.5. HANDOFF TO ERA 1.5.3 — THE `VoxelWorld` SPLIT
+## 9.5. HANDOFF TO ERA 1.5.4 — THE `Game` SPLIT
 
-This is the phase the whole of Era 1.5 exists for, and the most dangerous one. What
-follows is the map as measured after 1.5.2 (`node tests/tools/inventory.js --world`).
+Era 1.5.3 is done: the `VoxelWorld` split is in §4.5, and the finish line 1.5.1 set for it
+— *every block id inside `src/dimensions/` lives in a file named `stampers.js`, and
+`tests/architecture.js` can assert it* — is met and asserted in both directions.
 
-### What is engine, and what is content
+**THE SPLIT STILL IS NOT FINISHED.** 16,352 lines have left the inline script across the
+three phases — 41% of the 39,992 the monolith began with. `Game`, the frame loop, the
+transition engine, `PlayerController`, `UIManager`, `SoundEngine`, the CSS and the markup
+are all exactly where they were. Do not describe the game as modular.
 
-| | methods | lines | goes to |
-| --- | ---: | ---: | --- |
-| **Farmlands content** | 106 | **5,492** | `src/dimensions/farmlands/` |
-| **Suburbia content** | 75 | **3,280** | `src/dimensions/suburbia/` |
-| **Haven content** | 12 | 625 | `src/dimensions/haven/` |
-| **Overworld content** | 12 | 391 | `src/dimensions/overworld/` |
-| meshing / geometry | 7 | 415 | `src/rendering/` — **the Era 2 hinge** |
-| block access + edits | 8 | 273 | `src/world/` — the `edit()` write path |
-| streaming | 5 | 184 | `src/world/` |
-| torch / skylight | 11 | 144 | `src/world/` |
-| water | 10 | 117 | `src/world/` |
-| doors, anchors, finale, shared | 24 | 370 | `src/world/` mostly; audit each |
-| | | | |
-| **content total** | 205 | **9,788 (87%)** | `dimensions/` |
-| **engine total** | 65 | **1,503** | `world/` + `rendering/` |
+### What 1.5.4 owns
 
-### The order to do it in
+1. **`Game` itself** — the composition root away from the transition engine, the save
+   orchestrator and the audio policy.
+2. **`DimensionDescriptor` becomes load-bearing, and the three player booleans are
+   deleted.** `player.inFarmlands` / `.inSuburbia` / `.inFakeHaven` are still 112
+   references outside the translator, of which 35 are writes. `dimensionOfPlayerFlags`
+   in `src/dimensions/dimension-descriptors.js` already exists as the single translation
+   point; 1.5.4 pushes every reader through it and then removes the fields. Two moved
+   content files also read them, named in `tests/architecture.js` — they go with the rest.
+3. **The three lifecycle edges Era 1.5.3 deliberately left on the engine.** All three are
+   *when*, not *what*:
+   * `VoxelWorld.constructor -> _genFarmlandsRegion()`
+   * `VoxelWorld.constructor -> _genStaticSuburbiaRegion()`
+   * `VoxelWorld.setBlockWorld -> _farmWaterNotify()`
 
-1. **Take the engine out first, not the content.** The ~1,500 engine lines are what every
-   generator calls; lifted first, each dimension can then be moved against a stable
-   interface instead of against a moving one.
-2. **Then one dimension at a time, smallest first** — Overworld (391), Haven (625),
-   Suburbia (3,280), Farmlands (5,492). Run the four comparison suites between each.
-3. **Move each dimension AS content / sites / stampers** (§4). This is the whole point. A
-   generator lifted as one 5,000-line lump is a generator Era 2 throws away.
+   The first two are eager region construction — startup, which is 1.5.4's. The third is a
+   post-write hook that only the Farmlands uses; when the dimension descriptor is
+   load-bearing it becomes a row (`onBlockWritten`) beside `generateChunk` in
+   `src/dimensions/dimension-generators.js`, which was deliberately left with exactly the
+   one field it needed rather than a speculative fourth.
+4. **`SAVE_MIGRATIONS`, `validateSaveState`, `captureWorldState`, `findSafeLanding`** —
+   save *lifecycle*, parked by 1.5.2 and still parked.
 
-### Where each piece belongs
+### What 1.5.4 must not do
 
-* **Stampers** — `src/dimensions/<dim>/stampers.js`. The only code in the dimension that
-  names a block id. Era 2 replaces these files and nothing else.
-* **`ENV_SITES`** — stays with the environmental-story framework, but its eight functions
-  are the template: a site says *where*, never *what it is made of*.
-* **Content tables** — `src/dimensions/<dim>/content.js`. Deterministic, seed-driven,
-  block-free. These survive Era 2.
-* **The cave-mouth tuning** currently in `src/world/world-constants.js` follows the
-  Overworld generator into `src/dimensions/overworld/`. It is parked, not filed.
-* **`SAVE_MIGRATIONS`, `validateSaveState`, `captureWorldState`, `findSafeLanding`** are
-  1.5.4's, not 1.5.3's — save lifecycle, not world.
+Not Era 2. Not the save schema (frozen at v5 for the whole of Era 1.5). Not the CSS and
+markup (1.5.5). Not `SoundEngine`'s 2,151 lines of synthesis, which work.
 
-### What must NOT move in 1.5.3
+### The one cross-dimension edge in the build
 
-`Game`, the frame loop, the transition engine, `PlayerController`, `UIManager`, the audio
-engine, the CSS and the markup. And the three dimension booleans: `dimensionOfPlayerFlags`
-already exists as the single translation point, but **deleting the booleans is 1.5.4's
-job**, after the descriptor table is load-bearing.
+`src/dimensions/shared/stampers.js::_subStampRoof` calls Suburbia's `_subHash`. It is
+named in that file with its reason and asserted as the *only* one, so a second is a failure
+rather than a precedent. It is not 1.5.4's to fix — giving the shared roof its own hash
+changes every roof in the game — and it disappears when Era 2 replaces both.
 
-### A latent defect to fix on the way past
+### A latent defect still to fix on the way past
 
 **`riftArming` ticks on the clamped physics delta.** `AnchorMonumentManager.update(dt)`
-takes the `dt` that is clamped to 0.06 for physics safety, so the arming delay's real
-duration is `RIFT_ARM_TIME / min(realDt, 0.06)` seconds — 1.6s at 60fps, **about 27s at
-1fps**. It is a presentation delay (the player must SEE the rift answer the Disk), and
-presentation ticks on `filmDt`; Phase 36 wrote that rule down after finding the objective
-line had the same defect.
+takes the `dt` clamped to 0.06 for physics safety, so the arming delay's real duration is
+`RIFT_ARM_TIME / min(realDt, 0.06)` — 1.6s at 60fps, **about 27s at 1fps**. It is a
+presentation delay (the player must SEE the rift answer the Disk), and presentation ticks
+on `filmDt`; Phase 36 wrote that rule down after finding the objective line had the same
+defect.
 
 Measured, not inferred: at 0.7fps under software GL, `riftArming` sat at 1.6 across
 thirteen game frames, while thirty hand-called `update(0.06)` ticks took it to 0 and
 `riftReady()` to true. It is why `browser-transitions.js` times out in a slow container
-while `browser-playability.js` crosses both rifts.
+while `browser-playability.js` crosses both rifts. Neither 1.5.2 nor 1.5.3 fixed it,
+because changing it changes gameplay timing. **Whoever touches `AnchorMonumentManager.update`
+next should move this one number onto `filmDt`** and add it to the enumerated consumer list
+in `tests/opening.js`.
 
-Era 1.5.2 did not fix it, because changing it changes gameplay timing. **Whoever touches
-`AnchorMonumentManager.update` next should move this one number onto `filmDt`** and add
-it to the enumerated consumer list in `tests/opening.js`.
+### The comparison fixtures are not tracked — regenerate them before trusting a red
 
-### The Era 2 seam is ready when
+`journey.js`, `chain.js`, `regression.js`, `performance.js`, `hud.js`, `items.js` and
+`render-items.js` all compare the current build against an older one held in
+`tests/*.html`, and **none of those files is in git**. `tests/README.md` names the commit
+for each; make them with `git show <ref>:game.html > tests/<name>.html` before running any
+of them in a fresh container.
 
-every block id inside `src/dimensions/` lives in a file named `stampers.js`, and
-`tests/architecture.js` can assert it. That assertion is the finish line for 1.5.3.
+Era 1.5.3 lost time to this. A stale `tests/baseline.html` containing Phase 29 code made
+`journey.js` and `chain.js` subtract a build from itself and fail on a real content
+assertion that had nothing wrong with it. **A stale fixture fails in the direction of "no
+difference", which reads as a broken feature rather than a broken test.**
 
 ---
 
@@ -616,7 +760,7 @@ every block id inside `src/dimensions/` lives in a file named `stampers.js`, and
 | Phase | Moves | Risk |
 | --- | --- | --- |
 | ~~**1.5.2**~~ | ✅ **DONE.** Pure data and pure helpers: block catalogue, shape tables, block properties, audio tables, objective tables, entity tuning, world constants, save-schema constants, onboarding cues — plus the dimension registry. 15 modules; the inline body shrank by 2,077 lines. | low |
-| **1.5.3** | `VoxelWorld` split: engine (streaming, meshing, edits, water, light) away from the four dimension generators — **as content / sites / stampers**, which is the Era 2 seam. The largest and most dangerous phase. | high |
+| ~~**1.5.3**~~ | ✅ **DONE.** `VoxelWorld` split: a 1,640-line engine away from four dimensions' content, **as generation / stampers**, which is the Era 2 seam. 15 modules, 13,866 lines; the chunk dispatch became a 3-row table; every block id in `src/dimensions/` is now in a `stampers.js`. See §4.5. | high |
 | **1.5.4** | `Game` split: composition root away from the transition engine, the save orchestrator and the audio policy. Introduce `DimensionDescriptor` and delete the three player booleans. | high |
 | **1.5.5** | boundary repair: gameplay stops pushing to the HUD, input routing leaves `PlayerController`, `SanitySystem` stops reaching into `VoxelWorld`, CSS and markup leave `game.html`. | medium |
 

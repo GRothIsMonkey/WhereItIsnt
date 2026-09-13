@@ -4,13 +4,18 @@
 HOW TO RUN IT              SERVE IT. python3 -m http.server 8000, then
                            http://localhost:8000/game.html  — opening game.html
                            from disk plays NO recorded audio at all (section 0.000000000000000)
-Current phase              ERA 1.5.2 — PURE DATA / HELPERS EXTRACTION (COMPLETE)
+Current phase              ERA 1.5.3 — THE VoxelWorld SPLIT / WORLD CONTENT SEAM (COMPLETE)
                            Phase 36 is COMPLETE and still needs a human playthrough
-Next phase                 ERA 1.5.3 — the VoxelWorld split. The dangerous one.
-Architecture               ARCHITECTURE.md (the map) + ARCHITECTURE-INVENTORY.md (the numbers)
+Next phase                 ERA 1.5.4 — the Game split, and deleting the dimension booleans
+Architecture               ARCHITECTURE.md (the map, and section 4.5 is this phase)
+                           + ARCHITECTURE-INVENTORY.md (the 1.5.1 numbers)
                            src/<layer>/LAYER.md is that layer's work order
-THE SPLIT HAS NOT HAPPENED 2,920 of 39,992 inline script lines moved (7.3%), 15 modules. Every
-                           system that DOES anything is still in game.html. Not modular yet.
+THE SPLIT IS NOT FINISHED  16,352 of 39,992 inline script lines moved (40.9%), 29 modules. Game,
+                           the frame loop, the player, the UI and the audio engine are all
+                           still in game.html. Not modular yet.
+World engine / content     SEPARATED. VoxelWorld is 1,640 lines (was 13,404); src/dimensions/ is
+                           what the four places ARE. Every block id in a stampers.js, and
+                           tests/architecture.js fails if one appears anywhere else.
 Dimension identity         stableId != creativeNumber. stable 1 = Overworld; D1 = Farmlands.
                            src/dimensions/dimension-descriptors.js — accessors THROW on the
                            wrong kind of number. No id renumbered, no migration, schema v5.
@@ -79,6 +84,231 @@ describe Phase 20 as it was first delivered, and Section 0 describes the 20.1 jo
 revision that followed a human playtest and supersedes them wherever they disagree** — principally the beat table, the landmark set, the distances, and the
 performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
 instruction and the compass and changed no world generation at all.
+
+---
+
+## 0.00000000000000000000. ERA 1.5.3 — THE `VoxelWorld` SPLIT / WORLD CONTENT SEAM
+
+**WHAT THIS PHASE IS.** `VoxelWorld` was 13,404 lines and 270 methods, of which 9,900
+described PLACES rather than how a voxel world works. It is now a 1,640-line engine and
+four dimensions' content in ten files, and the line the Era 2 rebuild has to cut
+along is drawn, asserted, and provably where it says it is.
+
+**WHAT THIS PHASE IS NOT.** The split is still not finished. 16,352 lines have left the
+inline script across the three Era 1.5 phases — 41% of the original 39,992 — and `Game`,
+the frame loop, the transition engine, `PlayerController`, `UIManager`, `SoundEngine`, the
+CSS and the markup are all exactly where they were. **Do not describe the game as
+modular.** And nothing about the world changed: 294 chunks across all four dimension bands
+generate BIT-IDENTICALLY against the pre-phase build.
+
+### THE FINISH LINE, AND IT IS MET
+
+Era 1.5.1 wrote down what would make the Era 2 seam real:
+
+> *every block id inside `src/dimensions/` lives in a file named `stampers.js`, and
+> `tests/architecture.js` can assert it.*
+
+It does, and the assertion runs in both directions:
+
+* **no method outside a `stampers.js` places a block** — 72 dimension methods do, and all
+  72 are in one;
+* **no method outside a `stampers.js` so much as NAMES one** — zero.
+
+So a `generation.js` contains no block id at all. Where a farm goes, how a street is laid
+out, which chunk holds what, the shape of the terrain: none of it mentions the renderer,
+and all of it survives Era 2. **Era 2 replaces six files and the engine.**
+
+Getting there moved 18 methods and 1,365 lines out of three `generation.js` files after
+the first carve — `_subFurnish`, `_subInteriorAnomaly`, `_subStampStair`, the four
+`_home*` wall/door writers, `_farmTopBlock`, the water step, and the rest. The multiset of
+method text was compared before and after: **identical, byte for byte.**
+
+### WHAT IS WHERE
+
+```
+src/world/            THE ENGINE                    VoxelWorld: 1,640 lines, 57 methods
+  voxel-world.js        chunks · the one write path · meshing · light · doors
+  chunk.js              a Uint16Array and four accessors
+  world-content.js      registerWorldContent — how content attaches
+
+src/dimensions/       THE CONTENT                           11,967 lines, 213 methods
+  dimension-generators.js   who fills a chunk — 3 rows
+  shared/stampers.js        a shell, a roof, the env-story stamp     3 methods
+  overworld/                                          468 lines, 12 methods
+  haven/                                              801 lines, 12 methods
+  suburbia/                                         3,620 lines, 66 methods
+  farmlands/                                        6,776 lines, 118 methods
+  finale/scene.js                                      71 lines,  2 methods
+```
+
+### THE MECHANISM: ONE PROTOTYPE, NO CODE CHANGE
+
+`registerWorldContent(dimension, role, class { … })` copies the holder's property
+DESCRIPTORS onto `VoxelWorld.prototype`. Descriptors rather than assignment, because that
+preserves `enumerable: false`, `writable`, `configurable` and `fn.name` exactly — a moved
+method is indistinguishable from a declared one, including to `for…in`. Nothing else about
+the call sites changed: every `this._farmStampStead(...)` in the build still resolves the
+same way.
+
+It refuses two things at LOAD TIME, loudly: a name another dimension already owns, and a
+name the engine declares. So a duplicated method is a thrown error on the start screen
+rather than a silent shadow — which is the failure mode a 13,000-line carve is most likely
+to produce.
+
+### THE DISPATCH IS A TABLE NOW
+
+`_generateChunk` carried an `if / else-if / else` naming eight dimension methods. The
+engine now does one thing:
+
+```js
+chunkGeneratorFor(cx, cz).generateChunk(this, chunk);
+```
+
+and the branch is three rows in `src/dimensions/dimension-generators.js` — Suburbia, the
+Farmlands, and the Overworld as the fallback, **in exactly the order the old branch tested
+them**, each row making exactly the calls the branch made, in order. World generation is
+deterministic and a reordering here would be a different world, not a tidier file.
+
+Engine-into-content edges: **11 before, 3 after.** The three that remain are all
+LIFECYCLE, not generation, and they are named in ARCHITECTURE.md as Era 1.5.4's:
+the constructor's two eager region builds, and `setBlockWorld`'s water notification.
+
+**AND THE TEST READS THE TABLE.** Moving the eight edges off the prototype would otherwise
+have made "the dispatch is three edges" true and meaningless — the exact failure CLAUDE.md
+section 61.07 names in its sharpest form. `tests/harness/world-seam.js` parses the
+generator table and asserts all eight are still there and still enumerable.
+
+### WHAT THE SEAM TEST MEASURES, AND WHY IT IS NOT A LINE COUNT
+
+`tests/harness/world-seam.js` reads every file under `src/` and derives four facts:
+ownership, who writes blocks, the engine→content dispatch, and cross-dimension calls.
+Nothing in it executes game code and nothing in it counts lines — a smaller file is
+evidence that work happened, not the contract.
+
+The one definition everything hangs on is **what counts as placing a block**, and it took
+three attempts to get right. Close over callers and `updateChunks` becomes a stamper;
+close over nothing and `_farmStampSurface` — which writes every ground cell in the
+Farmlands — does not. What works: a method places a block if its OWN body does, through
+one of the engine's three write primitives, an assignment into chunk storage, an injected
+or local setter called with four or more arguments (`S(wx, y, wz, id)`, which is how every
+farmhouse wall is built), or a **dimension write helper** — and a write helper is DERIVED
+rather than listed: a content method that writes and calls no other content method.
+`_farmSet` and `_wSet` are the only two in the build, and a new dimension's private setter
+is found the same way with nothing to maintain.
+
+### `ENV_SITES` — THE DECISION 1.5.2 ASKED FOR, MADE
+
+**The site table stays whole and does not move into the dimension modules.**
+
+All nine entries are dimension-specific in that their coordinates fall in one band, so the
+naive reading says split it four ways. That reading is wrong for the reason the table
+exists: CLAUDE.md section 57 calls `ENV_SITES` "THE ERA 2 SEAM, and the most important
+thing in the phase … Every voxel-specific number lives in these eight functions and
+nowhere else", and "THE SITE TABLE IS WHERE A FUTURE PHASE LOOKS FIRST." Splitting it
+turns one place Era 2 edits into four, and one table the event rows resolve against into
+four plus a dispatch that does not exist.
+
+What DID move is the half that belongs with its kind: **`_envStoryStamp`, the only part of
+the framework that knows what a block is, is now in `src/dimensions/shared/stampers.js`**
+with every other stamper, and is covered by the same assertion. Content stays content,
+sites stay sites, the stamper went to the stampers.
+
+### COUPLING: WHAT IS CLEAN, AND WHAT IS DEFERRED
+
+Measured, not asserted from memory. **No dimension module reaches `Game`, the UI, the
+audio system, the horror systems or the DOM — all five are zero**, and no content method
+calls a `this` method the world does not declare, so nothing reaches Game through the
+object either.
+
+**One cross-dimension call edge exists in the whole build**:
+`shared/stampers.js::_subStampRoof` asks Suburbia's `_subHash` for its deterministic
+variation, because these two stampers began life as Suburbia's house builder and five
+Farmlands stampers reuse them. `_subHash` is seeded from `SUB_SEED`, so it cannot be
+relabelled generic, and giving the roof its own hash would change every roof in the game.
+It is named in that file with its reason and asserted as the only one, so a second is a
+failure rather than a precedent.
+
+**Deferred to 1.5.4, all named in ARCHITECTURE.md §9.5:** the three lifecycle edges; the
+112 dimension-boolean references (three of which moved out of the monolith with the
+content they belong to — no read was added); `SAVE_MIGRATIONS`, `validateSaveState`,
+`captureWorldState`, `findSafeLanding`; and `EnvironmentStorySystem`, which stays whole for
+the reason above.
+
+### TWO RATCHETS WOULD HAVE SILENTLY STARTED MEASURING LESS
+
+This is the 1.5.1 lesson recurring, and it is worth writing down again because it did not
+announce itself — both checks went on PASSING while the thing they bounded was carved up
+underneath them.
+
+* **P0-3, the THREE-reference ceiling,** was `R('VoxelWorld', 'THREE') <= 81` — one lookup
+  on one class declaration. After the carve that class holds 36 of the 81 and the other 45
+  are in eight other files, so the check would have passed at 36 forever. It is now
+  measured across the engine AND all four dimensions' content: **81, ceiling 81.**
+* **P0-2, the dimension-boolean ceiling,** was the monolith plus one named translator.
+  Three reads moved out with their content. It is now the monolith plus a named,
+  individually capped set of moved content files: **112, ceiling 112.**
+
+Neither ceiling was raised. The code did not grow; it moved.
+
+### AND THE THREE-BAN IN `world/` AND `dimensions/` WAS A LIE ABOUT WHAT WAS MOVED
+
+`tests/architecture.js` banned THREE in both directories — correct in 1.5.2, when they
+held nothing but tables, and false the moment the voxel engine arrived. Deleting the rule
+would have been worse: the Era 2 SURVIVORS live in those same directories, and a survivor
+that quietly starts building meshes is exactly what the rule is for. So the ban stands by
+default and is lifted **file by file, under a ceiling**: eight files, 81 references, and a
+ceiling may fall but never rise. A ninth file touching THREE is a failure until someone
+adds it deliberately.
+
+### VALIDATION
+
+| | |
+|---|---|
+| chunk generation | **294 chunks across all four dimension bands: BIT-IDENTICAL** to the pre-phase build, re-checked after every move |
+| verbatim | the class reassembles byte-identical from its files; after the stamper moves, the multiset of method text blocks is identical before and after |
+| offline suites | **38 files, 2,191 PASS, 0 FAIL** (see the fixture note below) |
+| browser suites | **all ten GREEN**: menu 69, save 102, onboarding 48, opening 72, environment 41, haven 73, finale 72, audio 53, **playability 71** (New Game → credits, no debug command), **transitions 51** (both rifts opened and walked). 652 assertions, 0 failures |
+| smoke test | `tests/tools/launch-check.js`: 29 modules served 200, boots, plays, streams 125 chunks, no page error |
+| performance | **no measurable change.** Medians of five independent processes per build: parse+construct −3.4%, 49 Overworld chunks −6.1%, 49 Farmlands −1.2%, 49 Suburbia +2.6%, heap −3.4%. Signs are mixed and every figure sits inside run-to-run spread (the Overworld ranged 112–134ms in BOTH builds), so the honest reading is that this container cannot resolve better than about ±7% and nothing moved. Two more HTTP requests at load. |
+| what no test can prove | whether it still plays right. **Nobody has played this build.** |
+
+**ONE BROWSER FAILURE WAS MINE, NOT THE BUILD'S.** `browser-menu.js` failed one assertion —
+the menu canvas still 1280x720 after a resize to 640x480 — when run back-to-back with seven
+other suites. `tests/README.md` says in bold to run them ONE AT A TIME because they wait on
+rendered state. Run alone it passes all 70. The failure was a resize the renderer had not
+got to yet, not a regression.
+
+### THREE OFFLINE FAILURES THAT WERE A STALE FIXTURE, NOT A DEFECT
+
+`journey.js` and `chain.js` failed, and `render-items.js` aborted before its first
+assertion. They failed identically on the Phase 36 build with no Era 1.5 change applied,
+which is how it was established they were not this phase's. The cause, once traced:
+
+**`tests/baseline.html` in the working tree was not the build it is documented to be.** It
+held Phase 29 code. `journey.js` and `chain.js` subtract a pre-Phase-20 build from the
+current one to isolate the Farmland isolation ramp and the dead-land canopy retreat;
+against a baseline that already contains both, the difference is zero and the assertion
+can never pass. `render-items.js` wanted `tests/phase20_2.html`, which was simply absent.
+
+**None of the four comparison fixtures is tracked** — `tests/README.md` says to make each
+one with `git show`, and all four commits it names are in this repository. Regenerating
+them turned `chain` 39/1 into **40/0**, `journey` 36/1 into **37/0**, and made
+`render-items` run at all. Nothing in the game or in a test was changed.
+
+THE LESSON, AND IT IS THE SAME ONE THIS PROJECT KEEPS LEARNING: **a comparison suite is
+only as honest as the thing it compares against, and a stale fixture fails in the
+direction of "no difference" — which reads as a broken feature, not a broken test.** Two
+content assertions had been silently unable to pass for however long that file sat there.
+A fixture regenerated from a named commit is the only kind worth having.
+
+### A DELIBERATE DEPARTURE FROM THE 1.5.1 PLAN
+
+The 1.5.1 map scheduled the seven meshing methods (415 lines) into `src/rendering/` as
+"the Era 2 hinge". **They stayed in the engine.** They are not a renderer — they are the
+greedy voxel mesher, and every one of them reads block ids, shapes and chunk neighbours
+through the engine's own state. Lifting them out would mean inventing an interface for the
+thing Era 2 deletes. Era 2 replaces the mesher and the engine together. Recorded here
+rather than left as a silent omission.
 
 ---
 

@@ -27,6 +27,26 @@ Measured against the Phase 36 build, commit `db222ee`, before any Era 1.5 change
 > point that exists so 1.5.4 can delete the rest. `tests/architecture.js` caps the
 > MONOLITH at 112 and asserts that exactly one extracted module may read the flags.
 
+> **ERA 1.5.3 UPDATE.** Section 3's finding — that `VoxelWorld` is four dimension
+> generators wearing one class — is what this phase acted on. It is no longer true of the
+> code, and is left here because it is why the phase existed.
+>
+> | | Phase 36 baseline | after Era 1.5.2 | after Era 1.5.3 |
+> | --- | ---: | ---: | ---: |
+> | inline `<script>` | 39,992 | 37,072 | **23,640** |
+> | extracted modules | 0 | 15 files, 3,374 lines | **29 files, 17,240 lines (42.2%)** |
+> | `VoxelWorld` | 13,404 lines, 270 methods | unchanged | **1,640 lines, 57 methods** |
+> | dimension content in it | 9,611 (85%) | 9,788 (87%) | **0** |
+> | engine → content call edges | 11 | 11 | **3** (all lifecycle, all 1.5.4's) |
+> | cross-dimension call edges | — | — | **1**, named and asserted |
+> | block ids outside a `stampers.js` | all of them | all of them | **0** |
+>
+> Both P0 ceilings were RE-AIMED rather than raised, because the split would otherwise
+> have left them measuring a fraction of what they bound: P0-3 (THREE) is now the engine
+> plus all four dimensions' content — **81, ceiling 81** — and P0-2 (dimension flags) is
+> the monolith plus a named, individually capped set of moved content files — **112,
+> ceiling 112**. The code moved; it did not grow.
+
 ---
 
 ## 1. THE BUILD
