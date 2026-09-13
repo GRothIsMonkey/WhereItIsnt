@@ -9,7 +9,7 @@
 
        cd tests && node tools/launch-check.js
 
-   It writes tests/renders/era-1-5-2-launch.png for a person to look at, and it makes no
+   It writes tests/renders/era-1-5-launch.png for a person to look at, and it makes no
    claim about how that screenshot looks.
 
    TWO THINGS IT GETS RIGHT THAT ARE EASY TO GET WRONG, both learned the hard way here:
@@ -65,9 +65,18 @@ srv.listen(PORT,'127.0.0.1',async()=>{
     tuning:     typeof ITEM_PICKUP_RADIUS,    world: typeof CHUNK_SX,
     save:       typeof SAVE_VERSION,          obj: typeof OBJECTIVE_CHAINS,
     cues:       typeof ONBOARDING_CUES,
+    // ERA 1.5.3 — the world engine and the four dimensions' content.
+    chunk:      typeof Chunk,                 voxel: typeof VoxelWorld,
+    register:   typeof registerWorldContent,  gens: typeof chunkGeneratorFor,
   }));
   const missing=Object.entries(symbols).filter(([k,v])=>v==='undefined').map(([k])=>k);
-  ok(missing.length===0,'all 15 extracted modules loaded and are in scope'+(missing.length?' — MISSING: '+missing.join(', '):''));
+  /* THE COUNT IS DERIVED, NOT TYPED. It read "all 15 extracted modules" for the whole of
+     Era 1.5.3, while thirteen more were being added — a message that goes stale silently
+     is the same shape of defect as a test that silently scans less (ARCHITECTURE.md §0). */
+  const moduleCount=await pg.evaluate(()=>
+    document.querySelectorAll('script[src^="src/"]').length);
+  ok(missing.length===0,`all ${moduleCount} extracted modules are loaded, and one symbol from `+
+     `each layer is in scope`+(missing.length?' — MISSING: '+missing.join(', '):''));
   ok(reqFail.length===0,'every src/ module was served 200'+(reqFail.length?' — '+reqFail.join(', '):''));
 
   // the two numbers, live
@@ -128,8 +137,8 @@ srv.listen(PORT,'127.0.0.1',async()=>{
   ok(world.hud!=='none','and the HUD is visible');
 
   fs.mkdirSync(ROOT+'/tests/renders',{recursive:true});
-  await pg.screenshot({path:ROOT+'/tests/renders/era-1-5-2-launch.png'});
-  ok(true,'screenshot written to tests/renders/era-1-5-2-launch.png');
+  await pg.screenshot({path:ROOT+'/tests/renders/era-1-5-launch.png'});
+  ok(true,'screenshot written to tests/renders/era-1-5-launch.png');
   ok(errs.length===0,'and the page raised no errors across the whole run'+(errs.length?' — '+errs.slice(0,3).join(' | '):''));
 
   await br.close(); srv.close();

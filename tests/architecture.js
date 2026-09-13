@@ -208,6 +208,7 @@ else {
   };
   const ref = {};
   const dimFlagFiles = {};                 // file -> how many flag references it makes
+  let monolithWorldTHREE = 0;              // VoxelWorld geometry still inside game.html
   const bump = (o, p) => { (ref[o] = ref[o] || {})[p] = (ref[o][p] || 0) + 1; };
   for (const u of units) {
     const own = owner(u);
@@ -215,7 +216,13 @@ else {
       if (!n.loc) return;
       const o = own[n.loc.start.line];
       if (n.type === 'Identifier') {
-        if (n.name === 'THREE') bump(o, 'THREE');
+        if (n.name === 'THREE') {
+          bump(o, 'THREE');
+          /* P0-3 is counted per FILE in section 4b and per CLASS here, so a VoxelWorld
+             body that has been moved into a budgeted module would be counted twice. Only
+             what is still in the monolith is added to the section 6 total. */
+          if (u.name === 'game.html:script' && o === 'VoxelWorld') monolithWorldTHREE++;
+        }
         else if (n.name === 'BLOCK') bump(o, 'BLOCK');
         else if (/^(document|window|localStorage|navigator)$/.test(n.name)) bump(o, 'DOM');
       }
@@ -241,6 +248,7 @@ else {
      A DATA MODULE THAT CONSTRUCTS A MESH IS NOT A DATA MODULE, and the whole point of
      Era 2 is that the renderer can be replaced — which is only true if the things that
      describe the world do not build it. */
+  let worldGeometryTHREE = 0;              // filled in below; re-asserted by the §6 ratchet
   {
     const FORBIDDEN = {
       shared:      ['THREE', 'DOM', 'STORAGE', 'AUDIO', 'BLOCK'],
@@ -262,23 +270,75 @@ else {
       AUDIO:   (n) => n.type === 'Identifier' && /^(AudioContext|webkitAudioContext)$/.test(n.name),
       BLOCK:   (n) => n.type === 'Identifier' && n.name === 'BLOCK',
     };
+    /* ERA 1.5.3 — WHY THREE IS STILL BANNED IN THESE TWO LAYERS, AND STILL LIFTED EIGHT
+       TIMES BY NAME.
+
+       Until this phase `world/` and `dimensions/` held nothing but tables, so banning
+       THREE outright cost nothing. They now hold the voxel ENGINE and the four dimension
+       generators — code whose entire job is to build geometry, and precisely the code
+       Era 2 throws away. A blanket ban would be a lie about what was moved. Deleting the
+       rule would be worse: the Era 2 SURVIVORS live in these same two directories (the
+       block tables, the dimension descriptors, the site table, world-content.js), and a
+       survivor that quietly starts building meshes is the one failure this rule exists to
+       catch.
+
+       So the ban stands BY DEFAULT — a new file in either layer may not touch THREE — and
+       is lifted file by file, each under a ceiling measured on this build. A CEILING MAY
+       FALL. IT MAY NEVER RISE. The eight entries sum to 81, which is the P0-3 figure
+       section 6 has capped since 1.5.1; that total is re-asserted there, so the split
+       cannot hollow the hotspot out by scattering it. */
+    const WORLD_GEOMETRY_BUDGET = {
+      'src/world/voxel-world.js':                  36,  // the engine: meshes, materials, lights
+      'src/dimensions/overworld/stampers.js':       1,  // the decor group
+      'src/dimensions/haven/generation.js':         9,
+      'src/dimensions/haven/stampers.js':           5,  // hearth light, cosy light, two positions
+      'src/dimensions/suburbia/generation.js':      4,
+      'src/dimensions/suburbia/stampers.js':        8,  // window positions, a porch light
+      'src/dimensions/farmlands/generation.js':    17,
+      'src/dimensions/finale/scene.js':             1,  // the finale's own scene root
+    };
+    const threeSeen = {};
     let violations = 0;
     for (const u of units) {
       if (u.name === 'game.html:script') continue;
       const layer = u.name.split('/')[1];
-      const rules = FORBIDDEN[layer];
-      if (!rules) { chk(false, `${u.name} is in an unknown layer — add it to ARCHITECTURE.md §1`); continue; }
+      const declared = FORBIDDEN[layer];
+      if (!declared) { chk(false, `${u.name} is in an unknown layer — add it to ARCHITECTURE.md §1`); continue; }
+      const budgeted = Object.prototype.hasOwnProperty.call(WORLD_GEOMETRY_BUDGET, u.name);
+      const rules = declared.filter(r => !(r === 'THREE' && budgeted));
       const hit = [];
+      let threeCount = 0;
       walk.full(u.ast, (n) => {
+        if (PROBE.THREE(n)) threeCount++;
         for (const r of rules) if (PROBE[r](n) && hit.indexOf(r) < 0) hit.push(r);
       });
+      if (budgeted) threeSeen[u.name] = threeCount;
       if (hit.length) violations++;
       chk(hit.length === 0,
           `${u.name} touches none of: ${rules.join(', ')}` +
+          (budgeted ? ` (THREE budgeted: ${threeCount}/${WORLD_GEOMETRY_BUDGET[u.name]})` : '') +
           (hit.length ? `  — VIOLATES: ${hit.join(', ')}` : ''));
     }
     chk(violations === 0,
         `all ${units.length - 1} extracted modules obey their layer's dependency rule`);
+
+    /* THE BUDGET IS AUDITED IN BOTH DIRECTIONS. An entry that no longer matches a file is
+       a stale exemption, and a stale exemption is a hole. */
+    let overBudget = 0, missing = 0, total = 0;
+    for (const name of Object.keys(WORLD_GEOMETRY_BUDGET)) {
+      if (!Object.prototype.hasOwnProperty.call(threeSeen, name)) { missing++; continue; }
+      total += threeSeen[name];
+      if (threeSeen[name] > WORLD_GEOMETRY_BUDGET[name]) overBudget++;
+    }
+    chk(missing === 0,
+        'every file the THREE budget exempts still exists — no stale exemption' +
+        (missing ? ` — ${missing} named file(s) are gone; delete the entry` : ''));
+    chk(overBudget === 0,
+        `and none of the ${Object.keys(WORLD_GEOMETRY_BUDGET).length} exempt files is over its ceiling` +
+        (overBudget ? ` — ${overBudget} over` : ''));
+    console.log(`      world + dimension geometry: ${total} THREE references across ` +
+                `${Object.keys(threeSeen).length} files — the whole of what Era 2 replaces`);
+    worldGeometryTHREE = total;
 
     /* THE ONE DELIBERATE EXCEPTION, ASSERTED RATHER THAN LEFT SILENT. `audio` is the only
        layer above whose forbidden list omits BLOCK, because AUDIO_SURFACE_GROUPS maps
@@ -294,6 +354,202 @@ else {
           'may, and one of the two things Era 2 replaces');
     }
   }
+
+console.log('\n=== 4c. THE WORLD-ENGINE / DIMENSION-CONTENT SEAM (ERA 1.5.3) ===\n');
+
+/* WHY THIS SECTION IS NOT OPTIONAL.
+
+   The engine and the four dimensions share ONE prototype. That is what made the split
+   possible without changing a line of the code that moved — and it is also why nothing
+   stops the Farmlands from calling a suburban method, or the engine from reaching into
+   the Haven: at runtime they are all just `this.`. A directory layout is not a boundary.
+   These checks are the boundary.
+
+   Every number below is DERIVED from the source by tests/harness/world-seam.js, which
+   reads who declares what, who writes blocks, and who calls whom. Nothing here counts
+   lines: a smaller file is evidence that work happened, not the contract. */
+{
+  const seam = require('./harness/world-seam.js').analyseWorldSeam(ROOT);
+
+  chk(seam.sawEngineClass && seam.sawRegistrar,
+      `the seam is readable: ${seam.engineNames.length} engine methods and ` +
+      `${seam.contentNames.length} registered content methods across ` +
+      `${Object.keys(seam.files).length} files`);
+
+  /* ---- 1 & 8. THE ENGINE DECLARES NO DIMENSION CONTENT, AND NO COPY SURVIVES ----
+
+     registerWorldContent already refuses at LOAD TIME to attach a name the engine
+     declares, so a duplicate cannot reach a player. This is the static half: a method
+     whose name says which place it belongs to has no business in a class that is
+     supposed to know only how a voxel world works. */
+  const DIMENSION_PREFIX = /^(_farm|_sub|_haven|_home|_w[A-Z]|update(Farm|Suburbia|Haven)|generateFakeHaven|corruptHaven|_gen(Farmlands|StaticSuburbia|Suburbia|DisconnectedHome))/;
+  /* THE THREE NAMED EXCEPTIONS, AND THEY ARE A NAMING WART, NOT A LEAK. `_subSet`,
+     `_subGet` and `_subHits` were written for the suburb and then used by every
+     dimension; they are the engine's generic stamping primitives and every stamper in
+     the build goes through them. Renaming them would touch several hundred call sites
+     for a cosmetic gain, so Era 1.5.3 left the names and wrote them down instead. */
+  const ENGINE_WART = ['_subSet', '_subGet', '_subHits'];
+  const misplaced = seam.engineNames.filter(n => DIMENSION_PREFIX.test(n) && ENGINE_WART.indexOf(n) < 0);
+  chk(misplaced.length === 0,
+      'the engine declares nothing that names a dimension, beyond the three generic ' +
+      'stamping primitives that kept their suburban names' +
+      (misplaced.length ? ' — FOUND: ' + misplaced.join(', ') : ''));
+  for (const w of ENGINE_WART)
+    chk(seam.engineNames.indexOf(w) >= 0,
+        `${w} is declared by the engine — a generic primitive with a suburban name, and it stays generic`);
+  const dupes = seam.contentNames.filter(n => seam.engineNames.indexOf(n) >= 0);
+  chk(dupes.length === 0,
+      'and no name is declared twice — no dimension content survives inside the engine' +
+      (dupes.length ? ' — BOTH: ' + dupes.join(', ') : ''));
+  {
+    const reg = fs.readFileSync(path.join(ROOT, 'src/world/world-content.js'), 'utf8');
+    chk(/already declared on the/.test(reg) && /already owned by/.test(reg),
+        'which registerWorldContent ALSO refuses at load time — once for a name the engine ' +
+        'declares and once for a name another dimension owns, so the halves cannot diverge');
+  }
+
+  /* ---- 7. EVERY STAMPER IS IN A stampers.js ----
+
+     The Era 1.5.3 finish line, and the sharpest single statement of the Era 2 seam: the
+     only code that puts a block in the world, or even names one, is in a file called
+     stampers.js. Everything else about a dimension — where a farm goes, how a street is
+     laid out, which chunk holds what — survives the renderer. */
+  const contentWriters = seam.writers.filter(n => seam.methods[n].dimension !== 'engine');
+  const strays = contentWriters.filter(n => !/\/stampers\.js$/.test(seam.methods[n].file));
+  chk(strays.length === 0,
+      `all ${contentWriters.length} dimension methods that place a block live in a stampers.js` +
+      (strays.length ? ' — OUTSIDE: ' + strays.map(n => seam.methods[n].file + '::' + n).join(', ') : ''));
+  console.log('      write helpers derived from the source, not listed: ' + seam.helpers.join(', '));
+
+  {
+    const namers = [];
+    for (const n of seam.contentNames) {
+      const m = seam.methods[n];
+      if (/\/stampers\.js$/.test(m.file)) continue;
+      let hit = false;
+      walk.full(m.node.value, (q) => {
+        if (q.type === 'MemberExpression' && q.object && q.object.name === 'BLOCK') hit = true;
+      });
+      if (hit) namers.push(m.file + '::' + n);
+    }
+    chk(namers.length === 0,
+        'and no method outside one so much as NAMES a block id — a generation.js survives Era 2' +
+        (namers.length ? ' — FOUND: ' + namers.join(', ') : ''));
+  }
+
+  /* Every dimension that generates ground has both halves, so the split is real rather
+     than a file that happens to be empty. */
+  for (const dim of ['overworld', 'haven', 'suburbia', 'farmlands']) {
+    const gen = Object.keys(seam.files).filter(f => seam.files[f].dimension === dim && seam.files[f].role === 'generation');
+    const st  = Object.keys(seam.files).filter(f => seam.files[f].dimension === dim && seam.files[f].role === 'stampers');
+    chk(gen.length === 1 && st.length === 1,
+        `${dim} has exactly one generation.js and one stampers.js` +
+        (gen.length === 1 && st.length === 1 ? ` (${seam.files[gen[0]].names.length} + ${seam.files[st[0]].names.length} methods)` : ''));
+  }
+
+  /* ---- 2, 3, 4. DIMENSION CONTENT DEPENDS ON NOTHING ABOVE IT ----
+
+     A dimension describes a place. It does not know there is a game around it, a HUD in
+     front of it, a sound engine beside it or a creature walking through it. This is what
+     lets Era 2 rebuild a dimension without reading any of those, and 1.5.4 move Game
+     without reading any of these. */
+  {
+    const ABOVE = {
+      Game:   /^(Game|game)$/,
+      UI:     /^(UIManager|ui|uiManager)$/,
+      audio:  /^(SoundEngine|AudioLibrary|AudioDirector|soundEngine)$/,
+      horror: /^(StalkerManager|BehemothManager|FinalSequence|Stalker|Behemoth)$/,
+      DOM:    /^(document|window|localStorage|navigator)$/,
+    };
+    const found = {};
+    for (const u of units) {
+      if (!u.name.startsWith('src/dimensions/')) continue;
+      walk.full(u.ast, (n) => {
+        if (n.type !== 'Identifier') return;
+        for (const k of Object.keys(ABOVE)) if (ABOVE[k].test(n.name)) (found[k] = found[k] || []).push(u.name);
+      });
+    }
+    for (const k of Object.keys(ABOVE))
+      chk(!found[k], `no dimension module reaches ${k}` +
+          (found[k] ? ' — ' + [...new Set(found[k])].join(', ') : ''));
+    /* And not through `this` either: a content method calling a method nothing in the
+       world declares would be reaching into whatever else happens to be on the object. */
+    const foreign = [];
+    for (const n of seam.contentNames)
+      for (const c of seam.methods[n].calls)
+        if (!seam.methods[c] && !/^(idx|key)$/.test(c)) foreign.push(n + ' -> this.' + c + '()');
+    chk(foreign.length === 0,
+        'and no content method calls a `this` method the world does not declare' +
+        (foreign.length ? ' — ' + [...new Set(foreign)].slice(0, 6).join(', ') : ''));
+  }
+
+  /* ---- 9. CROSS-DIMENSION DEPENDENCIES ----
+
+     One, and it is named with its reason in src/dimensions/shared/stampers.js: the shared
+     roof stamper asks Suburbia for the deterministic hash it was originally written
+     against. A second one is a failure, not a precedent. */
+  const CROSS_ALLOWED = [{ from: '_subStampRoof', to: '_subHash' }];
+  const unexpected = seam.crossing.filter(c =>
+    !CROSS_ALLOWED.some(a => a.from === c.from && a.to === c.to));
+  chk(unexpected.length === 0,
+      `${seam.crossing.length} cross-dimension call edge in the whole build, and it is the ` +
+      'documented one' +
+      (unexpected.length ? ' — UNEXPECTED: ' + unexpected.map(c => c.fromDimension + '::' + c.from + ' -> ' + c.toDimension + '::' + c.to).join(', ') : ''));
+  for (const a of CROSS_ALLOWED)
+    chk(seam.crossing.some(c => c.from === a.from && c.to === a.to),
+        `and the exemption is not stale: ${a.from} still calls ${a.to}`);
+
+  /* ---- 10. THE DISPATCH, AND WHICH WAY IT POINTS ----
+
+     Dimension content calling the engine is the architecture working. The engine calling
+     dimension content is the seam, and the whole of it must stay enumerable: if it is a
+     short list, a fifth dimension is a row rather than a search.
+
+     Era 1.5.3 turned `_generateChunk`'s if/else-if/else into a TABLE, so eight of the
+     eleven edges the 1.5.1 inventory measured are now rows in
+     src/dimensions/dimension-generators.js. Both halves are asserted. Reading only the
+     prototype would report "three edges" and mean nothing — the failure CLAUDE.md §61.07
+     names in its sharpest form. */
+  const DISPATCH_ROWS = ['suburbia', 'farmlands', 'overworld'];
+  chk(seam.generatorRows === DISPATCH_ROWS.length,
+      `chunk generation is a table of ${seam.generatorRows} rows, resolved in order: ` +
+      DISPATCH_ROWS.join(' -> ') + ' (the Overworld answers last, as the fallback)');
+  chk(seam.tableDispatch.length === 8,
+      `and the table carries all ${seam.tableDispatch.length} generation edges the engine used to name itself`);
+  for (const d of seam.tableDispatch) console.log(`      row ${d.row}  ->  ${d.to}  (${d.dimension})`);
+  {
+    const gc = seam.methods._generateChunk;
+    const named = gc ? [...gc.calls].filter(c => seam.methods[c] && seam.methods[c].dimension !== 'engine') : ['(no _generateChunk)'];
+    chk(named.length === 0,
+        '_generateChunk names no dimension method at all — it asks the table and hands over the chunk' +
+        (named.length ? ' — STILL NAMES: ' + named.join(', ') : ''));
+  }
+
+  /* WHAT IS LEFT ON THE PROTOTYPE, AND WHY IT IS LEFT. Two eager region builds in the
+     constructor and one water notification. Both are LIFECYCLE — when a dimension is
+     built, and what happens after a block is written — which Era 1.5.4 owns along with
+     the rest of startup. 1.5.3 does not reach into it, and the ceiling makes sure it does
+     not grow while waiting. */
+  const DISPATCHERS = ['constructor', 'setBlockWorld'];
+  const DISPATCH_CEILING = 3;
+  const fromOther = seam.dispatch.filter(d => DISPATCHERS.indexOf(d.from) < 0);
+  chk(fromOther.length === 0,
+      `the engine itself reaches dimension content from exactly ${DISPATCHERS.length} places: ` +
+      DISPATCHERS.join(' and ') + ' — both lifecycle, both deferred to Era 1.5.4' +
+      (fromOther.length ? ' — ALSO FROM: ' + [...new Set(fromOther.map(d => d.from))].join(', ') : ''));
+  chk(seam.dispatch.length <= DISPATCH_CEILING,
+      `and that is ${seam.dispatch.length} edges (ceiling ${DISPATCH_CEILING}, was 11 before this phase)`);
+  for (const d of seam.dispatch) console.log(`      deferred  ${d.from} -> ${d.to}  (${d.dimension})`);
+  chk(seam.dispatch.concat(seam.tableDispatch).filter(d => d.dimension === 'haven').length === 0,
+      'and the Haven is in neither — the pocket is built on demand, never streamed (CLAUDE.md §58)');
+
+  /* ---- src/world/ IS THE ENGINE AND NOTHING ELSE ---- */
+  const contentInWorld = Object.keys(seam.files)
+    .filter(f => f.startsWith('src/world/') && seam.files[f].dimension !== 'engine');
+  chk(contentInWorld.length === 0,
+      'src/world/ holds the engine and no dimension content' +
+      (contentInWorld.length ? ' — FOUND: ' + contentInWorld.join(', ') : ''));
+}
 
 console.log('\n=== 5. THE BOUNDARIES THAT ARE ALREADY CLEAN, AND MUST STAY CLEAN ===\n');
 
@@ -330,19 +586,66 @@ console.log('\n=== 5. THE BOUNDARIES THAT ARE ALREADY CLEAN, AND MUST STAY CLEAN
 
      So: the inline script is capped, and exactly one extracted module may read them. */
   const DIM_TRANSLATOR = 'src/dimensions/dimension-descriptors.js';
+
+  /* ERA 1.5.3 SPLIT THE THING BOTH OF THESE CEILINGS WERE MEASURING, AND THAT IS THE
+     TRAP THIS BLOCK EXISTS TO AVOID.
+
+     `VoxelWorld` used to be one class declaration holding all 81 THREE references and
+     `game.html:script` used to hold every dimension-flag read that was not in the
+     translator. Both counts were therefore a single lookup. After the carve the same code
+     sits in twelve files, so a per-class or per-file count would have gone on PASSING
+     while measuring a fraction of what it was written to bound — the exact failure shape
+     CLAUDE.md §61.05-61.07 names three times, and the one §62.6 wrote the source harness
+     to prevent.
+
+     So both ceilings are now measured across the WHOLE BUILD: the monolith plus every
+     module the engine and its dimension content were carved into. The numbers are
+     unchanged because the code is unchanged — it moved. */
+  const CONTENT_DIM_READERS = {
+    'src/dimensions/haven/stampers.js':       1,   // corruptHaven, guarding on inFakeHaven
+    'src/dimensions/suburbia/generation.js':  2,
+  };
   const inlineDim = dimFlagFiles['game.html:script'] || 0;
-  chk(inlineDim <= CEILING.dimensionFlagRefs,
-      `dimension-flag references in the monolith: ${inlineDim} (ceiling ${CEILING.dimensionFlagRefs}) — ` +
-      'three booleans on the player, and P0-2 says do not add a fourth');
+  const contentDim = Object.keys(CONTENT_DIM_READERS)
+    .reduce((a, f) => a + (dimFlagFiles[f] || 0), 0);
+  chk(inlineDim + contentDim <= CEILING.dimensionFlagRefs,
+      `dimension-flag references outside the translator: ${inlineDim} in the monolith + ` +
+      `${contentDim} in moved content = ${inlineDim + contentDim} ` +
+      `(ceiling ${CEILING.dimensionFlagRefs}) — three booleans on the player, and P0-2 ` +
+      'says do not add a fourth');
+
+  /* THE READER SET IS CLOSED AND NAMED. Era 1.5.2 allowed exactly one extracted module to
+     read the booleans: the translator, which exists in order to delete them. The carve
+     moved three PRE-EXISTING reads out of the monolith with the content they belong to —
+     no read was added, and neither file is new coupling. They are named here rather than
+     waved through by a raw count, so a fourth reader is a failure and not a rounding
+     error. Era 1.5.4 owns removing the booleans; these two entries go with them. */
+  const allowedDimReaders = [DIM_TRANSLATOR].concat(Object.keys(CONTENT_DIM_READERS));
   const otherReaders = Object.keys(dimFlagFiles)
-    .filter(f => f !== 'game.html:script' && f !== DIM_TRANSLATOR);
+    .filter(f => f !== 'game.html:script' && allowedDimReaders.indexOf(f) < 0);
   chk(otherReaders.length === 0,
-      `and ${DIM_TRANSLATOR} is the ONLY extracted module that reads them` +
+      `and the only extracted modules that read them are the translator plus ${Object.keys(CONTENT_DIM_READERS).length} ` +
+      'moved content files, named above' +
       (otherReaders.length ? ` — ALSO READ BY: ${otherReaders.join(', ')}` : ''));
+  let dimOver = 0;
+  for (const f of Object.keys(CONTENT_DIM_READERS))
+    if ((dimFlagFiles[f] || 0) > CONTENT_DIM_READERS[f]) dimOver++;
+  chk(dimOver === 0,
+      'and neither of those two grew a new read — a moved dependency may shrink, never grow');
   chk((dimFlagFiles[DIM_TRANSLATOR] || 0) > 0,
       'which does read them — it is the translation point Era 1.5.4 deletes the rest through');
-  chk(R('VoxelWorld', 'THREE') <= CEILING.voxelWorldTHREE,
-      `VoxelWorld THREE references: ${R('VoxelWorld','THREE')} (ceiling ${CEILING.voxelWorldTHREE}) — P0-3`);
+
+  /* P0-3 IS NOW THE ENGINE PLUS ITS CONTENT, NOT ONE CLASS BODY. §4b summed the eight
+     budgeted files; anything still inside a `class VoxelWorld` declaration IN THE MONOLITH
+     is added here, so the check survives the class being put back or carved further and
+     never counts the same reference twice. */
+  const worldTHREE = worldGeometryTHREE + monolithWorldTHREE;
+  chk(worldTHREE <= CEILING.voxelWorldTHREE,
+      `world-building THREE references: ${worldTHREE} (ceiling ${CEILING.voxelWorldTHREE}) — P0-3, ` +
+      `now measured across the engine and all four dimensions' content, not one class body`);
+  chk(worldGeometryTHREE > 0,
+      `and ${worldGeometryTHREE} of them are in extracted modules — the ratchet did not ` +
+      'quietly start measuring an empty set');
   chk(R('PlayerController', 'DOM') <= CEILING.playerDOM,
       `PlayerController DOM references: ${R('PlayerController','DOM')} (ceiling ${CEILING.playerDOM}) — P1-2`);
 }

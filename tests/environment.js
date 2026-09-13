@@ -39,6 +39,14 @@ function classBody(src, name) {
   return '';
 }
 
+/* Where a class body ENDS in the source, for slicing a phase's region out of the build. */
+function classEnd(src, name) {
+  const i = src.indexOf('class ' + name + ' {');
+  if (i < 0) return -1;
+  const body = classBody(src, name);
+  return body ? i + src.slice(i).indexOf(body) + body.length : -1;
+}
+
 let fail = 0;
 const chk = (ok, msg) => { console.log((ok ? 'PASS  ' : 'FAIL  ') + msg); if (!ok) fail++; };
 const note = (msg) => console.log('      ' + msg);
@@ -683,7 +691,13 @@ head('11. IT NEVER SPEAKS, AND NEVER RESOLVES');
      Farmlands, and this phase is where that rule would be broken if it were going to be. */
   const stripped = strip(SRC);
   const i31 = stripped.indexOf('const ENV_READS');
-  const j31 = stripped.indexOf('class VoxelWorld {');
+  /* ERA 1.5.3: this region used to end at `class VoxelWorld {`, which was simply the next
+     thing in the file. VoxelWorld now lives in src/world/voxel-world.js and loads BEFORE
+     the inline script, so that marker moved AHEAD of ENV_READS and the slice silently
+     became the empty string — the checks below went on passing while reading nothing. The
+     region now ends where it always ended in meaning: at the close of the phase's runtime
+     class. The length assertion below is what caught it and is why it is here. */
+  const j31 = classEnd(stripped, 'EnvironmentStorySystem');
   const p31 = (i31 >= 0 && j31 > i31) ? stripped.slice(i31, j31) : '';
   chk(p31.length > 2000, `the phase's own source is ${p31.length} characters, and is what the checks below read`);
   /* THE AUDIT'S OWN DIAGNOSTICS ARE EXEMPT, AND ONLY THOSE. validateEnvStoryEvents
