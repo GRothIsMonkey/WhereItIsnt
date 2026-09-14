@@ -1427,7 +1427,8 @@ Phase 36 — Complete Playable Alpha / Full Audit   (COMPLETE — see section 62
 Era 1.5.1 — Architecture inventory & contracts   (COMPLETE — see section 62.6)
 Era 1.5.2 — Pure data / helpers extraction       (COMPLETE — see section 62.7)
 Era 1.5.3 — VoxelWorld split / world content seam (COMPLETE — see section 62.8)
-Era 1.5.4-1.5.5 — the Game split and the boundary repair, then Era 2
+Era 1.5.4 — Game split / application seam        (COMPLETE — see section 62.9)
+Era 1.5.5 — the boundary repair, then Era 2
 
 Exact numbering may evolve, but previous completed phases must not be lost.
 
@@ -3062,6 +3063,94 @@ stale fixture fails in the direction of "no difference", which reads as a broken
 rather than a broken test.**
 
 
+# 62.9. ERA 1.5.4 — THE `Game` SPLIT / APPLICATION SEAM — COMPLETE
+
+ERA 1.5.4 CARRIED THIS OUT. `Game` is out of `game.html` and in `src/core/game.js`, with the
+save LIFECYCLE under it and the developer console beside it. See `ARCHITECTURE.md` section
+4.6 and `PROGRESS.md` section 0.000000000000000000000.
+
+**THE SPLIT IS STILL NOT FINISHED.** 21,756 of 40,927 script lines are in modules (53.2%).
+`PlayerController`, `UIManager`, `SoundEngine`, the mobs, the animals, the horror systems,
+the CSS and the markup are all still in `game.html`. Do not describe the game as modular.
+
+## THE ONE RULE THAT MATTERS MOST IN THIS SECTION
+
+  **MOVING A CLASS INTO A FILE IS NOT A BOUNDARY. THE DECLARED MANIFEST IS.**
+
+`src/**/*.js` are classic scripts sharing one global lexical scope — the property the whole
+of Era 1.5 stands on. So `Game` in its own file can still reach every name in the build,
+and no diff would ever show it. What replaces an import list here is
+`tests/architecture.js` §4d: **every name Game reaches outside its own file is listed,
+attributed to the file that declares it**, and an undeclared one, a stale one or one that
+changed owner is a test failure. Unlike an import list, it ratchets.
+
+  23  dependencies that are real `src/` modules
+  35  still in the monolith — CAPPED, and the number Era 1.5.5 reduces
+   6  host kinds (window 23, document 11, setTimeout 4, rAF 2, clearTimeout 1, console 1)
+
+WHAT THE APPLICATION LAYER IS:
+
+  `src/core/game.js`          2,328 lines, 51 methods. The ONE orchestrator: composition
+                              root, frame loop, save orchestration, dimension transitions,
+                              settings and audio policy. It authors no content.
+  `src/core/dev-tools.js`     the developer console. Deletable: one file, one script tag.
+  `src/persistence/save-lifecycle.js`  migrations, validation, world capture/restore, safe
+                              landing, SaveSystem.
+  `game.html`                 markup, the `<script>` order, and an ELEVEN-LINE bootstrap.
+
+RULES THAT NOW HOLD:
+
+- **ONE ORCHESTRATOR, AND IT WAS NOT SPLIT INTO `*Manager` FILES.** Game is genuinely four
+  jobs, but splitting 51 methods across three invented manager files produces a prettier
+  diagram and the identical object graph — every method still reaching every field of the
+  same `this`. One owner with a declared, capped dependency surface is the honest version.
+- **THE INBOUND SURFACE IS FIVE FIELDS AND ONE METHOD**: `sound`, `world`, `ui`, `player`,
+  `camera`, and `_triggerClimax()`. It is small because the composition root hands each
+  subsystem what it NEEDS rather than handing it the application. **Exactly four subsystems
+  are handed the Game itself** — `EnvironmentStorySystem`, `OpeningFilm`, `FinalSequence`,
+  `MainMenu`. A fifth is a design decision, not a convenience, and fails the test.
+- **PERSISTENCE OWNS THE FILE; THE ORCHESTRATOR OWNS WHAT GOES IN IT.** The 1.5.1 work order
+  scheduled `Game.captureSaveState` / `_applyRestoredState` / `_teardownForRestore` into
+  `persistence/`. They stayed: they read and write Game's fields across every subsystem, and
+  moving them means either handing the whole `game` object to persistence — the giant
+  singleton this phase was told not to build — or rewriting 380 lines of the save path in
+  the same phase that moved the frame loop.
+- **THE FRAME LOOP WAS MOVED AND NOT OTHERWISE TOUCHED.** No timing change, no reordering,
+  no optimisation. `_animate` is scheduled from Game and nowhere else and is latched on
+  `_loopRunning`, because `_start()` and `_beginPlay()` both need it and a New Game runs
+  both. Other classes call `requestAnimationFrame` for a fade or a menu canvas; what may
+  exist only once is the loop that ticks the WORLD.
+- **A RATCHET IS RE-AIMED WHEN THE CODE IT MEASURES MOVES — NEVER RAISED.** 80 of the 112
+  dimension-boolean references left the monolith with their code; not one was added. The
+  ceiling is still 112, now measured across the monolith plus named extracted readers. Same
+  lesson as 1.5.3, sprung in a new place.
+- **`core/` MAY CONSTRUCT THE RENDER STACK, BY NAME AND UNDER A CEILING.** A composition
+  root builds the `WebGLRenderer`, the `Scene`, the `Camera` and the `Clock` — that is what
+  makes it the composition root. Five references, budgeted; `dev-tools.js` 4;
+  `save-lifecycle.js` 1. What `core/` still may NEVER do is generate a chunk, author
+  content or place a block. Era 1.5.5 should take game.js's five to roughly zero.
+- **THE ENGINE HAS A DOOR THAT HAS NEVER OPENED, AND IT IS NOW NAILED SHUT BY A TEST.**
+  `VoxelWorld._playDoorSound` reads `this.game && this.game.sound`; nothing in the build
+  assigns `game` on a world. 1.5.4 did not delete the two tokens — `voxel-world.js` is
+  1.5.3's file and this is not the Game boundary — and asserts instead that **nobody ever
+  wires it up**, which is the half that matters: deleting stops it being used today, the
+  assertion stops it being used ever.
+- **EVERY EXTRACTION RANGE IS AST-DERIVED, AND THE EXTRACTOR PARSES BEFORE IT WRITES.** The
+  first run of this phase took a range one line inside a block comment — the identical
+  mistake Era 1.5.2 made — and the guard aborted without touching `game.html`. Do not
+  hand-type a line range.
+
+**`browser-transitions.js` IS BLOCKED BY THE `riftArming` DEFECT ON A SLOW CONTAINER, AND
+THAT WAS PROVED BY A/B RATHER THAN ASSUMED.** It reaches 14 PASS / 0 FAIL and then exceeds a
+30-second wait at the Farmlands crossing. **The pre-extraction 1.5.3 build fails identically
+— same suite, same section, same line.** The arming delay is decremented by the `dt` clamped
+to 0.06 for physics safety, so its real duration is `RIFT_ARM_TIME / min(realDt, 0.06)` —
+about 27s at 1fps. It passed in the 1.5.3 session because that container was faster. The
+rift chain is fine on this build: **`browser-playability` crosses both rifts and passes
+71/0.** The defect was not fixed, because an architectural phase is not where gameplay
+timing gets changed.
+
+
 # 63. ERA 2
 
 Era 2 is the major visual identity revolution.
@@ -3573,11 +3662,12 @@ the file from disk plays none of the 274 recorded sounds.
 The project is also in ERA 1.5, the architecture split. Era 1.5.1 (section 62.6) drew the
 map; Era 1.5.2 (section 62.7) moved the pure data and the pure helpers; Era 1.5.3 (section
 62.8) split `VoxelWorld` into an engine and four dimensions' content and drew the Era 2
-seam. **The split itself is not finished** — 41% of the monolith across the three phases,
-and `Game`, the frame loop, the player, the UI and the audio engine are all still in
-`game.html`. `ARCHITECTURE.md` is the map and each `src/*/LAYER.md` is that layer's work
-order. The next implementation phase is Era 1.5.4, the `Game` split — which also deletes
-the three dimension booleans.
+seam; Era 1.5.4 (section 62.9) took `Game` out and declared its dependency surface. **The
+split itself is not finished** — 53.2% of the script is in modules, and `PlayerController`,
+`UIManager`, `SoundEngine`, the CSS and the markup are all still in `game.html`.
+`ARCHITECTURE.md` is the map and each `src/*/LAYER.md` is that layer's work order. The next
+implementation phase is Era 1.5.5, the boundary repair — which also deletes the three
+dimension booleans.
 
 The section below is kept because it is still the standard the Farmland chapter is held
 to. Phase 20 is COMPLETE.

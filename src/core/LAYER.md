@@ -1,23 +1,36 @@
 # `src/core/` — LIFECYCLE, CLOCK, CONFIG, INPUT ROUTING
 
-Boot, the frame loop's *shape*, the two clocks, configuration, and which subsystem an
-input event is for. Not what the input then does.
+Boot, the application orchestrator, the frame loop, the two clocks, configuration, and
+which subsystem an input event is for. Not what the input then does.
+
+Since Era 1.5.4 this layer holds `Game` — the one obvious orchestration owner. It
+constructs every subsystem, hands each one what it needs, runs the world's frame loop, and
+coordinates saves, transitions and settings. It authors no content.
 
 ## May depend on
-`shared/`.
+`shared/`, and — as the composition root — every layer it constructs.
 
 ## Must never
-construct a mesh, generate a chunk, draw anything, or know what a dimension means.
+generate a chunk, author content, place a block, or decide what a dimension *means*.
+Constructing the render stack is allowed here and nowhere else, under a named ceiling of
+five THREE references that Era 1.5.5 should reduce.
 
 ## Scheduled to move here
 
 | From `game.html` | What | Phase |
 | --- | --- | --- |
 | ✅ 1937–2170 | `GameSettings`, `SETTINGS_SCHEMA`, `GRAPHICS_PRESETS`, fullscreen helpers | **1.5.1 · done** |
-| 37726–40053 | `Game` — the composition root half of it only | 1.5.4 |
-| 39623–40052 | `Game._animate` — the frame order, made explicit and named | 1.5.4 |
+| ✅ — | `game.js` — **all** of `Game`: composition root, frame loop, saves, transitions, settings policy | **1.5.4 · done** |
+| ✅ — | `dev-tools.js` — the developer console. Deletable: one file, one `<script>` tag | **1.5.4 · done** |
+| — | the boot listener **stays in game.html** — 11 lines, and it is the HTML boundary | **1.5.4 · decided** |
 | 27881–28210 | `PlayerController`'s ten `document` listeners → input routing | 1.5.5 |
-| 41307–41317 | the boot listener | 1.5.4 |
+
+> **IT WAS NOT SPLIT INTO `*Manager` FILES, ON PURPOSE.** The 1.5.1 plan said "the
+> composition root half of it only". Splitting 51 methods across three invented manager
+> files would have produced a prettier diagram and the identical object graph: every method
+> would still reach every field of the same `this`. One orchestrator, with its dependency
+> surface declared and capped in `tests/architecture.js` §4d, is the honest version. See
+> ARCHITECTURE.md §4.6.
 
 > **TWO CLOCKS, AND THE DIFFERENCE IS LOAD-BEARING.** `dt` is clamped to 0.06 for physics
 > safety; `filmDt` is unclamped wall time for the opening film, the Haven stages, the finale

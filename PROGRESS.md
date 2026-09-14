@@ -4,15 +4,19 @@
 HOW TO RUN IT              SERVE IT. python3 -m http.server 8000, then
                            http://localhost:8000/game.html  — opening game.html
                            from disk plays NO recorded audio at all (section 0.000000000000000)
-Current phase              ERA 1.5.3 — THE VoxelWorld SPLIT / WORLD CONTENT SEAM (COMPLETE)
+Current phase              ERA 1.5.4 — THE Game SPLIT / APPLICATION SEAM (COMPLETE)
                            Phase 36 is COMPLETE and still needs a human playthrough
-Next phase                 ERA 1.5.4 — the Game split, and deleting the dimension booleans
+Next phase                 ERA 1.5.5 — the boundary repair: PlayerController, UIManager,
+                           SoundEngine, CSS and markup; and the dimension booleans
 Architecture               ARCHITECTURE.md (the map, and section 4.5 is this phase)
                            + ARCHITECTURE-INVENTORY.md (the 1.5.1 numbers)
                            src/<layer>/LAYER.md is that layer's work order
-THE SPLIT IS NOT FINISHED  16,352 of 39,992 inline script lines moved (40.9%), 29 modules. Game,
-                           the frame loop, the player, the UI and the audio engine are all
-                           still in game.html. Not modular yet.
+THE SPLIT IS NOT FINISHED  21,756 of 40,927 script lines are in modules (53.2%), 32 of them.
+                           PlayerController, UIManager, SoundEngine, the mobs, the CSS and
+                           the markup are all still in game.html. Not modular yet.
+Game                       src/core/game.js — 2,328 lines, 51 methods. Its dependency
+                           surface is DECLARED and capped in tests/architecture.js 4d:
+                           23 module deps, 35 monolith deps, 5 fields + 1 method inbound.
 World engine / content     SEPARATED. VoxelWorld is 1,640 lines (was 13,404); src/dimensions/ is
                            what the four places ARE. Every block id in a stampers.js, and
                            tests/architecture.js fails if one appears anywhere else.
@@ -84,6 +88,159 @@ describe Phase 20 as it was first delivered, and Section 0 describes the 20.1 jo
 revision that followed a human playtest and supersedes them wherever they disagree** — principally the beat table, the landmark set, the distances, and the
 performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
 instruction and the compass and changed no world generation at all.
+
+---
+
+## 0.000000000000000000000. ERA 1.5.4 — THE `Game` SPLIT / APPLICATION SEAM
+
+**WHAT THIS PHASE IS.** `Game` is out of `game.html`. The application orchestrator, the
+save lifecycle beneath it and the developer console are three new modules; the inline
+script is 4,469 lines smaller; and Game's dependency surface — the thing that actually
+makes a boundary real in a build with no imports — is written down and capped.
+
+**WHAT THIS PHASE IS NOT.** The split is still not finished. **21,756 of 40,927 script
+lines are now in modules (53.2%)**, and `PlayerController`, `UIManager`, `SoundEngine`, the
+mobs, the animals, the horror systems, the CSS and the markup are all still in
+`game.html`. Do not describe the game as modular. And nothing about the game changed: 294
+chunks across all four dimension bands generate BIT-IDENTICALLY against the pre-phase
+build, and the whole game still walks New Game → credits.
+
+### WHAT MOVED
+
+| | lines | |
+|---|---:|---|
+| `src/core/game.js` | 2,342 | `Game` — 51 methods, verbatim |
+| `src/core/dev-tools.js` | 1,255 | the developer console: dimension teleports, audio diagnostics |
+| `src/persistence/save-lifecycle.js` | 916 | `SAVE_MIGRATIONS`, `validateSaveState`, `captureWorldState`, `restoreWorldState`, `findSafeLanding`, `saveFallbackSpawn`, `defaultSaveState`, `SaveSystem` |
+
+`game.html` 25,000 → **20,533** lines; its inline `<script>` **19,171**. Every payload is
+byte-identical to the text removed — checked, not assumed.
+
+**THE EXTRACTOR ABORTED ONCE, WHICH IS THE POINT OF IT.** The first run took the save
+region's first line as 20199; the comment actually opens at 20198, so the file would have
+begun mid-comment. It parsed every file it wrote BEFORE touching `game.html`, refused, and
+changed nothing. That guard exists because Era 1.5.2 lost a run to exactly this, and every
+range in this phase is AST-derived rather than eyeballed.
+
+### THE THING THAT MAKES IT A BOUNDARY
+
+Moving a class into its own file proves nothing here. `src/**/*.js` are classic scripts
+sharing one global lexical scope — that property is what the whole of Era 1.5 stands on —
+so Game can still reach every name in the build and no diff would ever show it.
+
+So the phase did the other half: **`tests/architecture.js` §4d declares every name Game
+reaches outside its own file**, attributed to the file that declares it, and fails on an
+undeclared one, a stale one, or one that changed owner. That is what "explicit
+dependencies" can honestly mean with no import statement in the language you are using,
+and unlike an import list it ratchets.
+
+| Game's dependencies | count |
+|---|---:|
+| real `src/` modules | 23 |
+| still in the monolith | **35** (capped; 1.5.5 reduces it) |
+| host surface | `window` 23, `document` 11, `setTimeout` 4, `requestAnimationFrame` 2, `clearTimeout` 1, `console` 1 |
+
+Extracting the save lifecycle did real work here rather than cosmetic work: seven of
+Game's dependencies (`SaveSystem`, `captureWorldState`, `restoreWorldState`,
+`findSafeLanding`, `saveFallbackSpawn`, `describeSaveState`, `defaultSaveState`) stopped
+being coincidences of file order and became a module dependency.
+
+### THE INBOUND SURFACE IS FIVE FIELDS AND ONE METHOD
+
+Measured, not hoped for. The rest of the build reaches exactly `sound`, `world`, `ui`,
+`player`, `camera` and `_triggerClimax()` on a Game. It is small because the composition
+root hands each subsystem what it needs — `scene`, `world`, `sound`, `ui`, `camera`,
+`canvas` — rather than handing it the application. Only **four** subsystems are handed the
+Game itself: `EnvironmentStorySystem`, `OpeningFilm`, `FinalSequence`, `MainMenu`. A fifth
+fails the test.
+
+### AND A DOOR IN THE ENGINE THAT HAS NEVER OPENED
+
+`VoxelWorld._playDoorSound` reads `this.soundEngine || (this.game && this.game.sound)`.
+**Nothing in the build assigns `game` on a world** — the four `this.game = game` sites are
+the four subsystems above. That branch has never once been taken.
+
+1.5.4 did not delete the two tokens: `voxel-world.js` is 1.5.3's file, this is not the Game
+boundary, and the brief for this phase said not to fix what merely looks strange. It
+asserts instead that **nobody ever wires it up**, which is the half that actually matters —
+deleting the branch stops it being used today, the assertion stops it being used ever.
+
+### WHAT WAS DELIBERATELY NOT DONE, AND WHY
+
+- **`Game` was NOT split into `*Manager` files.** It is 51 methods that are genuinely four
+  jobs — composition root, frame loop, save orchestration, transitions — and the 1.5.1 plan
+  said to move "the composition root half of it only". Splitting them across three invented
+  manager files would have produced a prettier diagram and the identical object graph:
+  every method would still reach every field of the same `this`. One orchestrator with a
+  declared, capped dependency surface is the honest version, and it is what the brief asked
+  for — "one obvious orchestration owner", and no `GameOrchestratorManager`.
+- **Game's three save-orchestration methods stayed in Game.** `src/persistence/LAYER.md`
+  scheduled `captureSaveState`, `_applyRestoredState` and `_teardownForRestore` into
+  `persistence/`. They decide what of the *running application* belongs in a save and how
+  the application is rebuilt from one, reading and writing Game's fields across every
+  subsystem. Moving them means either handing the whole `game` object to the persistence
+  layer — the giant singleton this phase was told not to build — or rewriting 380 lines of
+  the save path semantically in the same phase that moved the frame loop. **Persistence
+  owns the file; the orchestrator owns what goes in it.**
+- **`PlayerController`, `UIManager` and `SoundEngine` were not touched.** The brief allowed
+  taking a supporting piece out of them only if the Game boundary required it. None did.
+- **The frame loop was moved and not otherwise touched.** No timing change, no reordering,
+  no optimisation. `_animate` is scheduled from Game and nowhere else and is latched on
+  `_loopRunning`, because both `_start()` and `_beginPlay()` need it running and a New Game
+  runs both — without the latch the second call starts a second `requestAnimationFrame`
+  chain and the world simulates at double speed for the rest of the session.
+- **The three lifecycle edges from the engine into dimension content stayed at three.**
+  1.5.3 handed them to this phase. Turning them into descriptor rows means changing *when*
+  a dimension is built — a startup-ordering change, in the phase that had already moved
+  startup. Still three, still capped, still named.
+- **`riftArming` was not fixed**, per the brief. See the validation note below.
+- **The dimension booleans were not redesigned.** Still 112 outside the translator, and the
+  distribution is now visible for the first time: **Game 47, the developer console 33, the
+  monolith 29, moved content 3.**
+
+### TWO RATCHETS RE-AIMED, NEITHER RAISED
+
+The same trap 1.5.3 recorded, sprung again in a new place:
+
+- **P0-2, the dimension-boolean ceiling.** 80 of the 112 references moved out of the
+  monolith with the code they belong to. Not one was added. The check now measures the
+  monolith plus a named, individually capped set of extracted readers: **112, ceiling 112.**
+- **The `core/` and `persistence/` THREE ban.** Both layers were declared THREE-free when
+  they held a settings object and a table of constants. `core/` now holds the composition
+  root, and a composition root constructs the render stack — that is what makes it the
+  composition root. The ban stands by default and is lifted **by name, under a measured
+  ceiling**: `game.js` THREE 5 / BLOCK 4, `dev-tools.js` THREE 4,
+  `save-lifecycle.js` THREE 1 / BLOCK 2. Each entry says what the references *are*, because
+  a budget without a reason is just a bigger number. Era 1.5.5 should take game.js's five
+  to roughly zero by giving `rendering/` a real owner.
+
+### VALIDATION
+
+| | |
+|---|---|
+| chunk generation | **294 chunks across all four dimension bands: BIT-IDENTICAL** to the 1.5.3 build |
+| verbatim | all three payloads byte-identical to the text removed |
+| offline | **2,217 PASS / 0 FAIL** (was 2,191 at the 1.5.3 baseline; the 26 new checks are §4d and the application budget) |
+| browser | **nine of ten green**: menu 70, save 102, onboarding 48, opening 72, environment 41, haven 73, finale 72, audio 53, **playability 71** — 602 assertions, 0 failures |
+| `browser-transitions` | **BLOCKED, and not by this phase** — see below |
+| smoke test | `tools/launch-check.js`: 32 modules served 200, boots, plays, streams 124 chunks, no page error, over HTTP |
+| save / load | `save.js`, `browser-save.js` (102) and `browser-playability` all green; schema still **version 5**, no migration, no id renumbered |
+| performance | **no measurable change.** Medians of five independent processes per build: parse+construct −0.4%, 49 Overworld chunks +0.7%, Farmlands +1.4%, Suburbia +1.2%, heap −1.4% — every figure inside run-to-run spread |
+| what no test can prove | whether it still plays right. **Nobody has played this build.** |
+
+**`browser-transitions.js` TIMED OUT, AND IT IS THE KNOWN DEFECT, PROVED BY A/B.** It
+reached 14 PASS / 0 FAIL and then exceeded a 30-second `waitForFunction` at section 5, the
+Farmlands crossing. The pre-extraction 1.5.3 build, run on the same container minutes
+apart, **fails identically — same suite, same section, same line, same 14/0.** This is the
+`riftArming` clamped-delta defect ARCHITECTURE.md §9.5 has carried since 1.5.2: the arming
+delay is decremented by the `dt` clamped to 0.06 for physics safety, so its real duration
+is `RIFT_ARM_TIME / min(realDt, 0.06)` — 1.6s at 60fps, about 27s at 1fps, against a 30s
+wait. It passed in the 1.5.3 session because that container was faster; it is
+load-dependent, not build-dependent.
+
+The rift chain itself is fine on this build and that is separately proved:
+**`browser-playability` crosses BOTH rifts and passes 71/0.** The brief for this phase said
+explicitly not to fix `riftArming` during an architectural refactor, so it was not touched.
 
 ---
 
