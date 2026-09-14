@@ -250,6 +250,26 @@ happen to apply at rest.
 
 That is the only honest form of the claim, because it is the only one that covers a cascade.
 
+## 3.1 AND THE `file://` CASE WAS CHECKED, BECAUSE THIS PROJECT HAS FORM THERE
+
+Section 0.000000000000000 is three phases of playtest reports caused by a browser rule that
+only applies to a page opened from disk. Moving the CSS out of the document creates seven new
+subresource loads, so the question had to be asked rather than assumed.
+
+**It is fine.** Opened as `file:///…/game.html` in Chromium: all seven sheets load and all
+seven apply — `#startScreen` and `#crosshair` resolve to `position: fixed`, the body to black,
+and the page raises no console error. A browser blocks `fetch` and `XHR` for a local file; it
+does not block a `<link rel="stylesheet">`.
+
+**One thing IS different, and it is worth writing down before it bites somebody.** From
+`file://` each sheet is a cross-origin stylesheet for *scripting* purposes, so
+`document.styleSheets[n].cssRules` throws — the rules are applied, but the CSSOM is opaque.
+Nothing in the build or the suites reads `cssRules`, `styleSheets` or `insertRule` (checked),
+so nothing depends on it today. A future phase that starts reading the CSSOM would work over
+HTTP and fail silently from disk, which is this project's signature bug.
+
+**Serve it over HTTP anyway** — for the 274 recorded sounds, which have not changed.
+
 ---
 
 # 4. THE TEST HARNESS HAD THE SAME HOLE, ONE LAYER OVER
@@ -314,14 +334,61 @@ forbid the instrument Phase 27 built. The check now reads `:root` blocks only.
 
 # 6. VALIDATION
 
-**All 31 offline suites GREEN, 0 failures.** `tests/architecture.js` at 147 PASS / 0 FAIL,
-including the twelve new §4e checks.
+## 6.1 THE STRONGEST STATEMENT FIRST: THE JAVASCRIPT IS BYTE-IDENTICAL
 
-**All 10 browser suites** run individually against a served build, and
-`tests/tools/launch-check.js` over HTTP.
+`tests/harness/source.js`'s `buildScript()` — every module in load order plus the inline body,
+the whole of the build's JavaScript — is **2,161,902 bytes before this phase and 2,161,902
+bytes after, and `cmp` reports no difference**. This phase moved CSS and nothing else.
 
-**World generation is untouched by construction** — this phase moved no JavaScript at all —
-and `determinism.js`, `regression.js`, `journey.js` and `chain.js` confirm it.
+That is worth having as the headline, because it settles a whole class of question without
+running anything: no gameplay, world-generation, save, audio, objective, transition or timing
+behaviour can have changed, because none of the code that implements them was touched.
+
+## 6.2 OFFLINE — 31 SUITES
+
+**30 GREEN with 0 failures**, `architecture.js` among them at **147 PASS / 0 FAIL**, including
+the twelve new §4e checks.
+
+`performance.js` failed one assertion on one run — the revised journey's per-chunk cost
+against the Phase 20 fixture, at +14.1% against a threshold near +13%. **Three further runs
+pass at +12.4%, +9.6% and +10.2%.** Combined with 6.1 it cannot be this phase: the code being
+timed is the same bytes. It is a loaded container measured against a noisy threshold, and the
+suite's own neighbouring assertion says the sample's run-to-run noise is around ten points.
+
+## 6.3 BROWSER — 10 SUITES, RUN ONE AT A TIME, SERVED OVER HTTP
+
+**Eight green outright**: `browser-menu` 70, `browser-save` 102, `browser-onboarding` 48,
+`browser-opening` 72, `browser-environment` 41, `browser-finale` 72, `browser-audio` 53,
+`browser-playability` **71/0 — the whole game, New Game to credits, no debug command**.
+
+`tests/tools/launch-check.js` green over HTTP: the page boots, all 32 modules load, the
+player moves, 122 chunks stream, no page error.
+
+**`browser-haven` — 71 PASS / 2 FAIL in the sequential run, and it passes 71+/0 when run
+alone.** The two were the mug anomaly's sweep, which the suite's own comment documents as
+frame-rate sensitive: it runs at 2Hz off accumulated `dt`, and `dt` is clamped to 0.06 for
+physics safety, so on a starved page simulated time advances at frame rate. **A/B: the
+pre-1.5.5 build and this one both pass when run alone.** `tests/README.md`'s "run them ONE
+AT A TIME" is the relevant instruction and it is not new.
+
+**`browser-transitions` — 14 PASS / 0 FAIL, then a 30-second wait expires at the Farmlands
+crossing (line 287).** This is the `riftArming` clamped-delta defect Era 1.5.4 recorded in
+`ARCHITECTURE.md` §9.5 and A/B-proved against the 1.5.3 build then: the arming delay is
+decremented by the physics `dt`, so its real duration is `RIFT_ARM_TIME / min(realDt, 0.06)`
+— about 27s at 1fps against a 30s wait. Same suite, same section, same line as 1.5.4, and by
+6.1 the code is unchanged. **The rift chain itself is fine: `browser-playability` crosses
+both rifts and passes 71/0.** Not fixed here, because an architectural phase is not where
+gameplay timing gets changed.
+
+`preview-hud.js` — one of the seven "for looking at" preview tools, which assert nothing —
+times out after 60s waiting for `running === true` on this container. **A/B: the pre-1.5.5
+build fails identically, same line, same timeout.** The other six previews all produce their
+output.
+
+## 6.4 WORLD GENERATION
+
+**Untouched by construction** (6.1), and `determinism.js`, `regression.js`, `journey.js` and
+`chain.js` confirm it independently.
 
 # 7. WHAT THIS PHASE DELIBERATELY DID NOT DO
 

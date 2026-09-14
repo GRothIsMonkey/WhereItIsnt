@@ -671,6 +671,19 @@ on, so the rules that only apply mid-fade were measured too.
 That is the honest form of "the visual design did not change", and it is the only form that
 covers a cascade.
 
+### `file://` was checked, not assumed
+
+Seven sheets are seven new subresource loads, and this project has form with browser rules
+that only apply to a page opened from disk (CLAUDE.md §61.07). **It is fine**: all seven load
+and apply from `file://`, with no console error — a browser blocks `fetch` and `XHR` for a
+local file, not a `<link rel="stylesheet">`.
+
+One thing *is* different. From `file://` each sheet is cross-origin for **scripting**, so
+`document.styleSheets[n].cssRules` throws: the rules apply, the CSSOM is opaque. Nothing in
+the build or the suites reads `cssRules`, `styleSheets` or `insertRule`, and nothing should
+start — it would work over HTTP and fail silently from disk, which is this project's
+signature bug. Serve it over HTTP anyway, for the audio.
+
 ### The test harness had the same hole, one layer over
 
 Era 1.5.1 closed "a text suite silently scans less" for **scripts** by reassembling the
@@ -732,6 +745,16 @@ Twelve assertions. The ones that matter most:
 * **No extracted module writes an element style. Zero, and locked at zero.** That is what
   lets Era 2 restyle the game without reading world, dimension, audio or persistence code.
   The monolith's own 54 writes are capped and fall as `UIManager` comes out.
+
+### And the strongest statement about this phase needs no test at all
+
+`buildScript()` — every module in load order plus the inline body, the whole of the build's
+JavaScript — is **2,161,902 bytes before and 2,161,902 bytes after, byte for byte identical**.
+This phase moved CSS and nothing else, so no gameplay, world-generation, save, audio,
+objective, transition or timing behaviour can have changed. Two known slow-container failures
+(`browser-transitions`'s `riftArming` wait from §9.5, and `browser-haven`'s 2Hz anomaly sweep,
+which passes when run alone) are both settled by that fact and by A/B against the pre-split
+build. See `PROGRESS.md` §6.
 
 ---
 

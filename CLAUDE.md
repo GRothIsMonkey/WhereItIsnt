@@ -3230,6 +3230,15 @@ RULES THAT NOW HOLD:
   `transition: none` then opacity, which is instantaneous by construction and is what Phase
   33's hard-cut rule depends on. §4e asserts both pairs separately and that `#blackCut` still
   carries no transition.
+- **SEVEN SHEETS ARE SEVEN NEW SUBRESOURCE LOADS, SO THE `file://` CASE WAS CHECKED RATHER
+  THAN ASSUMED** — section 61.07 is three phases of playtest reports caused by a browser rule
+  that only applies to a page opened from disk. It is fine: all seven sheets load and apply
+  from `file://`, with no console error. A browser blocks `fetch` and `XHR` for a local file;
+  it does not block a `<link rel="stylesheet">`. **One thing IS different**: from `file://`
+  each sheet is cross-origin for SCRIPTING, so `document.styleSheets[n].cssRules` throws —
+  the rules apply, the CSSOM is opaque. Nothing in the build or the suites reads `cssRules`,
+  `styleSheets` or `insertRule`, and nothing should start: it would work over HTTP and fail
+  silently from disk, which is this project's signature bug.
 - **AND THE HARNESS LESSON, IN ITS FOURTH PLACE.** Eight suites read CSS out of the build,
   six of them with a literal `SRC.indexOf('<style>')`. Left alone, every one would have started reading the EMPTY
   STRING after this phase and gone on passing — `hud.js` included, which is what enforces
