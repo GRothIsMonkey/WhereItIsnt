@@ -1,0 +1,389 @@
+/* =====================================================================================
+   THE HUD — THE INSTRUMENTS AND THE READOUTS
+   ERA 1.5.5 — EXTRACTED VERBATIM FROM game.html's SINGLE STYLE BLOCK.
+
+   Crosshair, mining readout, hotbar, held item, condition, perception; then the
+   objective line, status, clock, compass, interaction prompt and the small-viewport
+   query that tunes them.
+
+   TWO SLICES OF THE ORIGINAL STYLE BLOCK, JOINED. The screen overlays used to sit
+   between them; they are in overlays.css now and load after this file. The two groups
+   target disjoint elements, and the move was proved by comparing the computed style of
+   every element in a real browser before and after — not by reasoning about specificity.
+
+   ORDER IS THE CONTRACT, exactly as it is for the scripts. game.html declares the sheet
+   order and nothing else may; base.css first, then this file's position in that list is
+   part of its meaning. See ARCHITECTURE.md.
+   ===================================================================================== */
+
+  #crosshair {
+    position: fixed; top: 50%; left: 50%; width: 6px; height: 6px;
+    transform: translate(-50%, -50%);
+    background: rgba(255,255,255,0.85);
+    border-radius: 50%;
+    box-shadow: 0 0 3px rgba(0,0,0,0.8);
+    pointer-events: none; z-index: 20;
+  }
+
+  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 15; }
+
+  /* PHASE 2 — mining readout: a bar, segment ticks matching the six crack stages, and
+     a label naming the block and warning when the held tool will yield nothing.
+     PHASE 27 — the same readout, rebuilt in the HUD's material: a 3px rule rather than
+     a bordered arcade bar, brass rather than a glowing yellow, and the label in the
+     interface's own type scale. Nothing about what it reports changed. */
+  #miningReadout {
+    position: fixed; top: calc(50% + 22px); left: 50%; transform: translateX(-50%);
+    z-index: 19; pointer-events: none; opacity: 0; transition: opacity 0.08s linear;
+    display: flex; flex-direction: column; align-items: center; gap: 7px;
+  }
+  #miningReadout.visible { opacity: 1; }
+  #miningBarOuter {
+    position: relative; width: 118px; height: 3px;
+    background: rgba(10,8,6,0.72); overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.65);
+  }
+  #miningBarInner {
+    height: 100%; width: 0%; background: var(--hud-brass);
+    transition: none;
+  }
+  /* Six ticks = the six crack stages, so bar and block agree on how far along you are. */
+  #miningBarTicks {
+    position: absolute; inset: 0;
+    background-image: repeating-linear-gradient(
+      90deg, transparent 0, transparent calc(100%/6 - 1px),
+      rgba(0,0,0,0.7) calc(100%/6 - 1px), rgba(0,0,0,0.7) calc(100%/6));
+  }
+  #miningReadout.blocked #miningBarInner { background: var(--hud-warn); }
+  #miningLabel {
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--hud-ink-dim); text-shadow: var(--hud-shadow);
+    white-space: nowrap;
+  }
+  #miningLabel .warn { color: var(--hud-warn); }
+  #miningLabel .tool { color: var(--hud-ink-faint); }
+
+  /* PHASE 27 — THE HOTBAR IS A STRIP, NOT NINE BOXES.
+
+     Nine separated bordered squares with a glowing gold selection box is the single
+     most recognisable piece of survival-game furniture there is, and it was the loudest
+     thing on this screen. What replaces it is one continuous strip divided by hairlines:
+     no per-cell border, no gap, no glow. Selection is carried by three quiet cues that
+     agree with each other — a faintly lit cell, a 2px brass rule beneath it, and the
+     item itself drawn slightly larger — which reads instantly without shouting.
+
+     .slot stays the shared inventory cell (the backpack and storage grids build from
+     it); #hotbar .slot is the strip's own treatment on top of it. */
+  #hotbar {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 0; z-index: 20; pointer-events: none;
+    border-top: 1px solid rgba(120,104,72,0.30);
+    background: linear-gradient(180deg, rgba(10,8,6,0.26), rgba(10,8,6,0.52));
+  }
+  .slot {
+    width: 48px; height: 48px; background: rgba(18,15,11,0.72);
+    border: 1px solid var(--hud-rule); border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; box-shadow: inset 0 0 8px rgba(0,0,0,0.55);
+  }
+  .slot.active { border-color: var(--hud-brass); box-shadow: inset 0 0 8px rgba(0,0,0,0.55), 0 0 0 1px rgba(200,162,74,0.30); }
+  .slot .swatch { width: 28px; height: 28px; border-radius: 0; image-rendering: pixelated; display: block; }
+  /* PHASE 29 — the slot numeral and the count both went up a step and gained weight.
+     The count is the one number in this HUD a player reads mid-action ("have I enough
+     torches"), and at 10px regular over a bright swatch it was the least readable thing
+     on the strip. Tabular figures keep a two-digit count from shifting a one-digit one,
+     which is what makes a glance work. */
+  .slot .num { position: absolute; top: 2px; left: 4px; font-size: var(--t-tertiary); color: var(--hud-ink-faint); text-shadow: var(--hud-shadow-hard); }
+  .slot .count {
+    position: absolute; bottom: 1px; right: 4px;
+    font-size: 11.5px; font-weight: 700; color: var(--hud-ink);
+    font-variant-numeric: tabular-nums; text-shadow: var(--hud-shadow-hard);
+  }
+
+  #hotbar .slot {
+    width: 40px; height: 40px; background: transparent; border: none; border-radius: 0;
+    border-left: 1px solid rgba(120,104,72,0.16); box-shadow: none;
+  }
+  #hotbar .slot:first-child { border-left: none; }
+  #hotbar .slot .swatch { width: 24px; height: 24px; opacity: 0.82; transition: transform 130ms ease-out, opacity 130ms linear; }
+  /* PHASE 29 — the strip's slot numeral was 8px at 26% opacity, which is not a numeral,
+     it is a texture. 9.5px at a readable ink is still quiet and can actually be used to
+     find slot 7 without counting along the strip. */
+  #hotbar .slot .num { top: 2px; left: 3px; font-size: 9.5px; color: rgba(190,175,140,0.50); }
+  #hotbar .slot .count { color: var(--hud-ink); }
+  #hotbar .slot.active { background: rgba(200,162,74,0.09); box-shadow: none; border-color: rgba(120,104,72,0.16); }
+  #hotbar .slot.active::after {
+    content: ''; position: absolute; left: 5px; right: 5px; bottom: -1px; height: 2px;
+    background: var(--hud-brass); box-shadow: 0 0 6px rgba(200,162,74,0.40);
+  }
+  #hotbar .slot.active .swatch { transform: scale(1.14); opacity: 1; }
+  #hotbar .slot.active .num { color: rgba(200,162,74,0.72); }
+  #hotbar .slot.active .count { color: var(--hud-ink); }
+
+  /* The held item names itself for a moment when the selection changes, then gets out
+     of the way. A permanent label would be one more thing always on screen; a label
+     that appears exactly when the answer changed is the same information for free. */
+  #heldName {
+    position: fixed; left: 50%; bottom: 66px; transform: translateX(-50%);
+    z-index: 20; pointer-events: none; opacity: 0;
+    transition: opacity 420ms ease-out;
+    /* PHASE 29 — up one step, with weight, and with the tracking pulled in. Letter
+       spacing past about 2px at this size stops helping a monospace face and starts
+       breaking the word into separate glyphs the eye has to reassemble. */
+    font-size: var(--t-secondary); font-weight: 600; letter-spacing: 1.9px;
+    text-transform: uppercase;
+    color: var(--hud-ink); text-shadow: var(--hud-shadow); white-space: nowrap;
+  }
+  #heldName.show { opacity: 1; }
+
+  /* =================================================================================
+     PHASE 27 — THE VITALS. TWO READINGS THAT DO NOT LOOK ALIKE.
+
+     What stood here was a green-to-red bar with a brain emoji beside it and a red bar
+     with a heart beside it: two identical instruments in different colours, which is
+     exactly the generic RPG design the phase exists to remove. The replacement keeps
+     them apart on four axes at once, so they can never be mistaken for two readings of
+     the same kind of thing:
+
+       CONDITION   is DISCRETE, drawn in DOM, WARM, and still.
+                   Ticks you can count. Ten health per tick, so the endurance milestones
+                   add ticks rather than silently rescaling a bar — the body gets
+                   measurably longer, which is what those milestones actually did. It
+                   only moves when the player is hurt or healed.
+
+       PERCEPTION  is CONTINUOUS, drawn on a CANVAS, COOL, and alive.
+                   A signal traced against a rule. It carries no hue of its own and no
+                   number: what it reports is how steady the line is, and at the worst
+                   states the line starts losing pieces of itself and showing up where
+                   it is not. See UIManager._drawPerception.
+
+     They sit bottom-left, away from the objective, because instrumentation belongs at
+     the edge of the frame and the middle of the screen belongs to the world.
+     ================================================================================= */
+  #vitals {
+    position: fixed; left: 20px; bottom: 20px; z-index: 20; pointer-events: none;
+    display: flex; flex-direction: column; gap: 9px;
+  }
+  .vital { display: flex; align-items: center; gap: 10px; }
+  /* The captions are the smallest type on the screen and they sit over whatever the
+     world happens to be. At --hud-ink-faint they read fine at night and disappeared
+     entirely against sunlit grass in a real 1280x720 capture, so they carry the dim ink
+     and a doubled shadow instead. */
+  /* PHASE 29 — THE TWO WORDS THE PHASE 28 CAPTURE COULD NOT READ.
+
+     They were 9px, regular weight, dim ink, behind a 12px halo. Three of those four
+     things were working against the reader. They are now 11px at 700 with the tracking
+     pulled from 1.8px to 1.2px, in the full parchment ink rather than the dim one, over
+     a hard 1px contour instead of a halo. Still the smallest type in the interface,
+     still a caption rather than a heading — but a caption you read rather than decode. */
+  .vital-cap {
+    width: 88px; text-align: right; flex: none;
+    font-size: var(--t-label); font-weight: 700; letter-spacing: 1.2px;
+    color: var(--hud-ink);
+    text-shadow: var(--hud-shadow-hard);
+    transition: color 400ms linear, letter-spacing 400ms linear;
+  }
+
+  /* --- CONDITION ---------------------------------------------------------------- */
+  /* PHASE 29 — the ladder grew with its caption. 4x13 ticks read as a dotted line at a
+     glance; 5x16 read as something countable, which is the entire reason Phase 27 chose
+     ticks over a bar. The unlit value came up too: an unlit tick has to be visible or
+     the ladder's LENGTH — the thing the endurance milestones change — cannot be seen. */
+  #conditionTicks { display: flex; align-items: flex-end; height: 17px; }
+  .tick {
+    --f: 0;
+    --tick-lit: var(--hud-ink);
+    /* OPAQUE, AND MID-DARK. A translucent unlit tick composites with whatever is behind
+       it: over a dark interior that reads correctly as an empty socket, and over sunlit
+       grass it composites TOWARD the grass and ends up almost the same value as a lit
+       one — so at a glance the ladder had no reading at all in daylight, which is the one
+       question this instrument exists to answer. An opaque mid-dark value is darker than
+       parchment against grass and lighter than the HUD's ground against night, so the
+       ladder's length and its fill are both legible in either. Found in a bright capture;
+       a dark one looked fine throughout. */
+    --tick-off: #494334;
+    width: 6px; height: 16px; margin-right: 3px; flex: none;
+    background: linear-gradient(to top,
+      var(--tick-lit) 0 calc(var(--f) * 100%),
+      var(--tick-off) calc(var(--f) * 100%) 100%);
+    /* A contour on the SIDES ONLY, plus a drop.
+
+       The first attempt at this was a full `0 0 0 1px` ring, and the WebGL-free capture
+       (preview-hud-type.js) showed exactly why that is wrong: a 1px ring on every edge of
+       a 5px tick leaves a 3px interior, and over sunlit grass the row stopped reading as
+       ten filled bars and started reading as ten empty boxes. Over a dark interior it
+       looked fine, which is why only a bright capture could find it.
+
+       Left and right are where a tick actually meets the world; top and bottom meet the
+       next tick's own shadow. So the contour goes on the sides, the tick keeps its full
+       height, and it is 6px wide rather than 5 so the lit interior still dominates. */
+    box-shadow: -1px 0 0 rgba(0,0,0,0.62), 1px 0 0 rgba(0,0,0,0.62),
+                0 1px 2px rgba(0,0,0,0.88);
+  }
+  /* Every fifth tick opens a small gap, so the count reads at a glance instead of
+     having to be counted. */
+  .tick.g { margin-left: 5px; }
+
+  #vitals.hp-steady   .tick { --tick-lit: #cdc0a4; }
+  #vitals.hp-worn     .tick { --tick-lit: #c7a877; }
+  #vitals.hp-failing  .tick { --tick-lit: #c58a5c; }
+  #vitals.hp-critical .tick { --tick-lit: var(--hud-warn); }
+  #vitals.hp-critical .cap-cond { color: #a8604f; }
+  /* The warning is a slow breath on the few ticks that are left, not a flash on the
+     screen: readable in peripheral vision, and not tiring to play under. */
+  #vitals.hp-critical .tick.lit { animation: vitalBreath 1.7s ease-in-out infinite; }
+  @keyframes vitalBreath { 0%,100% { opacity: 1; } 50% { opacity: 0.42; } }
+  #vitals.hp-gone .tick { --tick-lit: #4a3a34; --tick-off: rgba(74,58,52,0.16); }
+  #vitals.hp-gone .vital-cap { color: #4a3a34; }
+
+  /* --- PERCEPTION --------------------------------------------------------------- */
+  /* PHASE 29 — the trace is 200x22 rather than 176x18, and its backing store is now
+     scaled to the display's device pixel ratio (see UIManager._fitCanvas). On a HiDPI
+     screen the old canvas was a 176px image stretched across 352 physical pixels, which
+     is a genuine blur rather than a perceived one — the one thing on this HUD that
+     really was soft. The DRAWING is untouched: _drawPerception still works in logical
+     units and draws the same picture. */
+  #perceptionTrace {
+    display: block; width: 200px; height: 22px; flex: none;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.9));
+  }
+  /* The caption itself comes loose at the last state. One property, no animation. */
+  #vitals.p-breaking .cap-perc { color: #7f7d6d; }
+  #vitals.p-lost     .cap-perc { color: #98988d; letter-spacing: 3px; }
+  /* =================================================================================
+     PHASE 27 — THE OBJECTIVE. A LINE, NOT A PANEL.
+
+     Phase 25 already reduced the objective to one line; it was still sitting inside a
+     bordered box with a heading, under which Phase 25's retired MISSION DIRECTIVES
+     checklist was hidden rather than removed. This phase removes the checklist markup
+     for good and removes the box around what is left. What remains is text against a
+     hairline: no panel, no fill, no title, nothing that reads as a quest tracker.
+
+     The status line beneath it is not an objective and does not pretend to be one. It
+     is the two or three facts the player would otherwise have to guess at — how long the
+     Anchor will burn, how far into the stage they are — set small, dim and separated by
+     middots, and each part disappears entirely when it has nothing to say.
+     ================================================================================= */
+  #objectivePanel {
+    position: fixed; top: 18px; left: 20px; z-index: 20; pointer-events: none;
+    width: clamp(190px, 22vw, 280px);
+  }
+  /* PHASE 29 — the primary step of the type scale, and the only element that gets it.
+     12.5px regular was readable if you looked at it; 15px at 600 is readable while you
+     are looking somewhere else, which is what an objective is for. Still one line
+     against a hairline: no panel, no title, no banner. */
+  #journeyStep {
+    display: none; font-size: var(--t-primary); font-weight: 600; line-height: 1.45;
+    color: var(--hud-ink); text-shadow: var(--hud-shadow);
+    padding-left: 12px; border-left: 1px solid var(--hud-rule);
+    letter-spacing: 0.2px;
+  }
+  #journeyStep.show { display: block; }
+  #journeyStep.done { color: var(--hud-ink-faint); text-decoration: line-through; }
+  /* The whole notification: the line arrives, lifting a few pixels while its rule holds
+     brass for a moment. No banner, no sound, no pause, nothing across the screen. */
+  #journeyStep.changed { animation: objArrive 1100ms ease-out 1; }
+  @keyframes objArrive {
+    0%   { opacity: 0; transform: translateY(-4px); border-left-color: var(--hud-brass); }
+    30%  { opacity: 1; border-left-color: var(--hud-brass); }
+    100% { opacity: 1; transform: none; border-left-color: var(--hud-rule); }
+  }
+  #hudStatus {
+    margin-top: 9px; padding-left: 12px;
+    font-size: var(--t-tertiary); letter-spacing: 1.2px;
+    color: var(--hud-ink-dim);
+    text-shadow: var(--hud-shadow-hard);
+  }
+  /* A middot only ever appears BETWEEN two parts that both have something to say. */
+  #hudStatus span:not(:empty) ~ span:not(:empty)::before { content: '\00a0\00b7\00a0'; }
+
+  /* PHASE 27 — the clock loses its plaque for the same reason everything else did. It
+     is the same reading, set in the HUD's own type at the top-right corner. */
+  #clockWrap {
+    position: fixed; top: 18px; right: 20px; z-index: 20; pointer-events: none;
+    display: flex; align-items: center; gap: 7px; color: var(--hud-ink-dim);
+    background: none; padding: 0; border: none;
+    font-size: var(--t-label); font-weight: 600; letter-spacing: 1.4px;
+    text-transform: uppercase;
+    text-shadow: var(--hud-shadow-hard);
+  }
+  #clockIcon { color: var(--hud-ink-dim); font-size: 15px; letter-spacing: 0; }
+  #phaseLabel { font-size: var(--t-label); letter-spacing: 1.4px; }
+
+  /* PHASE 20.2 — THE COMPASS. Deliberately the same material as #clockWrap: the same
+     panel fill, the same 2px border in the same brass, the same 4px radius, the same
+     parchment text colour. It is a second instrument on the same dashboard rather than
+     a new piece of UI language, which is most of why it does not read as a bolted-on
+     Minecraft item. It is a TAPE, not a dial — a strip of heading that slides behind a
+     fixed centre mark — because a tape answers "which way am I facing" in one glance
+     and, unlike a rotating needle, cannot be mistaken for something that POINTS AT a
+     destination. Requirement 8 turns on exactly that distinction. */
+  /* PHASE 27 — THE TAPE ITSELF IS UNTOUCHED. The instrument is not being redesigned;
+     only the frame around it is thinned to the hairline every other panel now uses, so
+     it stops being the heaviest object on the screen while remaining the same reading
+     in the same place. */
+  #compassWrap {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 20;
+    display: none; padding: 4px 7px 3px; color: var(--hud-ink);
+    background: rgba(12,10,7,0.34); border: 1px solid var(--hud-rule); border-radius: 2px;
+  }
+  #compassWrap.show { display: block; }
+  #compassTape { display: block; }
+
+  /* =================================================================================
+     PHASE 27 — THE INTERACTION PROMPT.
+
+     What the world offered used to arrive as a toast at the top of the screen reading
+     "Right-click to open", which put an instruction where announcements go and read as
+     sentence-case prose. This is the same information as an instrument label: a key
+     chip and a verb, sitting just above the hotbar where the hands are, appearing only
+     while something under the crosshair can actually be acted on.
+     ================================================================================= */
+  #interactPrompt {
+    position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%);
+    z-index: 20; pointer-events: none; opacity: 0;
+    transition: opacity 140ms linear;
+    display: flex; align-items: center; gap: 8px; white-space: nowrap;
+    /* PHASE 29 — the secondary step, with weight and tighter tracking. The prompt is
+       read in the half second before the key is pressed, so it has to resolve at a
+       glance; it moved from the dim ink to the full one for the same reason. */
+    font-size: var(--t-secondary); font-weight: 600; letter-spacing: 1.6px;
+    color: var(--hud-ink); text-shadow: var(--hud-shadow);
+  }
+  #interactPrompt.show { opacity: 1; }
+  #interactPrompt .key {
+    font-size: var(--t-label); font-weight: 700; letter-spacing: 1px; color: var(--hud-ink);
+    border: 1px solid rgba(120,104,72,0.55); border-radius: 2px; padding: 2px 6px;
+    background: rgba(12,10,7,0.72);
+    text-shadow: 0 1px 0 rgba(0,0,0,0.9);
+  }
+
+  /* =================================================================================
+     PHASE 27 — SMALL VIEWPORTS.
+
+     The HUD is laid out in relative and clamped units so it holds its shape as the
+     window changes; below these thresholds it also gives up the things that are nice
+     rather than necessary — the slot numbers, some caption width, some trace width —
+     rather than letting the strip and the objective collide.
+     ================================================================================= */
+  @media (max-width: 860px), (max-height: 620px) {
+    /* PHASE 29 — a small window gives up SPACE, not LEGIBILITY. Nothing here drops
+       below the 10px floor: what shrinks is the instrument geometry and the captions'
+       column, and the slot numeral — the one genuinely optional glyph — is dropped
+       outright rather than set at a size nobody could read. */
+    #objectivePanel { top: 14px; left: 14px; width: clamp(160px, 36vw, 250px); }
+    #journeyStep { font-size: 13.5px; }
+    #vitals { left: 14px; bottom: 14px; gap: 7px; }
+    .vital-cap { width: 74px; font-size: var(--t-tertiary); letter-spacing: 0.9px; }
+    #perceptionTrace { width: 150px; height: 19px; }
+    .tick { width: 5px; margin-right: 2px; height: 14px; }
+    .tick.g { margin-left: 4px; }
+    #conditionTicks { height: 15px; }
+    #hotbar { bottom: 12px; }
+    #hotbar .slot { width: 34px; height: 34px; }
+    #hotbar .slot .swatch { width: 20px; height: 20px; }
+    #hotbar .slot .num { display: none; }
+    #heldName { bottom: 54px; font-size: 11px; }
+    #interactPrompt { bottom: 76px; font-size: 11px; }
+    #clockWrap { top: 14px; right: 14px; }
+  }

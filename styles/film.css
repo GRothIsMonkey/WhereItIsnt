@@ -1,0 +1,107 @@
+/* =====================================================================================
+   THE OPENING FILM, AND TWO FULL-SCREEN EFFECTS
+   ERA 1.5.5 — EXTRACTED VERBATIM FROM game.html's SINGLE STYLE BLOCK.
+
+   The film wash, its two lines and its skip control. #vignetteFX and #jumpscareFlash
+   follow because they sat here in the original sheet and are the same kind of thing:
+   a full-screen layer the world is seen through.
+
+   ORDER IS THE CONTRACT, exactly as it is for the scripts. game.html declares the sheet
+   order and nothing else may; base.css first, then this file's position in that list is
+   part of its meaning. See ARCHITECTURE.md.
+   ===================================================================================== */
+
+  /* =================================================================================
+     PHASE 30 — THE OPENING FILM.
+
+     ONE OVERLAY, AND IT IS MOSTLY EMPTY. The film happens in the WORLD — the real scene,
+     the real camera, the real renderer — and this layer exists only to do the three
+     things a 3D scene cannot do for itself: wash to black, put two short lines on the
+     screen, and offer a way out. Everything else the player sees during those seventy
+     seconds is the game.
+
+     Z-INDEX 55 is the layer Phase 28 emptied when it deleted the tutorial screen, and it
+     is the right one: above the HUD (15) and the world, BELOW the settings panel (56) so
+     a player who opens settings mid-film gets the panel on top rather than under, and
+     below the opening instruction (60) which plays after this layer has already gone.
+
+     NOTHING HERE IS ANIMATED BY CSS. Every value is written by OpeningFilm from the frame
+     loop, because the film is advanced by dt rather than by timers — which is what lets
+     the settings panel genuinely pause it and what means there is nothing to leak. */
+  #openingFilm {
+    position: fixed; inset: 0; z-index: 55; display: none;
+    pointer-events: none;
+  }
+  #openingFilm.on { display: block; }
+  /* The wash. Opacity is assigned per frame; there is deliberately no transition on it,
+     or the film's own easing would be fighting the browser's. */
+  #filmWash { position: absolute; inset: 0; background: #000; opacity: 1; }
+  /* The two lines. Same treatment as the opening instruction they hand over to, so the
+     film and its closing beat read as one piece of writing rather than two. */
+  #filmLine {
+    position: absolute; left: 0; right: 0; bottom: 21vh; text-align: center;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(17px, 2.1vw, 23px); letter-spacing: 2.2px; color: #cbbc97;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.95), 0 0 26px rgba(0,0,0,0.85);
+    opacity: 0; padding: 0 8vw;
+  }
+  /* The way out. Small, quiet, bottom-right — an affordance, not a button. It is the one
+     thing on this layer that takes a pointer event. */
+  #filmSkip {
+    position: absolute; right: 26px; bottom: 22px;
+    display: flex; align-items: center; gap: 8px;
+    background: none; border: none; cursor: pointer; pointer-events: auto;
+    font-family: var(--ui-face); font-size: var(--t-label); font-weight: 600;
+    letter-spacing: 2.4px; color: var(--hud-ink-faint);
+    text-shadow: var(--hud-shadow); opacity: 0;
+    transition: color 200ms linear;
+  }
+  #filmSkip:hover, #filmSkip:focus-visible { color: var(--hud-ink); outline: none; }
+  #filmSkip .key {
+    font-size: var(--t-tertiary); font-weight: 700; letter-spacing: 1px;
+    border: 1px solid rgba(120,104,72,0.55); border-radius: 2px; padding: 2px 6px;
+    color: var(--hud-ink-dim); background: rgba(12,10,7,0.72);
+  }
+  /* PHASE 30 — the HUD is hidden for the film's duration by one class on its root,
+     restored by removing it. No element is rebuilt and no display value is remembered. */
+  #hud.film-hidden, #crosshair.film-hidden { display: none; }
+
+  /* PHASE 20.2 — THE OPENING INSTRUCTION.
+
+     THIS IS NOT THE PHASE 30 LORE FILM AND DOES NOT PRETEND TO BE. That film does not
+     exist yet; the roadmap builds it in Phase 30. What this is, is the film's FINAL
+     BEAT, authored now and deliberately self-contained, so Phase 30 can absorb it by
+     calling the same controller at the end of its own sequence.
+
+     Restraint is the whole treatment: black, near-silence, one line, a pause, one
+     shorter line, then gameplay. No panel, no border, no button, no icon, no "OBJECTIVE"
+     label. It should read as something remembered rather than something displayed.
+     PHASE 28 kept it exactly as authored: it is the opening's closing beat, not tutorial
+     content, and it says nothing about how to play. */
+  #openingInstruction {
+    position: fixed; inset: 0; z-index: 60; display: none;
+    align-items: center; justify-content: center;
+    background: #000; pointer-events: none;
+  }
+  #openingInstruction.on { display: flex; }
+  /* The recall variant: no backdrop, sitting low on the screen, over live gameplay. */
+  #openingInstruction.recall { background: transparent; align-items: flex-end; }
+  #openingLine {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 26px; letter-spacing: 2.5px; color: #cbbc97;
+    text-shadow: 0 0 18px rgba(0,0,0,0.95), 0 0 42px rgba(0,0,0,0.8);
+    opacity: 0; transition: opacity 900ms ease-in-out; text-align: center;
+    padding: 0 8vw;
+  }
+  #openingInstruction.recall #openingLine {
+    font-size: 19px; color: #b6a785; margin-bottom: 16vh;
+    transition: opacity 1500ms ease-in-out;
+  }
+  #openingLine.vis { opacity: 1; }
+
+  #vignetteFX { position: fixed; inset: 0; pointer-events: none; z-index: 12; mix-blend-mode: normal; }
+
+  #jumpscareFlash {
+    position: fixed; inset: 0; background: radial-gradient(circle, #ffffff 0%, #7a0000 60%, #000000 100%);
+    opacity: 0; pointer-events: none; z-index: 30; transition: opacity 0.05s linear;
+  }

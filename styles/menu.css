@@ -1,0 +1,263 @@
+/* =====================================================================================
+   THE MAIN MENU AND THE WIN SCREEN
+   ERA 1.5.5 — EXTRACTED VERBATIM FROM game.html's SINGLE STYLE BLOCK.
+
+   One landscape with words in its sky, and the screen that borrows its shape when a
+   run ends. Includes both small-viewport queries that tune them.
+
+   ORDER IS THE CONTRACT, exactly as it is for the scripts. game.html declares the sheet
+   order and nothing else may; base.css first, then this file's position in that list is
+   part of its meaning. See ARCHITECTURE.md.
+   ===================================================================================== */
+
+  /* =================================================================================
+     PHASE 29 — THE MAIN MENU.
+
+     WHAT STOOD HERE. A bordered card floating on a red-and-orange radial glow, with
+     brass corner brackets, an eyebrow reading A SURVIVAL HORROR EXPEDITION, a 56px
+     gradient title with an animated orange bloom, a subtitle reading A COZY WORLD. AN
+     UNKIND NIGHT., a divider rule, two 3px-bordered buttons flickering on a two-second
+     loop, and fifty-five ember particles drifting up the screen. Every one of those is
+     a survival-game convention, and together they promised a different game than the
+     one behind them.
+
+     WHAT IT IS NOW. A place, seen from a distance, with words over it. There is no card
+     and no frame: the composition IS the landscape, and the title sits in its sky. The
+     brass is spent on one thing — the control the keyboard has focused — and everything
+     else is the parchment ink the HUD already reads in, so the menu and the game are
+     visibly made of the same material.
+
+     THE RULE THE WHOLE SCREEN IS BUILT ON: nothing here may be the loudest thing in the
+     room. The scene is dark enough to read text over without a scrim, the title is
+     bright but not lit, the buttons are rules and letterforms rather than boxes, and
+     everything that moves does so slowly enough that a still frame and a moving one look
+     the same. See MenuAtmosphere for what actually moves.
+     ================================================================================= */
+  #startScreen, #winScreen {
+    position: fixed; inset: 0; background: #05060a; z-index: 50;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--hud-ink); text-align: center; overflow: hidden;
+  }
+  /* The fallback ground under the canvas: a cold night rather than a warm ember glow.
+     If the canvas never paints (a context refused, a very early frame) this is still a
+     dark horizon and not a black rectangle. */
+  #startScreen {
+    background:
+      radial-gradient(ellipse 1200px 420px at 50% 74%, rgba(38,44,58,0.55), transparent 70%),
+      linear-gradient(180deg, #05060a 0%, #080a10 46%, #0b0d12 66%, #05060a 100%);
+  }
+  /* PHASE 29 DEFECT FIX — `inset: 0` DOES NOT STRETCH A CANVAS.
+
+     `<canvas>` is a REPLACED element, and an absolutely-positioned replaced element with
+     `width: auto` resolves to its INTRINSIC size and then honours only one of the two
+     offsets — it does not stretch between them the way a div does. The ember canvas this
+     replaced carried exactly this rule and was therefore 300x150 for its whole life:
+     measured at 300x150 in Chromium on the Phase 28 build, which means the start screen's
+     particles only ever drifted inside a small box in the top-left corner and nobody
+     noticed, because they were faint and the background was a gradient anyway.
+
+     A scene that IS the background cannot survive that, so the size is stated explicitly.
+     Found by browser-menu.js, which measures the canvas against the window rather than
+     trusting the rule. */
+  #menuScene {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 1; display: block;
+  }
+
+  /* PHASE 29 — THE GRAIN. One repeating gradient at 3% over the whole screen, drifting
+     on a 47-second cycle so it never reads as a static texture and never reads as an
+     effect either. It is CSS, so it costs the compositor and not the main thread, and
+     there is no second animation loop anywhere on this screen. */
+  #menuGrain {
+    position: absolute; inset: -30px; z-index: 2; pointer-events: none; opacity: 0.30;
+    background-image:
+      radial-gradient(rgba(255,255,255,0.055) 0.5px, transparent 0.6px),
+      radial-gradient(rgba(0,0,0,0.09) 0.5px, transparent 0.6px);
+    background-size: 3px 3px, 5px 5px;
+    background-position: 0 0, 1px 2px;
+    animation: menuGrainDrift 47s steps(9, end) infinite;
+  }
+  @keyframes menuGrainDrift {
+    0%   { background-position: 0 0, 1px 2px; }
+    100% { background-position: 27px 15px, 26px 32px; }
+  }
+  /* A vignette, so the corners of the frame are darker than its middle and the eye is
+     led to the title without anything having to glow. */
+  #startScreen::after {
+    content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+    background: radial-gradient(ellipse 104% 92% at 50% 44%, transparent 46%, rgba(2,3,5,0.72) 100%);
+  }
+
+  /* PHASE 29 — the block is lifted off centre so the title and the entries sit in the
+     SKY, above the tree line, rather than across it. The first capture had NEW GAME
+     printed over the treetops and it read as clutter; a menu entry needs empty ground
+     behind it or the letterforms fight the silhouette. */
+  #startScreen .start-content {
+    position: relative; z-index: 4;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 0 24px; max-width: 92vw;
+    margin-bottom: 15vh;
+  }
+  #winScreen { display: none; background: rgba(6, 4, 2, 0.95); z-index: 60; }
+
+  /* PHASE 29 — THE TITLE.
+
+     It is not lit and it is not gradient-filled. It is one weight of parchment ink with
+     a hard dark contour, the same treatment as everything else the player reads in this
+     game — which is what stops it looking like a store page and starts it looking like
+     something printed on the world.
+
+     THE IMPERFECTION IS ONE LETTER. `.t-off` is the apostrophe's neighbour, nudged a
+     third of a pixel out of its line and half a shade darker: at a glance the word is
+     correct, and if you actually look at it the T is not quite where the others are.
+     No scramble, no glitch, no distortion — the title is always readable, and the
+     wrongness is something you find rather than something you are shown. */
+  #startScreen h1, #winScreen h1 {
+    font-size: clamp(30px, 6.4vw, 62px);
+    letter-spacing: clamp(6px, 1.5vw, 15px);
+    margin: 0 0 18px 0; font-weight: 700;
+    color: var(--hud-ink);
+    text-shadow: 0 1px 0 #000, 0 -1px 0 #000, 1px 0 0 #000, -1px 0 0 #000,
+                 0 0 26px rgba(198,206,222,0.13), 0 6px 26px rgba(0,0,0,0.9);
+    white-space: nowrap;
+  }
+  #startScreen h1 .t-off {
+    display: inline-block; transform: translateY(0.035em); color: #b6ac93;
+    animation: titleSettle 23s ease-in-out infinite;
+  }
+  /* Once every 23 seconds it very nearly joins the rest of the word, then does not. */
+  @keyframes titleSettle {
+    0%, 88%, 100% { transform: translateY(0.035em); }
+    93%           { transform: translateY(0); }
+  }
+
+  #startScreen .sub, #winScreen .sub {
+    font-size: 12px; letter-spacing: 4.5px; color: var(--hud-ink-dim);
+    text-shadow: var(--hud-shadow); margin-bottom: 40px;
+  }
+
+  /* =================================================================================
+     PHASE 35 — THE WIN SCREEN'S HEADLINE IS NOT THE MENU'S, AND IT WAS WEARING ITS
+     CLOTHES.
+
+     The h1 rule above is Phase 29's. It is sized (up to 62px), tracked (up to 15px) and
+     `white-space: nowrap`'d for the FOUR WORDS of the title, and the nowrap is
+     load-bearing there: WHERE IT ISN'T must never break across two lines.
+
+     The win screen borrows the same element and puts up to twenty-seven characters in
+     it. Measured in Chromium at 1280x720, "THE HOLLOWED BEHEMOTH FALLS" laid out about
+     1400px wide inside a container with `overflow: hidden`, so it was CUT OFF AT BOTH
+     EDGES — the T and the S were simply not on screen. That screen is the boss victory,
+     which every playthrough passes through, and it is the one place the game announces
+     the thing the whole first dimension has been building to.
+
+     So the win screen gets a headline sized for its own words: same face, same colour,
+     same shadow token, one step down the scale, allowed to wrap, and held inside a
+     gutter at every width. Nothing about the start screen's title changes.
+     ================================================================================= */
+  #winScreen { padding: 24px 20px; }
+  #winScreen h1 {
+    font-size: clamp(20px, 3.4vw, 40px);
+    letter-spacing: clamp(3px, 0.7vw, 9px);
+    white-space: normal;
+    max-width: min(92vw, 900px);
+    line-height: 1.28;
+  }
+  #winScreen .sub { max-width: min(92vw, 760px); line-height: 1.7; }
+  #winScreen .action-btn {
+    max-width: min(92vw, 620px);
+    white-space: normal; line-height: 1.4;
+  }
+  @media (max-width: 560px) {
+    #winScreen .action-btn { font-size: 15px; padding: 12px 20px; letter-spacing: 2px; }
+    #winScreen .sub { letter-spacing: 3px; }
+  }
+
+  /* PHASE 29 — THE CONTROLS.
+
+     No boxes. A menu entry is a word, a hairline under it, and enough space around it to
+     be a target — which reads as an inscription rather than a web form, and cannot be
+     mistaken for the game's own brass-marked hotbar. Four states, and none of them is
+     colour alone: hover and focus both brighten the word AND grow the rule AND shift the
+     entry two pixels right; pressed drops it back; disabled loses the rule entirely and
+     stops responding to the pointer. */
+  .menu-actions { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .menu-btn {
+    position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    min-width: 250px; padding: 13px 26px 12px;
+    background: none; border: none; border-radius: 0;
+    font-family: inherit; font-size: 16px; letter-spacing: 5px; font-weight: 600;
+    color: var(--hud-ink-dim); text-shadow: var(--hud-shadow);
+    cursor: pointer;
+    transition: color 200ms linear, transform 200ms ease-out, letter-spacing 200ms linear;
+  }
+  .menu-btn::after {
+    content: ''; position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%);
+    width: 26px; height: 1px; background: var(--hud-rule);
+    transition: width 240ms ease-out, background-color 200ms linear;
+  }
+  .menu-btn:hover, .menu-btn:focus-visible {
+    color: var(--hud-ink); outline: none; transform: translateX(2px);
+  }
+  .menu-btn:hover::after, .menu-btn:focus-visible::after {
+    width: 84px; background: var(--hud-brass);
+  }
+  /* Keyboard focus says so twice: the rule the pointer also gets, plus a bracket to its
+     left that the pointer never gets. Focus and hover must not be indistinguishable. */
+  .menu-btn:focus-visible { color: var(--hud-ink); }
+  .menu-btn:focus-visible::before {
+    content: '\2503'; position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+    color: var(--hud-brass); font-size: 13px; line-height: 1;
+  }
+  .menu-btn:active { transform: translateX(2px) translateY(1px); color: var(--hud-ink-dim); }
+  .menu-btn[disabled], .menu-btn[aria-disabled="true"] {
+    color: var(--hud-ink-faint); cursor: default; pointer-events: none; transform: none;
+  }
+  .menu-btn[disabled]::after, .menu-btn[aria-disabled="true"]::after { background: transparent; }
+  /* CONTINUE names the run it would resume, on its own line, quietly. */
+  .menu-btn .menu-note {
+    font-size: 9.5px; letter-spacing: 1.6px; font-weight: 400;
+    color: var(--hud-ink-faint); text-transform: uppercase;
+  }
+  .menu-btn:hover .menu-note, .menu-btn:focus-visible .menu-note { color: var(--hud-ink-dim); }
+
+  /* PHASE 29 — the legend is a FOOTNOTE now, pinned to the bottom edge of the screen
+     rather than sitting inside the composition. It is the four things Phase 28 kept
+     because no in-world prompt can reach them, and it is deliberately the quietest text
+     on the page: the game teaches its verbs, this only names the keys that have no
+     surface to point at. */
+  #startScreen .controls {
+    position: absolute; left: 0; right: 0; bottom: 22px; z-index: 4;
+    font-size: 10px; letter-spacing: 1.6px; line-height: 2.1;
+    color: var(--hud-ink-faint); text-shadow: var(--hud-shadow);
+  }
+
+  .action-btn {
+    font-size: 20px; padding: 14px 32px; letter-spacing: 3px;
+    background: #2a2114; color: #ffcf6b; border: 3px solid #6b5a3c; cursor: pointer;
+    font-family: inherit; position: relative;
+    transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  }
+  .action-btn:hover { background: #3a2e1c; border-color: #ffcf6b; transform: translateY(-1px); }
+  .link-btn {
+    margin-top: 18px; background: none; border: none; color: #8a7a58; font-family: inherit;
+    font-size: 11px; letter-spacing: 2px; cursor: pointer; text-decoration: underline;
+    text-underline-offset: 3px; transition: color 0.2s;
+  }
+  .link-btn:hover { color: #ffcf6b; }
+
+  /* PHASE 29 — SHORT WINDOWS. The menu gives up the legend and some breathing room
+     before it gives up the title or a button, because a menu you cannot read the title
+     of is broken and a menu with no keyboard legend is merely quieter. */
+  @media (max-height: 560px) {
+    #startScreen h1 { font-size: clamp(26px, 5vw, 40px); margin-bottom: 10px; }
+    #startScreen .sub { margin-bottom: 22px; font-size: 11px; letter-spacing: 3px; }
+    #startScreen .start-content { margin-bottom: 6vh; }
+    .menu-btn { padding: 9px 26px 8px; font-size: 15px; }
+    #startScreen .controls { display: none; }
+  }
+  @media (max-width: 560px) {
+    #startScreen h1 { letter-spacing: 4px; }
+    .menu-btn { min-width: 0; width: min(78vw, 260px); font-size: 15px; letter-spacing: 3.5px; }
+    #startScreen .controls { font-size: 9px; letter-spacing: 1px; padding: 0 10px; }
+  }

@@ -1,0 +1,99 @@
+/* =====================================================================================
+   BASE — THE DOCUMENT, THE CANVAS, AND THE TWO TOKEN SETS
+   ERA 1.5.5 — EXTRACTED VERBATIM FROM game.html's SINGLE STYLE BLOCK.
+
+   Every colour, face, shadow and size the rest of the interface is built from.
+   It must load FIRST: every other sheet reads these custom properties.
+
+   ORDER IS THE CONTRACT, exactly as it is for the scripts. game.html declares the sheet
+   order and nothing else may; base.css first, then this file's position in that list is
+   part of its meaning. See ARCHITECTURE.md.
+   ===================================================================================== */
+
+  /* =================================================================================
+     PHASE 29 — THE FACE, AND WHY IT CHANGED.
+
+     Everything in this game was set in Courier New. The Phase 28 capture showed the
+     result at gameplay size: CONDITION and PERCEPTION were legible only on purpose, and
+     the whole interface read as slightly out of focus. It was not a blur — nothing here
+     is blurred — it was the typeface. Courier New is a TYPEWRITER face: its stems are
+     hairlines by design, its x-height is small, and its sidebearings are wide. At the
+     8-10px the HUD was using, a hairline stem lands on a fraction of a pixel, the
+     rasteriser spreads it across two, and the letter arrives grey instead of light.
+     Putting a glow behind it (which the HUD did) makes that worse, not better.
+
+     The identity was never Courier New, it was MONOSPACE — an instrument face, a
+     typewritten record. So the stack keeps the monospace and drops the one face in it
+     that cannot hold a stem at this size. Every platform's own UI mono comes first
+     (SF Mono, Cascadia Mono, Segoe UI Mono), then the ones that are actually installed
+     everywhere (Menlo, Consolas, DejaVu Sans Mono, Liberation Mono). All of them have
+     real stem weight at 10px. `monospace` is last and Courier New is not in the list.
+
+     `font-synthesis: none` matters more than it looks: without it a browser with no bold
+     cut of the chosen face SMEARS the regular one to fake bold, which is exactly the
+     softness this phase exists to remove. If a real bold is unavailable the text stays
+     regular and sharp instead. */
+  :root {
+    --ui-face: ui-monospace, 'SF Mono', SFMono-Regular, 'Cascadia Mono', 'Segoe UI Mono',
+               'Roboto Mono', Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace;
+  }
+  html, body {
+    margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; background: #000;
+    font-family: var(--ui-face);
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  #gameCanvas { display: block; width: 100vw; height: 100vh; }
+
+  /* =================================================================================
+     PHASE 27 — HUD REBIRTH. ONE SET OF TOKENS FOR THE WHOLE INTERFACE.
+
+     Before this phase the HUD was five unrelated widgets: a red bar, a green-to-red
+     bar with an emoji beside it, a bordered quest panel, nine bordered slots and a
+     brass instrument cluster. Only the last of those looked like this game. The tokens
+     below are that cluster's palette — the settings panel's dark ground, the compass's
+     brass, the parchment ink the HUD already read in — promoted to the whole interface
+     so every element is made of the same material.
+
+     Colour is spent, not sprinkled. Parchment carries everything ordinary; brass marks
+     the one thing selected; the single warning colour is reserved for a body that is
+     nearly finished. Perception is deliberately given NO hue of its own — see #vitals.
+     ================================================================================= */
+  :root {
+    --hud-ink:       #cdc0a4;   /* parchment: anything the player reads */
+    --hud-ink-dim:   #8d8168;   /* secondary readouts */
+    --hud-ink-faint: #5e5442;   /* captions and rules — present, not addressed */
+    --hud-rule:      #453b2a;   /* hairlines */
+    --hud-ground:    rgba(12, 10, 7, 0.42);
+    --hud-brass:     #c8a24a;   /* selection, and nothing else */
+    --hud-warn:      #bf5a4a;   /* a failing body, and nothing else */
+    /* PHASE 29 — A HARD OUTLINE, NOT A GLOW.
+
+       This used to be a 2px drop and a 10px halo. A halo behind small text does not add
+       contrast, it adds a grey cloud the same shape as the letters, which the eye reads
+       as softness — the second half of why the Phase 28 capture looked out of focus.
+       What replaces it is four one-pixel shadows: a genuine 1px dark contour that stays
+       exactly one pixel wide however bright the terrain behind it is, plus one short
+       drop for depth. Sharp over sunlit grass, sharp over a night interior. */
+    --hud-shadow:    0 1px 0 rgba(0,0,0,0.92), 0 -1px 0 rgba(0,0,0,0.82),
+                     1px 0 0 rgba(0,0,0,0.82), -1px 0 0 rgba(0,0,0,0.82),
+                     0 2px 3px rgba(0,0,0,0.75);
+    /* The same contour at full strength, for text that has to survive the brightest
+       thing in the game. Used by the two instrument captions and the status line, which
+       sit lowest on the screen and therefore over the most terrain. */
+    --hud-shadow-hard: 0 1px 0 #000, 0 -1px 0 #000, 1px 0 0 #000, -1px 0 0 #000,
+                       0 0 4px rgba(0,0,0,0.85), 0 2px 4px rgba(0,0,0,0.8);
+
+    /* PHASE 29 — THE HUD TYPE SCALE. Four steps, and nothing invents its own size.
+         primary      the objective: the one line that says what to do
+         secondary    what is in front of you, and what is in your hand
+         label        instrument captions — CONDITION, PERCEPTION, the clock
+         tertiary     counts and supporting readouts
+       "Minimal" is not "tiny". The smallest step is 10px, which is the smallest size
+       this face holds a countable stroke at. Nothing in the HUD goes below it. */
+    --t-primary:   15px;
+    --t-secondary: 12px;
+    --t-label:     11px;
+    --t-tertiary:  10px;
+  }
