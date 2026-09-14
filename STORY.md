@@ -2157,6 +2157,492 @@ landmarks where meaningful
 narrative relationships
 
 emotional beats
+NEW ADDIOTION IMPORTANT! 
+# NEW CANONICAL CREATIVE ADDITIONS — ERA 2 STORY / HORROR DESIGN
+
+The following decisions are now canonical additions to the Story Bible. They expand the existing canon; they do not replace the core record/reconstruction premise.
+
+## Dimension 1 — Shattered Farmlands: final authored landmark structure
+
+The final Era 2 Farmlands journey is an authored sequence of seven major landmark beats. The goal is substantial exploration without repetitive “another creepy building” design.
+
+Current landmark sequence:
+
+1. Farm Compound + Water Tower
+2. Schoolhouse
+3. Electrical Substation
+4. Rural Church
+5. Abandoned Motel
+6. Abandoned Grain Elevator
+7. Ordinary Barn containing the hidden route into the impossible elevator system
+
+The sequence should feel like a continuous journey through one increasingly disturbing rural region.
+
+Landmarks must remain materially distinct from one another in architecture, atmosphere, story function, and horror function.
+
+## Farmlands — Grain Elevator
+
+Landmark 6 is an enormous abandoned grain elevator complex.
+
+It is:
+- visibly enormous from far away
+- heavily deteriorated but still standing
+- partially collapsed
+- filled with industrial machinery and large storage spaces
+- partly inaccessible because of structural collapse
+- capable of creating both large-scale and claustrophobic spaces
+
+Deep inside is a huge vertical shaft with no visible bottom.
+
+The player hears:
+- rattling from below
+- movement from deep in the shaft
+- industrial/mechanical sounds
+
+The player investigates and discovers a cage containing a completely new creature.
+
+This creature is not the Stalker, not the Hollowed Behemoth, and not the final creature.
+
+The creature is severely cramped into a cage that is clearly much too small for its body.
+
+It should be ambiguous whether:
+- it is rapidly growing and has outgrown the cage
+- or it was deliberately forced into a cage far too small for it
+
+The creature is massive, muscular, humanoid in broad structure, but physically unnatural and incomplete in places.
+
+When the player approaches:
+- it immediately notices the player
+- it violently throws itself against the cage
+- its head turns toward the player while its body remains severely constrained
+
+The cage is visibly and intentionally bolted into the concrete.
+
+A machine connected to the cage can be activated.
+
+When it reacts to the machine, the creature violently breaks free.
+
+It shoves the scientist/handler down the shaft and immediately runs away.
+
+It does not pursue the player.
+
+It runs with obvious purpose, as if it knows where it needs to go.
+
+This is the player's first indication that another major entity exists beyond the Farmlands horror already established.
+
+## Grain Elevator Scientist
+
+A visibly unstable scientist/handler may be encountered at the cage.
+
+The scientist:
+- records observations
+- checks the creature
+- notices damage to the containment
+- operates equipment connected to the cage
+
+The scientist should not become a lore-dump character.
+
+The player's important takeaway is behavioral and visual:
+someone was deliberately studying and containing this creature.
+
+When the creature escapes, the scientist is shoved into the shaft and later cannot be accounted for.
+
+The game should not cleanly explain what happened to the scientist afterward.
+
+## Farmlands — Landmark 7
+
+Landmark 7 is deliberately mundane on the surface:
+
+an ordinary rural barn.
+
+It should not look like a giant underground facility from outside.
+
+Something in the world tells the player this is the final Farmlands destination and that they need to get inside and hide.
+
+The barn contains a progression puzzle that uses physical objects and knowledge gathered from earlier Farmlands landmarks.
+
+The player must already have obtained the required progression pieces before the objective system allows the player to leave those earlier landmarks. The final barn puzzle must therefore never require arbitrary backtracking.
+
+The puzzle should combine:
+- physical objects gathered earlier
+- symbols discovered earlier
+- knowledge gathered through exploration
+- relationships between earlier landmarks
+
+The mechanism reveals:
+- a diagram showing how the objects fit together
+- a map fragment revealing the underground structure
+- a strange combined symbol
+- information connected to an elevator
+- evidence that the underground structure cannot physically fit beneath the barn
+
+Once solved, part of the barn floor folds back and reveals an enormous concrete stairwell descending into darkness.
+
+The stairwell:
+- is much deeper than the barn should physically allow
+- is older than the barn
+- contains distant industrial sounds
+- contains an elevator system far below
+
+The player eventually reaches an enormous underground elevator chamber.
+
+This elevator system becomes the physical bridge between dimensions.
+
+## Farmlands → Suburbia transition
+
+The D1 final chase is:
+
+1. The player leaves Landmark 6 and heads toward Landmark 7.
+2. Something is heard behind them.
+3. The player turns.
+4. The cage creature is already chasing them.
+5. The player turns forward and runs.
+6. Nothing is ahead.
+7. The player turns back.
+8. The creature is gone.
+9. The player turns forward again.
+10. The creature is suddenly directly in front of them.
+11. A massive authored jumpscare occurs.
+12. A full physical chase begins toward Landmark 7.
+13. The player reaches the barn and escapes inside.
+14. The entrance closes behind them.
+
+This is the major physical horror climax of the Farmlands.
+
+## Dimension 2 — Static Suburbia
+
+Static Suburbia remains the second-generation reconstruction of the same underlying place.
+
+Its physical and emotional progression is now explicitly:
+
+perfect preserved suburb
+→ subtle aging
+→ dirt and deterioration
+→ structural damage
+→ spreading cracks
+→ collapsing streets and houses
+→ exposure of what lies beneath
+→ complete collapse into the route toward The Below
+
+The beginning of Suburbia should be beautiful, liminal, empty, and nostalgic.
+
+It is not an inhabited suburb.
+
+There are no normal residents.
+
+There are no active families.
+
+There is no functioning neighborhood society.
+
+It feels like a preserved memory of a suburb after all people have vanished.
+
+The world should contain:
+- beautiful pastel or warm suburban architecture
+- manicured lawns
+- preserved houses
+- cars that remain where they were left
+- domestic objects
+- empty streets
+- natural ambience
+- subtle static
+
+The static should begin subtly and become increasingly significant.
+
+## Static Suburbia recognition horror
+
+Suburbia must clearly connect back to Farmlands.
+
+The player should encounter recognizable echoes such as:
+- repeated objects
+- Farmlands objects in impossible suburban contexts
+- familiar road relationships
+- photographs
+- symbols
+- architectural similarities
+- evidence that locations from Farmlands are being remembered and reproduced here
+
+Recognition should lead the player to discover:
+
+“This is the same place.”
+
+Do not announce this directly through exposition.
+
+## Static Suburbia — progression purpose
+
+The player enters Suburbia with a concrete goal:
+find a way deeper.
+
+The player must gather:
+- important survival supplies
+- progression items/components
+- information needed to operate the route downward
+
+The objective system must ensure required items are obtained before advancement past previous locations so the player never needs arbitrary backtracking.
+
+Progression should feel like uncovering a real route rather than collecting generic keys.
+
+## The escaped cage creature in Suburbia
+
+The creature encountered in the Grain Elevator is the same entity present in Static Suburbia.
+
+Do not treat it as a separate unrelated monster.
+
+The player gradually realizes that the creature escaped from D1 and deliberately made its way toward Suburbia.
+
+Its behavior in Suburbia follows:
+
+observation
+→ positioning
+→ interception
+→ pursuit
+→ cornering
+
+It does not behave like the Stalker.
+
+It belongs in the neighborhood.
+
+It is not simply wandering around looking for random victims.
+
+It appears to be searching for a destination or route deeper into the world.
+
+This creates an important player realization:
+
+the creature is going somewhere.
+
+The player is trying to get deeper for answers.
+
+The creature is trying to get deeper for reasons the player does not understand.
+
+Their paths increasingly converge.
+
+## Static Suburbia — major authored horror sequence
+
+Near the end of D2, the player reaches a very large suburban home.
+
+The home is important to progression.
+
+The player finds the final object/component needed to access the route toward The Below.
+
+Immediately after obtaining it:
+
+- all lights shut off
+- doors and windows shut and lock
+- the house becomes a survival space
+- the player hears the Suburbia entity inside the house
+
+The player must hide and evade the creature throughout the large house.
+
+The sequence uses:
+- real hiding locations
+- multiple floors
+- multiple rooms
+- sound awareness
+- player movement noise
+- doors
+- silence
+- uncertainty about the creature's location
+
+The creature may enter areas where the player is hiding.
+
+The player can hide and survive temporarily.
+
+The creature may disappear from audible range entirely.
+
+The player should never feel completely certain where it is.
+
+There is ONE major authored jumpscare during this sequence.
+
+The intended authored scare is:
+
+The player hides in a closet.
+
+The creature searches the bedroom.
+
+The creature eventually leaves.
+
+The player waits.
+
+The house becomes quiet.
+
+The player eventually leaves the closet.
+
+The hallway appears empty.
+
+The player begins moving away.
+
+A small sound occurs behind them.
+
+They turn.
+
+The creature is standing farther down the hallway.
+
+It does not move.
+
+A light flickers.
+
+It is suddenly much closer.
+
+Another flicker.
+
+Closer again.
+
+Another flicker.
+
+The creature is suddenly extremely close to the camera.
+
+Massive audio/visual impact.
+
+Hard cut / disruption.
+
+Do not dilute this with multiple cheap jumpscares.
+
+The scare should be authored, rare, and memorable.
+
+## Static Suburbia — final deterioration
+
+After the house sequence, Suburbia begins visibly failing.
+
+The player continues toward the center of the reconstruction.
+
+The deterioration progresses deliberately:
+
+- colors fade
+- houses become dirty
+- paint peels
+- vegetation worsens
+- structures become damaged
+- sidewalks crack
+- roads crack
+- cracks widen
+- houses collapse
+- road sections begin separating
+- enormous depths appear beneath the streets
+
+The cracks should become so deep that the player cannot see the bottom.
+
+The player begins seeing impossible structures far below.
+
+The player eventually realizes the cracks are exposing The Below.
+
+## Giant Water Tower callback
+
+At the center of Static Suburbia is an enormous version of the same Water Tower associated with Farmlands Landmark 1.
+
+It towers over the entire neighborhood.
+
+Its red warning light remains unexplained.
+
+The light blinks in an increasingly stressful/frantic pattern.
+
+The tower becomes increasingly cracked and damaged.
+
+Its legs disappear into the enormous cracks beneath it.
+
+Water may leak from high above despite no understandable source.
+
+The escaped cage creature's tracks lead toward the Water Tower.
+
+This is a major visual and narrative connection between D1 and D2.
+
+## Static Suburbia collapse
+
+The final Suburbia collapse should not feel like a generic explosion or portal.
+
+The neighborhood should physically disappear downward.
+
+The process is:
+
+- houses sink
+- streets sink
+- objects sink
+- everything around the player descends
+- the Water Tower remains upright while the neighborhood disappears
+- the sky and horizon remain visually stable
+- the player is eventually left standing on a remaining piece of road
+- the Water Tower finally sinks
+- the player sees that there was never normal ground beneath it
+
+The purpose is to communicate that the reconstruction itself is being removed.
+
+## Elevator connection to The Below
+
+The elevator discovered beneath the Farmlands barn is not merely a one-time D1 transport device.
+
+It is the physical system that connects the reconstructed layers.
+
+In D2, the player eventually discovers the same elevator system beneath the collapsing Suburbia.
+
+The elevator is therefore the actual bridge:
+
+Farmlands
+→ elevator
+→ Static Suburbia
+→ collapsing Suburbia
+→ elevator
+→ The Below
+
+Do not make the D2 → D3 transition a generic fall or portal.
+
+The player should reach another section of the elevator system exposed beneath Suburbia.
+
+The same mechanical language returns.
+
+The same elevator logic returns.
+
+The same impossible descent returns.
+
+The nostalgic music may briefly return, then become warped and unrecognizable.
+
+The player hears the escaped cage creature moving somewhere else in the elevator system ahead of them.
+
+The elevator keeps descending after the controls stop showing recognizable symbols.
+
+The doors eventually open extremely slowly and ominously into The Below.
+
+## D2 → D3 emotional progression
+
+D2 should end with:
+
+“I know this is the same place.”
+
+then:
+
+“This reconstruction is failing.”
+
+then:
+
+“The thing from Farmlands is already going deeper.”
+
+then:
+
+“I have to go deeper too.”
+
+The player should enter The Below understanding where they are going, but not understanding why this place exists or what the deeper horror ultimately means.
+
+## D3 relationship
+
+The Below must remain the strongest horror chapter.
+
+Static Suburbia builds anticipation rather than attempting to become the ultimate horror experience.
+
+D2's horror is:
+“It knows where I am.”
+
+D3's horror is:
+“I was never supposed to be here.”
+
+The Below should escalate into:
+- helplessness
+- claustrophobia
+- sensory threat
+- impossible architecture
+- extreme scale contrast
+- spaces that cannot physically fit together
+- survival inside broken space
+
+Do not turn D2 or D3 into conventional monster-lore campaigns.
+
+The central mystery remains stronger than explanation.
 
 entity concepts
 
