@@ -297,7 +297,36 @@ else {
       'src/dimensions/farmlands/generation.js':    17,
       'src/dimensions/finale/scene.js':             1,  // the finale's own scene root
     };
+    /* ERA 1.5.4 — THE SAME MECHANISM, FOR THE APPLICATION LAYER.
+
+       `core/` and `persistence/` were declared THREE-free when they held a settings
+       object and a table of schema constants. They now hold the COMPOSITION ROOT, and a
+       composition root constructs the render stack — that is what makes it the
+       composition root. Banning it outright would be a lie about what Game is; deleting
+       the rule would let a settings table start building meshes unnoticed.
+
+       So, exactly as 1.5.3 did for the world: the ban stands by default and is lifted
+       file by file, by name, under a ceiling measured on this build. Each entry says what
+       the references ARE, because a budget without a reason is just a bigger number.
+
+       These are the ones Era 1.5.5 should reduce: when `rendering/` becomes a real layer
+       and owns the renderer, the scene and the camera, game.js's five should fall to
+       roughly zero. A CEILING MAY FALL. IT MAY NEVER RISE. */
+    const APP_BUDGET = {
+      'src/core/game.js':                  { THREE: 5, BLOCK: 4 },
+      //  THREE: WebGLRenderer, PCFSoftShadowMap, Scene, PerspectiveCamera, Clock — the
+      //         render stack the composition root builds. 1.5.5's to move.
+      //  BLOCK: the starter torch, and the lantern/anchor test in the light bookkeeping.
+      'src/core/dev-tools.js':             { THREE: 4 },
+      //  THREE: Vector3 destinations for the developer teleports.
+      'src/persistence/save-lifecycle.js': { THREE: 1, BLOCK: 2 },
+      //  THREE: one Vector3, the fallback spawn saveFallbackSpawn returns.
+      //  BLOCK: BLOCK.AIR twice, in findSafeLanding's headroom test. (`persistence` does
+      //         not forbid BLOCK, so this pair is recorded rather than exempted.)
+    };
+
     const threeSeen = {};
+    const appSeen = {};
     let violations = 0;
     for (const u of units) {
       if (u.name === 'game.html:script') continue;
@@ -305,22 +334,44 @@ else {
       const declared = FORBIDDEN[layer];
       if (!declared) { chk(false, `${u.name} is in an unknown layer — add it to ARCHITECTURE.md §1`); continue; }
       const budgeted = Object.prototype.hasOwnProperty.call(WORLD_GEOMETRY_BUDGET, u.name);
-      const rules = declared.filter(r => !(r === 'THREE' && budgeted));
+      const app = APP_BUDGET[u.name] || null;
+      const rules = declared.filter(r =>
+        !(r === 'THREE' && budgeted) && !(app && Object.prototype.hasOwnProperty.call(app, r)));
       const hit = [];
       let threeCount = 0;
+      const appCount = {};
       walk.full(u.ast, (n) => {
         if (PROBE.THREE(n)) threeCount++;
+        if (app) for (const k of Object.keys(app)) if (PROBE[k](n)) appCount[k] = (appCount[k] || 0) + 1;
         for (const r of rules) if (PROBE[r](n) && hit.indexOf(r) < 0) hit.push(r);
       });
       if (budgeted) threeSeen[u.name] = threeCount;
+      if (app) appSeen[u.name] = appCount;
       if (hit.length) violations++;
       chk(hit.length === 0,
-          `${u.name} touches none of: ${rules.join(', ')}` +
+          `${u.name} touches none of: ${rules.join(', ') || '(nothing left to forbid)'}` +
           (budgeted ? ` (THREE budgeted: ${threeCount}/${WORLD_GEOMETRY_BUDGET[u.name]})` : '') +
+          (app ? ` (budgeted: ${Object.keys(app).map(k => k + ' ' + (appCount[k] || 0) + '/' + app[k]).join(', ')})` : '') +
           (hit.length ? `  — VIOLATES: ${hit.join(', ')}` : ''));
     }
     chk(violations === 0,
         `all ${units.length - 1} extracted modules obey their layer's dependency rule`);
+
+    /* THE APPLICATION BUDGET IS AUDITED IN BOTH DIRECTIONS TOO. */
+    {
+      let over = 0, stale = 0;
+      for (const name of Object.keys(APP_BUDGET)) {
+        if (!appSeen[name]) { stale++; continue; }
+        for (const k of Object.keys(APP_BUDGET[name]))
+          if ((appSeen[name][k] || 0) > APP_BUDGET[name][k]) over++;
+      }
+      chk(stale === 0,
+          'every file the application budget names still exists — no stale exemption' +
+          (stale ? ` — ${stale} gone; delete the entry` : ''));
+      chk(over === 0,
+          `and none of the ${Object.keys(APP_BUDGET).length} application files is over its ceiling` +
+          (over ? ` — ${over} over` : ''));
+    }
 
     /* THE BUDGET IS AUDITED IN BOTH DIRECTIONS. An entry that no longer matches a file is
        a stale exemption, and a stale exemption is a hole. */
@@ -551,6 +602,194 @@ console.log('\n=== 4c. THE WORLD-ENGINE / DIMENSION-CONTENT SEAM (ERA 1.5.3) ===
       (contentInWorld.length ? ' — FOUND: ' + contentInWorld.join(', ') : ''));
 }
 
+console.log('\n=== 4d. THE APPLICATION SEAM (ERA 1.5.4) ===\n');
+
+/* WHY THIS SECTION IS NOT OPTIONAL.
+
+   Under classic scripts, moving `Game` into its own file costs nothing and proves nothing.
+   Every top-level name in the build still shares one global lexical scope, so Game can
+   still reach anything it could reach before, and no diff would ever show it. A directory
+   layout is not a boundary — this section is.
+
+   What it does is make Game's dependency surface DECLARED. Every name Game reaches from
+   outside its own file is listed below, attributed to the file that declares it. A new
+   hidden dependency fails here. So does a stale one. That is what "the same-script
+   dependencies have been addressed" can honestly mean in a build with no imports. */
+{
+  const seam = require('./harness/app-seam.js').analyseAppSeam(ROOT);
+
+  /* ---- 1. GAME LEFT THE MONOLITH ---- */
+  chk(seam.gameFile === 'src/core/game.js' && !seam.gameInInline,
+      `Game is declared in ${seam.gameFile} and not in game.html (${seam.members.length} methods)`);
+
+  /* ---- 2. THE DEPENDENCY MANIFEST ----
+
+     This is the list Era 1.5.5 shrinks. Everything under `game.html:script` is a symbol
+     Game reaches that has not been extracted yet — twenty of them are the subsystem
+     classes the composition root constructs (PlayerController, UIManager, SoundEngine and
+     the rest), which 1.5.4 deliberately did NOT swallow, and the remainder are tables that
+     travel with them. Everything under a `src/` path is a dependency that is now a real
+     module rather than a coincidence of file order. */
+  const GAME_DEPENDS_ON = {
+    'game.html:script': ['AnchorMonumentManager', 'ArrowManager', 'AshParticleSystem', 'EnvironmentStorySystem', 'EnvironmentSystem', 'FARM_J_LINE', 'FARM_P', 'FarmAnimalManager', 'FinalSequence', 'HAVEN_ENDING_FROM', 'HAVEN_SHIFT_SECONDS', 'INVENTORY_SIZE', 'ItemEntityManager', 'MOB_CAP_BASE', 'MOB_CAP_MAX', 'MOB_CAP_PER_STAGE', 'MainMenu', 'MobManager', 'ObjectiveSystem', 'OpeningFilm', 'OpeningInstruction', 'PROGRESSION_MILESTONES', 'PROGRESSION_MILESTONE_IDS', 'PhantomHallucinator', 'PlayerController', 'PostFX', 'SanitySystem', 'SoundEngine', 'StalkerAI', 'UIManager', 'buildBlockAtlas', 'farmJourneyOrd', 'farmlandsBiomeAt', 'havenDissolveAt', 'havenStageAt'],
+    'src/audio/audio-tables.js': ['AUDIO_INDOOR_SETTLE', 'AUDIO_TRANSPORT_BLOCKED'],
+    'src/core/game.js': ['Game'],                 // its own name, in a `new Game()` guard
+    'src/core/settings.js': ['GameSettings', 'SETTINGS_STORAGE_KEY', 'isDocumentFullscreen', 'safeLocalStorage'],
+    'src/dimensions/dimension-registry.js': ['DIMENSION'],
+    'src/gameplay/onboarding-cues.js': ['ONBOARDING_CUE_IDS'],
+    'src/persistence/save-lifecycle.js': ['SaveSystem', 'captureWorldState', 'defaultSaveState', 'describeSaveState', 'findSafeLanding', 'restoreWorldState', 'saveFallbackSpawn'],
+    'src/persistence/save-schema.js': ['SAVE_VERSION'],
+    'src/shared/items-catalog.js': ['ITEM'],
+    'src/world/block-catalog.js': ['BLOCK'],
+    'src/world/voxel-world.js': ['VoxelWorld'],
+    'src/world/world-constants.js': ['CHUNK_SX', 'CHUNK_SZ', 'SEA_LEVEL'],
+  };
+  {
+    const declared = new Set();
+    for (const f of Object.keys(GAME_DEPENDS_ON)) for (const n of GAME_DEPENDS_ON[f]) declared.add(n);
+    const actual = new Set(seam.outbound.map(o => o.name));
+    const added = [...actual].filter(n => !declared.has(n));
+    const gone = [...declared].filter(n => !actual.has(n));
+    chk(added.length === 0,
+        `Game reaches ${actual.size} names outside its own file, and every one is in the manifest` +
+        (added.length ? ` — UNDECLARED: ${added.join(', ')}` : ''));
+    chk(gone.length === 0,
+        'and the manifest has no stale entry — a dependency that went away is deleted from it' +
+        (gone.length ? ` — STALE: ${gone.join(', ')}` : ''));
+
+    /* Each name is attributed to the file that declares it, so a dependency cannot
+       silently change owner underneath the manifest. */
+    let misfiled = 0;
+    for (const o of seam.outbound) {
+      const home = GAME_DEPENDS_ON[o.from];
+      if (!home || home.indexOf(o.name) < 0) misfiled++;
+    }
+    chk(misfiled === 0,
+        'and each one is declared by the file the manifest says it is' +
+        (misfiled ? ` — ${misfiled} moved without the manifest being updated` : ''));
+  }
+
+  /* THE NUMBER THAT MUST FALL. A ceiling, in the ratchet's usual direction. */
+  const MONOLITH_DEPS_CEILING = 35;
+  {
+    const still = seam.outbound.filter(o => o.from === 'game.html:script');
+    const inModules = seam.outbound.filter(o => o.from.startsWith('src/'));
+    chk(still.length <= MONOLITH_DEPS_CEILING,
+        `${still.length} of Game's dependencies are still in the monolith (ceiling ` +
+        `${MONOLITH_DEPS_CEILING}) and ${inModules.length} are real modules — 1.5.5 moves the rest`);
+    console.log(`      host surface: ${seam.host.map(h => h[0] + ' ' + h[1]).join(', ')}`);
+  }
+
+  /* ---- 3. THE INBOUND SURFACE ----
+
+     What the rest of the build is allowed to reach on a Game instance. It is small on
+     purpose: the composition root hands each subsystem the things it needs (scene, world,
+     sound, ui, camera) rather than handing it the whole application, which is why this
+     list is five fields and one method rather than fifty. */
+  const INBOUND_ALLOWED = {
+    sound: 1, world: 1, ui: 1, player: 1, camera: 1,   // fields handed down
+    _triggerClimax: 1,                                  // the one method called back into
+  };
+  {
+    const bad = seam.inbound.filter(i => !Object.prototype.hasOwnProperty.call(INBOUND_ALLOWED, i.member));
+    const touched = [...new Set(seam.inbound.map(i => i.member))].sort();
+    chk(bad.length === 0,
+        `the rest of the build reaches ${touched.length} things on a Game: ${touched.join(', ')}` +
+        (bad.length ? ` — NOT ALLOWED: ${[...new Set(bad.map(b => b.owner + '.' + b.member))].join(', ')}` : ''));
+    const methods = [...new Set(seam.inbound.filter(i => i.isMethod).map(i => i.member))];
+    chk(methods.length === 1 && methods[0] === '_triggerClimax',
+        'and exactly one Game METHOD is called from outside Game: _triggerClimax(), by the ' +
+        'finale' + (methods.length === 1 ? '' : ` — ALSO: ${methods.join(', ')}`));
+  }
+
+  /* ---- 4. WHO HOLDS A GAME ----
+
+     Four subsystems are handed the application itself. Naming them is the point: a fifth
+     is a design decision, not a convenience, because every one of them is a place the
+     dependency direction runs backwards. */
+  {
+    const HOLDERS = ['EnvironmentStorySystem', 'FinalSequence', 'OpeningFilm', 'MainMenu'];
+    const src = fs.readFileSync(path.join(ROOT, 'game.html'), 'utf8');
+    const assigns = [];
+    const re = /^\s*this\.game = game\b/gm;
+    let m;
+    while ((m = re.exec(src))) {
+      const line = src.slice(0, m.index).split('\n').length;
+      let owner = '?';
+      const before = src.slice(0, m.index);
+      const k = before.lastIndexOf('\nclass ');
+      if (k >= 0) owner = before.slice(k + 7).split(/[\s{]/)[0];
+      assigns.push(owner);
+    }
+    const unexpected = assigns.filter(a => HOLDERS.indexOf(a) < 0);
+    chk(assigns.length === HOLDERS.length && unexpected.length === 0,
+        `exactly ${HOLDERS.length} subsystems are handed the Game itself: ${HOLDERS.join(', ')}` +
+        (unexpected.length ? ` — ALSO: ${unexpected.join(', ')}` : '') +
+        (assigns.length !== HOLDERS.length ? ` — found ${assigns.length}` : ''));
+  }
+
+  /* ---- 5. THE ENGINE'S BACK DOOR IS SHUT, AND STAYS SHUT ----
+
+     VoxelWorld._playDoorSound reads `this.game && this.game.sound` as a fallback. Nothing
+     in the build assigns `game` on a world, so that branch has never once been taken — it
+     is a door in the engine that has never opened. Era 1.5.4 did not delete the two tokens
+     (voxel-world.js is 1.5.3's file and this is not the Game boundary); it asserts instead
+     that nobody ever wires it up, which is the half that actually matters. */
+  {
+    const files = [path.join(ROOT, 'game.html')].concat(
+      seam.moduleFiles.map(f => path.join(ROOT, f)));
+    const wired = [];
+    for (const f of files) {
+      const txt = fs.readFileSync(f, 'utf8');
+      const re = /\b(world|this\.world|voxelWorld)\s*\.\s*game\s*=/g;
+      if (re.test(txt)) wired.push(path.relative(ROOT, f));
+    }
+    chk(wired.length === 0,
+        'nothing in the build assigns `game` on a world — the engine never reaches back up' +
+        (wired.length ? ` — WIRED IN: ${wired.join(', ')}` : ''));
+  }
+
+  /* ---- 6. GAME OWNS THE GAMEPLAY FRAME LOOP ----
+
+     requestAnimationFrame appears in several classes, and that is fine: a fade, a menu
+     canvas and a one-shot mob animation each drive their own. What may exist only once is
+     the loop that ticks the WORLD. `_animate` is that loop. */
+  {
+    const gameSrc = fs.readFileSync(path.join(ROOT, 'src/core/game.js'), 'utf8');
+    const others = [path.join(ROOT, 'game.html')].concat(
+      seam.moduleFiles.filter(f => f !== 'src/core/game.js').map(f => path.join(ROOT, f)));
+    const elsewhere = others.filter(f => /requestAnimationFrame\s*\(\s*(this\.)?_animate/.test(fs.readFileSync(f, 'utf8')));
+    const inGame = (gameSrc.match(/requestAnimationFrame\(this\._animate\)/g) || []).length;
+    chk(inGame > 0 && elsewhere.length === 0,
+        `the world's frame loop is scheduled from Game and nowhere else (${inGame} sites)` +
+        (elsewhere.length ? ` — ALSO FROM: ${elsewhere.map(f => path.relative(ROOT, f)).join(', ')}` : ''));
+    chk(/_loopRunning/.test(gameSrc),
+        'and it is latched, so the two paths that both need it running cannot start two loops');
+  }
+
+  /* ---- 7. ONE ORCHESTRATOR, CONSTRUCTED ONCE ---- */
+  {
+    const files = [path.join(ROOT, 'game.html')].concat(seam.moduleFiles.map(f => path.join(ROOT, f)));
+    let news = 0; const where = [];
+    for (const f of files) {
+      const n = (fs.readFileSync(f, 'utf8').match(/new Game\s*\(/g) || []).length;
+      if (n) { news += n; where.push(path.relative(ROOT, f) + '×' + n); }
+    }
+    chk(news === 1 && /game\.html/.test(where[0]),
+        `the application is constructed exactly once, by the bootstrap in game.html (${where.join(', ')})`);
+  }
+
+  /* ---- 8. THE BOOTSTRAP IS THE LAST THING IN THE FILE, AND IT IS SMALL ---- */
+  {
+    const last = seam.inlineTop[seam.inlineTop.length - 1];
+    chk(last && last.type === 'ExpressionStatement' && last.lines <= 15,
+        `the inline script ends with the bootstrap, ${last ? last.lines : '?'} lines of it — ` +
+        'construct the application, publish the console handles, nothing else');
+    console.log(`      game.html inline <script>: ${seam.inlineTop.length} top-level statements ` +
+                'still to come out in 1.5.5 and after');
+  }
+}
+
 console.log('\n=== 5. THE BOUNDARIES THAT ARE ALREADY CLEAN, AND MUST STAY CLEAN ===\n');
 
   chk(R('AudioDirector', 'WebAudio') === 0,
@@ -604,13 +843,21 @@ console.log('\n=== 5. THE BOUNDARIES THAT ARE ALREADY CLEAN, AND MUST STAY CLEAN
   const CONTENT_DIM_READERS = {
     'src/dimensions/haven/stampers.js':       1,   // corruptHaven, guarding on inFakeHaven
     'src/dimensions/suburbia/generation.js':  2,
+    /* ERA 1.5.4 moved the two biggest readers out of the monolith with the code they
+       belong to. Not one reference was added: Game's 47 and the developer console's 33
+       were already there, in game.html, counted against the same ceiling. Game is the
+       largest single reader in the build and that is exactly why 1.5.4 did NOT try to
+       redesign dimension state — see ARCHITECTURE.md §9.5. Deleting the booleans is still
+       the next phase's job, and these two entries go with them. */
+    'src/core/game.js':                      47,
+    'src/core/dev-tools.js':                 33,
   };
   const inlineDim = dimFlagFiles['game.html:script'] || 0;
   const contentDim = Object.keys(CONTENT_DIM_READERS)
     .reduce((a, f) => a + (dimFlagFiles[f] || 0), 0);
   chk(inlineDim + contentDim <= CEILING.dimensionFlagRefs,
       `dimension-flag references outside the translator: ${inlineDim} in the monolith + ` +
-      `${contentDim} in moved content = ${inlineDim + contentDim} ` +
+      `${contentDim} in extracted modules = ${inlineDim + contentDim} ` +
       `(ceiling ${CEILING.dimensionFlagRefs}) — three booleans on the player, and P0-2 ` +
       'says do not add a fourth');
 
@@ -624,14 +871,14 @@ console.log('\n=== 5. THE BOUNDARIES THAT ARE ALREADY CLEAN, AND MUST STAY CLEAN
   const otherReaders = Object.keys(dimFlagFiles)
     .filter(f => f !== 'game.html:script' && allowedDimReaders.indexOf(f) < 0);
   chk(otherReaders.length === 0,
-      `and the only extracted modules that read them are the translator plus ${Object.keys(CONTENT_DIM_READERS).length} ` +
-      'moved content files, named above' +
+      `and the only extracted modules that read them are the translator plus the ` +
+      `${Object.keys(CONTENT_DIM_READERS).length} named above` +
       (otherReaders.length ? ` — ALSO READ BY: ${otherReaders.join(', ')}` : ''));
   let dimOver = 0;
   for (const f of Object.keys(CONTENT_DIM_READERS))
     if ((dimFlagFiles[f] || 0) > CONTENT_DIM_READERS[f]) dimOver++;
   chk(dimOver === 0,
-      'and neither of those two grew a new read — a moved dependency may shrink, never grow');
+      'and not one of them grew a new read — a moved dependency may shrink, never grow');
   chk((dimFlagFiles[DIM_TRANSLATOR] || 0) > 0,
       'which does read them — it is the translation point Era 1.5.4 deletes the rest through');
 
