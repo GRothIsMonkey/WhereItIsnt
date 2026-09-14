@@ -285,6 +285,7 @@
 <script src="src/world/world-content.js"></script>
 <script src="src/dimensions/dimension-generators.js"></script>
 <script src="src/world/voxel-world.js"></script>
+<script src="src/world/sanity-world-view.js"></script>
 <script src="src/dimensions/shared/stampers.js"></script>
 <script src="src/dimensions/overworld/generation.js"></script>
 <script src="src/dimensions/overworld/stampers.js"></script>
@@ -4930,9 +4931,19 @@ class ItemEntityManager {
    --------------------------------------------------------------------------------- */
 const HOTBAR_SIZE = 9, BACKPACK_SIZE = 27, INVENTORY_SIZE = HOTBAR_SIZE + BACKPACK_SIZE;
 
+/* ERA 1.5.6, CUT C — AN INVENTORY DOES NOT KNOW THE HUD EXISTS.
+
+   It used to hold a UIManager and call updateHotbarSelection() from seven places, so that
+   a pure data structure — slots, counts, stacking — was a HUD caller. Every one of those
+   seven was REDUNDANT: Game._animate pushes the hotbar unconditionally once a frame, and
+   player.update(dt) runs 324 lines earlier in the same frame, so nothing was repainted a
+   frame sooner for having been pushed from in here. The four early returns in _animate
+   (the climax, the win screen, the settings pause, the opening film) are all states in
+   which the world is not simulating and no slot can change.
+
+   The constructor takes no argument now. Do not give it one back. */
 class Inventory {
-  constructor(ui) {
-    this.ui = ui;
+  constructor() {
     this.slots = Array(INVENTORY_SIZE).fill(null).map(() => ({ item: ITEM.NONE, count: 0 }));
   }
 
@@ -4945,7 +4956,6 @@ class Inventory {
         slot.count += add;
         count -= add;
         if (count <= 0) {
-          if (this.ui) this.ui.updateHotbarSelection();
           return true;
         }
       }
@@ -4958,12 +4968,10 @@ class Inventory {
         slot.count = add;
         count -= add;
         if (count <= 0) {
-          if (this.ui) this.ui.updateHotbarSelection();
           return true;
         }
       }
     }
-    if (this.ui) this.ui.updateHotbarSelection();
     return count === 0;
   }
 
@@ -4991,7 +4999,6 @@ class Inventory {
         }
       }
     });
-    if (this.ui) this.ui.updateHotbarSelection();
     return true;
   }
 
@@ -5004,7 +5011,6 @@ class Inventory {
         slot.item = ITEM.NONE;
         slot.count = 0;
       }
-      if (this.ui) this.ui.updateHotbarSelection();
       return true;
     }
     return false;
@@ -5019,7 +5025,6 @@ class Inventory {
     const item = slot.item;
     slot.count -= take;
     if (slot.count <= 0) { slot.item = ITEM.NONE; slot.count = 0; }
-    if (this.ui) this.ui.updateHotbarSelection();
     return { item, count: take };
   }
 
@@ -5029,7 +5034,6 @@ class Inventory {
     const tmp = this.slots[a];
     this.slots[a] = this.slots[b];
     this.slots[b] = tmp;
-    if (this.ui) this.ui.updateHotbarSelection();
   }
 
   hasItem(itemType) {
@@ -10481,7 +10485,7 @@ class PlayerController {
     this.reach = 6;
     this.raycaster = new THREE.Raycaster();
 
-    this.inventory = new Inventory(this.ui);
+    this.inventory = new Inventory();
     this.selectedSlot = 0;
 
     this.breakProgress = 0;
@@ -10505,10 +10509,11 @@ class PlayerController {
     this.invulnTimer = 0;      // brief i-frames after taking damage
     this.dead = false;
 
-    // Dimension state
-    this.inFarmlands = false; // Level 2 — The Shattered Farmlands
-    this.inSuburbia = false;  // Level 3 — Static Suburbia
-    this.inFakeHaven = false; // Level 4 — The Fake Haven
+    /* DIMENSION STATE — ERA 1.5.6 CUT A. One writable field holding a STABLE ID, plus
+       `inFarmlands` / `inSuburbia` / `inFakeHaven` as read-only getters over it. The
+       booleans read exactly as they always did; assigning one is now a TypeError. Every
+       write goes through setPlayerDimension(). See src/dimensions/dimension-descriptors.js. */
+    definePlayerDimensionState(this);
 
     // LEVEL 4 — ILLUSION SEQUENCE MOVEMENT LOCK (PHASE 5A PART 3). Set true the
     // instant the Level 3 Rift Core Disk is picked up, held through the fade-to-white
@@ -10602,8 +10607,7 @@ class PlayerController {
       return;
     }
 
-    this.inFarmlands = false;
-    this.inSuburbia = false;
+    setPlayerDimension(this, DIMENSION.OVERWORLD);
     this.position.copy(this.spawnPosition);
     this._snapToGround();
     if (this.ui) this.ui.updateVitals(this);
@@ -12299,22 +12303,33 @@ class AshParticleSystem {
   }
 }
 
+/* ERA 1.5.6, CUTS B AND C — WHAT THIS SYSTEM IS ALLOWED TO KNOW.
+
+   It used to hold the VoxelWorld and the HUD. It holds neither now.
+
+   THE WORLD became `SanityWorldView` (src/world/sanity-world-view.js): five read-only
+   queries, three of which used to be reads straight into the voxel engine's light map,
+   sky-column walk and torch collection. Era 2 replaces that one file and this system
+   does not change. tests/architecture.js fails if SanitySystem names a world member again.
+
+   THE HUD went the other way. Sanity is a VALUE; painting it is the frame loop's job,
+   and the frame loop already pushes vitals, the hotbar and the phase that way. Pushing
+   from in here made a horror system a HUD caller for no benefit — the value it pushed was
+   read back out of `this.value` one line later by everything else that wanted it.
+
+   NOT ONE RATE, FLOOR, THRESHOLD OR RADIUS CHANGED. Phase 36's Suburbia curve, the
+   day-phase floor, the torch bonus, the darkness drain and the Stalker term are all
+   exactly as they were; only where the numbers come FROM, and who paints the result. */
 class SanitySystem {
-  constructor(env, world, uiManager) {
+  constructor(env, worldView) {
     this.env = env;
-    this.world = world;
-    this.ui = uiManager;
+    this.world = worldView;
     this.value = 100.0;
     this.lightLevel = 15; // exposed for the Darkness Whispers spatial audio cue
   }
 
   nearestTorchDistance(pos) {
-    let best = Infinity;
-    for (const light of this.world.torchLights.values()) {
-      const d = light.position.distanceTo(pos);
-      if (d < best) best = d;
-    }
-    return best;
+    return this.world.nearestLightSourceDistance(pos);
   }
 
   // LEVEL 3 — STATIC SUBURBIA SANITY DRAIN (PHASE 5A PART 2): Suburbia has no
@@ -12365,7 +12380,6 @@ class SanitySystem {
     if (this.value > floor) delta = -(accelerating ? STATIONARY_DRAIN : BASE_DRAIN);
     else delta = accelerating ? 0 : RECOVER;
     this.value = Math.max(0, Math.min(100, this.value + delta * dt));
-    this.ui.setSanity(this.value);
   }
 
   update(dt, playerPos, stalkerDistance, isDay) {
@@ -12377,20 +12391,19 @@ class SanitySystem {
     // (15) rather than whatever the local baked skylight value happens to read.
     // This is a deliberate floor on top of the skylight bake fix below, so Day 1
     // outdoors can never dip Sanity even if some other system misreports light.
-    const onSurface = isDay && py > 30 && this.world.hasSkyAbove(px, py, pz);
+    const onSurface = isDay && py > 30 && this.world.hasOpenSkyAbove(px, py, pz);
     if (onSurface) {
       this.lightLevel = 15;
-      this.ui.setSanity(this.value);
       return;
     }
 
-    const safeZone = this.world.anchorManager && this.world.anchorManager.isInsideSafeZone(playerPos);
+    const safeZone = this.world.isInsideSafeZone(playerPos);
     // PHASE 4B — Soul Anchor: a placed Soul Anchor opens a 15-unit zone that halts
     // Sanity decay (the low-light drain and the Stalker-proximity drain below),
     // without granting the Anchor Monument's stronger +10/sec regen.
-    const soulZone = this.world.isInsideSoulAnchorZone && this.world.isInsideSoulAnchorZone(playerPos);
+    const soulZone = this.world.isInsideSoulAnchorZone(playerPos);
     const nearTorch = this.nearestTorchDistance(playerPos) <= 6;
-    const lightLevel = this.world.getLightWorld(px, py, pz);
+    const lightLevel = this.world.lightLevelAt(px, py, pz);
     this.lightLevel = lightLevel;
     let delta = 0;
 
@@ -12406,12 +12419,10 @@ class SanitySystem {
     }
 
     this.value = Math.max(0, Math.min(100, this.value + delta * dt));
-    this.ui.setSanity(this.value);
   }
 
   drain(amount) {
     this.value = Math.max(0, this.value - amount);
-    this.ui.setSanity(this.value);
   }
 
   get fraction() { return this.value / 100; }

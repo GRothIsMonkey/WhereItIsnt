@@ -168,20 +168,90 @@ const SAVEABLE_DIMENSION_NAMES = Object.freeze(
     return acc;
   }, {}));
 
-/* TRANSLATION FROM THE LEGACY STATE, for the phase that removes it.
+/* =====================================================================================
+   WHERE THE PLAYER IS — ERA 1.5.6, CUT A
+   =====================================================================================
 
-   The running game still keeps dimension identity as three booleans on the player
-   (hotspot P0-2). This reads them and answers with a descriptor. It is NOT wired into
-   gameplay — Era 1.5.4 owns that change — but it is the shape the replacement takes, and
-   having it here means 1.5.4 deletes call sites rather than inventing semantics.
+   WHAT THIS REPLACED. Dimension identity was three independent booleans on the player:
+   `inFarmlands`, `inSuburbia`, `inFakeHaven`. 116 references, 81 reads and 35 writes over
+   six owners. Four things were wrong with that shape and all four are gone now:
 
-   Note the precedence: the Haven wins, then Suburbia, then the Farmlands. That is the
-   order the existing branches use, and two flags true at once is a state the booleans
-   can represent and a descriptor cannot. */
+     1. THE OVERWORLD WAS THE ABSENCE OF EVIDENCE. "All three false" is not a statement
+        that the player is in the Overworld; it is the same value a half-initialised
+        object has. There was no way to say "somewhere else" and no way to be wrong
+        loudly.
+     2. TWO-TRUE WAS REPRESENTABLE. Nothing stopped `inSuburbia && inFakeHaven`, and the
+        eight readers resolved it by testing in different orders. A bug there would have
+        read as a generator misfiring, not as a state error.
+     3. WRITES WERE PARTIAL. `this.player.inFarmlands = true` on the Level 1 -> 2 crossing
+        set one of three and trusted the other two. Correct today because of where it sat
+        in the sequence; not correct by construction.
+     4. A FOURTH DIMENSION COST A FOURTH BOOLEAN — and 116 sites of re-reading. THE BELOW
+        is canon (STORY.md), planned in DIMENSION_PLAN, and was priced at a refactor.
+
+   WHAT IT IS NOW. ONE writable field, `player.dimension`, holding a STABLE ID. The three
+   booleans survive as DERIVED, READ-ONLY accessors, which is the whole reason this cut
+   was safe to make: all 81 reads kept working untouched, and only the 12 write sites
+   changed. A boolean that cannot be assigned cannot drift from the field it describes.
+
+   NO SAVE-FILE VALUE MOVED. No stableId renumbered, no `saveName` changed, no
+   `creativeNumber` touched, and the save still stores the saveName STRING it always did.
+   Schema stays v5.
+
+   ADDING A DIMENSION IS NOW A DESCRIPTOR ROW. Give it a stableId and a saveName; if it
+   wants a legacy boolean for old call sites, name one in PLAYER_DIMENSION_FLAG. It does
+   not need one — nothing new should have one. */
+
+/* Which legacy boolean, if any, reads true for a given stable id. The Overworld
+   deliberately has NO flag: it was never represented by one, and inventing
+   `inOverworld` now would re-create the thing this cut removed. */
+const PLAYER_DIMENSION_FLAG = Object.freeze({
+  [DIMENSION.FARMLANDS]:  'inFarmlands',
+  [DIMENSION.SUBURBIA]:   'inSuburbia',
+  [DIMENSION.FAKE_HAVEN]: 'inFakeHaven',
+});
+
+const PLAYER_DIMENSION_FLAG_NAMES = Object.freeze(
+  Object.keys(PLAYER_DIMENSION_FLAG).map(id => PLAYER_DIMENSION_FLAG[id]));
+
+/* Install dimension state on a player. Called ONCE, from the PlayerController
+   constructor. `dimension` is an ordinary writable field; the three legacy booleans are
+   getters over it with NO setter, so an assignment is a TypeError in strict mode rather
+   than a silent divergence. They are non-enumerable for the same reason every other
+   derived view in this build is: nothing should serialise them. */
+function definePlayerDimensionState(player) {
+  player.dimension = DIMENSION.OVERWORLD;
+  for (const id of Object.keys(PLAYER_DIMENSION_FLAG)) {
+    const flag = PLAYER_DIMENSION_FLAG[id];
+    const want = Number(id);
+    Object.defineProperty(player, flag, {
+      get() { return this.dimension === want; },
+      enumerable: false,
+      configurable: false,
+    });
+  }
+  return player;
+}
+
+/* THE ONE WRITE PATH. Every crossing, every load and every developer teleport comes
+   through here, which is what makes the state total instead of a set of three
+   independent assignments that happened to agree. */
+function setPlayerDimension(player, stableId) {
+  if (!player) return null;
+  const d = DIMENSION_DESCRIPTORS[stableId];
+  if (!d) {
+    throw new Error('setPlayerDimension: ' + stableId + ' is not a stable dimension id. ' +
+      'Stable ids are DIMENSION.*; creative numbers (D1, D2, D3) are a different thing — ' +
+      'see the note at the top of this file.');
+  }
+  player.dimension = d.stableId;
+  return d;
+}
+
+/* WHERE IS THE PLAYER. One question, one answer, never two flags to reconcile.
+   The name is 1.5.2's and is kept so its call sites did not have to change; what it
+   reads is now the field rather than the booleans. */
 function dimensionOfPlayerFlags(player) {
   if (!player) return DIMENSION_DESCRIPTORS[DIMENSION.OVERWORLD];
-  if (player.inFakeHaven) return DIMENSION_DESCRIPTORS[DIMENSION.FAKE_HAVEN];
-  if (player.inSuburbia)  return DIMENSION_DESCRIPTORS[DIMENSION.SUBURBIA];
-  if (player.inFarmlands) return DIMENSION_DESCRIPTORS[DIMENSION.FARMLANDS];
-  return DIMENSION_DESCRIPTORS[DIMENSION.OVERWORLD];
+  return DIMENSION_DESCRIPTORS[player.dimension] || DIMENSION_DESCRIPTORS[DIMENSION.OVERWORLD];
 }

@@ -57,7 +57,10 @@ class Game {
 
     this.env = new EnvironmentSystem(this.scene, this.renderer);
     this.ashParticles = new AshParticleSystem(this.scene); // Level 2 — Ashen Forest cinder flakes
-    this.sanity = new SanitySystem(this.env, this.world, this.ui);
+    /* ERA 1.5.6 CUT B — Sanity is handed a five-query VIEW of the world, not the world,
+       and not the HUD. See src/world/sanity-world-view.js. */
+    this.sanityWorldView = new SanityWorldView(this.world);
+    this.sanity = new SanitySystem(this.env, this.sanityWorldView);
     this.stalker = new StalkerAI(this.scene, this.world, this.sound, this.ui);
     this.phantoms = new PhantomHallucinator(this.scene, this.world, this.sound);
     this.mobs = new MobManager(this.scene, this.world, this.itemManager, this.sound);
@@ -457,10 +460,12 @@ class Game {
     w._genFarmlandsRegion();
     w._genStaticSuburbiaRegion();
 
-    // 3. DIMENSION.
-    p.inFarmlands = state.dimension === 'farmlands';
-    p.inSuburbia = state.dimension === 'suburbia';
-    p.inFakeHaven = false;
+    /* 3. DIMENSION. ERA 1.5.6 — one total assignment from the save's own saveName,
+       instead of three independent predicates. A save naming a dimension this build does
+       not have, or the Haven (which is never saved), lands in the Overworld exactly as
+       the three predicates did. */
+    const savedDim = dimensionBySaveName(state.dimension);
+    setPlayerDimension(p, savedDim ? savedDim.stableId : DIMENSION.OVERWORLD);
 
     // 4. THE GROUND UNDER THE PLAYER, before the player is put on it.
     const want = state.player.positionValid
@@ -1295,7 +1300,7 @@ class Game {
        dev teleport already does. Everything past it streams normally. */
     this.world._eagerLoadAround(this.world.farmlandsSpawn.x, this.world.farmlandsSpawn.z, 3);
 
-    this.player.inFarmlands = true;
+    setPlayerDimension(this.player, DIMENSION.FARMLANDS);
     this.player.dead = false;
     this.player.hp = this.player.maxHp;
     this.player.velocity.set(0, 0, 0);
@@ -1364,8 +1369,7 @@ class Game {
        the same since Phase 9; only the real Level 2->3 rift did not. */
     this.world._eagerLoadAround(this.world.suburbiaSpawn.x, this.world.suburbiaSpawn.z, 3);
 
-    this.player.inFarmlands = false;
-    this.player.inSuburbia = true;
+    setPlayerDimension(this.player, DIMENSION.SUBURBIA);
     this.player.dead = false;
     this.player.hp = this.player.maxHp;
     this.player.velocity.set(0, 0, 0);
@@ -1456,9 +1460,7 @@ class Game {
     // PHASE 20.2 — the compass crosses into the Haven with everything else. It is not
     // dimension state; once earned it is simply part of what the player has.
     this._syncProgressionHUD();
-    this.player.inFarmlands = false;
-    this.player.inSuburbia = false;
-    this.player.inFakeHaven = true;
+    setPlayerDimension(this.player, DIMENSION.FAKE_HAVEN);
     this.player.dead = false;
     this.player.hp = this.player.maxHp;
     this.player.velocity.set(0, 0, 0);
@@ -2327,6 +2329,10 @@ class Game {
 
     this.ui.updateHotbarSelection();
     this.ui.updateVitals(this.player);
+    /* ERA 1.5.6 CUT C — sanity is painted here, with the other mirrored values, instead of
+       being pushed from inside SanitySystem. The HUD's `view` cache makes a per-frame set
+       free when the number has not moved (CLAUDE.md §53), which is what that cache is for. */
+    this.ui.setSanity(this.sanity.value);
     this.ui.setPhase(this.env.isNight, this.env.dayFraction);
     /* PHASE 20.2 — the compass. One float and an early return when the heading has not
        moved; see UIManager.updateCompass for why this is as cheap as it looks. */

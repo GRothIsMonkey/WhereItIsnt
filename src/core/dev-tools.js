@@ -175,9 +175,7 @@
     const sx = WORLD_CHUNKS_X * CHUNK_SX / 2, sz = WORLD_CHUNKS_Z * CHUNK_SZ / 2;
     w._eagerLoadAround(sx, sz, 3);   // generated + meshed before the player is placed
 
-    g.player.inFarmlands = false;
-    g.player.inSuburbia = false;
-    g.player.inFakeHaven = false;
+    setPlayerDimension(g.player, DIMENSION.OVERWORLD);
     resetPlayer(g, safeGround(w, sx, sz) || g.player.spawnPosition.clone());
     applyDimensionState(g, 'overworld');
     announce('Overworld');
@@ -198,9 +196,7 @@
     const fspawn = w.farmlandsSpawn.clone();
     w._eagerLoadAround(fspawn.x, fspawn.z, 3);
 
-    g.player.inFarmlands = true;
-    g.player.inSuburbia = false;
-    g.player.inFakeHaven = false;
+    setPlayerDimension(g.player, DIMENSION.FARMLANDS);
     resetPlayer(g, safeGround(w, fspawn.x, fspawn.z) || fspawn);
     applyDimensionState(g, 'farmlands');
     announce('The Shattered Farmlands @ ' + Math.floor(fspawn.x) + ',' + Math.floor(fspawn.z) +
@@ -223,9 +219,7 @@
     const spawn = w.suburbiaSpawn.clone();
     w._eagerLoadAround(spawn.x, spawn.z, 3);
 
-    g.player.inFarmlands = false;
-    g.player.inSuburbia = true;
-    g.player.inFakeHaven = false;
+    setPlayerDimension(g.player, DIMENSION.SUBURBIA);
     resetPlayer(g, spawn);
     applyDimensionState(g, 'suburbia');
     announce('Static Suburbia');
@@ -248,9 +242,7 @@
     g.behemothSpawned = true;      // latched shut so the night gate cannot fire here
     g.fakeHavenTriggered = true;   // prevents the real illusion re-firing on arrival
 
-    g.player.inFarmlands = false;
-    g.player.inSuburbia = false;
-    g.player.inFakeHaven = true;
+    setPlayerDimension(g.player, DIMENSION.FAKE_HAVEN);
     g.player.havenBedUsed = false;  // the bed trigger for the collapse starts unarmed
     resetPlayer(g, spawn.clone());
 
@@ -294,9 +286,7 @@
     if (!pos) pos = safeGround(w, lot.hx + 5, lot.hz - 14) ||
                     new THREE.Vector3(lot.hx + 5.5, baseY + 1, lot.hz - 14.5);
 
-    g.player.inFarmlands = false;
-    g.player.inSuburbia = true;
-    g.player.inFakeHaven = false;
+    setPlayerDimension(g.player, DIMENSION.SUBURBIA);
     resetPlayer(g, pos);
     applyDimensionState(g, 'suburbia');
 
@@ -671,9 +661,7 @@
       if (c) { pos = c; break; }
     }
     if (!pos) pos = new THREE.Vector3(ax + 0.5, H.padY + 1, az + 0.5);
-    g.player.inFarmlands = true;
-    g.player.inSuburbia = false;
-    g.player.inFakeHaven = false;
+    setPlayerDimension(g.player, DIMENSION.FARMLANDS);
     resetPlayer(g, pos);
     applyDimensionState(g, 'farmlands');
     announce('The Disconnected Home (Level 2) @ ' + H.ox + ',' + H.oz +
@@ -693,9 +681,7 @@
     w._eagerLoadAround(x, z, 3);
     const pos = safeGround(w, x, z, FARM_BASE_Y) ||
                 new THREE.Vector3(x + 0.5, w._farmHeightAt(x, z) + 1, z + 0.5);
-    g.player.inFarmlands = true;
-    g.player.inSuburbia = false;
-    g.player.inFakeHaven = false;
+    setPlayerDimension(g.player, DIMENSION.FARMLANDS);
     resetPlayer(g, pos);
     // Face the tower.
     g.player.yaw = Math.atan2(-(T.cx - pos.x), -(T.cz - pos.z));

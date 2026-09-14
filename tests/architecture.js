@@ -208,6 +208,7 @@ else {
   };
   const ref = {};
   const dimFlagFiles = {};                 // file -> how many flag references it makes
+  const dimFlagWrites = [];                // ERA 1.5.6 — every ASSIGNMENT to one, anywhere
   let monolithWorldTHREE = 0;              // VoxelWorld geometry still inside game.html
   const bump = (o, p) => { (ref[o] = ref[o] || {})[p] = (ref[o][p] || 0) + 1; };
   for (const u of units) {
@@ -233,6 +234,16 @@ else {
         if (/^(inFarmlands|inSuburbia|inFakeHaven)$/.test(p)) {
           bump(o, 'DIMFLAG');
           dimFlagFiles[u.name] = (dimFlagFiles[u.name] || 0) + 1;
+        }
+      }
+      /* ERA 1.5.6 — A WRITE IS A DIFFERENT FACT FROM A READ, AND IT IS THE ONE THAT
+         MATTERED. The booleans are derived getters now; an assignment to one cannot
+         change where the player is, it can only diverge from it. There must be none. */
+      if ((n.type === 'AssignmentExpression' || n.type === 'UpdateExpression')) {
+        const t = n.type === 'AssignmentExpression' ? n.left : n.argument;
+        if (t && t.type === 'MemberExpression' && t.property && t.property.name &&
+            /^(inFarmlands|inSuburbia|inFakeHaven)$/.test(t.property.name)) {
+          dimFlagWrites.push(`${u.name}:${n.loc.start.line} .${t.property.name}`);
         }
       }
     });
@@ -635,12 +646,20 @@ console.log('\n=== 4d. THE APPLICATION SEAM (ERA 1.5.4) ===\n');
     'src/audio/audio-tables.js': ['AUDIO_INDOOR_SETTLE', 'AUDIO_TRANSPORT_BLOCKED'],
     'src/core/game.js': ['Game'],                 // its own name, in a `new Game()` guard
     'src/core/settings.js': ['GameSettings', 'SETTINGS_STORAGE_KEY', 'isDocumentFullscreen', 'safeLocalStorage'],
+    /* ERA 1.5.6 CUT A — Game no longer assigns dimension booleans. These two are what
+       replaced the nine assignments: one setter, and one saveName lookup for the load
+       path. Both are real src/ module dependencies, which is the direction this
+       manifest exists to reward. */
+    'src/dimensions/dimension-descriptors.js': ['dimensionBySaveName', 'setPlayerDimension'],
     'src/dimensions/dimension-registry.js': ['DIMENSION'],
     'src/gameplay/onboarding-cues.js': ['ONBOARDING_CUE_IDS'],
     'src/persistence/save-lifecycle.js': ['SaveSystem', 'captureWorldState', 'defaultSaveState', 'describeSaveState', 'findSafeLanding', 'restoreWorldState', 'saveFallbackSpawn'],
     'src/persistence/save-schema.js': ['SAVE_VERSION'],
     'src/shared/items-catalog.js': ['ITEM'],
     'src/world/block-catalog.js': ['BLOCK'],
+    /* ERA 1.5.6 CUT B — the composition root builds the five-query view and hands it to
+       SanitySystem, so the horror system never names the engine. */
+    'src/world/sanity-world-view.js': ['SanityWorldView'],
     'src/world/voxel-world.js': ['VoxelWorld'],
     'src/world/world-constants.js': ['CHUNK_SX', 'CHUNK_SZ', 'SEA_LEVEL'],
   };
@@ -943,6 +962,132 @@ console.log('\n=== 4e. THE PRESENTATION SEAM (ERA 1.5.5) ===\n');
   }
 }
 
+
+console.log('\n=== 4f. THE PRESENTATION PORT (ERA 1.5.6, CUT C) ===\n');
+
+/* WHAT MAKES AN ERA 2 HUD EXPENSIVE IS NOT THE CALL COUNT. IT IS THAT THE REQUIRED
+   SURFACE WAS UNDECLARED.
+
+   §53 already forbids the HUD reading gameplay, and tests/hud.js enforces it. This is the
+   other direction, and until this phase it was unbounded: gameplay reached 37 distinct
+   UIManager methods from 110 places, and the only way to learn which 37 was to grep. A
+   replacement HUD had no checklist.
+
+   That is the identical problem §4.6 solved for Game, and it takes the identical
+   solution: DECLARE the surface and assert it in both directions. An undeclared call is a
+   failure; a port method that no longer exists on UIManager is a failure. Unlike an import
+   list, it ratchets.
+
+   THE FOUR KINDS ARE NOT DECORATION. They are what a future phase needs in order to know
+   which calls are worth converting and which are not:
+
+     state    the HUD mirrors a gameplay value. These are idempotent, the `view` cache
+              makes them free when nothing moved, and they are the ones a frame loop can
+              own. Era 1.5.6 moved sanity here and deleted seven redundant hotbar pushes.
+     verb     the player opened or closed something. Imperative by nature.
+     event    a one-shot the HUD performs. A toast, a flash, a wash, a cut.
+     wiring   the composition root attaching the HUD to the application. Correct as-is,
+              and NOT a coupling problem — this is what a composition root is for.
+
+   DO NOT convert `verb` or `event` into observed state. A panel toggle and a jumpscare are
+   genuinely imperative, and an observer framework over them buys nothing and costs a
+   layer. */
+{
+  const PRESENTATION_PORT = {
+    state: [
+      'setCompassVisible', 'setDay', 'setFinaleMode', 'setHudVisible', 'setInteractPrompt',
+      'setMiningProgress', 'setObjective', 'setPhase', 'setSanity', 'setSaveStatus',
+      'updateCompass', 'updateHotbarSelection', 'updateObjectiveHUD', 'updateVitals',
+    ],
+    verb: [
+      'closeSettings', 'closeStorage', 'openStorage',
+      'toggleBackpack', 'toggleCrafting', 'toggleSettings',
+    ],
+    event: [
+      'fadeFromWhite', 'fadeToWhite', 'flashDamage', 'hardCutToBlack', 'hideWinScreen',
+      'showAudioNotice', 'showCredits', 'showToast', 'triggerBossVictory',
+      'triggerJumpscare', 'triggerWinScreen',
+    ],
+    wiring: [
+      'attachSaveActions', 'attachSettings', 'bindPlayer', 'resetPresentation',
+      'syncSaveUI', 'syncSettingsUI',
+    ],
+  };
+
+  const declared = new Set();
+  for (const kind of Object.keys(PRESENTATION_PORT))
+    for (const m of PRESENTATION_PORT[kind]) declared.add(m);
+
+  /* Every ui.* call in the build, by file. The inline body and the modules alike. */
+  const CALL = /(?:^|[^.\w])(?:this\.|g\.|game\.)?ui\.([a-zA-Z_][\w]*)\s*\(/g;
+  const sources = [['game.html', SRC.inlineBody().code]]
+    .concat(SRC.modules().map(r => [r.rel, fs.readFileSync(r.abs, 'utf8')]));
+  const seen = new Map();            // method -> total calls
+  const callerFiles = new Set();
+  for (const [name, txt] of sources) {
+    let m; CALL.lastIndex = 0;
+    while ((m = CALL.exec(txt)) !== null) {
+      seen.set(m[1], (seen.get(m[1]) || 0) + 1);
+      callerFiles.add(name);
+    }
+  }
+  const calls = [...seen.values()].reduce((a, b) => a + b, 0);
+  const undeclared = [...seen.keys()].filter(m => !declared.has(m)).sort();
+  chk(undeclared.length === 0,
+      `${calls} calls into the HUD, over ${seen.size} methods, and every one is in the port` +
+      (undeclared.length ? ` — UNDECLARED: ${undeclared.join(', ')}` : ''));
+
+  /* THE OTHER DIRECTION. A port entry that UIManager does not implement is a lie about
+     the contract, and a stale entry is exactly how a manifest rots into decoration. */
+  const uiUnit = units.find(u => u.name === 'game.html:script');
+  let uiMethods = new Set();
+  if (uiUnit) {
+    for (const n of uiUnit.ast.body) {
+      if (n.type === 'ClassDeclaration' && n.id && n.id.name === 'UIManager')
+        for (const el of n.body.body)
+          if (el.key && el.key.name) uiMethods.add(el.key.name);
+    }
+  }
+  const phantom = [...declared].filter(m => !uiMethods.has(m)).sort();
+  chk(uiMethods.size > 0 && phantom.length === 0,
+      `and every one of the ${declared.size} port methods is implemented by UIManager ` +
+      `(${uiMethods.size} members)` +
+      (phantom.length ? ` — NOT IMPLEMENTED: ${phantom.join(', ')}` : ''));
+  const unused = [...declared].filter(m => !seen.has(m)).sort();
+  chk(unused.length === 0,
+      'and every port method is actually called — a declared surface nobody uses is ' +
+      'decoration' + (unused.length ? ` — UNCALLED: ${unused.join(', ')}` : ''));
+
+  /* WHO MAY TALK TO THE HUD AT ALL. The orchestrator, the developer console, and the
+     monolith. No world, dimension, audio, persistence or progression module does — and
+     that is what lets Era 2 replace the HUD without reading any of them. */
+  const HUD_CALLERS = ['game.html', 'src/core/game.js', 'src/core/dev-tools.js'];
+  const strays = [...callerFiles].filter(f => HUD_CALLERS.indexOf(f) < 0).sort();
+  chk(strays.length === 0,
+      `and only ${HUD_CALLERS.length} files call the HUD at all — no world, dimension, ` +
+      'audio, persistence or progression module does' +
+      (strays.length ? ` — ALSO: ${strays.join(', ')}` : ''));
+
+  /* ERA 1.5.6 CUT C — THE TWO GAMEPLAY CLASSES THAT STOPPED BEING HUD CALLERS.
+     Inventory pushed the hotbar from seven places; SanitySystem pushed the value from
+     four. Both were redundant with, or belonged in, the frame loop's own sync. Neither
+     holds a UIManager any more and neither may take one again. */
+  for (const cls of ['Inventory', 'SanitySystem']) {
+    const body = (SRC.inlineBody().code.match(
+      new RegExp('class ' + cls + ' \\{[\\s\\S]*?\\n\\}')) || [''])[0];
+    chk(body.length > 0 && !/\bthis\.ui\b/.test(body),
+        `${cls} holds no UIManager — a ${cls === 'Inventory' ? 'data structure' : 'horror system'} ` +
+        'does not paint');
+  }
+  chk(/new Inventory\(\)/.test(SRC.buildScript()) && !/new Inventory\([^)]/.test(SRC.buildScript()),
+      'and Inventory is constructed with no argument at all');
+
+  const byKind = Object.keys(PRESENTATION_PORT)
+    .map(k => `${k} ${PRESENTATION_PORT[k].length}`).join(', ');
+  console.log(`      the port: ${byKind} — ${calls} calls. Era 2 implements these ${declared.size} ` +
+              'methods and the HUD is replaced.');
+}
+
 console.log('\n=== 5. THE BOUNDARIES THAT ARE ALREADY CLEAN, AND MUST STAY CLEAN ===\n');
 
   chk(R('AudioDirector', 'WebAudio') === 0,
@@ -962,7 +1107,13 @@ console.log('\n=== 5. THE BOUNDARIES THAT ARE ALREADY CLEAN, AND MUST STAY CLEAN
      These are CEILINGS. An extraction phase that makes one of them worse fails here and
      has to explain itself. Lower them when a phase actually improves one. */
   const CEILING = {
-    dimensionFlagRefs: 112,  // P0-2 — player.inFarmlands / .inSuburbia / .inFakeHaven, 35 of them writes
+    /* P0-2. WAS 112 (81 reads / 35 writes) FROM THE PHASE 36 BUILD UNTIL ERA 1.5.6.
+       Cut A made the three booleans DERIVED READ-ONLY GETTERS over one authoritative
+       field, `player.dimension`. Every write went through setPlayerDimension() and the
+       count fell to 79, all of them reads. THE CEILING FELL WITH IT — a ceiling may
+       fall, it may never rise — and the write count is separately pinned at zero below,
+       which is the assertion that actually holds the shape. */
+    dimensionFlagRefs: 79,   // P0-2 — reads of the derived views; writes are pinned at 0
     voxelWorldTHREE:   81,   // P0-3 — world generation building meshes
     playerDOM:         10,   // P1-2 — PlayerController binding raw input
   };
@@ -996,14 +1147,14 @@ console.log('\n=== 5. THE BOUNDARIES THAT ARE ALREADY CLEAN, AND MUST STAY CLEAN
   const CONTENT_DIM_READERS = {
     'src/dimensions/haven/stampers.js':       1,   // corruptHaven, guarding on inFakeHaven
     'src/dimensions/suburbia/generation.js':  2,
-    /* ERA 1.5.4 moved the two biggest readers out of the monolith with the code they
-       belong to. Not one reference was added: Game's 47 and the developer console's 33
-       were already there, in game.html, counted against the same ceiling. Game is the
-       largest single reader in the build and that is exactly why 1.5.4 did NOT try to
-       redesign dimension state — see ARCHITECTURE.md §9.5. Deleting the booleans is still
-       the next phase's job, and these two entries go with them. */
-    'src/core/game.js':                      47,
-    'src/core/dev-tools.js':                 33,
+    /* ERA 1.5.6 lowered both of these by removing WRITES, not reads. Game was 47 and the
+       developer console 33; the console is now 12 because seven triplet assignments
+       became seven calls, and Game is 38 for the same reason. Every remaining entry is a
+       READ of a derived view, which is exactly what those views are for: the reads were
+       never the problem, and rewriting 78 of them would have been churn with a risk
+       attached. A CEILING MAY FALL. IT MAY NEVER RISE. */
+    'src/core/game.js':                      38,
+    'src/core/dev-tools.js':                 12,
   };
   const inlineDim = dimFlagFiles['game.html:script'] || 0;
   const contentDim = Object.keys(CONTENT_DIM_READERS)
@@ -1032,8 +1183,54 @@ console.log('\n=== 5. THE BOUNDARIES THAT ARE ALREADY CLEAN, AND MUST STAY CLEAN
     if ((dimFlagFiles[f] || 0) > CONTENT_DIM_READERS[f]) dimOver++;
   chk(dimOver === 0,
       'and not one of them grew a new read — a moved dependency may shrink, never grow');
-  chk((dimFlagFiles[DIM_TRANSLATOR] || 0) > 0,
-      'which does read them — it is the translation point Era 1.5.4 deletes the rest through');
+  /* ERA 1.5.6 — AND THE ASSERTION THAT ACTUALLY HOLDS THE SHAPE.
+
+     Until this phase the translator was required to READ the booleans, because it was
+     the one place that turned three flags into an answer. It does not read them any
+     more: `player.dimension` IS the answer, and the translator now DEFINES the booleans
+     as derived views over it. So the old "the translator still reads them" check has
+     been replaced by the two below, which are strictly stronger.
+
+     A READ of a derived view is harmless — it cannot be stale and it cannot disagree.
+     A WRITE is the thing that could put the player in two dimensions at once, and there
+     must not be one anywhere in the build. */
+  chk(dimFlagWrites.length === 0,
+      'NOT ONE assignment to a dimension boolean exists in the build — they are derived ' +
+      'read-only views over player.dimension, and a view that cannot be written cannot drift' +
+      (dimFlagWrites.length ? ` — ASSIGNED AT: ${dimFlagWrites.join(', ')}` : ''));
+  {
+    const src = require('fs').readFileSync(
+      require('path').join(ROOT, DIM_TRANSLATOR), 'utf8');
+    chk(/function definePlayerDimensionState/.test(src) &&
+        /function setPlayerDimension/.test(src) &&
+        /const PLAYER_DIMENSION_FLAG\b/.test(src),
+        'and the translator is where they are DEFINED — one field, one setter, one flag table');
+    chk(/Object\.defineProperty[\s\S]{0,220}?get\s*\(/.test(src) &&
+        !/set\s*\(\s*[a-z]/.test(src.slice(src.indexOf('definePlayerDimensionState'),
+                                           src.indexOf('function setPlayerDimension'))),
+        'and the views are getters with NO setter — assignment fails loudly, not silently');
+  }
+  /* THE BELOW COSTS A DESCRIPTOR ROW, NOT A FOURTH BOOLEAN — and that is a structural
+     claim, so it is measured structurally rather than by grepping for a name (an early
+     version of this check grepped, and matched the sentence in the translator explaining
+     why `inOverworld` must not exist).
+
+     The flag table is a LEGACY COMPATIBILITY SHIM: three rows, for the three booleans
+     that already had call sites. The registry holds more dimensions than the table holds
+     flags, which is the proof that a dimension does not need one. */
+  {
+    const src = require('fs').readFileSync(
+      require('path').join(ROOT, DIM_TRANSLATOR), 'utf8');
+    const table = (src.match(/const PLAYER_DIMENSION_FLAG = Object\.freeze\(\{([\s\S]*?)\}\)/) || [null, ''])[1];
+    const rows = (table.match(/\[DIMENSION\.[A-Z_]+\]:/g) || []);
+    const descriptors = (src.match(/\[DIMENSION\.[A-Z_]+\]: Object\.freeze\(\{/g) || []);
+    chk(rows.length === 3 && !/OVERWORLD/.test(table),
+        `the legacy flag table is closed at ${rows.length} rows and the Overworld is not ` +
+        'among them — it was never a boolean, and inventing one now would rebuild P0-2');
+    chk(descriptors.length > rows.length,
+        `and the registry already describes ${descriptors.length} dimensions against ` +
+        `${rows.length} flags — a dimension does not need one, so The Below costs a row`);
+  }
 
   /* P0-3 IS NOW THE ENGINE PLUS ITS CONTENT, NOT ONE CLASS BODY. §4b summed the eight
      budgeted files; anything still inside a `class VoxelWorld` declaration IN THE MONOLITH

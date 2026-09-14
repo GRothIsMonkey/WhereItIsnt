@@ -450,10 +450,24 @@ head('7. NOTHING HOSTILE EXISTS HERE, AND THE FINALE CANNOT LEAK IN');
       'the intact sequence builds nothing, corrupts nothing and starts no finale');
   chk(!/jumpscare|Jumpscare/.test(machine), 'and it cannot trigger a jumpscare');
 
-  /* The Stalker's own guard, read from its source rather than assumed. */
-  const stalkerSrc = LIVE.slice(LIVE.indexOf('spawningDisabled'));
-  chk(/inFakeHaven/.test(stalkerSrc.slice(0, 4000)),
-      'the spawner checks inFakeHaven as a second, independent guard');
+  /* THE SPAWNER'S OWN GUARD, READ FROM THE GATE ITSELF.
+
+     This used to take the first 4,000 characters after the first `spawningDisabled` in
+     the reassembled build and look for `inFakeHaven` anywhere in them. Modules are
+     reassembled ahead of the inline body, so that window has started inside
+     src/core/game.js since Era 1.5.4 and never reached MobManager at all — it was
+     passing on an unrelated occurrence, and it went red in 1.5.6 when nine lines of
+     game.js changed length. The guard itself was never touched.
+
+     It now reads the SPAWN GATE: the one condition that decides whether an Overworld mob
+     may appear, and both of its Haven guards in it. CLAUDE.md sections 58 and 59 — no
+     creature in the Haven, and it must be guarded twice. */
+  const gate = (LIVE.match(/const wantOverworld\s*=[\s\S]{0,240}?;/) || [''])[0];
+  chk(/!player\.inFakeHaven/.test(gate) && /!this\.spawningDisabled/.test(gate),
+      'the spawn gate checks inFakeHaven AND the latched spawningDisabled — two ' +
+      'independent guards in one condition' + (gate ? '' : ' — GATE NOT FOUND'));
+  chk(/!player\.inFarmlands/.test(gate) && /!player\.inSuburbia/.test(gate),
+      'and it is still an OVERWORLD-only gate — the Farmlands and Suburbia spawn nothing');
 }
 
 // =====================================================================================

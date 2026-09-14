@@ -1009,6 +1009,208 @@ as a broken feature rather than a broken test.
 
 ---
 
+## 9.6. ERA 1.5.6 — COUPLING CUTS + RENDERING BOUNDARY
+
+*The scope proposal, written from measurement before any code was changed. Every number
+below is AST-derived from the `b9d1dae` build and re-derivable.*
+
+**THE PHASE'S ONE TEST.** Not "is the architecture tidy" but: **would this boundary
+materially interfere with replacing the voxel presentation and world with a non-voxel
+game?** Anything that fails that test is deferred, including things an earlier `LAYER.md`
+scheduled.
+
+### 9.6.1. THE RENDERING BOUNDARY — WHAT WAS MEASURED
+
+`src/rendering/` contains one file, `LAYER.md`, listing ten units scheduled to move there —
+nine in 1.5.2, the mesher in 1.5.3. **None arrived.** `game.html` holds 455 `THREE.`
+references; `src/rendering/` holds none.
+
+| unit | kind | lines | game.html | THREE | DOM | voxel-coupled | helps Era 2 | verdict |
+| --- | --- | ---: | --- | ---: | ---: | --- | --- | --- |
+| `EnvironmentSystem` | class | 534 | 11670–12203 | 35 | 0 | no | **yes** — sky, sun, fog and the day cycle are exactly what Era 2 re-authors | **MOVE** → `environment-system.js` |
+| `PostFX` | class | 225 | 12420–12644 | 10 | 2 | no | **yes** — the one post pass; Era 2 keeps or replaces it whole | **MOVE** → `postfx.js` |
+| `AshParticleSystem` | class | 66 | 12235–12300 | 5 | 0 | no | yes (small, and it is pure presentation) | **MOVE** → `ash-particles.js` |
+| `BlockTargetHighlight` | class | 84 | 3427–3510 | 7 | 0 | no (one word in a comment) | yes — any first-person game needs a target outline | **MOVE** → `block-target-highlight.js` |
+| `buildStalkerMesh` | fn | 201 | 12673–12873 | 23 | 0 | no | **yes** — creature presentation is Era 2's subject | **MOVE** → `creature-meshes.js` |
+| `buildBehemothMesh` | fn | 235 | 13648–13882 | 33 | 0 | no | yes | **MOVE** → `creature-meshes.js` |
+| `buildSkeletonMesh` | fn | 122 | 13402–13523 | 28 | 0 | no | yes | **MOVE** → `creature-meshes.js` |
+| `buildSpiderMesh` | fn | 78 | 13526–13603 | 19 | 0 | no | yes | **MOVE** → `creature-meshes.js` |
+| `buildFarmAnimalMesh` | fn | 387 | 15276–15662 | 29 | 0 | no | yes — §21's parametric animal library | **MOVE** → `animal-meshes.js` |
+| `buildFinalCreature` | fn | 130 | 6538–6667 | 14 | 0 | no | yes | **MOVE** → `finale-meshes.js` |
+| `buildFinaleScene` | fn | 68 | 6728–6795 | 7 | 0 | no | yes | **MOVE** → `finale-meshes.js` |
+| `buildBlockAtlas` | fn | 127 | 4294–4420 | 5 | 1 | **YES** | **no** | **DEFER** |
+| `buildSuburbFurniture` | fn | 540 | 7735–8274 | **0** | 0 | **YES** | **no** | **DEFER** |
+| `buildSuburbInteriorStructure` | fn | 261 | 8294–8554 | **0** | 0 | **YES** | **no** | **DEFER** |
+
+**MOVE: 11 units, 2,130 lines. DEFER: 3 units, 928 lines.**
+
+### 9.6.2. WHY THE THREE DEFERRALS ARE DEFERRALS AND NOT LAZINESS
+
+The 1.5.1 map filed all three under "rendering". The measurement says they are not
+rendering at all.
+
+**`buildSuburbFurniture` (540 lines) and `buildSuburbInteriorStructure` (261) hold ZERO
+`THREE.` references.** They are not mesh builders. They are **sub-voxel block-catalogue
+registrars**: they call `_furnAlloc()` for a block id and write `SUB_SHAPE_DEF`,
+`BLOCK_SHADE_BOOST`, `BLOCK_HARDNESS` and `BLOCK_DISPLAY_NAME` — data the greedy mesher
+later consumes. Filing them under `rendering/` would put voxel block data in the one layer
+that is supposed to survive Era 2, which is the exact failure the §4b layer rule exists to
+catch. And CLAUDE.md §57 makes the move actively dangerous: `_furnNextId` hands out ids in
+registration order, so disturbing that order rewrites the chunk data of the entire suburb.
+Era 2 deletes both with the voxel world.
+
+**`buildBlockAtlas` (127 lines)** paints one 16×16 tile per block id into a strip indexed
+by block id, for the mesher's UVs. It is the voxel texture atlas. Era 2 deletes it with the
+mesher, and 1.5.3's reasoning for the mesher applies unchanged.
+
+**The greedy voxel mesher stays where it is, and 1.5.3's decision is not reopened.** It
+reads block ids, shapes and chunk neighbours through the engine's own state; lifting it out
+means inventing an interface for the thing Era 2 deletes.
+
+### 9.6.3. CUT A — DIMENSION IDENTITY
+
+Measured: **116 references — 81 reads, 35 writes — across six owners.**
+
+```
+  47  (38r / 9w)  src/core/game.js
+  33  (12r /21w)  src/core/dev-tools.js
+  30  (25r / 5w)  game.html
+   3  ( 3r / 0w)  src/dimensions/dimension-descriptors.js   (the designated translator)
+   2  ( 2r / 0w)  src/dimensions/suburbia/generation.js
+   1  ( 1r / 0w)  src/dimensions/haven/stampers.js
+```
+
+**The decisive finding is in the writes.** All 35 occur in **12 places, and every one of
+them assigns the complete triplet.** They are already "set the dimension", spelled as three
+statements. That makes the cut mechanical rather than a redesign:
+
+* `player.dimension` becomes the **single authoritative field**, holding a **stable id**
+  from the existing `DIMENSION` enum. No id is renumbered, no `saveName` changes, no
+  creative number is touched, and the save schema stays at **version 5** — the save already
+  stores `dimension` as a `saveName` string and that is not touched either.
+* `inFarmlands` / `inSuburbia` / `inFakeHaven` become **derived accessor properties**. All
+  81 reads keep working, unmodified — which is what makes this safe.
+* Every write goes through one setter. **35 assignments → 12 calls.**
+* Two-true becomes **unrepresentable**, and the Overworld stops being encoded as the
+  absence of evidence.
+* Adding The Below costs a descriptor row. `DIMENSION_PLAN` already carries it.
+
+This is the `DimensionService` identity half that §3 calls *"the single most valuable thing
+1.5 will add"*.
+
+### 9.6.4. CUT B — `SanitySystem` → `VoxelWorld`
+
+`SanitySystem` (117 lines, `game.html` 12302–12418) reads five things off `world`. Three
+are voxel-engine internals and two are gameplay:
+
+| read | what it is | verdict |
+| --- | --- | --- |
+| `world.torchLights` | the engine's light-source `Map`, iterated for a nearest-distance | **cut** |
+| `world.getLightWorld(x,y,z)` | baked voxel light level | **cut** |
+| `world.hasSkyAbove(x,y,z)` | a column query into chunk data | **cut** |
+| `world.anchorManager.isInsideSafeZone(pos)` | the Anchor — gameplay | **keep** |
+| `world.isInsideSoulAnchorZone(pos)` | the Soul Anchor — gameplay | **keep** |
+
+The three cuts are all the same question in different clothes: *how illuminated and how
+exposed is this point?* So the port is three read-only queries — `lightLevelAt`,
+`hasOpenSkyAbove`, `nearestLightSourceDistance` — satisfied by the voxel world today and by
+whatever Era 2 builds tomorrow. `SanitySystem` never changes again.
+
+The two keeps stay, but stop arriving *through* the world: they reach `SanitySystem` as
+what they are rather than as fields hung on the engine by the composition root.
+
+**No gameplay number moves.** Every rate, floor, threshold and radius in §62.5.2's Suburbia
+curve is preserved exactly.
+
+### 9.6.5. CUT C — GAMEPLAY → HUD
+
+Measured: **110 call sites over 37 distinct `ui.*` methods** (`src/core/game.js` 64,
+`game.html` 43, `src/core/dev-tools.js` 3). §53 already forbids the HUD reading gameplay
+and `tests/hud.js` enforces it; this is the unguarded direction.
+
+**What makes Era 2's HUD replacement expensive is not the count — it is that the required
+surface is undeclared.** A replacement must implement exactly the right set of methods, and
+today the only way to learn that set is to grep. That is the identical problem 1.5.4 solved
+for `Game`, and it takes the identical solution (§4.6: *moving a class into a file is not a
+boundary; the declared manifest is*).
+
+**C1 — declare the presentation port.** A frozen table naming every method gameplay may
+call, grouped by kind — *state* (the HUD mirrors a value), *verb* (the player opened a
+panel), *event* (a one-shot), *wiring* (the composition root). `tests/architecture.js`
+asserts, in both directions, that every `ui.*` call site names a port method and every port
+method exists on `UIManager`. An undeclared call is a failure. Era 2 gets a checklist
+instead of a grep, and it ratchets.
+
+**C2 — delete the pushes the frame loop already makes.** `_animate` (`game.js` 1912–2341)
+unconditionally calls `updateHotbarSelection()`, `updateVitals()` and `setPhase()` at lines
+2328–2330, and `player.update(dt)` runs at line 2004 — **324 lines earlier in the same
+frame**. So `Inventory`'s seven `updateHotbarSelection()` pushes repaint a HUD that is about
+to be repainted anyway, at zero frames of latency saved. Deleting them lets **`Inventory`
+drop its `ui` field entirely**: a pure data structure stops knowing the HUD exists. Its
+constructor goes `Inventory(ui)` → `Inventory()`.
+
+The four early returns in `_animate` — `climaxTriggered`, `winScreenMode`, `settingsOpen`,
+`film.active` — are the safety argument, and they all point the right way: in each, the
+world is not simulating, so no value the HUD mirrors can change.
+
+**C3 — `SanitySystem` drops `ui`.** Its four `setSanity` pushes are the one case where the
+frame block does *not* already carry the value, so the block gains one line and sanity
+becomes symmetric with vitals. Paired with cut B, `SanitySystem`'s constructor goes
+`(env, world, ui)` → `(env, port)` and a horror system stops depending on both the voxel
+engine and the HUD.
+
+**Not in scope:** no `UIManager` rewrite, no HUD design change, no event bus, no
+observer framework, and no conversion of the *verb* and *event* calls — a panel toggle and a
+jumpscare are genuinely imperative and pretending otherwise buys nothing.
+
+### 9.6.6. WHAT THIS PHASE EXPLICITLY DEFERS
+
+* **`buildBlockAtlas`, `buildSuburbFurniture`, `buildSuburbInteriorStructure`** — 928 lines
+  of voxel block catalogue and atlas, deleted by Era 2 (§9.6.2).
+* **The greedy voxel mesher** — 1.5.3's decision, not reopened.
+* **`riftArming` on the clamped physics delta** — a gameplay-timing fix, recorded in §9.5.
+* **`SoundEngine`, `UIManager` and `PlayerController` as file moves** — none of the three is
+  a coupling problem. Audio's three layers are already Era-2-proof (§61); `UIManager` is
+  already block-free and THREE-free (§53). Moving them is module bookkeeping, and this phase
+  does not treat module count as a goal.
+* **`Game`'s remaining monolith dependencies** — that number falls as a *consequence* of
+  moves, and is not itself a target.
+
+### 9.6.7. ACCEPTANCE CRITERIA
+
+1. `src/rendering/` holds the 11 moved units; every payload **byte-identical** to the text
+   removed, plus a header. Proved by reassembly, not by review.
+2. The three booleans have **no assignment anywhere** in the build; `player.dimension` is
+   the only writable dimension state; two-true is unrepresentable.
+3. `SanitySystem` reaches `torchLights`, `getLightWorld` and `hasSkyAbove` **zero times**,
+   and holds no `ui`.
+4. `Inventory` holds no `ui` and takes no `ui` argument.
+5. The presentation port is declared and asserted in both directions.
+6. **Save schema still version 5.** No id renumbered, no `saveName` changed, no creative
+   number touched.
+7. Every existing ratchet holds or falls. **None rises.**
+8. All 31 offline suites green. All 10 browser suites at or above their `b9d1dae` results.
+
+### 9.6.8. REGRESSION PLAN
+
+* **World generation must be bit-identical.** `determinism.js`, `regression.js`,
+  `journey.js`, `chain.js` — plus a direct chunk-hash comparison across all four dimension
+  bands against the pre-phase build, because cut A touches the flags that `suburbia/
+  generation.js` and `haven/stampers.js` read.
+* **Sanity must be numerically identical.** Cut B changes how the three values are
+  *obtained*, not what they are: drive the real `SanitySystem` on both builds over the same
+  inputs and assert the curves match exactly.
+* **The HUD must paint the same things.** `hud.js` drives the real `UIManager` against a
+  recording DOM stub, including its 600-steady-frame zero-write performance contract, which
+  C2 and C3 must not disturb.
+* **Two known failures are pre-existing and must not be reported as new.**
+  `browser-transitions` stops at the Farmlands crossing on the `riftArming` clamped-delta
+  defect (§9.5); `browser-haven`'s 2Hz anomaly sweep is frame-rate sensitive and passes when
+  run alone. **Neither may be called a regression without an A/B against `b9d1dae`.**
+* Everything full-screen still cleared by `resetPresentation()` (§62.5.1).
+
+---
+
 ## 10. THE REMAINING PHASES
 
 | Phase | Moves | Risk |
