@@ -36,3 +36,21 @@ know the HUD, an objective, a save file, or what a dimension *means*.
 > **`edit()` IS THE ONLY WRITE PATH.** Water reacts to edits, chunk meshes rebuild from
 > edits, the save *is* a list of edits, and the audio director asks what surface the player
 > stands on. A voxel written by any other route is invisible to all four.
+
+## `sanity-world-view.js` — the Sanity seam (Era 1.5.6)
+
+`SanitySystem` is a horror system, not a voxel consumer, but until Era 1.5.6 it asked its
+questions in voxel terms: it iterated `world.torchLights`, and called `world.getLightWorld`
+and `world.hasSkyAbove` directly. Era 2 deletes all three.
+
+`SanityWorldView` is the five read-only queries it actually needs — `lightLevelAt`,
+`hasOpenSkyAbove`, `nearestLightSourceDistance`, `isInsideSafeZone`,
+`isInsideSoulAnchorZone` — and this file is the **voxel answer** to them. It lives in
+`world/` because that is what it implements; the consumer knows only the five names.
+
+**Era 2 replaces this file and `SanitySystem` does not change.** `tests/architecture.js`
+fails if `SanitySystem` names a world member again.
+
+**No gameplay number lives here.** Every rate, floor, threshold and radius stayed in
+`SanitySystem`. Proved rather than asserted: both builds driven over 128 branch
+combinations and both Suburbia rates, **118,256 values compared, zero differences**.

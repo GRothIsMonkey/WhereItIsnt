@@ -323,6 +323,23 @@ else {
        These are the ones Era 1.5.5 should reduce: when `rendering/` becomes a real layer
        and owns the renderer, the scene and the camera, game.js's five should fall to
        roughly zero. A CEILING MAY FALL. IT MAY NEVER RISE. */
+    /* ERA 1.5.6 — THE SAME MECHANISM AGAIN, FOR THE RENDERING LAYER.
+
+       `rendering/` was declared THREE-allowed and DOM-forbidden when it was an empty
+       directory with a LAYER.md. It now holds the sky, the post pass, the particles, the
+       target outline and every creature and animal mesh in the game.
+
+       THREE was always going to be allowed here — that is what the layer is. DOM was not,
+       and should not be: a mesh builder that reaches for the document is doing something
+       wrong. Exactly one file needs it, for exactly one reason, and it is named rather
+       than waved through. A CEILING MAY FALL. IT MAY NEVER RISE. */
+    const RENDER_BUDGET = {
+      'src/rendering/postfx.js': { DOM: 4 },
+      //  DOM: window.innerWidth/innerHeight, twice — the render target's size and the
+      //       uResolution uniform that must agree with it. A post-processing pass is
+      //       sized to the VIEWPORT; there is nowhere else that number comes from.
+      //       Everything else in this layer is 0 and must stay 0.
+    };
     const APP_BUDGET = {
       'src/core/game.js':                  { THREE: 5, BLOCK: 4 },
       //  THREE: WebGLRenderer, PCFSoftShadowMap, Scene, PerspectiveCamera, Clock — the
@@ -345,7 +362,7 @@ else {
       const declared = FORBIDDEN[layer];
       if (!declared) { chk(false, `${u.name} is in an unknown layer — add it to ARCHITECTURE.md §1`); continue; }
       const budgeted = Object.prototype.hasOwnProperty.call(WORLD_GEOMETRY_BUDGET, u.name);
-      const app = APP_BUDGET[u.name] || null;
+      const app = APP_BUDGET[u.name] || RENDER_BUDGET[u.name] || null;
       const rules = declared.filter(r =>
         !(r === 'THREE' && budgeted) && !(app && Object.prototype.hasOwnProperty.call(app, r)));
       const hit = [];
@@ -371,17 +388,25 @@ else {
     /* THE APPLICATION BUDGET IS AUDITED IN BOTH DIRECTIONS TOO. */
     {
       let over = 0, stale = 0;
-      for (const name of Object.keys(APP_BUDGET)) {
+      const BOTH = Object.assign({}, APP_BUDGET, RENDER_BUDGET);
+      for (const name of Object.keys(BOTH)) {
         if (!appSeen[name]) { stale++; continue; }
-        for (const k of Object.keys(APP_BUDGET[name]))
-          if ((appSeen[name][k] || 0) > APP_BUDGET[name][k]) over++;
+        for (const k of Object.keys(BOTH[name]))
+          if ((appSeen[name][k] || 0) > BOTH[name][k]) over++;
       }
       chk(stale === 0,
-          'every file the application budget names still exists — no stale exemption' +
+          'every file the application and rendering budgets name still exists — no stale exemption' +
           (stale ? ` — ${stale} gone; delete the entry` : ''));
       chk(over === 0,
-          `and none of the ${Object.keys(APP_BUDGET).length} application files is over its ceiling` +
+          `and none of the ${Object.keys(BOTH).length} budgeted files is over its ceiling` +
           (over ? ` — ${over} over` : ''));
+      /* AND THE REST OF THE LAYER IS CLEAN, WHICH IS THE HALF THAT MATTERS. One file
+         needs the viewport; nothing else in rendering/ may touch the document at all. */
+      const renderDOM = units.filter(u => /^src\/rendering\//.test(u.name) &&
+                                          !RENDER_BUDGET[u.name]);
+      chk(renderDOM.length > 0,
+          `and the other ${renderDOM.length} rendering modules reach no DOM at all — ` +
+          'a mesh builder has no business knowing there is a document');
     }
 
     /* THE BUDGET IS AUDITED IN BOTH DIRECTIONS. An entry that no longer matches a file is
@@ -642,7 +667,7 @@ console.log('\n=== 4d. THE APPLICATION SEAM (ERA 1.5.4) ===\n');
      travel with them. Everything under a `src/` path is a dependency that is now a real
      module rather than a coincidence of file order. */
   const GAME_DEPENDS_ON = {
-    'game.html:script': ['AnchorMonumentManager', 'ArrowManager', 'AshParticleSystem', 'EnvironmentStorySystem', 'EnvironmentSystem', 'FARM_J_LINE', 'FARM_P', 'FarmAnimalManager', 'FinalSequence', 'HAVEN_ENDING_FROM', 'HAVEN_SHIFT_SECONDS', 'INVENTORY_SIZE', 'ItemEntityManager', 'MOB_CAP_BASE', 'MOB_CAP_MAX', 'MOB_CAP_PER_STAGE', 'MainMenu', 'MobManager', 'ObjectiveSystem', 'OpeningFilm', 'OpeningInstruction', 'PROGRESSION_MILESTONES', 'PROGRESSION_MILESTONE_IDS', 'PhantomHallucinator', 'PlayerController', 'PostFX', 'SanitySystem', 'SoundEngine', 'StalkerAI', 'UIManager', 'buildBlockAtlas', 'farmJourneyOrd', 'farmlandsBiomeAt', 'havenDissolveAt', 'havenStageAt'],
+    'game.html:script': ['AnchorMonumentManager', 'ArrowManager', 'EnvironmentStorySystem', 'FARM_J_LINE', 'FARM_P', 'FarmAnimalManager', 'FinalSequence', 'HAVEN_ENDING_FROM', 'HAVEN_SHIFT_SECONDS', 'INVENTORY_SIZE', 'ItemEntityManager', 'MOB_CAP_BASE', 'MOB_CAP_MAX', 'MOB_CAP_PER_STAGE', 'MainMenu', 'MobManager', 'ObjectiveSystem', 'OpeningFilm', 'OpeningInstruction', 'PROGRESSION_MILESTONES', 'PROGRESSION_MILESTONE_IDS', 'PhantomHallucinator', 'PlayerController', 'SanitySystem', 'SoundEngine', 'StalkerAI', 'UIManager', 'buildBlockAtlas', 'farmJourneyOrd', 'farmlandsBiomeAt', 'havenDissolveAt', 'havenStageAt'],
     'src/audio/audio-tables.js': ['AUDIO_INDOOR_SETTLE', 'AUDIO_TRANSPORT_BLOCKED'],
     'src/core/game.js': ['Game'],                 // its own name, in a `new Game()` guard
     'src/core/settings.js': ['GameSettings', 'SETTINGS_STORAGE_KEY', 'isDocumentFullscreen', 'safeLocalStorage'],
@@ -659,6 +684,13 @@ console.log('\n=== 4d. THE APPLICATION SEAM (ERA 1.5.4) ===\n');
     'src/world/block-catalog.js': ['BLOCK'],
     /* ERA 1.5.6 CUT B — the composition root builds the five-query view and hands it to
        SanitySystem, so the horror system never names the engine. */
+    /* ERA 1.5.6 CUT 4 — three of Game's monolith dependencies became real module
+       dependencies when the rendering boundary was drawn. Not one call changed; the
+       declarations moved. This is the direction the manifest exists to reward, and it
+       is why the monolith count is the number a future phase reduces. */
+    'src/rendering/ash-particles.js': ['AshParticleSystem'],
+    'src/rendering/environment-system.js': ['EnvironmentSystem'],
+    'src/rendering/postfx.js': ['PostFX'],
     'src/world/sanity-world-view.js': ['SanityWorldView'],
     'src/world/voxel-world.js': ['VoxelWorld'],
     'src/world/world-constants.js': ['CHUNK_SX', 'CHUNK_SZ', 'SEA_LEVEL'],
@@ -689,13 +721,16 @@ console.log('\n=== 4d. THE APPLICATION SEAM (ERA 1.5.4) ===\n');
   }
 
   /* THE NUMBER THAT MUST FALL. A ceiling, in the ratchet's usual direction. */
-  const MONOLITH_DEPS_CEILING = 35;
+  /* ERA 1.5.6 lowered this from 35 by drawing the rendering boundary: the sky, the
+     post pass and the particles became real module dependencies rather than names
+     Game happened to share a scope with. A CEILING MAY FALL. IT MAY NEVER RISE. */
+  const MONOLITH_DEPS_CEILING = 32;
   {
     const still = seam.outbound.filter(o => o.from === 'game.html:script');
     const inModules = seam.outbound.filter(o => o.from.startsWith('src/'));
     chk(still.length <= MONOLITH_DEPS_CEILING,
         `${still.length} of Game's dependencies are still in the monolith (ceiling ` +
-        `${MONOLITH_DEPS_CEILING}) and ${inModules.length} are real modules — 1.5.5 moves the rest`);
+        `${MONOLITH_DEPS_CEILING}) and ${inModules.length} are real modules — a later phase moves the rest`);
     console.log(`      host surface: ${seam.host.map(h => h[0] + ' ' + h[1]).join(', ')}`);
   }
 
@@ -1086,6 +1121,77 @@ console.log('\n=== 4f. THE PRESENTATION PORT (ERA 1.5.6, CUT C) ===\n');
     .map(k => `${k} ${PRESENTATION_PORT[k].length}`).join(', ');
   console.log(`      the port: ${byKind} — ${calls} calls. Era 2 implements these ${declared.size} ` +
               'methods and the HUD is replaced.');
+}
+
+
+console.log('\n=== 4g. THE RENDERING BOUNDARY (ERA 1.5.6, CUT 4) ===\n');
+
+/* `src/rendering/` was an empty directory with a LAYER.md listing ten units scheduled to
+   move into it — nine in 1.5.2, the mesher in 1.5.3. None had arrived. Era 2 IS the
+   renderer, so the one layer Era 2 rewrites wholesale was the one layer that had received
+   nothing.
+
+   Eleven of those units are here now. THREE are deliberately not, and that is the more
+   important half of this block: they were filed under "rendering" by the 1.5.1 map and the
+   measurement says they are not rendering at all. */
+{
+  const fs2 = require('fs');
+  const dir = path.join(SRCDIR, 'rendering');
+  const files = fs2.existsSync(dir) ? fs2.readdirSync(dir).filter(f => f.endsWith('.js')) : [];
+  chk(files.length >= 7, `${files.length} rendering modules: ${files.join(', ')}`);
+
+  /* THE INVARIANT WORTH LOCKING, AND IT IS LOCKED AT ZERO.
+
+     Not one of these files names a block id. They describe SHAPES — a sky, a post pass, a
+     creature's proportions, an animal's silhouette — and none of that is expressed in the
+     voxel vocabulary. That is what makes them survive the voxel world's deletion as
+     designs even though Era 2 restyles every one of them, and it is why the atlas and the
+     two furniture registrars below could not come with them. */
+  const renderUnits = units.filter(u => /^src\/rendering\//.test(u.name));
+  const withBlock = renderUnits.filter(u => {
+    let n = 0;
+    walk.full(u.ast, (x) => { if (x.type === 'Identifier' && x.name === 'BLOCK') n++; });
+    return n > 0;
+  }).map(u => u.name);
+  chk(renderUnits.length > 0 && withBlock.length === 0,
+      `and not one of the ${renderUnits.length} names a block id — the rendering layer does ` +
+      'not know what a block is' + (withBlock.length ? ` — NAMED IN: ${withBlock.join(', ')}` : ''));
+
+  /* THE THREE DEFERRALS, ASSERTED SO THEY STAY DEFERRED FOR THEIR REASONS AND NOT BY
+     ACCIDENT. A later phase reading the 1.5.1 map will see them still listed there; this
+     is what says the omission was a decision. */
+  const DEFERRED = {
+    buildBlockAtlas:
+      'paints one 16x16 tile per BLOCK ID into a strip the greedy mesher reads UVs from. ' +
+      'It is the voxel texture atlas. Era 2 deletes it with the mesher.',
+    buildSuburbFurniture:
+      'holds ZERO THREE references. It is not a mesh builder — it allocates BLOCK IDS via ' +
+      '_furnAlloc and writes SUB_SHAPE_DEF. Voxel block data. CLAUDE.md section 57: ' +
+      'registration order IS the id, so moving it rewrites the suburb chunk data.',
+    buildSuburbInteriorStructure:
+      'the same, for partitions, openings and stairs. Also zero THREE.',
+  };
+  const inline = SRC.inlineBody().code;
+  const renderSrc = files.map(f => fs2.readFileSync(path.join(dir, f), 'utf8')).join('\n');
+  for (const name of Object.keys(DEFERRED)) {
+    const declaredInline = new RegExp('^function ' + name + '\\b', 'm').test(inline);
+    const declaredRender = new RegExp('^function ' + name + '\\b', 'm').test(renderSrc);
+    chk(declaredInline && !declaredRender,
+        `${name} is deliberately NOT in rendering/ — ${DEFERRED[name]}`);
+  }
+
+  /* AND THE MESHER, WHICH 1.5.3 DECIDED AND 1.5.6 DID NOT REOPEN. */
+  chk(!/greedy|_buildChunkMesh|_meshChunk/.test(renderSrc),
+      'and the greedy voxel mesher did not move either — 1.5.3 decided that and this ' +
+      'phase did not reopen it: lifting it out means inventing an interface for the ' +
+      'thing Era 2 deletes');
+
+  let renderTHREE = 0;
+  for (const u of renderUnits) walk.full(u.ast, (x) => {
+    if (x.type === 'Identifier' && x.name === 'THREE') renderTHREE++;
+  });
+  console.log(`      rendering/: ${renderTHREE} THREE references over ${renderUnits.length} files — ` +
+              'presentation Era 2 rewrites, out of the monolith and behind a named boundary');
 }
 
 console.log('\n=== 5. THE BOUNDARIES THAT ARE ALREADY CLEAN, AND MUST STAY CLEAN ===\n');

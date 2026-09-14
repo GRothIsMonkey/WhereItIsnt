@@ -4,16 +4,29 @@
 HOW TO RUN IT              SERVE IT. python3 -m http.server 8000, then
                            http://localhost:8000/game.html  — opening game.html
                            from disk plays NO recorded audio at all (section 0.000000000000000)
-Current phase              ERA 1.5.5 — THE PRESENTATION SEAM / CSS OUT OF game.html (COMPLETE)
+Current phase              ERA 1.5.6 — COUPLING CUTS + RENDERING BOUNDARY (COMPLETE)
+                           ERA 1.5 IS COMPLETE. The architecture is ready for Era 2.
                            Phase 36 is COMPLETE and still needs a human playthrough
-Next phase                 ERA 1.5.6 — the boundary repair: PlayerController, UIManager,
-                           SoundEngine; and the dimension booleans
-Architecture               ARCHITECTURE.md (the map, and section 4.7 is this phase)
+Next phase                 ERA 2 — replace the voxel presentation/world with the intended
+                           final non-voxel game. What it replaces is bounded and named
+                           in ARCHITECTURE.md section 10.
+Architecture               ARCHITECTURE.md (the map, and section 4.8 is this phase)
                            + ARCHITECTURE-INVENTORY.md (the 1.5.1 numbers)
                            src/<layer>/LAYER.md is that layer's work order
-THE SPLIT IS NOT FINISHED  21,756 of 40,927 script lines are in modules (53.2%), 32 of them.
-                           PlayerController, UIManager, SoundEngine and the mobs are all
-                           still in game.html. Not modular yet.
+WHAT IS LEFT IS TIDYING    24,189 of 41,239 script lines are in modules (58.7%), 40 of them.
+                           SoundEngine, UIManager, PlayerController and the mobs are still
+                           in game.html — but none of them is a COUPLING problem. Do not
+                           call moving them "unblocking Era 2"; it is bookkeeping.
+Dimension identity         ONE FIELD. player.dimension holds a stable id; the three
+                           booleans are derived read-only views. 35 writes -> 0. A fourth
+                           dimension costs a descriptor row, not a fourth boolean.
+Sanity / world             SanityWorldView — five read-only queries. SanitySystem names no
+                           voxel-engine member. 118,256 values proved identical.
+Gameplay -> HUD            DECLARED. 37 methods in four kinds, asserted both ways. Only 3
+                           files call the HUD; Inventory and SanitySystem no longer do.
+Rendering boundary         src/rendering/ — 7 modules, 2,130 lines, 210 THREE, ZERO block
+                           ids. The atlas and the two furniture registrars are voxel data
+                           and stayed behind, deliberately and assertedly.
 Stylesheets                styles/*.css — SEVEN sheets, 1,067 lines out of game.html.
                            game.html declares the sheet order and nothing else may:
                            ORDER IS THE CASCADE. base.css leads and owns every :root token.
@@ -93,6 +106,302 @@ describe Phase 20 as it was first delivered, and Section 0 describes the 20.1 jo
 revision that followed a human playtest and supersedes them wherever they disagree** — principally the beat table, the landmark set, the distances, and the
 performance figures. **Section 0.5 describes Phase 20.2**, which added the opening
 instruction and the compass and changed no world generation at all.
+
+---
+
+## 0.00000000000000000000000. ERA 1.5.6 — COUPLING CUTS + RENDERING BOUNDARY
+
+**WHAT THIS PHASE DID.** Four boundaries that would have made the Era 2 rebuild more
+expensive are gone, and three things an earlier work order had scheduled were measured,
+found not to be what the work order called them, and explicitly deferred.
+
+**ERA 1.5 IS COMPLETE.** The architecture is ready for Era 2. What is left of the split is
+bookkeeping, not coupling — see section 7.
+
+---
+
+# 1. THE PHASE'S ONE TEST
+
+Not *"is the architecture tidy"* but:
+
+> **Would this boundary materially interfere with replacing the voxel presentation and
+> world with a non-voxel game?**
+
+Everything below passed or failed on that question alone. **Module count was not a goal.**
+`SoundEngine` (2,151 lines), `UIManager` (1,442) and `PlayerController` (1,032) are still in
+`game.html` on purpose: none of the three is a coupling problem, and §61 and §53 already
+prove their boundaries clean. Moving them is tidying, and a phase that does it should say so.
+
+Everything was **measured before anything was modified**. The proposal that came out of that
+measurement is `ARCHITECTURE.md` §9.6, kept unedited; what was built is §4.8.
+
+---
+
+# 2. CUT A — DIMENSION IDENTITY
+
+## 2.1 WHAT WAS MEASURED
+
+116 references — **81 reads, 35 writes** — across six owners:
+
+```
+  47  (38r / 9w)  src/core/game.js
+  33  (12r /21w)  src/core/dev-tools.js
+  30  (25r / 5w)  game.html
+   3  ( 3r / 0w)  src/dimensions/dimension-descriptors.js
+   2  ( 2r / 0w)  src/dimensions/suburbia/generation.js
+   1  ( 1r / 0w)  src/dimensions/haven/stampers.js
+```
+
+## 2.2 THE MEASUREMENT THAT MADE IT MECHANICAL
+
+**All 35 writes sat in 12 places, and every one assigned the complete triplet.** They were
+already "set the dimension", spelled as three statements. That is what turned a redesign
+into a substitution.
+
+## 2.3 FOUR DEFECTS, AND THEY WERE PROPERTIES OF THE SHAPE
+
+1. **THE OVERWORLD WAS THE ABSENCE OF EVIDENCE.** "All three false" is not a statement that
+   the player is in the Overworld. It is also what a half-initialised object looks like.
+   There was no way to say "somewhere else" and no way to be wrong loudly.
+2. **TWO-TRUE WAS REPRESENTABLE.** Nothing stopped `inSuburbia && inFakeHaven`, and the
+   readers resolved it by testing in different orders. A bug there would have read as a
+   generator misfiring rather than as a state error.
+3. **WRITES WERE PARTIAL.** `this.player.inFarmlands = true` on the Level 1 → 2 crossing set
+   one of three and trusted the other two. Correct today because of where it sits in the
+   sequence; not correct by construction.
+4. **A FOURTH DIMENSION COST A FOURTH BOOLEAN**, and 116 sites of re-reading. The Below is
+   canon, already has a row in `DIMENSION_PLAN`, and was priced at a refactor.
+
+## 2.4 WHAT IT IS NOW
+
+```
+  player.dimension                ONE writable field, holding a STABLE ID
+  inFarmlands / inSuburbia / …    derived getters over it, with NO setter
+  setPlayerDimension(p, id)       the one write path
+  definePlayerDimensionState(p)   installs them, once, from the constructor
+```
+
+**KEEPING THE BOOLEANS AS DERIVED VIEWS IS WHY THIS WAS SAFE.** All 81 reads carried on
+untouched; only the 12 write sites changed. Rewriting 81 reads would have been churn with a
+risk attached and no benefit — a read of a derived view cannot be stale and cannot disagree.
+
+| | before | after |
+| --- | ---: | ---: |
+| references | 116 | 79 |
+| **writes** | **35** | **0** |
+
+**NO SAVE-FILE VALUE MOVED.** No `stableId` renumbered, no `saveName` changed, no
+`creativeNumber` touched. The save still stores the saveName string it always did. **Schema
+stays v5.**
+
+## 2.5 AND THE CHECK THAT GREPPED WHEN IT SHOULD HAVE MEASURED
+
+The first version of the "no fourth boolean" assertion searched the build for `inOverworld`
+and `inBelow` — and matched the sentence in the translator explaining why `inOverworld` must
+not exist. It now measures the flag table structurally: three rows, no Overworld, and a
+registry that already describes four dimensions against three flags. **The proof that The
+Below costs a descriptor row is that a dimension can already exist without a flag.**
+
+---
+
+# 3. CUT B — `SanitySystem` STOPS READING THE VOXEL ENGINE
+
+It reached five things off `world`. Three were engine internals; two are gameplay.
+
+| read | what it is | verdict |
+| --- | --- | --- |
+| `world.torchLights` | the engine's light-source `Map`, **iterated** | cut |
+| `world.getLightWorld(x,y,z)` | baked voxel light level | cut |
+| `world.hasSkyAbove(x,y,z)` | a column walk through chunk data | cut |
+| `world.anchorManager.isInsideSafeZone(pos)` | the Anchor — gameplay | keep |
+| `world.isInsideSoulAnchorZone(pos)` | the Soul Anchor — gameplay | keep |
+
+The three cuts are **the same question in different clothes**: *how illuminated and how
+exposed is this point?* `src/world/sanity-world-view.js` is five read-only queries;
+`SanitySystem`'s constructor goes `(env, world, ui)` → `(env, view)`.
+
+**The iteration was the part that leaked.** A consumer should ask for a distance, not walk a
+collection it does not own.
+
+The two keeps stay, but stop arriving *through* the engine: they reach the system as what
+they are rather than as fields the composition root hung on the world.
+
+## 3.1 AND IT IS PROVED, NOT ASSERTED
+
+Both builds driven over the same inputs: **128 branch combinations** (safe zone × soul zone
+× sky × four light levels × two Stalker distances × day/night, 40 frames each), both
+Suburbia rates for fifteen simulated minutes, `nearestTorchDistance` at four positions,
+`drain()` at four amounts, and `fraction`.
+
+```
+118,256 values compared — ZERO differences
+```
+
+Every rate, floor, threshold and radius in §62.5.2's Suburbia curve is exactly where it was.
+
+---
+
+# 4. CUT C — GAMEPLAY STOPS PUSHING TO THE HUD
+
+**110 call sites over 37 methods** — `src/core/game.js` 64, `game.html` 43,
+`src/core/dev-tools.js` 3.
+
+**WHAT MAKES AN ERA 2 HUD EXPENSIVE IS NOT THE COUNT. IT IS THAT THE REQUIRED SURFACE WAS
+UNDECLARED.** A replacement must implement exactly the right set of methods, and the only
+way to learn which 37 was to grep. That is the identical problem §62.9 solved for `Game`,
+and it takes the identical answer: *moving a class into a file is not a boundary; the
+declared manifest is.*
+
+## 4.1 THE PORT IS DECLARED, IN FOUR KINDS
+
+```
+  state   14   the HUD mirrors a gameplay value — idempotent, cacheable,
+               and the kind a frame loop can own
+  verb     6   the player opened or closed something
+  event   11   a one-shot the HUD performs: a toast, a flash, a wash, a cut
+  wiring   6   the composition root attaching the HUD. Correct as-is.
+```
+
+Asserted in **both** directions: an undeclared call fails, a port method `UIManager` does
+not implement fails, an uncalled entry fails, and **only three files in the build call the
+HUD at all** — no world, dimension, audio, persistence or progression module does.
+
+**THE KINDS ARE NOT DECORATION.** They tell a future phase which calls are worth converting.
+`verb` and `event` were deliberately left alone: a panel toggle and a jumpscare are
+genuinely imperative, and an observer framework over them buys nothing and costs a layer.
+
+## 4.2 TWO GAMEPLAY CLASSES STOPPED BEING HUD CALLERS
+
+**`Inventory` dropped its `UIManager` entirely.** It pushed the hotbar from seven places, and
+every one was redundant: `Game._animate` calls `updateHotbarSelection()` unconditionally once
+a frame, and `player.update(dt)` runs **324 lines earlier in the same frame**. Nothing was
+repainted a frame sooner for having been pushed from inside a data structure.
+
+**The four early returns in `_animate` are the safety argument**, and all four point the same
+way: `climaxTriggered`, `winScreenMode`, `settingsOpen` and `film.active` are every state in
+which the world is not simulating — so no value the HUD mirrors can change. `new Inventory()`
+takes no argument now.
+
+**`SanitySystem` dropped its `UIManager`.** Its four `setSanity` pushes were the one value
+the frame block did *not* already carry, so the block gained one line and sanity became
+symmetric with vitals. Paired with cut B, a horror system stopped depending on both the voxel
+engine and the HUD.
+
+**110 → 100 call sites.**
+
+---
+
+# 5. CUT 4 — THE RENDERING BOUNDARY
+
+`src/rendering/` held **one file, `LAYER.md`**, listing ten units scheduled to arrive — nine
+in Era 1.5.2, the mesher in 1.5.3. **None had.** `game.html` held 455 `THREE.` references;
+`src/rendering/` held none. Era 2 *is* the renderer, and the one layer Era 2 rewrites
+wholesale was the one layer that had received nothing.
+
+## 5.1 WHAT MOVED — 11 UNITS, 2,130 LINES
+
+| module | lines | THREE |
+| --- | ---: | ---: |
+| `creature-meshes.js` — Stalker, Skeleton, Spider, Behemoth | 659 | 103 |
+| `environment-system.js` — sky, sun, fog, light, clouds, the day | 554 | 35 |
+| `animal-meshes.js` — Phase 18.2's four species, four tiers | 406 | 29 |
+| `postfx.js` — the one post pass | 246 | 10 |
+| `finale-meshes.js` — the final creature and its ground | 220 | 21 |
+| `block-target-highlight.js` — the outline under the crosshair | 102 | 7 |
+| `ash-particles.js` — the Ashen Forest cinders | 82 | 5 |
+
+**210 `THREE.` references, 7 files, and ZERO BLOCK IDS — LOCKED AT ZERO.**
+
+That last number is the point of the cut. These files describe **shapes** — a sky, a post
+pass, a creature's proportions, an animal's silhouette — and none of it is expressed in the
+voxel vocabulary. They survive the voxel world's deletion *as designs* even though Era 2
+restyles every one of them.
+
+Every payload is **byte-identical** to the text removed, proved by comparing the declaration
+text before and after rather than by reading the diff.
+
+## 5.2 WHAT DID NOT MOVE, AND WHY IT IS A DEFERRAL RATHER THAN LAZINESS
+
+The 1.5.1 map filed all three under "rendering". **The measurement says they are not
+rendering at all.**
+
+| unit | lines | THREE | what it actually is |
+| --- | ---: | ---: | --- |
+| `buildSuburbFurniture` | 540 | **0** | allocates **block ids** through `_furnAlloc`, writes `SUB_SHAPE_DEF`, `BLOCK_SHADE_BOOST`, `BLOCK_HARDNESS`, `BLOCK_DISPLAY_NAME` |
+| `buildSuburbInteriorStructure` | 261 | **0** | the same, for partitions, cased openings and stairs |
+| `buildBlockAtlas` | 127 | 5 | paints one 16×16 tile per **block id** into the strip the greedy mesher reads UVs from — the voxel texture atlas |
+
+**Two of them hold zero `THREE.` references.** They are sub-voxel block-catalogue registrars
+producing data the mesher consumes. Filing them under `rendering/` would put voxel block data
+in the layer that is supposed to outlive the renderer — the exact failure the layer rule
+exists to catch. And §57 makes the move actively dangerous: `_furnNextId` hands out ids in
+registration order, so disturbing that order **rewrites the chunk data of the entire suburb**.
+
+`tests/architecture.js` §4g asserts each is still *out of* `rendering/`, with its reason, so
+a later phase reading the 1.5.1 map sees that the omission was a decision.
+
+**The greedy voxel mesher did not move and 1.5.3's decision was not reopened.**
+
+---
+
+# 6. VALIDATION
+
+## 6.1 OFFLINE — 31 SUITES
+
+**30 GREEN with 0 failures.** `architecture.js` at **173 PASS / 0 FAIL**, including the two
+new sections: §4f the presentation port (7 checks) and §4g the rendering boundary (6).
+
+`performance.js` failed its one drifty assertion at **+17.3%** against a 14% threshold —
+**and so does the build this phase started from.** A/B, alternating on the same container in
+the same session:
+
+```
+  b9d1dae (pre-1.5.6)   +16.2%   +13.8%   +22.8%     median 16.2
+  this build            +19.5%   +13.3%   +12.8%     median 13.3
+```
+
+The baseline exceeds the threshold in two runs of three, and this build's median is *lower*
+than the baseline's. There is no regression. **The threshold was NOT raised** — the suite's
+own comment already records it being moved from 12 to 14 for this same drift, and raising it
+again to accommodate a measurement is how a ratchet becomes decoration. The honest statement
+is that this assertion is not reliable on this container, and it is recorded here rather than
+tuned away.
+
+Cut A cannot affect it in any case: nothing in chunk generation reads a dimension flag. The
+three surviving reads are all per-frame `update()` guards.
+
+## 6.2 BROWSER — 10 SUITES, ONE AT A TIME, SERVED OVER HTTP
+
+Recorded in section 6.4 below with the two pre-existing failures the phase brief named.
+
+## 6.3 WORLD GENERATION
+
+`determinism.js`, `regression.js`, `journey.js` and `chain.js` all green.
+
+---
+
+# 7. WHAT IS LEFT, AND IT IS BOOKKEEPING
+
+**53.2% → 58.7% of the script is in modules** (40 of them; `game.html` 19,474 → 17,366 lines).
+
+`SoundEngine`, `UIManager`, `PlayerController`, the mobs, the animals' behaviour and the
+horror systems are still in `game.html`, and `Game` still names 32 monolith dependencies.
+**None of the four is a boundary problem.** §61 already proves audio's three layers
+Era-2-proof; §53 already proves `UIManager` block-free and THREE-free. A phase that moves
+them is tidying, and should say so rather than claim to be unblocking Era 2.
+
+**What Era 2 replaces is now bounded and named:** `src/rendering/` (7 files), the six
+`stampers.js` files, `VoxelWorld`, `sanity-world-view.js`, the presentation port's 37
+methods, and the voxel block data still in `game.html`. **What survives is everything else.**
+
+# 8. WHAT IS HONESTLY NOT DONE
+
+**NOBODY HAS PLAYED THIS BUILD.** Unchanged and permanent since Phase 34.1. Every claim in
+this section is a claim about code and measurement; none of it is a claim that the game is
+good. `PLAYTEST.md` is the script and it must be played from a build **served over HTTP**.
+
+`riftArming` is still decremented by the clamped physics delta (§9.5) — a gameplay-timing
+fix, deliberately not made in an architectural phase.
 
 ---
 
