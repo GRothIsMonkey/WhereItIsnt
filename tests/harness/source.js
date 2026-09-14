@@ -35,6 +35,37 @@ function moduleRefs(html) {
 
 function html() { return fs.readFileSync(GAME, 'utf8'); }
 
+/* Every repository-relative <link rel="stylesheet"> in document order. ERA 1.5.5 moved
+   the whole <style> block into styles/*.css, and seven suites slice CSS out of the build
+   with `SRC.indexOf('<style>')`. Left alone, every one of them would have started reading
+   the empty string and passing — the same trap this module was written to close, one
+   layer over. So the sheets are reassembled exactly as the scripts are. */
+function styleRefs(html) {
+  const out = [];
+  const re = /<link\s+rel="stylesheet"\s+href="([^"]+)"\s*\/?>/g;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const rel = m[1];
+    if (/^[a-z]+:\/\//i.test(rel) || rel.startsWith('//')) continue;   // a CDN sheet is not ours
+    out.push({ tag: m[0], rel, abs: path.join(ROOT, rel) });
+  }
+  return out;
+}
+
+/* The ordered stylesheet list. Throws for the same reason modules() does. */
+function stylesheets() {
+  const refs = styleRefs(html());
+  for (const r of refs) {
+    if (!fs.existsSync(r.abs)) throw new Error('game.html links a stylesheet that does not exist: ' + r.rel);
+  }
+  return refs;
+}
+
+/* ALL of the build's CSS, in cascade order. For suites that grep for a rule. */
+function buildStyles() {
+  return stylesheets().map(r => fs.readFileSync(r.abs, 'utf8')).join('\n');
+}
+
 /* The ordered module list. Throws if game.html names a file that is not there, because
    a missing module is a broken build and must never read as "nothing to scan". */
 function modules() {
@@ -84,10 +115,23 @@ function buildSource() {
     /* drop the tag AND the newline it sits on, so the markup keeps its shape */
     out = out.replace(r.tag + '\n', '').replace(r.tag, '');
   }
+
+  /* Fold the stylesheets back into ONE <style> block where the first <link> stood, for
+     exactly the reason the scripts are folded into one <script> block: every suite that
+     reaches for `<style>` keeps working, against all of the CSS rather than none of it. */
+  const sheets = stylesheets();
+  if (sheets.length) {
+    const css = sheets.map(r => fs.readFileSync(r.abs, 'utf8')).join('\n');
+    const first = out.indexOf(sheets[0].tag);
+    for (const r of sheets) out = out.replace(r.tag + '\n', '').replace(r.tag, '');
+    if (first >= 0) out = out.slice(0, first) + '<style>\n' + css + '\n</style>\n' + out.slice(first);
+  }
+
   if (!code) return out;
   const at = out.indexOf('\n<script>\n');
   if (at < 0) throw new Error('could not locate the inline <script> body');
   return out.slice(0, at + '\n<script>\n'.length) + code + '\n' + out.slice(at + '\n<script>\n'.length);
 }
 
-module.exports = { ROOT, GAME, html, modules, inlineBody, buildScript, buildSource };
+module.exports = { ROOT, GAME, html, modules, stylesheets, inlineBody,
+                   buildScript, buildStyles, buildSource };

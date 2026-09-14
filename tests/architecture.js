@@ -790,6 +790,159 @@ console.log('\n=== 4d. THE APPLICATION SEAM (ERA 1.5.4) ===\n');
   }
 }
 
+console.log('\n=== 4e. THE PRESENTATION SEAM (ERA 1.5.5) ===\n');
+
+/* Era 1.5.5 moved 1,067 lines of CSS out of game.html into seven stylesheets. The risk in
+   that move is not that a rule goes missing — a missing rule is loud. It is that the
+   CASCADE changes, which is silent, and that the ownership drifts back afterwards. These
+   checks are about the second; the first was settled by comparing the computed style of
+   every element in a real browser before and after the move. */
+{
+  const S = require('./harness/source.js');
+  const doc = S.html();
+  const markup = doc.slice(doc.indexOf('<body>'), doc.indexOf('\n<script>'));
+  const css = S.buildStyles();
+  const sheets = S.stylesheets();
+
+  /* ---- 1. NO CSS IS LEFT IN THE DOCUMENT ---- */
+  chk(!/<style[\s>]/.test(doc),
+      'game.html contains no <style> element — all of the CSS is in stylesheets');
+  chk(sheets.length >= 5 && sheets.every(r => r.rel.startsWith('styles/')),
+      `${sheets.length} stylesheets, all under styles/: ` + sheets.map(r => r.rel.slice(7)).join(', '));
+
+  /* ---- 2. ORDER IS THE CASCADE, AND base.css DEFINES WHAT THE REST READ ----
+
+     The sheets are the same rules in the same sequence they had inside the single style
+     block, so the cascade is the one that was there before. base.css must lead: every
+     other sheet reads its custom properties. */
+  chk(sheets.length > 0 && sheets[0].rel === 'styles/base.css',
+      'and base.css is first — it defines the tokens every other sheet reads');
+  {
+    const fs2 = require('fs');
+    /* A GLOBAL TOKEN is one declared on :root — section 73's palette, section 55.1's face,
+       shadow and four-step scale. Those must have exactly one source, or "use the tokens"
+       stops meaning anything. A custom property declared on an ELEMENT is a different
+       thing entirely and is not counted: hud.css gives a condition tick `--f`, `--tick-lit`
+       and `--tick-off` so five state classes can repaint one rule instead of five, and the
+       HUD writes `--f` per frame through setProperty. That is a local mechanism, and
+       forbidding it would forbid the instrument Phase 27 built. */
+    const defs = [];
+    for (const r of sheets) {
+      const t = fs2.readFileSync(r.abs, 'utf8');
+      const roots = [...t.matchAll(/:root[^{]*\{([^}]*)\}/g)].map(m => m[1]).join('\n');
+      if (/--[a-z0-9-]+\s*:/.test(roots)) defs.push(r.rel);
+    }
+    chk(defs.length === 1 && defs[0] === 'styles/base.css',
+        'and it is the ONLY sheet that declares a :root token — one token source, not seven' +
+        (defs.length > 1 ? ` — ALSO DECLARED IN: ${defs.filter(d => d !== 'styles/base.css').join(', ')}` : ''));
+  }
+
+  /* ---- 3. THE TWO TRANSITIONS THAT ARE NOT DECORATION ----
+
+     The Haven's wash and the finale's hard cut are TIMING, and Phase 32 and Phase 33 both
+     wrote down what they must be. The wash carries a default duration that the runtime
+     overwrites before every use, with a forced reflow between so the new duration is the
+     one that animates. The hard cut carries no transition at all and must not grow one —
+     a fade there is a different ending. */
+  {
+    const fade = (css.match(/#fadeWhite\s*\{[^}]*\}/) || [''])[0];
+    const cut  = (css.match(/#blackCut\s*\{[^}]*\}/) || [''])[0];
+    chk(/transition:\s*opacity/.test(fade),
+        '#fadeWhite carries a default opacity transition, which the runtime overwrites per use');
+    chk(cut.length > 0 && !/transition/.test(cut),
+        '#blackCut carries NO transition — the hard cut is instantaneous, and stays that way' +
+        (/transition/.test(cut) ? ' — IT HAS ONE NOW' : ''));
+    const code = S.buildScript();
+    /* Four sites write fadeWhite's transition, and they are two different operations.
+       TWO ANIMATE (fadeToWhite / fadeFromWhite): they set a DURATION, force a reflow, then
+       set opacity — and the order is the mechanism, because without the reflow the browser
+       may coalesce the duration and the opacity into one style recalculation and animate
+       the wash at the PREVIOUS duration, or not at all. TWO RESET (hardCutToBlack, and the
+       presentation teardown a New Game runs): they set `none` and then opacity, which is
+       instantaneous by construction and needs no reflow. Phase 33's rule that the hard cut
+       is instantaneous depends on the second pair staying `none`. */
+    const sites = [...code.matchAll(/fadeWhite\.style\.transition\s*=\s*([\s\S]{0,240}?)fadeWhite\.style\.opacity/g)]
+                    .map(m => m[1]);
+    const animate = sites.filter(t => /ms\}/.test(t) || /\$\{/.test(t));
+    const reset   = sites.filter(t => /^\s*'none'/.test(t));
+    chk(animate.length === 2 && animate.every(t => /offsetWidth/.test(t)),
+        `and both directions of the wash set the duration, force a reflow, then set opacity ` +
+        `(${animate.length} sites) — reordering those three lines silently kills the fade`);
+    chk(reset.length === 2 && reset.every(t => !/offsetWidth/.test(t)) &&
+        animate.length + reset.length === sites.length,
+        `and the ${reset.length} teardown sites blank it with transition:none — an instant ` +
+        'reset, not a wash, which is what the hard cut and a New Game both need');
+  }
+
+  /* ---- 4. THE DOM CONTRACT, DERIVED RATHER THAN LISTED ----
+
+     UIManager and its neighbours reach elements by id. Rather than pin a hand-picked list
+     that goes stale — the phase brief's own example list still named step1..step6, which
+     Phase 28 deleted with the tutorial — this asks the build: every id the code looks up
+     must exist in the markup. */
+  {
+    const ids = new Set([...markup.matchAll(/id="([^"]+)"/g)].map(m => m[1]));
+    const code = S.buildScript();
+    const want = [...new Set([...code.matchAll(/getElementById\(\s*['"`]([A-Za-z0-9_-]+)['"`]\s*\)/g)].map(m => m[1]))];
+    const qs = [...new Set([...code.matchAll(/querySelector(?:All)?\(\s*['"`]#([A-Za-z0-9_-]+)/g)].map(m => m[1]))];
+    const missing = want.concat(qs).filter(x => !ids.has(x));
+    chk(want.length > 40 && missing.length === 0,
+        `every one of the ${want.length + qs.length} ids the code looks up exists in the markup ` +
+        `(${ids.size} declared)` + (missing.length ? ` — MISSING: ${missing.join(', ')}` : ''));
+  }
+
+  /* ---- 5. PRESENTATION MUTATION IS CONFINED TO THE MONOLITH ----
+
+     Not one extracted module writes a style. That is worth locking at zero now, while it
+     is true: it is what lets Era 2 restyle the game without reading world, dimension,
+     audio or persistence code. The monolith's own writes are capped and fall as 1.5.5+
+     extracts UIManager. */
+  {
+    const fs2 = require('fs');
+    const offenders = [];
+    let monolith = 0;
+    for (const r of S.modules()) {
+      const n = (fs2.readFileSync(r.abs, 'utf8').match(/\.style\.[a-zA-Z]/g) || []).length;
+      if (n) offenders.push(r.rel + ' ×' + n);
+    }
+    monolith = (S.inlineBody().code.match(/\.style\.[a-zA-Z]/g) || []).length;
+    chk(offenders.length === 0,
+        'no extracted module writes an element style — presentation mutation lives in one place' +
+        (offenders.length ? ' — FOUND: ' + offenders.join(', ') : ''));
+    /* MEASURED, not estimated: every one of these 54 references is a WRITE — 52 direct
+       assignments and 2 setProperty calls, and the build contains no style READ at all.
+       They are dynamic state CSS cannot hold: opacity ramps, display, a live transition
+       duration, the condition tick's per-frame --f. The ceiling falls as 1.5.5+ extracts
+       UIManager; it is never raised. */
+    const STYLE_WRITE_CEILING = 54;
+    chk(monolith <= STYLE_WRITE_CEILING,
+        `and the monolith makes ${monolith} of them (ceiling ${STYLE_WRITE_CEILING}) — ` +
+        'dynamic state, which CSS cannot hold: opacity ramps, display, a live transition duration');
+  }
+
+  /* ---- 6. INLINE STYLE ATTRIBUTES ARE CAPPED ---- */
+  {
+    const inline = (markup.match(/style="[^"]*"/g) || []);
+    const INLINE_CEILING = 3;
+    chk(inline.length <= INLINE_CEILING,
+        `${inline.length} inline style attributes in the markup (ceiling ${INLINE_CEILING}) — ` +
+        'everything else is in a stylesheet' + (inline.length ? ': ' + inline.join(' ') : ''));
+  }
+
+  /* ---- 7. A STYLESHEET IS NOT A PLACE TO KEEP GAME STATE ----
+
+     CSS cannot execute, but it can still be made to carry meaning that belongs in code —
+     a story line in a `content:`, a dimension name, an objective. STORY.md section 13
+     forbids a readable human sentence in the world; a stylesheet is not an exemption. */
+  {
+    const contents = [...css.matchAll(/content:\s*(['"])([^'"]*)\1/g)].map(m => m[2]);
+    const wordy = contents.filter(t => /\s/.test(t.trim()) && t.trim().length > 12);
+    chk(wordy.length === 0,
+        `${contents.length} generated-content strings, none of them a sentence` +
+        (wordy.length ? ' — FOUND: ' + wordy.join(' | ') : ''));
+  }
+}
+
 console.log('\n=== 5. THE BOUNDARIES THAT ARE ALREADY CLEAN, AND MUST STAY CLEAN ===\n');
 
   chk(R('AudioDirector', 'WebAudio') === 0,
