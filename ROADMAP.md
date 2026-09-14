@@ -2659,6 +2659,229 @@ variation
 repeatability
 
 background life
+NEW KEY ADDITION:
+# ERA 2 CREATIVE EXPANSION — CURRENT LOCKED D1/D2 DIRECTION
+
+These additions translate the current creative design into implementation-facing milestones.
+
+## Era 2 — Dimension 1: Shattered Farmlands
+
+The final Farmlands should contain a substantial authored journey with seven major landmark beats:
+
+1. Farm Compound + Water Tower
+2. Schoolhouse
+3. Electrical Substation
+4. Rural Church
+5. Abandoned Motel
+6. Abandoned Grain Elevator
+7. Ordinary Barn / hidden underground elevator facility
+
+The purpose is variety and authored progression, not arbitrary landmark count.
+
+### Landmark 6 — Abandoned Grain Elevator
+
+Implement as:
+- huge visible industrial landmark
+- deteriorated but standing
+- partial collapse
+- large industrial interiors
+- huge storage spaces
+- claustrophobic collapsed routes
+- bottomless shaft
+- rattling/mechanical activity below
+
+Add the caged creature discovery sequence.
+
+The creature is a major D2-facing entity and must survive the D1 → D2 narrative transition.
+
+### Landmark 7 — Ordinary Barn / Underground Elevator
+
+Surface:
+- believable rural barn
+- mostly ordinary
+
+Interior:
+- final progression puzzle
+- physical objects and knowledge gathered across earlier landmarks
+- no arbitrary backtracking
+- final hidden mechanism
+- concrete stairwell
+- enormous underground elevator chamber
+
+This elevator becomes the canonical physical bridge between reconstruction layers.
+
+### D1 finale
+
+The Farmlands finale includes the previously approved physical chase:
+
+The cage creature is discovered behind the player while traveling toward Landmark 7, disappears, then reappears directly in front of the player for the major authored jumpscare, followed by a physical chase into the barn.
+
+---
+
+## Era 2 — Phase 8: Static Suburbia Rebirth
+
+Build Static Suburbia as:
+- beautiful
+- liminal
+- nostalgic
+- empty
+- preserved
+- memory-like
+
+Do not treat it as an inhabited suburban society.
+
+### D2 progression
+
+The player must have a concrete reason to explore:
+- obtain meaningful survival resources
+- gather progression components
+- follow the route deeper
+- discover how Farmlands and Suburbia relate
+
+Use authored recognition:
+- Farmlands objects
+- repeated objects
+- photographs
+- symbols
+- familiar road relationships
+- callbacks to prior landmarks
+
+The player should discover:
+“This is the same place.”
+
+### D2 deterioration
+
+The visual progression is:
+
+perfect suburb
+→ subtle aging
+→ dirt
+→ damage
+→ structural failure
+→ spreading road cracks
+→ enormous exposed depths
+→ complete reconstruction collapse
+
+This deterioration is a major progression/pacing mechanic, not random cosmetic corruption.
+
+---
+
+## Era 2 — Phase 9: Suburbia Entity / Cage Creature
+
+The primary Suburbia entity is the same creature first encountered in the Farmlands Grain Elevator.
+
+Do not create a second unrelated D2 entity unless a future explicit design decision changes this.
+
+Behavior:
+
+observation
+→ positioning
+→ interception
+→ pursuit
+→ cornering
+
+The entity should feel like it belongs in Suburbia.
+
+It should increasingly appear ahead of the player rather than simply chase from behind.
+
+The player's eventual understanding should be:
+
+“It is getting ahead of me.”
+
+---
+
+## D2 signature horror sequence
+
+Near the end of Suburbia:
+
+- large suburban house
+- final progression item
+- lights fail
+- doors/windows lock
+- creature hunts inside
+- player hides and evades
+- sound-based uncertainty
+- one major authored jumpscare
+
+Preserve the previously approved authored hallway scare.
+
+Do not replace it with multiple conventional jumpscares.
+
+---
+
+## D2 center / Water Tower sequence
+
+At the center of Suburbia:
+
+- massive converging intersection
+- enormous Water Tower callback
+- frantic red warning light
+- damage and rust
+- legs disappearing into deep cracks
+- creature trail leading there
+
+The Water Tower should become the major visual anchor of the D2 collapse.
+
+---
+
+## D2 → D3 transition
+
+The collapse of Suburbia reveals the elevator system beneath the reconstruction.
+
+Do not use a generic portal or generic falling transition.
+
+Use the elevator as the canonical bridge into The Below.
+
+Sequence:
+
+Suburbia collapses
+→ elevator system exposed
+→ player reaches elevator
+→ nostalgic music briefly returns
+→ music distorts
+→ cage creature heard moving deeper
+→ impossible descent
+→ elevator stops
+→ doors open extremely slowly
+→ The Below begins
+
+---
+
+## Era 2 — Phase 10: The Below
+
+The Below must remain the strongest horror chapter.
+
+Core fear:
+“I was never supposed to be here.”
+
+Build:
+- impossible interiors
+- giant chambers
+- tiny crawlspaces
+- roads inside buildings
+- houses embedded in walls
+- upside-down rooms
+- forests inside rooms
+- giant shafts
+- impossible architecture
+- extreme scale contrast
+
+D2 should build anticipation for this chapter rather than competing with it through constant jumpscares.
+
+---
+
+## Creative continuity rule
+
+Before implementing any Era 2 D1/D2/D3 phase, read:
+- STORY.md
+- ROADMAP.md
+- current architecture documentation
+
+Do not assume that older Era 1 implementation details are still the intended final-game presentation.
+
+The final game remains fully non-voxel.
+
+Story mystery remains stronger than explanation.
 
 traversal
 
