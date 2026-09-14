@@ -116,6 +116,23 @@ the inline body — and that is what `SRC` is now.
 const SRC = require('./harness/source.js').buildSource();   // the WHOLE build, as text
 ```
 
+**And the same is true of the CSS, since Era 1.5.5.** The 1,067-line `<style>` block is
+seven sheets under `styles/`, and **eight suites read CSS out of the build** — six of them
+with a literal `SRC.indexOf('<style>')`. Every one would have started reading the **empty
+string** and passing. So `harness/source.js` reassembles the sheets exactly as it reassembles
+the modules, and `buildSource()` folds them back into **one** `<style>` block where the first
+`<link>` stood. Not one of the eight changed.
+
+```js
+const CSS = require('./harness/source.js').buildStyles();   // ALL of it, in cascade order
+```
+
+`game.html` declares the sheet order and nothing else may — **order is the cascade**, and a
+stylesheet split in the wrong order throws nothing and fails silently. `architecture.js` §4e
+holds the seam: no `<style>` in the document, `base.css` first and the only sheet declaring
+a `:root` token, `#blackCut` with no transition, every id the code looks up present in the
+markup, and **zero** `.style.*` writes in any extracted module.
+
 **The offline harness replays the modules in order** into the one VM context, exactly as a
 browser does. This works because classic scripts share one global lexical scope, which is
 also the reason the extraction needed no code change at all. `architecture.js` re-measures

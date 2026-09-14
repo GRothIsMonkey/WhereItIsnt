@@ -1428,7 +1428,8 @@ Era 1.5.1 — Architecture inventory & contracts   (COMPLETE — see section 62.
 Era 1.5.2 — Pure data / helpers extraction       (COMPLETE — see section 62.7)
 Era 1.5.3 — VoxelWorld split / world content seam (COMPLETE — see section 62.8)
 Era 1.5.4 — Game split / application seam        (COMPLETE — see section 62.9)
-Era 1.5.5 — the boundary repair, then Era 2
+Era 1.5.5 — CSS / presentation seam               (COMPLETE — see section 62.10)
+Era 1.5.6 — the boundary repair, then Era 2
 
 Exact numbering may evolve, but previous completed phases must not be lost.
 
@@ -3085,7 +3086,7 @@ attributed to the file that declares it**, and an undeclared one, a stale one or
 changed owner is a test failure. Unlike an import list, it ratchets.
 
   23  dependencies that are real `src/` modules
-  35  still in the monolith — CAPPED, and the number Era 1.5.5 reduces
+  35  still in the monolith — CAPPED, and the number Era 1.5.6 reduces
    6  host kinds (window 23, document 11, setTimeout 4, rAF 2, clearTimeout 1, console 1)
 
 WHAT THE APPLICATION LAYER IS:
@@ -3150,6 +3151,110 @@ rift chain is fine on this build: **`browser-playability` crosses both rifts and
 71/0.** The defect was not fixed, because an architectural phase is not where gameplay
 timing gets changed.
 
+
+# 62.10. ERA 1.5.5 — THE PRESENTATION SEAM / CSS OUT OF `game.html` — COMPLETE
+
+ERA 1.5.5 CARRIED THIS OUT. The 1,067-line `<style>` block is gone from `game.html` and is
+seven stylesheets under `styles/`. Nothing about what the player sees changed, and that was
+MEASURED rather than asserted. See `ARCHITECTURE.md` section 4.7 and `PROGRESS.md` section
+0.0000000000000000000000.
+
+**THE SPLIT STILL IS NOT FINISHED.** `PlayerController`, `UIManager`, `SoundEngine`, the
+mobs, the animals and the horror systems are all still in `game.html`. Do not describe the
+game as modular.
+
+## THE ONE RULE THAT MATTERS MOST IN THIS SECTION
+
+  **`game.html` DECLARES THE SHEET ORDER AND NOTHING ELSE MAY. ORDER IS THE CASCADE.**
+
+Era 1.5.2 wrote that sentence for scripts, where order decides when a name becomes visible.
+For stylesheets it decides which of two equally specific rules wins — and the failure modes
+are not alike. A script extraction in the wrong order throws `ReferenceError` on load and
+stops the build. **A stylesheet split in the wrong order throws nothing**: a button is a
+different colour on a screen nobody opened during the phase, and every test goes on passing.
+
+So each sheet keeps the position its rules held inside the original block, and `base.css`
+leads because every other sheet reads its custom properties.
+
+  base.css 99      the document, the canvas, and BOTH token sets (sections 73 and 55.1)
+  hud.css 389      crosshair, mining readout, hotbar, held item, CONDITION, PERCEPTION,
+                   objective, status, clock, compass, interaction prompt
+  overlays.css 115 damage flash, dimension banner, the wash, the hard cut, credits,
+                   storage, toast
+  film.css 107     the opening film's one overlay, plus #vignetteFX and #jumpscareFlash
+  menu.css 263     the main menu and the win screen
+  settings.css 131 the settings panel and the audio-transport notice
+  panels.css 50    crafting, backpack, inventory
+
+Seven, not thirty and not one: the boundaries are the ones the original block's own comment
+headings already drew.
+
+RULES THAT NOW HOLD:
+
+- **A CASCADE CHANGE IS PROVED BY MEASUREMENT, NEVER BY REASONING ABOUT SPECIFICITY.** That
+  is how you talk yourself into a regression. Two builds are served side by side, every
+  element in the document is walked, and the FULL computed style of each is compared — with
+  the state classes the runtime toggles (`hp-*`, `p-*`, `.active`, `.on`, `.show`, `.done`,
+  `.changed`) turned on, so the rules that only apply mid-fade are measured too. **359
+  elements, 150,810 computed properties, 0 differences.** Any future phase that moves a rule
+  owes the same evidence.
+- **THE ONLY REORDERING IN THE PHASE IS NAMED.** `hud.css` is two non-adjacent slices of the
+  original block joined; the screen overlays sat between them and now load after. The seven
+  sheets reconstruct the old block character for character when replayed in the original
+  order, so the question reduces to one pair of groups — and they target disjoint elements.
+- **`base.css` IS THE ONLY SHEET THAT MAY DECLARE A `:root` TOKEN.** One token source, not
+  seven, or section 73's "use the tokens" stops meaning anything. A custom property declared
+  on an ELEMENT is a different thing and is deliberately allowed: `hud.css` gives a condition
+  tick `--f`, `--tick-lit` and `--tick-off` so five state classes repaint one rule instead of
+  five, and the HUD writes `--f` per frame. That is the instrument Phase 27 built, not a
+  second palette.
+- **THE MARKUP STAYS IN THE DOCUMENT.** ~250 lines of declarative structure with no logic in
+  it. Into JS template strings makes it imperative and hands `UIManager` a second job; into a
+  partial needs a build step or a `fetch` this project does not have. Do not "finish the job"
+  by moving it.
+- **NOTHING WAS RENAMED, AND THE DOM CONTRACT IS DERIVED RATHER THAN LISTED.** 64 ids are
+  looked up by name in code against 92 declared; `tests/architecture.js` §4e asserts every
+  looked-up id exists. The phase brief's own example list of hooks still named `step1`…
+  `step6`, which Phase 28 deleted with the tutorial — **a hand-written list of hooks is stale
+  the moment a phase removes one.**
+- **A RUNTIME `.style.*` WRITE IS DYNAMIC STATE, NOT PRESENTATION, AND IS NOT TO BE
+  MECHANICALLY CONVERTED INTO A CLASS.** Opacity ramps, `display`, a live transition duration,
+  the tick's per-frame `--f`. 54 in the monolith (52 assignments plus 2 `setProperty`, and
+  the build contains no style READ at all), capped and falling as `UIManager` comes out.
+  **Extracted modules make ZERO and it is locked at zero** — that is what lets Era 2 restyle
+  the game without reading world, dimension, audio or persistence code.
+- **THE WASH AND THE CUT ARE TIMING, AND THE TWO PAIRS OF SITES ARE DIFFERENT OPERATIONS.**
+  `fadeToWhite` / `fadeFromWhite` set a duration, force a reflow, then set opacity — without
+  `void offsetWidth` between them the browser may coalesce the two writes and animate at the
+  PREVIOUS duration, or not at all. `hardCutToBlack` and the New Game teardown set
+  `transition: none` then opacity, which is instantaneous by construction and is what Phase
+  33's hard-cut rule depends on. §4e asserts both pairs separately and that `#blackCut` still
+  carries no transition.
+- **AND THE HARNESS LESSON, IN ITS FOURTH PLACE.** Eight suites read CSS out of the build,
+  six of them with a literal `SRC.indexOf('<style>')`. Left alone, every one would have started reading the EMPTY
+  STRING after this phase and gone on passing — `hud.js` included, which is what enforces
+  section 53's permanent rule that no stylesheet rule may reach both health and perception.
+  `tests/harness/source.js` now reassembles the sheets exactly as it reassembles the modules
+  and folds them back into ONE `<style>` block, so not one suite changed and all eight still
+  read all of the CSS. **The fix for "a test silently scans less" must not itself make a test
+  silently scan less.** (Smaller version of the same thing: a literal `<style>` token in a
+  CSS or HTML COMMENT would have moved those same slices. The comments say "the single style
+  block".)
+
+**WHAT THIS PHASE DELIBERATELY DID NOT DO.** No visual change of any kind — no colour,
+typography, layout, HUD composition, menu, settings, onboarding, horror presentation,
+transition timing or animation style. No `UIManager` rewrite. No id or class rename. No new
+design-token framework. No gameplay, save-schema, progression, objective, dimension,
+transition, Rift, audio or world-generation change — **the entire JavaScript of the build is
+BYTE-IDENTICAL before and after**, which is the strongest available statement that nothing
+gameplay-facing moved. Save schema still version 5. `riftArming` is still on the clamped
+physics delta, unchanged since 1.5.4 recorded it.
+
+**AND NOBODY HAS PLAYED IT.** Unchanged and permanent since Phase 34.1. A computed-style A/B
+proves every element resolves the same way; it does not prove the game is good. `PLAYTEST.md`
+is the script, and it must be played from a build SERVED over HTTP.
+
+---
 
 # 63. ERA 2
 
@@ -3662,11 +3767,12 @@ the file from disk plays none of the 274 recorded sounds.
 The project is also in ERA 1.5, the architecture split. Era 1.5.1 (section 62.6) drew the
 map; Era 1.5.2 (section 62.7) moved the pure data and the pure helpers; Era 1.5.3 (section
 62.8) split `VoxelWorld` into an engine and four dimensions' content and drew the Era 2
-seam; Era 1.5.4 (section 62.9) took `Game` out and declared its dependency surface. **The
-split itself is not finished** — 53.2% of the script is in modules, and `PlayerController`,
-`UIManager`, `SoundEngine`, the CSS and the markup are all still in `game.html`.
+seam; Era 1.5.4 (section 62.9) took `Game` out and declared its dependency surface; Era
+1.5.5 (section 62.10) took the CSS out into seven stylesheets and left the markup where it
+belongs. **The split itself is not finished** — 53.2% of the script is in modules, and
+`PlayerController`, `UIManager`, `SoundEngine` and the mobs are all still in `game.html`.
 `ARCHITECTURE.md` is the map and each `src/*/LAYER.md` is that layer's work order. The next
-implementation phase is Era 1.5.5, the boundary repair — which also deletes the three
+implementation phase is Era 1.5.6, the boundary repair — which also deletes the three
 dimension booleans.
 
 The section below is kept because it is still the standard the Farmland chapter is held
