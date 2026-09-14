@@ -4044,5 +4044,96 @@ game, or does it merely make the code more complicated?"
 Choose accordingly.
 
 ---
+## Era 2 Creative Rules — Current Locked Design
 
+Before implementing any Era 2 content, read `STORY.md` and `ROADMAP.md`.
+
+### Non-voxel final identity
+The final game is fully non-voxel.
+Do not preserve cube-based world construction merely because Era 1 uses it.
+
+### D1
+Final D1 is Shattered Farmlands.
+
+Current authored landmark sequence:
+1. Farm Compound + Water Tower
+2. Schoolhouse
+3. Electrical Substation
+4. Rural Church
+5. Abandoned Motel
+6. Abandoned Grain Elevator
+7. Ordinary Barn / underground elevator facility
+
+Landmark 6 contains the caged creature that becomes the primary Suburbia entity.
+
+Landmark 7 is visually ordinary on the surface and hides the impossible elevator infrastructure beneath it.
+
+### D2
+Final D2 is Static Suburbia.
+
+It is:
+- empty
+- liminal
+- nostalgic
+- memory-like
+- increasingly degraded
+
+It is not an inhabited suburb with functioning residents.
+
+The D2 entity is the same creature introduced in the D1 Grain Elevator.
+
+Do not create a separate unrelated D2 monster without an explicit design decision.
+
+### D2 horror
+The intended behavior escalation is:
+
+observation
+→ positioning
+→ interception
+→ pursuit
+→ cornering
+
+D2 has one major authored house-hunt horror sequence and one major authored jumpscare.
+
+Do not dilute authored scares with generic repeated jumpscares.
+
+### D2 deterioration
+Suburbia intentionally progresses:
+
+perfect
+→ aged
+→ dirty
+→ damaged
+→ cracked
+→ collapsing
+
+The deterioration is part of narrative progression.
+
+### Water Tower
+The Water Tower is a recurring major visual anchor.
+
+Its red light remains unexplained.
+
+### Elevator
+The elevator discovered beneath the D1 barn is a canonical bridge between reconstructed layers.
+
+Do not replace the D2 → D3 elevator transition with a generic portal/fall unless explicitly redesigned.
+
+### D3
+Final D3 is The Below.
+
+Core fear:
+“I was never supposed to be here.”
+
+The Below is the strongest horror chapter.
+
+### Story authority
+Do not:
+- turn mystery into exposition
+- invent lore to explain ambiguous events
+- create conventional monster mythology where the Story Bible prohibits it
+- change canonical entity relationships silently
+- renumber stable technical dimension IDs for creative naming purposes
+
+When implementation details conflict with current creative canon, stop and consult `STORY.md` / `ROADMAP.md` rather than silently inventing a compromise.
 # END OF CLAUDE.md
