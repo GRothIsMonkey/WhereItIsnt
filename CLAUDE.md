@@ -3384,6 +3384,19 @@ content change. No `UIManager` rewrite, no event bus, no observer framework. No 
 and no save migration. `SoundEngine`, `UIManager` and `PlayerController` were NOT moved —
 none is a coupling problem. `riftArming` is still on the clamped physics delta.
 
+- **A GREEN TIMING-SENSITIVE SUITE IS NOT A FIX.** `browser-transitions` reached 51/0 here,
+  passing for the first time since Era 1.5.3, and `browser-haven` reached 73/0. **Neither
+  defect was fixed.** `riftArming` is still decremented by the `dt` clamped to 0.06 for
+  physics safety, nothing in this phase touched `AnchorMonumentManager`, and the Haven's
+  anomaly sweep is still 2Hz off accumulated `dt`. This container was simply fast enough.
+  Claiming a fix because a timing-sensitive suite went green is exactly the shape sections
+  61.05-61.07 exist to forbid.
+
+**VALIDATION:** 30 of 31 offline suites green (`architecture.js` 173/0), **all 10 browser
+suites green** one at a time over HTTP, and `launch-check` boots, plays and streams with all
+40 modules loaded. `performance.js`'s drifty assertion failed at +17.3% and the pre-phase
+build fails it too — see the A/B rule above.
+
 **AND NOBODY HAS PLAYED IT.** Unchanged and permanent since Phase 34.1. Everything above is a
 claim about code and measurement; none of it is a claim that the game is good.
 

@@ -900,6 +900,23 @@ zero and stay there.
 
 **A ceiling may fall. It may never rise.**
 
+### Validation
+
+30 of 31 offline suites green (`architecture.js` 173/0, including §4f's 7 port checks and
+§4g's 6 boundary checks); **all 10 browser suites green**, one at a time over HTTP; and
+`launch-check` boots, plays and streams with all 40 modules loaded.
+
+`performance.js`'s one drifty assertion failed at +17.3% against a 14% ceiling — **and so
+does the build this phase started from**: alternating A/B on the same container gave the
+baseline +16.2 / +13.8 / +22.8 and this build +19.5 / +13.3 / +12.8. The threshold was not
+raised. See `PROGRESS.md` §6.1.
+
+**`browser-transitions` passed for the first time in three phases, and `riftArming` is not
+fixed.** Nothing here touched `AnchorMonumentManager`; the container was fast enough to get
+under a 30-second wait. Same for `browser-haven`'s frame-rate-sensitive sweep. A green
+timing-sensitive suite is evidence the build is sound, not evidence the timing defect is
+gone.
+
 ---
 
 ## 5. THE DIMENSION EXTENSION POINT — AND DIMENSION 3, THE BELOW

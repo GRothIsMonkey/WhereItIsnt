@@ -370,9 +370,37 @@ tuned away.
 Cut A cannot affect it in any case: nothing in chunk generation reads a dimension flag. The
 three surviving reads are all per-frame `update()` guards.
 
-## 6.2 BROWSER — 10 SUITES, ONE AT A TIME, SERVED OVER HTTP
+## 6.2 BROWSER — ALL 10 GREEN, ONE AT A TIME, SERVED OVER HTTP
 
-Recorded in section 6.4 below with the two pre-existing failures the phase brief named.
+```
+  browser-menu          70/0     browser-finale         72/0
+  browser-save         102/0     browser-audio          53/0
+  browser-onboarding    48/0     browser-playability    71/0
+  browser-opening       72/0     browser-transitions    51/0
+  browser-environment   41/0     browser-haven          73/0
+```
+
+`tools/launch-check.js` green over HTTP: the page boots, **all 40 modules load**, the
+player moves, 126 chunks stream, no page error.
+
+**TWO OF THESE PASSED FOR THE FIRST TIME IN THREE PHASES, AND NEITHER IS A FIX.**
+
+`browser-transitions` reached **51 PASS / 0 FAIL**. Eras 1.5.4 and 1.5.5 both recorded it
+stopping at 14 PASS and exceeding a 30-second wait at the Farmlands crossing — the
+`riftArming` clamped-delta defect (§9.5), A/B-proved against the pre-extraction build in
+1.5.4. **That defect is NOT fixed.** The arming delay is still decremented by the `dt`
+clamped to 0.06 for physics safety, so its real duration is still
+`RIFT_ARM_TIME / min(realDt, 0.06)` — about 27s at 1fps. This container was fast enough to
+get under the wait. **Nothing in this phase touched `AnchorMonumentManager`**, and claiming
+a fix because a timing-sensitive suite went green would be exactly the kind of claim
+§61.05-61.07 exist to forbid.
+
+`browser-haven` reached **73 PASS / 0 FAIL**. Its 2Hz anomaly sweep is frame-rate sensitive
+for the same reason; 1.5.5 recorded it at 71/2 in a sequential run and 71+/0 alone, on both
+builds. Also not a fix.
+
+**A GREEN TIMING-SENSITIVE SUITE IS EVIDENCE THE BUILD IS SOUND, NOT EVIDENCE THE TIMING
+DEFECT IS GONE.** Both remain open and both remain gameplay-timing work.
 
 ## 6.3 WORLD GENERATION
 
@@ -401,7 +429,8 @@ this section is a claim about code and measurement; none of it is a claim that t
 good. `PLAYTEST.md` is the script and it must be played from a build **served over HTTP**.
 
 `riftArming` is still decremented by the clamped physics delta (§9.5) — a gameplay-timing
-fix, deliberately not made in an architectural phase.
+fix, deliberately not made in an architectural phase, and **not made less real by
+`browser-transitions` happening to pass on a fast container** (§6.2).
 
 ---
 
