@@ -6227,3 +6227,80 @@ built on:**
 | where it runs | `Game._start` / `Game._beginPlay` |
 | the one-shot Farmlands recall | `farmCrossroadsRecalled` |
 | dev commands | `debugGrantCompass` / `debugOpeningInstruction` |
+## ERA 1.5 — COMPLETE
+
+Era 1.5 is now complete through:
+
+### Phase 1.5.6 — Coupling Cuts + Rendering Boundary
+
+Latest validated commit:
+`245f4ff`
+
+Phase 1.5 completed:
+- architecture inventory/contracts
+- pure data/helper extraction
+- VoxelWorld split
+- Game/application split
+- CSS/markup/presentation seam
+- dimension identity coupling cut
+- SanitySystem/VoxelWorld coupling cut
+- gameplay/HUD boundary hardening
+- rendering boundary extraction
+
+Current state:
+- 40 modules
+- Era 2 rendering boundary established
+- dimension identity represented by one field with derived compatibility getters
+- SanitySystem no longer depends directly on voxel lighting/sky internals
+- gameplay/HUD boundary declared
+- 2,130 lines of rendering code moved into `src/rendering/`
+- all 10 browser suites passed in the Phase 1.5.6 validation run
+
+Known non-blocking/deferred architecture items remain explicitly documented in `ARCHITECTURE.md`.
+
+## ERA 2 — NEXT
+
+Era 2 is the final non-voxel visual/horror rebirth.
+
+The current locked creative direction is:
+
+### D1 — Shattered Farmlands
+Seven major authored landmark beats:
+1. Farm Compound + Water Tower
+2. Schoolhouse
+3. Electrical Substation
+4. Rural Church
+5. Abandoned Motel
+6. Abandoned Grain Elevator
+7. Ordinary Barn / Underground Elevator
+
+Major new D1 creative lock:
+- Grain Elevator contains the severely cramped caged creature.
+- The creature escapes and deliberately runs toward Suburbia.
+- The D1 finale contains the approved chase/jumpscare into the barn.
+- The barn contains the puzzle and underground elevator route.
+
+### D2 — Static Suburbia
+Core direction:
+- beautiful empty liminal suburb
+- preserved-memory feeling
+- direct recognition of Farmlands
+- same escaped creature from D1
+- meaningful progression items and survival resources
+- pursuit / interception / cornering
+- one major house hunt horror sequence
+- one major authored jumpscare
+- gradual physical deterioration of the entire reconstruction
+- giant Water Tower callback
+- Suburbia collapses downward
+- elevator system is exposed
+
+### D2 → D3
+The elevator is the canonical bridge into The Below.
+
+### D3 — The Below
+Strongest horror chapter.
+Core fear:
+“I was never supposed to be here.”
+
+Use STORY.md and ROADMAP.md as the creative authority for Era 2 implementation.
