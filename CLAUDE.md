@@ -4119,6 +4119,18 @@ The elevator discovered beneath the D1 barn is a canonical bridge between recons
 
 Do not replace the D2 → D3 elevator transition with a generic portal/fall unless explicitly redesigned.
 
+RIFT CORES AND THE ELEVATOR BOTH EXIST AND NEITHER REPLACES THE OTHER (settled during Era 2
+planning; see ROADMAP.md "CANON RESOLUTIONS"). Cores remain the THREE progression hinges —
+there is no fourth Core. The elevator is the PHYSICAL TRAVERSAL MECHANISM. A Core is WHY the
+next layer becomes reachable; the elevator is HOW the player physically gets there. Do not
+gate the elevator on a new Core, and DO NOT CHANGE THE SAVE SCHEMA for it — the elevator is
+world state, not progression state.
+
+THE CAGE CREATURE'S "BELONGING" IS BEHAVIOURAL. Section 5.7 of STORY.md asks the Suburbia
+entity to feel like it belongs there; that means it treats the neighbourhood as its
+territory once it arrives. It does NOT mean a Suburbia origin or a mythology. The player
+witnesses an ESCAPE, never an ORIGIN. Do not write one.
+
 ### D3
 Final D3 is The Below.
 

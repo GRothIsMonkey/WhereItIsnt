@@ -1940,19 +1940,35 @@ The previously approved Farmlands jumpscare remains part of the final design.
 22. ERA 2 — PHASE 7 — FARMLANDS JOURNEY / LANDMARK HORROR
 Turn the rural route into a cinematic journey.
 
-Preserve the meaningful chain:
+THE CURRENT FINAL-GAME CHAIN IS THE SEVEN AUTHORED LANDMARKS:
 
-arrival
+1. Farm Compound + Water Tower
 
-fallen water tower
+2. Schoolhouse
 
-standing water tower
+3. Electrical Substation
 
-giant barn
+4. Rural Church
 
-great tree
+5. Abandoned Motel
 
-disconnected home
+6. Abandoned Grain Elevator
+
+7. Ordinary Barn / underground elevator facility
+
+Landmark 6 holds the caged creature; Landmark 7 holds the barn puzzle and the
+underground elevator. See the ERA 2 CREATIVE EXPANSION section below, and STORY.md.
+
+Landmarks must remain materially distinct in architecture, atmosphere, story function
+and horror function.
+
+HISTORICAL NOTE — THE OBSOLETE SIX-BEAT CHAIN.
+This section previously listed: arrival / fallen water tower / standing water tower /
+giant barn / great tree / disconnected home. That was the ERA 1 PHASE 20 journey, built
+on the voxel Farmlands. It is historical material and is NOT current Era 2 design. Do not
+implement it, and do not treat it as a chain the seven landmarks must preserve. What
+survives from it is the WATER TOWER, which is Landmark 1, and the Disconnected Home as a
+canonical structure type (STORY.md section 12) rather than a fixed beat in this sequence.
 
 Improve:
 
@@ -2867,6 +2883,50 @@ Build:
 - extreme scale contrast
 
 D2 should build anticipation for this chapter rather than competing with it through constant jumpscares.
+
+---
+
+## CANON RESOLUTIONS — SETTLED, DO NOT RE-LITIGATE
+
+Three ambiguities were raised during Era 2 planning and answered by the project owner.
+They are recorded here so a future session does not flag them again or invent a compromise.
+
+### 1. The seven landmarks are the D1 chain
+
+The six-beat chain that used to head section 22 is obsolete historical material from the
+Era 1 Phase 20 voxel journey. Section 22 now carries the seven landmarks and says so.
+
+### 2. The cage creature IS the Suburbia entity, and "it belongs here" is BEHAVIOURAL
+
+The creature caged in the D1 Grain Elevator is the same entity that hunts the player in
+Static Suburbia. Its cage encounter and escape are canonical.
+
+STORY.md section 5.7 says the Suburbia entity should feel like it "belongs here". That
+means: ONCE IT REACHES SUBURBIA IT BEHAVES AS THOUGH THE NEIGHBOURHOOD IS ITS TERRITORY.
+
+It does NOT mean the creature has a Suburbia origin, a mythology, or a lore explanation.
+There is no conflict between section 5.7 and the cage encounter: the player witnesses an
+ESCAPE, never an ORIGIN. Where the creature came from, what the cage was for, who built
+it and why the creature is going deeper all remain unexplained, per section 26.
+
+Do not add a second unrelated D2 entity, and do not write an origin story for this one.
+
+### 3. Rift Cores AND the elevator both exist, and neither replaces the other
+
+RIFT CORES remain the three progression hinges — fragments of the record, exactly as
+STORY.md sections 11 and 9 describe. THERE IS NO FOURTH CORE.
+
+THE ELEVATOR is the PHYSICAL TRAVERSAL MECHANISM connecting the reconstruction layers. It
+is a place the player walks into and rides, not a progression token.
+
+The two are different kinds of thing and must coexist:
+
+    a Core is WHY the next layer becomes reachable
+    the elevator is HOW the player physically gets there
+
+Do not collapse one into the other, do not gate the elevator on a fourth Core, and
+DO NOT CHANGE THE SAVE SCHEMA to accommodate the elevator. The schema is version 5 and
+the elevator is world state, not progression state.
 
 ---
 
