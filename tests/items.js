@@ -25,6 +25,10 @@ const BOB_TRAVEL = g('ITEM_BOB_TRAVEL'), BOB_RATE = g('ITEM_BOB_RATE');
 const PICKUP_R = g('ITEM_PICKUP_RADIUS');
 const ItemEntity = g('ItemEntity');
 const scene = new THREE.Scene();
+/* ERA 2 E2.1 — ItemEntity asks the PhysicalWorld, not the engine: collision, streaming
+   residency and the edit epoch. The game hands it one from the composition root; this
+   suite builds the same view over the same world so it tests the real path. */
+const PW = new (g('VoxelPhysicalWorld'))(w);
 
 /* A scratch world: a flat stone floor with air above, in a region far from anything the
    generator authored, so tests are about the item and not about terrain. Blocks are
@@ -38,7 +42,7 @@ const meshBottom = (e) => e.mesh.position.y - SZY / 2;
 function settle(e, maxSteps = 900, dt = 1 / 60) {
   let n = 0;
   for (; n < maxSteps; n++) {
-    e.update(dt, FAR, PLAYER, w);
+    e.update(dt, FAR, PLAYER, PW);
     if (e.resting) break;
   }
   return n;
@@ -84,7 +88,7 @@ const FLOOR_Y = (() => {          // the real surface height at the test column
       `surface ${FLOOR_Y})`);
   // Sample the whole bob cycle: the deepest point must never be below the surface.
   let lo = Infinity, hi = -Infinity;
-  for (let i = 0; i < 400; i++) { e.update(1 / 60, FAR, PLAYER, w); const b = meshBottom(e); if (b < lo) lo = b; if (b > hi) hi = b; }
+  for (let i = 0; i < 400; i++) { e.update(1 / 60, FAR, PLAYER, PW); const b = meshBottom(e); if (b < lo) lo = b; if (b > hi) hi = b; }
   const sink = FLOOR_Y - lo;
   chk(sink <= 1e-9,
       `and across a full bob cycle it never sinks: deepest rendered point is ` +
@@ -104,13 +108,13 @@ const FLOOR_Y = (() => {          // the real surface height at the test column
   const e = drop(BASE.x + 0.5, FLOOR_Y + 3, BASE.z + 0.5);
   settle(e);
   const y0 = e.mesh.rotation.y;
-  for (let i = 0; i < 60; i++) e.update(1 / 60, FAR, PLAYER, w);
+  for (let i = 0; i < 60; i++) e.update(1 / 60, FAR, PLAYER, PW);
   chk(e.mesh.rotation.y > y0, `a resting item still spins (${(e.mesh.rotation.y - y0).toFixed(3)} rad/s over one second)`);
   chk(Math.abs((e.mesh.rotation.y - y0) - 2.0) < 0.05, 'at the unchanged 2.0 rad/s');
   chk(e.position.x === e.position.x && !Number.isNaN(e.position.y),
       'and its physics position is stable while resting');
   // The bob is a function of age only — deterministic, no random jitter per frame.
-  const a = e.mesh.position.y; e.age += 0; e.update(0, FAR, PLAYER, w);
+  const a = e.mesh.position.y; e.age += 0; e.update(0, FAR, PLAYER, PW);
   chk(Math.abs(e.mesh.position.y - a) < 1e-12, 'a zero-length frame moves the bob by exactly nothing — no jitter');
   e.destroy();
 }
@@ -120,7 +124,7 @@ const FLOOR_Y = (() => {          // the real surface height at the test column
   const b = drop(BASE.x + 0.7, FLOOR_Y + 2, BASE.z + 0.7);
   a.restBob = 0; b.restBob = Math.PI;
   settle(a); settle(b);
-  for (let i = 0; i < 20; i++) { a.update(1 / 60, FAR, PLAYER, w); b.update(1 / 60, FAR, PLAYER, w); }
+  for (let i = 0; i < 20; i++) { a.update(1 / 60, FAR, PLAYER, PW); b.update(1 / 60, FAR, PLAYER, PW); }
   chk(Math.abs(a.mesh.position.y - b.mesh.position.y) > 1e-3,
       'the per-item bob phase desync survives');
   a.destroy(); b.destroy();
@@ -245,7 +249,7 @@ const FLOOR_Y = (() => {          // the real surface height at the test column
     if (!e.resting) { bad.push(label + ': never rested'); e.destroy(); continue; }
     // The collider must not overlap any solid, and the mesh (inset inside the collider)
     // therefore cannot be inside the wall either.
-    if (e._collidesAt(w, e.position)) bad.push(label + ': collider inside solid');
+    if (e._collidesAt(PW, e.position)) bad.push(label + ': collider inside solid');
     if (e.position.y < top - 1e-6) bad.push(label + ': fell below the floor');
     if (meshBottom(e) < top - 1e-9) bad.push(label + ': sunk');
     e.destroy();
@@ -285,17 +289,17 @@ const FLOOR_Y = (() => {          // the real surface height at the test column
   chk(e.resting && Math.abs(e.position.y - (top + 1)) < 1e-6,
       `an item rests on a pedestal at y=${e.position.y}`);
   w.setBlockWorld(X, top, Z, BLOCK.AIR);              // mine it out from under
-  e.update(1 / 60, FAR, PLAYER, w);
+  e.update(1 / 60, FAR, PLAYER, PW);
   chk(!e.resting, 'mining the block beneath it wakes it immediately — it does not hang in the air');
   settle(e, 600);
   chk(e.resting && Math.abs(e.position.y - top) < 1e-6,
       `and it falls and re-settles on the newly exposed surface (y=${e.position.y}, want ${top})`);
   // Mining a block BESIDE it must not wake it.
   w.setBlockWorld(X + 1, top, Z, BLOCK.STONE);
-  e.update(1 / 60, FAR, PLAYER, w);
+  e.update(1 / 60, FAR, PLAYER, PW);
   const wasResting = e.resting;
   w.setBlockWorld(X + 1, top, Z, BLOCK.AIR);
-  e.update(1 / 60, FAR, PLAYER, w);
+  e.update(1 / 60, FAR, PLAYER, PW);
   chk(wasResting && e.resting, 'while mining a block beside it leaves it resting — support is what matters');
   e.destroy();
 }
@@ -313,7 +317,7 @@ const FLOOR_Y = (() => {          // the real surface height at the test column
   settle(e);
   const rested = e.resting && Math.abs(e.position.y - (top + 1)) < 1e-6;
   w.setBlockWorld(X, top, Z, decor);                 // floor replaced by a noclip weed
-  e.update(1 / 60, FAR, PLAYER, w);
+  e.update(1 / 60, FAR, PLAYER, PW);
   chk(rested && !e.resting,
       `an item whose floor becomes a noclip decoration (id ${decor}) wakes and falls — ` +
       `support and landing now use the same predicate`);
@@ -344,13 +348,13 @@ const FLOOR_Y = (() => {          // the real surface height at the test column
   const key = ncx + ',' + ncz;
   const saved = w.chunks.get(key);
   w.chunks.delete(key);
-  for (let i = 0; i < 120; i++) e.update(1 / 60, FAR, PLAYER, w);
+  for (let i = 0; i < 120; i++) e.update(1 / 60, FAR, PLAYER, PW);
   chk(Math.abs(e.position.y - restY) < 1e-9 && Math.abs(e.position.x - restX) < 1e-9 &&
       Math.abs(e.position.z - restZ) < 1e-9,
       `with the neighbouring chunk unloaded it holds its exact world position for two ` +
       `seconds (y=${e.position.y.toFixed(6)}) instead of falling through the missing data`);
   if (saved) w.chunks.set(key, saved);
-  for (let i = 0; i < 60; i++) e.update(1 / 60, FAR, PLAYER, w);
+  for (let i = 0; i < 60; i++) e.update(1 / 60, FAR, PLAYER, PW);
   chk(Math.abs(e.position.y - restY) < 1e-9,
       'and does not pop when the chunk streams back in');
   e.destroy();
@@ -373,7 +377,7 @@ const FLOOR_Y = (() => {          // the real surface height at the test column
     const P = { inventory: { addItem: () => { picked++; return true; } }, sound: { playItemPickup() {} } };
     // Stand one block away horizontally, feet level with the item's foot.
     const near = new THREE.Vector3(e.position.x + 1.0, e.position.y, e.position.z);
-    e.update(1 / 60, near, P, w);
+    e.update(1 / 60, near, P, PW);
     if (picked !== 1) bad.push(label + ': not picked up at 1.0 blocks');
     if (e.alive) bad.push(label + ': still alive after pickup');
   }
@@ -386,7 +390,7 @@ const FLOOR_Y = (() => {          // the real surface height at the test column
   settle(e);
   let minR = Infinity, maxR = -Infinity;
   for (let i = 0; i < 240; i++) {
-    e.update(1 / 60, FAR, PLAYER, w);
+    e.update(1 / 60, FAR, PLAYER, PW);
     // The reach the shipped code actually uses, recomputed the same way.
     const dy = (e.position.y + MESH_HALF) - e.position.y;
     const r = Math.sqrt(Math.max(0, PICKUP_R * PICKUP_R - dy * dy));
@@ -448,7 +452,7 @@ const FLOOR_Y = (() => {          // the real surface height at the test column
   for (let i = 0; i < 200; i++) {
     const e = drop(BASE.x + 0.5, FLOOR_Y + 2, BASE.z + 0.5, ITEM.COBBLESTONE, true);
     settle(e, 1200);
-    if (!e.resting || e._collidesAt(w, e.position) || meshBottom(e) < e.position.y - 1e-9) bad++;
+    if (!e.resting || e._collidesAt(PW, e.position) || meshBottom(e) < e.position.y - 1e-9) bad++;
     e.destroy();
   }
   chk(bad === 0, '200 drops with the random spawn scatter all settle outside solid geometry, none sunk');
@@ -465,7 +469,7 @@ const FLOOR_Y = (() => {          // the real surface height at the test column
   const resting = items.filter(e => e.resting).length;
   const t0 = process.hrtime.bigint();
   const F = 600;
-  for (let f = 0; f < F; f++) for (const e of items) e.update(1 / 60, FAR, PLAYER, w);
+  for (let f = 0; f < F; f++) for (const e of items) e.update(1 / 60, FAR, PLAYER, PW);
   const per = Number(process.hrtime.bigint() - t0) / 1e6 / F;
   console.log(`      ${resting}/${N} resting; ${per.toFixed(4)} ms to update all ${N} items per frame ` +
               `(${(per / N * 1000).toFixed(2)} µs each, ${(per / 16.7 * 100).toFixed(2)}% of a 60fps frame)`);
@@ -497,8 +501,8 @@ const FLOOR_Y = (() => {          // the real surface height at the test column
     if (!e.resting) { bad.push(`(${x},${z}) never rested`); e.destroy(); continue; }
     if (meshBottom(e) < e.position.y - 1e-9) bad.push(`(${x},${z}) mesh below foot`);
     // It must be ON a surface: nothing overlapping, and something a hair below.
-    if (e._collidesAt(w, e.position)) bad.push(`(${x},${z}) resting inside solid`);
-    if (!e._stillSupported(w)) bad.push(`(${x},${z}) resting but unsupported`);
+    if (e._collidesAt(PW, e.position)) bad.push(`(${x},${z}) resting inside solid`);
+    if (!e._stillSupported(PW)) bad.push(`(${x},${z}) resting but unsupported`);
     e.destroy();
   }
   chk(tested > 12 && bad.length === 0,
@@ -514,7 +518,7 @@ const FLOOR_Y = (() => {          // the real surface height at the test column
   const surf = (() => { for (let y = 60; y >= 0; y--) if (w.isSolid(x, y, z)) return y + 1; return 0; })();
   const e = drop(x + 0.5, surf + 4, z + 0.5);
   settle(e, 900);
-  chk(e.resting && Math.abs(e.position.y - surf) < 1e-4 && e._stillSupported(w),
+  chk(e.resting && Math.abs(e.position.y - surf) < 1e-4 && e._stillSupported(PW),
       `an item dropped on the journey lane rests on the carriageway (y=${e.position.y.toFixed(4)}, ` +
       `surface ${surf})`);
   e.destroy();
@@ -562,7 +566,7 @@ const FLOOR_Y = (() => {          // the real surface height at the test column
       const e = drop(BASE.x + 0.5, FLOOR_Y + h, BASE.z + 0.5);
       settle(e, 900);
       let lo = Infinity;
-      for (let i = 0; i < 400; i++) { e.update(1 / 60, FAR, PLAYER, w); lo = Math.min(lo, meshBottom(e)); }
+      for (let i = 0; i < 400; i++) { e.update(1 / 60, FAR, PLAYER, PW); lo = Math.min(lo, meshBottom(e)); }
       nowGaps.push(lo - FLOOR_Y);
       e.destroy();
     }
@@ -590,7 +594,7 @@ const FLOOR_Y = (() => {          // the real surface height at the test column
       runs.sort((a, b) => a - b);
       return runs[2];
     };
-    const after = bench(ItemEntity, scene, w, FLOOR_Y);
+    const after = bench(ItemEntity, scene, PW, FLOOR_Y);
     const before = bench(OldItem, oldScene, oldW, oldFloor);
     const delta = (after / before - 1) * 100;
     console.log(`      COST:   300 resting items per frame — before ${before.toFixed(4)} ms, ` +

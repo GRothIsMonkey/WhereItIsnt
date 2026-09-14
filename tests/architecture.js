@@ -691,7 +691,10 @@ console.log('\n=== 4d. THE APPLICATION SEAM (ERA 1.5.4) ===\n');
     'src/rendering/ash-particles.js': ['AshParticleSystem'],
     'src/rendering/environment-system.js': ['EnvironmentSystem'],
     'src/rendering/postfx.js': ['PostFX'],
-    'src/world/sanity-world-view.js': ['SanityWorldView'],
+    /* ERA 2 E2.1 — the composition root builds the PhysicalWorld and hands it to every
+       consumer that asks the world what SHAPE it is. Era 1.5.6's SanityWorldView is
+       folded into it and the file is gone. */
+    'src/world/physical-world.js': ['VoxelPhysicalWorld'],
     'src/world/voxel-world.js': ['VoxelWorld'],
     'src/world/world-constants.js': ['CHUNK_SX', 'CHUNK_SZ', 'SEA_LEVEL'],
   };
@@ -742,6 +745,10 @@ console.log('\n=== 4d. THE APPLICATION SEAM (ERA 1.5.4) ===\n');
      list is five fields and one method rather than fifty. */
   const INBOUND_ALLOWED = {
     sound: 1, world: 1, ui: 1, player: 1, camera: 1,   // fields handed down
+    physical: 1,    // ERA 2 E2.1 — what SHAPE the world is. OpeningFilm reached
+                    // game.world.findSpawnHeight and now reaches only this, so the
+                    // cinematic no longer touches the voxel engine at all. `world` stays
+                    // because the developer console still reaches it.
     _triggerClimax: 1,                                  // the one method called back into
   };
   {
@@ -1192,6 +1199,86 @@ console.log('\n=== 4g. THE RENDERING BOUNDARY (ERA 1.5.6, CUT 4) ===\n');
   });
   console.log(`      rendering/: ${renderTHREE} THREE references over ${renderUnits.length} files — ` +
               'presentation Era 2 rewrites, out of the monolith and behind a named boundary');
+}
+
+
+console.log('\n=== 4h. THE PHYSICAL WORLD (ERA 2, E2.1) ===\n');
+
+/* Gameplay used to ask the voxel engine voxel questions: collidesAABB floored an AABB to
+   integer cells, findSpawnHeight walked a column, and ItemEntity divided its own footprint
+   by CHUNK_SX to ask whether a chunk was resident. Era 2 deletes all three, so the
+   questions are asked in representation-neutral terms and one file answers them.
+
+   This block asserts the seam in BOTH directions: the contract is complete, and nothing
+   outside the engine asks the old questions any more. */
+{
+  const fs2 = require('fs');
+  const file = path.join(SRCDIR, 'world', 'physical-world.js');
+  chk(fs2.existsSync(file), 'src/world/physical-world.js exists — the Era 2 world seam');
+  const src = fs2.existsSync(file) ? fs2.readFileSync(file, 'utf8') : '';
+
+  /* ---- 1. THE CONTRACT IS COMPLETE ---- */
+  const CONTRACT = [
+    'collidesAABB', 'isSolid', 'groundHeightAt', 'waterLevelAt', 'isResidentAround',
+    'editEpoch', 'hasOpenSkyAbove', 'lightLevelAt', 'nearestLightSourceDistance',
+    'isInsideSafeZone', 'isInsideSoulAnchorZone',
+  ];
+  const missing = CONTRACT.filter(m => !new RegExp('^\\s{2}' + m + '\\s*\\(', 'm').test(src));
+  chk(missing.length === 0,
+      `VoxelPhysicalWorld implements all ${CONTRACT.length} contract queries` +
+      (missing.length ? ` — MISSING: ${missing.join(', ')}` : ''));
+
+  /* ---- 2. IT IS READ-ONLY ----
+     A view that can write is not a view. Era 2's implementation must be able to answer
+     these questions without owning the world, and a setter here would make that false. */
+  const writes = ['setBlockWorld', '_writeBlockRaw', 'destroyBlock', 'placeBlock', 'edit('];
+  const canWrite = writes.filter(w => src.indexOf(w) >= 0);
+  chk(canWrite.length === 0,
+      'and it writes nothing — every query is read-only' +
+      (canWrite.length ? ` — FOUND: ${canWrite.join(', ')}` : ''));
+
+  /* ---- 3. NOTHING OUTSIDE THE ENGINE ASKS THE OLD QUESTIONS ----
+
+     `findSpawnHeight`, `worldEdits` and raw `getChunk` chunk arithmetic are the three the
+     contract replaced. The engine itself still has them — it is what implements them. */
+  const OLD_Q = {
+    'findSpawnHeight': 'groundHeightAt',
+    'worldEdits':      'editEpoch()',
+  };
+  const ENGINE = /^src\/(world|dimensions)\//;
+  const sources = [['game.html', SRC.inlineBody().code]]
+    .concat(SRC.modules().map(r => [r.rel, fs.readFileSync(r.abs, 'utf8')]));
+  for (const [old, now] of Object.entries(OLD_Q)) {
+    const offenders = [];
+    for (const [name, txt] of sources) {
+      if (ENGINE.test(name)) continue;
+      /* strip block and line comments — several of these names survive in prose */
+      const code = txt.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+      const n = (code.match(new RegExp('\\.' + old + '\\b', 'g')) || []).length;
+      if (n) offenders.push(name + ' ×' + n);
+    }
+    chk(offenders.length === 0,
+        `nothing outside the engine reaches .${old} — it is ${now} now` +
+        (offenders.length ? ` — STILL DOES: ${offenders.join(', ')}` : ''));
+  }
+
+  /* ---- 4. THE TWO CONSUMERS THAT ASK NOTHING ELSE ----
+
+     StalkerAI and PhantomHallucinator reach the world ONLY through the contract, so Era 2
+     swaps the implementation underneath them and neither class changes. They are named
+     rather than counted, so losing one is a failure and not a rounding error. */
+  const inline = SRC.inlineBody().code;
+  for (const cls of ['StalkerAI', 'PhantomHallucinator']) {
+    const body = (inline.match(new RegExp('class ' + cls + ' \\{[\\s\\S]*?\\n\\}')) || [''])[0];
+    chk(body.length > 0 && !/\bthis\.world\b/.test(body),
+        `${cls} holds no world — it asks only the physical contract`);
+  }
+
+  /* ---- 5. AND THE TWO OMISSIONS ARE DELIBERATE, SO THEY ARE WRITTEN DOWN ----
+     A future phase must find the reasoning, not rediscover it. */
+  chk(/RAYCAST\./.test(src) && /BLOCK IDENTITY\./.test(src),
+      'and the file records why raycast and block identity are NOT in the contract — ' +
+      'both are different seams, rebuilt in different phases');
 }
 
 console.log('\n=== 5. THE BOUNDARIES THAT ARE ALREADY CLEAN, AND MUST STAY CLEAN ===\n');

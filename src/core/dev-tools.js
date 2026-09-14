@@ -150,11 +150,12 @@
     g.ui.updateVitals(p);
   }
 
-  /* Drops the player onto real ground. findSpawnHeight scans down for the first solid
-     block, so this can never leave the player embedded in terrain or hovering — and it
-     rejects columns with a structure overhead (a roof would place them on the roof). */
-  function safeGround(w, wx, wz, expectY) {
-    const y = w.findSpawnHeight(Math.floor(wx), Math.floor(wz));
+  /* Drops the player onto real ground. groundHeightAt answers where a foot rests, so this
+     can never leave the player embedded in terrain or hovering — and it rejects columns
+     with a structure overhead (a roof would place them on the roof).
+     ERA 2 E2.1 — takes a PhysicalWorld. The callers hand it g.physical. */
+  function safeGround(physical, wx, wz, expectY) {
+    const y = physical.groundHeightAt(Math.floor(wx), Math.floor(wz));
     if (expectY !== undefined && Math.abs(y - expectY) > 2) return null;
     return new THREE.Vector3(Math.floor(wx) + 0.5, y, Math.floor(wz) + 0.5);
   }
@@ -176,7 +177,7 @@
     w._eagerLoadAround(sx, sz, 3);   // generated + meshed before the player is placed
 
     setPlayerDimension(g.player, DIMENSION.OVERWORLD);
-    resetPlayer(g, safeGround(w, sx, sz) || g.player.spawnPosition.clone());
+    resetPlayer(g, safeGround(g.physical, sx, sz) || g.player.spawnPosition.clone());
     applyDimensionState(g, 'overworld');
     announce('Overworld');
   };
@@ -197,7 +198,7 @@
     w._eagerLoadAround(fspawn.x, fspawn.z, 3);
 
     setPlayerDimension(g.player, DIMENSION.FARMLANDS);
-    resetPlayer(g, safeGround(w, fspawn.x, fspawn.z) || fspawn);
+    resetPlayer(g, safeGround(g.physical, fspawn.x, fspawn.z) || fspawn);
     applyDimensionState(g, 'farmlands');
     announce('The Shattered Farmlands @ ' + Math.floor(fspawn.x) + ',' + Math.floor(fspawn.z) +
              ' — biome ' + farmlandsBiomeAt(fspawn.x, fspawn.z));
@@ -280,10 +281,10 @@
     const faceZ = lot.row === 0 ? -1 : 1;   // front row faces -z, back row +z
     for (const d of [14, 12, 16, 10, 18, 8]) {
       const px = lot.hx + 5, pz = lot.hz + (faceZ < 0 ? -d : SUB_HOUSE_D + d);
-      const c = safeGround(w, px, pz, baseY);
+      const c = safeGround(g.physical, px, pz, baseY);
       if (c) { pos = c; break; }
     }
-    if (!pos) pos = safeGround(w, lot.hx + 5, lot.hz - 14) ||
+    if (!pos) pos = safeGround(g.physical, lot.hx + 5, lot.hz - 14) ||
                     new THREE.Vector3(lot.hx + 5.5, baseY + 1, lot.hz - 14.5);
 
     setPlayerDimension(g.player, DIMENSION.SUBURBIA);
@@ -657,7 +658,7 @@
     w._eagerLoadAround(ax, az, 3);
     let pos = null;
     for (const d of [0, 3, -3, 6, -6]) {
-      const c = safeGround(w, ax, az + d, H.padY);
+      const c = safeGround(g.physical, ax, az + d, H.padY);
       if (c) { pos = c; break; }
     }
     if (!pos) pos = new THREE.Vector3(ax + 0.5, H.padY + 1, az + 0.5);
@@ -679,7 +680,7 @@
     const d = dist === undefined ? 140 : Math.max(0, dist);
     const x = T.cx - d, z = Math.round(w._farmJourneyLaneZ(x));
     w._eagerLoadAround(x, z, 3);
-    const pos = safeGround(w, x, z, FARM_BASE_Y) ||
+    const pos = safeGround(g.physical, x, z, FARM_BASE_Y) ||
                 new THREE.Vector3(x + 0.5, w._farmHeightAt(x, z) + 1, z + 0.5);
     setPlayerDimension(g.player, DIMENSION.FARMLANDS);
     resetPlayer(g, pos);

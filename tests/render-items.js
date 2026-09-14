@@ -29,6 +29,11 @@ const PLAYER = { inventory: { addItem: () => true }, sound: { playItemPickup() {
 function shoot(htmlPath, tag) {
   const { w, ev, S } = makeWorld(htmlPath);
   const ItemEntity = vm.runInContext('ItemEntity', S);
+  /* ERA 2 E2.1 — the CURRENT build's ItemEntity asks a PhysicalWorld; the BASELINE build
+     this tool renders beside it predates the contract and still takes the raw world. The
+     handle is chosen per build so the comparison stays honest on both sides. */
+  const PWClass = vm.runInContext('typeof VoxelPhysicalWorld === "function" ? VoxelPhysicalWorld : null', S);
+  const handle = PWClass ? new PWClass(w) : w;
   const ITEM = ev('ITEM'), BLOCK = ev('BLOCK');
   const PAL = tilePalette(ev);
   const scene = new THREE.Scene();
@@ -59,12 +64,12 @@ function shoot(htmlPath, tag) {
   const group = new THREE.Group();
   const items = [];
   for (const [px, pz] of spots) {
-    const e = new ItemEntity(scene, ITEM.IRON_ORE, 1, new THREE.Vector3(px, floor + 5, pz), w);
-    for (let i = 0; i < 900 && !e.resting; i++) e.update(1 / 60, FAR, PLAYER, w);
+    const e = new ItemEntity(scene, ITEM.IRON_ORE, 1, new THREE.Vector3(px, floor + 5, pz), handle);
+    for (let i = 0; i < 900 && !e.resting; i++) e.update(1 / 60, FAR, PLAYER, handle);
     // Hold the bob at its LOWEST point — the worst case for penetration.
     let lowest = Infinity, bestAge = e.age;
-    for (let i = 0; i < 200; i++) { e.update(1 / 60, FAR, PLAYER, w); if (e.mesh.position.y < lowest) { lowest = e.mesh.position.y; bestAge = e.age; } }
-    e.age = bestAge; e.update(0, FAR, PLAYER, w);
+    for (let i = 0; i < 200; i++) { e.update(1 / 60, FAR, PLAYER, handle); if (e.mesh.position.y < lowest) { lowest = e.mesh.position.y; bestAge = e.age; } }
+    e.age = bestAge; e.update(0, FAR, PLAYER, handle);
     scene.remove(e.mesh);
     group.add(e.mesh);
     items.push(e);

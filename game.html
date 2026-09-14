@@ -285,7 +285,7 @@
 <script src="src/world/world-content.js"></script>
 <script src="src/dimensions/dimension-generators.js"></script>
 <script src="src/world/voxel-world.js"></script>
-<script src="src/world/sanity-world-view.js"></script>
+<script src="src/world/physical-world.js"></script>
 <script src="src/dimensions/shared/stampers.js"></script>
 <script src="src/dimensions/overworld/generation.js"></script>
 <script src="src/dimensions/overworld/stampers.js"></script>
@@ -4632,16 +4632,11 @@ class ItemEntity {
      voxel, so the item read "nothing under me", woke, and fell through the world while
      the neighbour was still streaming. Checking the footprint costs one extra integer
      compare in the overwhelmingly common case where the item is nowhere near an edge. */
+  /* ERA 2 E2.1 — the chunk arithmetic moved into the PhysicalWorld. The QUESTION is
+     unchanged and survives the voxel world; the division by CHUNK_SX did not. */
   _chunkReady(world) {
-    if (!world.getChunk) return true;
-    const x0 = Math.floor((this.position.x - ITEM_HALF) / CHUNK_SX);
-    const x1 = Math.floor((this.position.x + ITEM_HALF) / CHUNK_SX);
-    const z0 = Math.floor((this.position.z - ITEM_HALF) / CHUNK_SZ);
-    const z1 = Math.floor((this.position.z + ITEM_HALF) / CHUNK_SZ);
-    for (let cx = x0; cx <= x1; cx++)
-      for (let cz = z0; cz <= z1; cz++)
-        if (!world.getChunk(cx, cz)) return false;
-    return true;
+    return world.isResidentAround(this.position.x - ITEM_HALF, this.position.z - ITEM_HALF,
+                                  this.position.x + ITEM_HALF, this.position.z + ITEM_HALF);
   }
 
   /* If a drop is spawned inside geometry (e.g. tossed into a wall), nudge it up out of
@@ -4756,7 +4751,7 @@ class ItemEntity {
        Measured over 300 resting items: the exact probe alone cost 37% more per frame
        than the cheap-but-wrong isSolid() scan it replaced; with this, it costs less than
        the original while still being exact. */
-    const epoch = world.worldEdits;
+    const epoch = world.editEpoch();
     if (epoch !== undefined && this._supportEpoch === epoch) return true;
     const ok = this._collidesAtY(world, this.position.x, this.position.y - ITEM_SUPPORT_PROBE,
                                  this.position.z);
@@ -10173,9 +10168,14 @@ function compassCardinal(bearingRad) {
 }
 
 class PlayerController {
-  constructor(camera, world, domElement, soundEngine, uiManager) {
+  /* ERA 2 E2.1 — TWO HANDLES, DELIBERATELY. `physical` answers what shape the world is
+     (collision, ground, water) and Era 2 replaces it. `world` is still how the player
+     CHANGES the world — mining, placing, doors, chests — and that is a different seam
+     rebuilt in a different phase. See src/world/physical-world.js. */
+  constructor(camera, world, domElement, soundEngine, uiManager, physicalWorld) {
     this.camera = camera;
     this.world = world;
+    this.physical = physicalWorld || new VoxelPhysicalWorld(world);
     this.dom = domElement;
     this.sound = soundEngine;
     this.ui = uiManager;
@@ -10342,7 +10342,7 @@ class PlayerController {
   }
 
   _snapToGround() {
-    const gy = this.world.findSpawnHeight(Math.floor(this.position.x), Math.floor(this.position.z));
+    const gy = this.physical.groundHeightAt(Math.floor(this.position.x), Math.floor(this.position.z));
     this.position.y = gy + 0.05;
   }
 
@@ -10981,7 +10981,7 @@ class PlayerController {
   }
 
   _collidesAt(pos) {
-    return this.world.collidesAABB(this.getAABB(pos));
+    return this.physical.collidesAABB(this.getAABB(pos));
   }
 
   /* PHASE 13 — STEP ASSIST.
@@ -11100,9 +11100,9 @@ class PlayerController {
        out — with an ordinary jump, at ordinary jump height, if the bank is a step up.
        Nothing here raises jumpVelocity, which requirement 30 explicitly forbids. */
     const fx = Math.floor(this.position.x), fz = Math.floor(this.position.z);
-    const feetLv = this.world.waterLevelAt(fx, Math.floor(this.position.y + 0.15), fz);
-    const bodyLv = this.world.waterLevelAt(fx, Math.floor(this.position.y + this.eyeHeight * 0.5), fz);
-    const headLv = this.world.waterLevelAt(fx, Math.floor(this.position.y + this.eyeHeight * 0.92), fz);
+    const feetLv = this.physical.waterLevelAt(fx, Math.floor(this.position.y + 0.15), fz);
+    const bodyLv = this.physical.waterLevelAt(fx, Math.floor(this.position.y + this.eyeHeight * 0.5), fz);
+    const headLv = this.physical.waterLevelAt(fx, Math.floor(this.position.y + this.eyeHeight * 0.92), fz);
     this.inDeepWater = bodyLv === 2;
     this.wading = !this.inDeepWater && feetLv > 0;
     this.inWater = this.inDeepWater || this.wading;      // legacy flag, unchanged meaning
@@ -11585,10 +11585,14 @@ const STALKER_ASYM_ARM = 1.08;       // right arm is longer
 const STALKER_ASYM_HEAD_TILT = 0.09; // permanent head cant
 
 
+/* ERA 2 E2.1 — the Stalker asks the world only PHYSICAL questions: where the ground is,
+   and whether a point is inside an Anchor's safe zone. It is therefore handed only the
+   PhysicalWorld, and cannot reach a block, a chunk or an edit. Era 2 swaps the
+   implementation underneath it and this class does not change. */
 class StalkerAI {
-  constructor(scene, world, sound, ui) {
+  constructor(scene, physicalWorld, sound, ui) {
     this.scene = scene;
-    this.world = world;
+    this.physical = physicalWorld;
     this.sound = sound;
     this.ui = ui;
     this.state = STALKER_STATE.DORMANT;
@@ -11645,10 +11649,10 @@ class StalkerAI {
     const dist = 20 + Math.random() * 10;
     const sx = playerPos.x + Math.sin(angle) * dist;
     const sz = playerPos.z + Math.cos(angle) * dist;
-    const sy = this.world.findSpawnHeight(Math.floor(sx), Math.floor(sz));
+    const sy = this.physical.groundHeightAt(Math.floor(sx), Math.floor(sz));
 
     // Prevent spawning inside Safehouse Anchor Zone
-    if (this.world.anchorManager && this.world.anchorManager.isInsideSafeZone(new THREE.Vector3(sx, sy, sz))) {
+    if (this.physical.isInsideSafeZone(new THREE.Vector3(sx, sy, sz))) {
       return;
     }
 
@@ -11666,7 +11670,7 @@ class StalkerAI {
     if (this.state === STALKER_STATE.DORMANT) return Infinity;
 
     // Repel night entity if it enters safe zone barrier
-    if (this.world.anchorManager && this.world.anchorManager.isInsideSafeZone(this.position)) {
+    if (this.physical.isInsideSafeZone(this.position)) {
       this._disintegrate();
       return Infinity;
     }
@@ -11688,7 +11692,7 @@ class StalkerAI {
       } else if (!beingWatched && dist > 1.5) {
         toPlayer.y = 0; toPlayer.normalize();
         this.position.addScaledVector(toPlayer, 1.5 * dt);
-        this.position.y = this.world.findSpawnHeight(Math.floor(this.position.x), Math.floor(this.position.z));
+        this.position.y = this.physical.groundHeightAt(Math.floor(this.position.x), Math.floor(this.position.z));
       } else if (dist <= 1.5) {
         this.state = STALKER_STATE.ATTACKING;
       }
@@ -11910,10 +11914,11 @@ function angleDiff(a, b) {
    a few seconds if never noticed. Purely a Sanity readout, same spirit as the
    mimic-block hallucination already applied by VoxelWorld.applyMimicHallucination().
    --------------------------------------------------------------------------------- */
+/* ERA 2 E2.1 — physical questions only, exactly like StalkerAI above. */
 class PhantomHallucinator {
-  constructor(scene, world, sound) {
+  constructor(scene, physicalWorld, sound) {
     this.scene = scene;
-    this.world = world;
+    this.physical = physicalWorld;
     this.sound = sound || null;
     this.active = [];       // { group, headY, age, lookThreshold }
     this.spawnTimer = 2.0;  // seconds until next spawn roll
@@ -12007,9 +12012,9 @@ class PhantomHallucinator {
     const dist = 20 + Math.random() * 10;
     const wx = playerPos.x + Math.sin(yaw) * dist;
     const wz = playerPos.z + Math.cos(yaw) * dist;
-    const wy = this.world.findSpawnHeight(Math.floor(wx), Math.floor(wz));
+    const wy = this.physical.groundHeightAt(Math.floor(wx), Math.floor(wz));
 
-    if (this.world.anchorManager && this.world.anchorManager.isInsideSafeZone(new THREE.Vector3(wx, wy, wz))) return;
+    if (this.physical.isInsideSafeZone(new THREE.Vector3(wx, wy, wz))) return;
 
     const { group, mat, headY } = this._buildSilhouette();
     group.position.set(wx, wy, wz);
@@ -12883,9 +12888,13 @@ class Mob {
 }
 
 class MobManager {
-  constructor(scene, world, itemManager, sound) {
+  /* ERA 2 E2.1 — TWO HANDLES. Mobs ask where the ground is (physical) and also read
+     and write blocks for torch placement and decay (the world). The second is a
+     different seam, rebuilt in a different phase. */
+  constructor(scene, world, itemManager, sound, physicalWorld) {
     this.scene = scene;
     this.world = world;
+    this.physical = physicalWorld || new VoxelPhysicalWorld(world);
     this.itemManager = itemManager;
     this.sound = sound;
     this.mobs = [];
@@ -12982,7 +12991,7 @@ class MobManager {
 
   // Hollowed Behemoth: Level 1 boss, spawned once on Night 3 near the Anchor Monument.
   spawnBehemoth(position) {
-    const sy = this.world.findSpawnHeight(Math.floor(position.x), Math.floor(position.z));
+    const sy = this.physical.groundHeightAt(Math.floor(position.x), Math.floor(position.z));
     const spawnPos = new THREE.Vector3(position.x, sy, position.z);
     const mob = new Mob(this.scene, MOB_TYPE.BEHEMOTH, spawnPos, this.difficultyMult);
     this.mobs.push(mob);
@@ -13070,7 +13079,7 @@ class MobManager {
     const sx = Math.floor(player.position.x + Math.sin(angle) * dist);
     const sz = Math.floor(player.position.z + Math.cos(angle) * dist);
 
-    const sy = this.world.findSpawnHeight(sx, sz);
+    const sy = this.physical.groundHeightAt(sx, sz);
     const surfaceId = this.world.getBlockWorld(sx, sy - 1, sz);
     if (surfaceId !== BLOCK.GRASS && surfaceId !== BLOCK.DIRT && surfaceId !== BLOCK.STONE) return;
     if (this.world.anchorManager && this.world.anchorManager.isInsideSafeZone(new THREE.Vector3(sx, sy, sz))) return;
@@ -13851,9 +13860,12 @@ class FarmAnimal {
    comparison plus the update loop over at most 28 objects.
    ===================================================================================== */
 class FarmAnimalManager {
-  constructor(scene, world, sound) {
+  /* ERA 2 E2.1 — two handles, as MobManager. Animals ask for footing (physical) and
+     for the deterministic per-cell farm data that decides where they stand (world). */
+  constructor(scene, world, sound, physicalWorld) {
     this.scene = scene;
     this.world = world;
+    this.physical = physicalWorld || new VoxelPhysicalWorld(world);
     this.sound = sound;
     this.live = new Map();          // animal id -> FarmAnimal
     this.pool = new Map();          // 'species|cond' -> [built rigs]
@@ -14010,11 +14022,11 @@ class FarmAnimalManager {
        nothing: the next scan is a third of a second away. */
     const cx = Math.floor(d.x / CHUNK_SX), cz = Math.floor(d.z / CHUNK_SZ);
     if (!this.world.getChunk(cx, cz)) return;
-    const gy = this.world.findSpawnHeight(Math.floor(d.x), Math.floor(d.z));
+    const gy = this.physical.groundHeightAt(Math.floor(d.x), Math.floor(d.z));
     if (gy <= 0 || gy >= CHUNK_SY - 1) return;
     // Never stand an animal inside a solid: a herd embedded in a barn wall is worse
     // than a herd that is simply not there.
-    if (this.world.isSolid(Math.floor(d.x), gy, Math.floor(d.z))) return;
+    if (this.physical.isSolid(Math.floor(d.x), gy, Math.floor(d.z))) return;
     const a = this.free.pop() || new FarmAnimal();
     a.spawn(this._acquireRig(d.species, d.cond, d.variant), d, gy);
     this.live.set(d.id, a);
@@ -16703,8 +16715,8 @@ class OpeningFilm {
     const x = p.position.x + Math.sin(bearing) * dist;
     const z = p.position.z + Math.cos(bearing) * dist;
     let y = p.position.y + (lift || 0);
-    if (ground && this.game.world && this.game.world.findSpawnHeight) {
-      const g = this.game.world.findSpawnHeight(Math.floor(x), Math.floor(z));
+    if (ground && this.game.physical) {
+      const g = this.game.physical.groundHeightAt(Math.floor(x), Math.floor(z));
       if (isFinite(g)) y = g + (lift || 0);
     }
     // The mesh is centred on its own origin, so half its height puts its feet on `y`.

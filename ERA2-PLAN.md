@@ -79,7 +79,16 @@ before E2.2 but has no gameplay property to verify. See §12.
 
 # 2. PURPOSE, CHANGES, DEPENDENCIES, FILES
 
-## E2.1 — Foundation Rebuild (the Physical World contract)
+## E2.1 — Foundation Rebuild (the Physical World contract) — ✅ **IMPLEMENTED**
+
+> **DONE.** `src/world/physical-world.js`, eleven read-only queries, one voxel
+> implementation. `SanityWorldView` folded in and deleted. `StalkerAI` and
+> `PhantomHallucinator` hold no world at all. Proved behaviour-identical against the
+> pre-phase build: **11,447 values, zero differences.** Asserted in
+> `tests/architecture.js` §4h. The contract as built has eleven queries, not the six this
+> section first sketched — `isSolid`, `isResidentAround` and `editEpoch` were added
+> because the measurement found consumers asking for them, and `raycast` was dropped
+> because its return type is block coordinates. Both changes are recorded in the file.
 
 **Purpose.** Make gameplay stop asking the voxel world voxel questions, so the
 representation can be swapped without touching gameplay. This is Era 1.5's method applied

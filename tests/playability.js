@@ -458,7 +458,7 @@ head('10. STATIC SUBURBIA DOES NOT PIN THE PLAYER AT THE BOTTOM OF THE SCALE');
   /* ERA 1.5.6 — SanitySystem takes a five-query VIEW of the world and no HUD at all.
      updateSuburbia touches neither, but it is constructed the way the game constructs it
      so this suite keeps testing the real signature rather than a historical one. */
-  const ss = ev('new SanitySystem(__env, new SanityWorldView(__w))');
+  const ss = ev('new SanitySystem(__env, new VoxelPhysicalWorld(__w))');
   const run = (secs, still) => { for (let i = 0; i < secs * 60; i++) ss.updateSuburbia(1 / 60, still ? 10 : 0); };
   const state = (v) => v >= 70 ? 'p-calm' : v >= 45 ? 'p-drifting' : v >= 20 ? 'p-breaking' : 'p-lost';
 

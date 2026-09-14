@@ -54,3 +54,41 @@ fails if `SanitySystem` names a world member again.
 **No gameplay number lives here.** Every rate, floor, threshold and radius stayed in
 `SanitySystem`. Proved rather than asserted: both builds driven over 128 branch
 combinations and both Suburbia rates, **118,256 values compared, zero differences**.
+
+## `physical-world.js` — the Era 2 world seam (E2.1)
+
+**This is the file Era 2's terrain rebuild cuts along.**
+
+Gameplay used to ask the voxel engine voxel questions: `collidesAABB` floors an AABB to
+integer cells, `findSpawnHeight` walks a column, and `ItemEntity` divided its own footprint
+by `CHUNK_SX` to ask whether a chunk was resident. Nine gameplay classes depended on that
+directly, and every one of those call sites would have had to be found and rewritten
+*during* the terrain rebuild — the phase least able to absorb a second unrelated change.
+
+`PhysicalWorld` is **eleven read-only queries** asked in representation-neutral terms:
+
+```
+  collidesAABB · isSolid · groundHeightAt · waterLevelAt · isResidentAround · editEpoch
+  hasOpenSkyAbove · lightLevelAt · nearestLightSourceDistance
+  isInsideSafeZone · isInsideSoulAnchorZone
+```
+
+`VoxelPhysicalWorld` is the **voxel answer** to them. Era 2 writes a second implementation
+over mesh terrain; gameplay does not change.
+
+**It absorbed Era 1.5.6's `SanityWorldView`**, which was the right shape at the wrong scope —
+the same questions were being asked by the player, the mobs, the items and the Stalker
+through the raw engine at the same time. Two views over one world is the duplication this
+file exists to avoid.
+
+**Two consumers now reach the world only through it** — `StalkerAI` and
+`PhantomHallucinator` hold no world at all. `tests/architecture.js` §4h names them, so
+losing one is a failure rather than a rounding error.
+
+**Deliberately NOT in the contract, and the file says why:** `raycast` (returns block
+coordinates and a block face — a different type in a mesh world, and changing it means
+changing mining, placement, doors and the look-target prompt in the same phase) and
+**block identity** (`getBlockWorld` is a *semantic* read, which is the material/surface
+seam Phase 34 already named).
+
+Proved behaviour-identical against the pre-phase build: **11,447 values, zero differences.**

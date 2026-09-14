@@ -730,7 +730,11 @@ function restoreWorldState(world, ws) {
    findSpawnHeight is used for the ring rather than a hand-rolled scan, because it is the
    same function the game's own spawn and respawn paths use.
    --------------------------------------------------------------------------------- */
-function findSafeLanding(world, dimension, x, y, z, halfWidth, height) {
+/* ERA 2 E2.1 — `physical` DEFAULTS, so every existing call site still lands on the same
+   behaviour (the Phase 34 `applyVolumes` precedent). The composition root passes one
+   explicitly; Era 2 passes a mesh implementation and this function does not change. */
+function findSafeLanding(world, dimension, x, y, z, halfWidth, height,
+                         physical = new VoxelPhysicalWorld(world)) {
   /* A COLUMN IS ONLY A CANDIDATE IF THE WORLD ACTUALLY EXISTS THERE. getBlockWorld
      answers AIR for an ungenerated chunk, so without this test an out-of-range or
      never-generated coordinate would read as beautifully clear and drop the player
@@ -741,7 +745,7 @@ function findSafeLanding(world, dimension, x, y, z, halfWidth, height) {
     if (Math.abs(px) > SAVE_COORD_LIMIT || Math.abs(pz) > SAVE_COORD_LIMIT) return false;
     for (const ox of [-halfWidth, halfWidth]) {
       for (const oz of [-halfWidth, halfWidth]) {
-        if (!world.getChunk(Math.floor((px + ox) / CHUNK_SX), Math.floor((pz + oz) / CHUNK_SZ))) return false;
+        if (!physical.isResidentAround(px + ox, pz + oz, px + ox, pz + oz)) return false;
       }
     }
     return true;
@@ -749,7 +753,7 @@ function findSafeLanding(world, dimension, x, y, z, halfWidth, height) {
   const fits = (px, py, pz) => {
     if (py < 1 || py + height >= CHUNK_SY) return false;
     if (!resident(px, pz)) return false;
-    return !world.collidesAABB({
+    return !physical.collidesAABB({
       minX: px - halfWidth, maxX: px + halfWidth,
       minY: py, maxY: py + height,
       minZ: pz - halfWidth, maxZ: pz + halfWidth,
@@ -768,25 +772,25 @@ function findSafeLanding(world, dimension, x, y, z, halfWidth, height) {
         for (let dz = -r; dz <= r; dz++) {
           if (Math.max(Math.abs(dx), Math.abs(dz)) !== r) continue;
           const cx = Math.floor(x) + dx + 0.5, cz = Math.floor(z) + dz + 0.5;
-          const gy = world.findSpawnHeight(Math.floor(cx), Math.floor(cz));
+          const gy = physical.groundHeightAt(Math.floor(cx), Math.floor(cz));
           if (fits(cx, gy, cz)) return { x: cx, y: gy, z: cz, repaired: true, reason: 'moved to clear ground nearby' };
         }
       }
     }
   }
 
-  const fallback = saveFallbackSpawn(world, dimension);
+  const fallback = saveFallbackSpawn(world, dimension, physical);
   return { x: fallback.x, y: fallback.y, z: fallback.z, repaired: true, reason: 'returned to the arrival point for this dimension' };
 }
 
 /* The last-resort landing for each dimension: the exact point the game's own transition
    into that dimension uses, so a recovered player arrives somewhere the game already
    guarantees is safe rather than somewhere invented for the occasion. */
-function saveFallbackSpawn(world, dimension) {
+function saveFallbackSpawn(world, dimension, physical = new VoxelPhysicalWorld(world)) {
   if (dimension === 'farmlands' && world.farmlandsSpawn) return world.farmlandsSpawn.clone();
   if (dimension === 'suburbia' && world.suburbiaSpawn) return world.suburbiaSpawn.clone();
   const sx = WORLD_CHUNKS_X * CHUNK_SX / 2, sz = WORLD_CHUNKS_Z * CHUNK_SZ / 2;
-  return new THREE.Vector3(sx, world.findSpawnHeight(Math.floor(sx), Math.floor(sz)), sz);
+  return new THREE.Vector3(sx, physical.groundHeightAt(Math.floor(sx), Math.floor(sz)), sz);
 }
 
 /* ---------------------------------------------------------------------------------

@@ -41,33 +41,37 @@ class Game {
 
     const atlasInfo = buildBlockAtlas();
     this.world = new VoxelWorld(this.scene, atlasInfo, this.itemManager);
+    /* ERA 2 E2.1 — THE PHYSICAL WORLD. Ten read-only queries answering "what shape is
+       the world here". Era 1.5.6's SanityWorldView was the right shape at the wrong
+       scope and is folded into this; Era 2 writes a second implementation over mesh
+       terrain and none of the consumers below change. See src/world/physical-world.js. */
+    this.physical = new VoxelPhysicalWorld(this.world);
     // PHASE 14 — the door swing plays a latch click; this is the handle it uses.
     this.world.soundEngine = this.sound;
     // PHASE 1 — dropped items need the voxel world for gravity/collision. The manager is
     // constructed first (VoxelWorld takes it as a dependency), so it's back-linked here.
-    this.itemManager.setWorld(this.world);
+    /* ERA 2 E2.1 — dropped items ask only physical questions (collision, streaming
+       residency, the edit epoch), so they are handed only the physical world. */
+    this.itemManager.setWorld(this.physical);
     this.anchorManager = new AnchorMonumentManager(this.scene, this.world, this.sound);
     this.world.setAnchorManager(this.anchorManager);
 
     this.ui = new UIManager();
-    this.player = new PlayerController(this.camera, this.world, this.canvas, this.sound, this.ui);
+    this.player = new PlayerController(this.camera, this.world, this.canvas, this.sound, this.ui, this.physical);
     this.ui.bindPlayer(this.player);
 
     this._placeStarterTorch();
 
     this.env = new EnvironmentSystem(this.scene, this.renderer);
     this.ashParticles = new AshParticleSystem(this.scene); // Level 2 — Ashen Forest cinder flakes
-    /* ERA 1.5.6 CUT B — Sanity is handed a five-query VIEW of the world, not the world,
-       and not the HUD. See src/world/sanity-world-view.js. */
-    this.sanityWorldView = new SanityWorldView(this.world);
-    this.sanity = new SanitySystem(this.env, this.sanityWorldView);
-    this.stalker = new StalkerAI(this.scene, this.world, this.sound, this.ui);
-    this.phantoms = new PhantomHallucinator(this.scene, this.world, this.sound);
-    this.mobs = new MobManager(this.scene, this.world, this.itemManager, this.sound);
+    this.sanity = new SanitySystem(this.env, this.physical);
+    this.stalker = new StalkerAI(this.scene, this.physical, this.sound, this.ui);
+    this.phantoms = new PhantomHallucinator(this.scene, this.physical, this.sound);
+    this.mobs = new MobManager(this.scene, this.world, this.itemManager, this.sound, this.physical);
     /* PHASE 18 — Farmlands world life. Constructed here beside MobManager but sharing
        nothing with it: animals are not mobs, never enter this.mobs, and are skipped
        entirely by every combat, aggro and spawn path in the game. */
-    this.farmAnimals = new FarmAnimalManager(this.scene, this.world, this.sound);
+    this.farmAnimals = new FarmAnimalManager(this.scene, this.world, this.sound, this.physical);
     this.world.farmAnimals = this.farmAnimals;
     this.arrows = new ArrowManager(this.scene, this.world);
     this.postfx = new PostFX(this.renderer, this.scene, this.camera);
@@ -470,11 +474,11 @@ class Game {
     // 4. THE GROUND UNDER THE PLAYER, before the player is put on it.
     const want = state.player.positionValid
       ? state.player.position
-      : saveFallbackSpawn(w, state.dimension);
+      : saveFallbackSpawn(w, state.dimension, this.physical);
     w._eagerLoadAround(want.x, want.z, 3);
 
     const landing = findSafeLanding(w, state.dimension, want.x, want.y, want.z,
-                                    p.halfWidth, p.height);
+                                    p.halfWidth, p.height, this.physical);
     if (!state.player.positionValid) notes.push('placed at the arrival point');
     else if (landing.repaired) notes.push(landing.reason);
 
@@ -785,7 +789,7 @@ class Game {
      world EDIT, and a New Game clears the edit registry. */
   _placeStarterTorch() {
     const sx = Math.floor(this.player.position.x) + 2, sz = Math.floor(this.player.position.z) + 2;
-    const sy = this.world.findSpawnHeight(sx, sz);
+    const sy = this.physical.groundHeightAt(sx, sz);
     this.world.setBlockWorld(sx, sy, sz, BLOCK.TORCH);
   }
 
