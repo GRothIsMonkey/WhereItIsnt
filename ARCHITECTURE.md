@@ -69,8 +69,14 @@ rather than remembered.
 
 ## 1. LAYERS
 
-Eleven directories under `src/`. The layer's job is to make one question answerable —
+Twelve directories under `src/`. The layer's job is to make one question answerable —
 *where does this belong?* — not to maximise the number of files.
+
+> **ERA 2 E2.0a added the twelfth: `assets/`.** It sits beside `rendering/` and is
+> deliberately *not* part of it — `rendering/` describes shapes this game authors in code
+> and Era 2 restyles every one of them; `assets/` describes how an **external file**
+> becomes usable, which is the same problem before and after the voxel world is deleted.
+> See §4.9.
 
 ```
                     ┌───────────────────────────────────────────┐
@@ -916,6 +922,90 @@ fixed.** Nothing here touched `AnchorMonumentManager`; the container was fast en
 under a 30-second wait. Same for `browser-haven`'s frame-rate-sensitive sweep. A green
 timing-sensitive suite is evidence the build is sound, not evidence the timing defect is
 gone.
+
+---
+
+## 4.9. THE ASSET PIPELINE — ERA 2, E2.0a
+
+Era 2 replaces a world made of code with a world made of **files**. Nothing in the build
+could load one. This is the layer that can.
+
+### The four modules
+
+| module | lines | owns |
+| --- | ---: | --- |
+| `asset-registry.js` | 180 | **WHAT EXISTS** — keys, paths, status, collision modes, licences, and four lookups. Zero `THREE.` references; it is data. |
+| `asset-materials.js` | 190 | **WHAT SURFACES BECOME** — colour space per map role, filtering, shadow flags, within-asset material dedup, resource collection. |
+| `asset-library.js` | 289 | **FILES** — GLTFLoader, cache, promise dedup, reference counting, disposal, failure latching, the transport aggregate. |
+| `asset-collision.js` | 155 | **WHAT SHAPE A PLACED MODEL IS** — declared proxies transformed to world space, and three PhysicalWorld-shaped queries. |
+
+### Why it is its own layer and not part of `rendering/`
+
+`src/rendering/` is the layer Era 2 **rewrites wholesale**. This one it keeps. A GLTF
+loader, a reference-counted cache and a colour-space policy are not opinions about how
+this game looks; they are how any three.js game turns a file into geometry, and they are
+as true of mesh terrain as of a voxel world. Filing them under `rendering/` would schedule
+them for a deletion they should not be part of.
+
+The test that settles it is the same one §4.8 used in the other direction: `rendering/`
+names **zero block ids** because it describes shapes; `assets/` names zero block ids
+*and* zero voxel anything, because it never learns what kind of world it is loading into.
+
+### The rules, and where they came from
+
+- **NO CALL SITE HOLDS A MODEL FILE PATH.** Section 61's rule for audio. `tests/assets.js`
+  counts every `.glb`/`.gltf` string literal in the reassembled build and fails if one is
+  outside the registry.
+- **AN ASSET WITHOUT AN ATTRIBUTION LINE IS A LICENCE BREACH.** Checked in both
+  directions, plus every credit document on disk must be claimed and every model on disk
+  must be registered. Restricted licences (NonCommercial and kin) are enumerated by
+  `restrictedLicenceAssets()` — legal here, illegal in a paid release.
+- **`ASSET_STATUS.VALIDATION` IS NOT CONTENT.** A validation asset proves the pipeline and
+  may not be referenced from `src/dimensions/` or `src/world/`. E2.0a ships **one**
+  validation asset and **zero** production assets, because the landmark specifications
+  have not been supplied.
+- **AN ASSET DOES NOT BRING ITS OWN PHYSICS.** Collision is a declared proxy. There is
+  deliberately **no `mesh` collision mode** — a render mesh as a collision surface is the
+  coupling E2.1 exists to prevent, in a new costume.
+- **ONE SOURCE, MANY CLONES, ONE OWNER.** Clones share geometry, materials and textures
+  with the cached source; only the last `release()` disposes. Proved against
+  `renderer.info.memory`, not against the library's own bookkeeping.
+- **A FAILED LOAD IS NOT STILL LOADING**, and **a dead transport is a different fault from
+  a dead asset**. Both are section 61.07's lessons, applied to a new subsystem *before* it
+  costs three playtests instead of after.
+
+### The E2.1 contract, answered over meshes for the first time
+
+`AssetCollisionSet` implements `collidesAABB`, `groundHeightAt` and `isSolid` over placed
+proxies with no voxel in it. That is the first evidence that E2.1's contract is
+representation-neutral **in fact** rather than in its header comment — the same three
+questions, the same kinds of answer, a completely different representation.
+
+One difference is deliberate: `groundHeightAt` returns **null** where the set has nothing,
+not a number. A collection of props knows about props, and "no opinion" is a different
+answer from "the ground is at zero". Whoever composes this with terrain decides what a
+null means — and that composition, a **composite PhysicalWorld**, is the terrain phase's
+job, not this one's. It is deferred explicitly rather than half-built.
+
+### three.js is vendored, and the upgrade is deferred on measured evidence
+
+`game.html` loaded r128 from cdnjs. It now loads `vendor/three/three.min.js`, which is
+**byte-identical** to it (md5 `eb85498…`), so nothing that renders changed — what went
+away is a runtime dependency on a third party and the *two divergent copies* the game and
+the suites were using. `tests/harness/source.js` excludes `vendor/` from reassembly, or
+eighteen text-scanning suites would silently start reading 700KB of minified three.js.
+
+The E2.0a decision pass recommended upgrading to current stable and predicted a cosmetic
+drift. **Measured in a real browser, the drift is not cosmetic**: r186 renders the
+existing game about **2.7× darker**, and a full compatibility shim (ColorManagement off,
+linear output, every light ×π) moves the mean by 0.1. The remedy is to re-tune the voxel
+renderer's materials and lighting, which is a *visual* job and belongs to **E2.5 Lighting
+Rebirth** — not to a foundation phase, and not to the build whose human playtest gate is
+still open. The full table is in `vendor/three/README.md`.
+
+Nothing has to be rewritten when it happens: the pipeline resolves its loader in **one**
+place and asks which colour-space API exists in **one** other, and
+`tests/browser-assets.js` runs the whole suite on both generations.
 
 ---
 

@@ -12,13 +12,26 @@
    inline body — and hands back one string. Extraction can then continue for the rest of
    Era 1.5 without weakening a single text assertion.
 
-   RULE: a <script src> that is a URL (three.js from the CDN) is NOT part of the build
-   and is never inlined. Only repository-relative paths are.  */
+   RULE: a <script src> that is a URL is NOT part of the build and is never inlined.
+   Only repository-relative paths are.
+
+   AND SINCE ERA 2 E2.0a, `vendor/` IS NOT THE BUILD EITHER. three.js used to arrive from
+   a CDN, so the URL rule excluded it for free. It is now a repository-relative path
+   (vendor/three/three.min.js, and r128's GLTFLoader beside it) — so without this second
+   rule the reassembled build would suddenly contain 700KB of MINIFIED THIRD-PARTY SOURCE,
+   and every one of the eighteen text-scanning suites would start reading it. A grep for
+   `setTimeout` in a class that may not have one, a longest-string-literal check, an
+   XP-symbol audit: all of them would be scanning three.js. That is the same trap this
+   module was written to close, sprung from the other direction — a test silently scanning
+   MORE. Vendored code is a dependency, not the build.  */
 const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..', '..');
 const GAME = path.join(ROOT, 'game.html');
+
+/* Third-party code the build LOADS but does not CONTAIN. See the rule in the header. */
+const VENDOR_RE = /^vendor\//;
 
 /* Every repository-relative <script src> in document order, as {tag, rel, abs}. */
 function moduleRefs(html) {
@@ -27,7 +40,8 @@ function moduleRefs(html) {
   let m;
   while ((m = re.exec(html)) !== null) {
     const rel = m[1];
-    if (/^[a-z]+:\/\//i.test(rel) || rel.startsWith('//')) continue;   // CDN — not ours
+    if (/^[a-z]+:\/\//i.test(rel) || rel.startsWith('//')) continue;   // a URL — not ours
+    if (VENDOR_RE.test(rel)) continue;                                  // vendored — not ours
     out.push({ tag: m[0], rel, abs: path.join(ROOT, rel) });
   }
   return out;
@@ -133,5 +147,19 @@ function buildSource() {
   return out.slice(0, at + '\n<script>\n'.length) + code + '\n' + out.slice(at + '\n<script>\n'.length);
 }
 
+/* The vendored <script src> tags, for the one suite whose job IS to check them. Kept
+   out of `modules()` on purpose — see the header — and exposed separately so asserting
+   about them never means inlining them. */
+function vendorRefs() {
+  const out = [];
+  const re = /<script\s+src="([^"]+)"\s*><\/script>/g;
+  const doc = html();
+  let m;
+  while ((m = re.exec(doc)) !== null) {
+    if (VENDOR_RE.test(m[1])) out.push({ tag: m[0], rel: m[1], abs: path.join(ROOT, m[1]) });
+  }
+  return out;
+}
+
 module.exports = { ROOT, GAME, html, modules, stylesheets, inlineBody,
-                   buildScript, buildStyles, buildSource };
+                   buildScript, buildStyles, buildSource, vendorRefs };

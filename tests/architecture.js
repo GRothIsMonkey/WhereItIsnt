@@ -273,6 +273,12 @@ else {
       rendering:   ['DOM', 'AUDIO'],
       ui:          ['THREE', 'BLOCK'],
       core:        ['THREE', 'BLOCK'],
+      /* ERA 2 E2.0a — the asset pipeline. BLOCK, DOM, STORAGE and AUDIO are banned
+         outright: this layer imports external models and must survive the voxel world's
+         deletion untouched. THREE is NOT banned — a model importer that may not name a
+         Vector3 or a Box3 cannot measure what it imported — but it is BUDGETED by file
+         below, so a THREE reference in the registry (pure data) still fails. */
+      assets:      ['BLOCK', 'DOM', 'STORAGE', 'AUDIO'],
     };
     const PROBE = {
       THREE:   (n) => n.type === 'Identifier' && n.name === 'THREE',
@@ -340,6 +346,19 @@ else {
       //       sized to the VIEWPORT; there is nowhere else that number comes from.
       //       Everything else in this layer is 0 and must stay 0.
     };
+    /* ERA 2 E2.0a — THREE per asset file. The registry is DATA and the collision set is
+       geometry MATHS; a drifting responsibility shows up here first. A ceiling may fall.
+       It may never rise. */
+    const ASSET_BUDGET = {
+      'src/assets/asset-library.js':   { THREE: 4 },
+      //  THREE: GLTFLoader (the one construction site), Box3 and two Vector3 in _measure.
+      'src/assets/asset-materials.js': { THREE: 4 },
+      //  THREE: the two colour-space spellings, r128's and r152+'s, asked for rather than
+      //         assumed — which is what makes the pipeline version-agnostic.
+      'src/assets/asset-collision.js': { THREE: 1 },
+      //  THREE: one Vector3, transforming proxy corners into world space.
+      //  asset-registry.js is deliberately absent: 0, and tests/assets.js re-asserts it.
+    };
     const APP_BUDGET = {
       'src/core/game.js':                  { THREE: 5, BLOCK: 4 },
       //  THREE: WebGLRenderer, PCFSoftShadowMap, Scene, PerspectiveCamera, Clock — the
@@ -362,7 +381,7 @@ else {
       const declared = FORBIDDEN[layer];
       if (!declared) { chk(false, `${u.name} is in an unknown layer — add it to ARCHITECTURE.md §1`); continue; }
       const budgeted = Object.prototype.hasOwnProperty.call(WORLD_GEOMETRY_BUDGET, u.name);
-      const app = APP_BUDGET[u.name] || RENDER_BUDGET[u.name] || null;
+      const app = APP_BUDGET[u.name] || RENDER_BUDGET[u.name] || ASSET_BUDGET[u.name] || null;
       const rules = declared.filter(r =>
         !(r === 'THREE' && budgeted) && !(app && Object.prototype.hasOwnProperty.call(app, r)));
       const hit = [];
@@ -694,6 +713,11 @@ console.log('\n=== 4d. THE APPLICATION SEAM (ERA 1.5.4) ===\n');
     /* ERA 2 E2.1 — the composition root builds the PhysicalWorld and hands it to every
        consumer that asks the world what SHAPE it is. Era 1.5.6's SanityWorldView is
        folded into it and the file is gone. */
+    /* ERA 2 E2.0a — the asset pipeline. Two names: the library the composition root
+       builds, and the collision set that holds placed proxies. Both are constructed
+       exactly once, in Game, which is what a composition root is for. */
+    'src/assets/asset-library.js': ['AssetLibrary'],
+    'src/assets/asset-collision.js': ['AssetCollisionSet'],
     'src/world/physical-world.js': ['VoxelPhysicalWorld'],
     'src/world/voxel-world.js': ['VoxelWorld'],
     'src/world/world-constants.js': ['CHUNK_SX', 'CHUNK_SZ', 'SEA_LEVEL'],
@@ -1534,11 +1558,96 @@ console.log('\n=== 7b. STABLE IDs ARE NOT CREATIVE DIMENSION NUMBERS ===\n');
   chk(!belowBuilt, 'and no generator for it exists anywhere in the build');
 }
 
+console.log('\n=== 4i. THE ASSET PIPELINE (ERA 2, E2.0a) ===\n');
+
+/* `src/assets/` imports external models. It is NOT a renderer — src/rendering/ describes
+   shapes this game authors in code and Era 2 restyles every one; this layer describes how
+   an external file becomes usable, which is the same problem before and after the voxel
+   world is deleted. So it must survive Era 2 untouched, and that means it may not learn
+   anything about voxels on the way in.
+
+   The deep asset checks — that a GLB loads, that colour spaces are right, that disposal
+   returns resources — are tests/assets.js and tests/browser-assets.js. This block is the
+   LAYER BOUNDARY only. */
+{
+  const fs2 = require('fs');
+  const dir = path.join(SRCDIR, 'assets');
+  const FILES = ['asset-registry.js', 'asset-materials.js', 'asset-library.js', 'asset-collision.js'];
+  chk(fs2.existsSync(dir), 'src/assets/ exists — the Era 2 asset pipeline');
+  chk(fs2.existsSync(path.join(dir, 'LAYER.md')), 'and carries a LAYER.md');
+
+  const texts = {};
+  for (const f of FILES) {
+    const fp = path.join(dir, f);
+    chk(fs2.existsSync(fp), 'src/assets/' + f + ' exists');
+    texts[f] = fs2.existsSync(fp) ? fs2.readFileSync(fp, 'utf8') : '';
+  }
+  const strip = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+
+  /* ---- 1. NO VOXEL VOCABULARY, ANYWHERE IN THE LAYER ----
+     This is the whole reason the layer outlives Era 2. A block id here would make the
+     model pipeline a dependent of the thing Era 2 deletes. */
+  const VOXEL = ['BLOCK.', 'CHUNK_SX', 'CHUNK_SY', 'CHUNK_SZ', 'getBlockWorld',
+                 'setBlockWorld', 'VoxelWorld', 'blockAt', 'worldEdits'];
+  for (const f of FILES) {
+    const live = strip(texts[f] || '');
+    const found = VOXEL.filter(v => live.indexOf(v) >= 0);
+    chk(found.length === 0, 'src/assets/' + f + ' names no voxel vocabulary' +
+        (found.length ? ' — FOUND: ' + found.join(', ') : ''));
+  }
+
+  /* ---- 2. IT DEPENDS ON NOTHING ABOVE IT ----
+     Same rule Era 1.5.3 put on dimension content, for the same reason: a layer that
+     reaches the application cannot be lifted out of it. */
+  const ABOVE = ['window.game', 'this.game', 'UIManager', 'SoundEngine', 'ObjectiveSystem',
+                 'SaveSystem', 'document.', 'PlayerController'];
+  for (const f of FILES) {
+    const live = strip(texts[f] || '');
+    const found = ABOVE.filter(v => live.indexOf(v) >= 0);
+    chk(found.length === 0, 'src/assets/' + f + ' reaches nothing above it' +
+        (found.length ? ' — FOUND: ' + found.join(', ') : ''));
+  }
+
+  /* ---- 3. ONLY THE LIBRARY AND THE MATERIALS MODULE MAY NAME THREE ----
+     The registry is DATA and the collision set is GEOMETRY MATHS; a THREE reference in
+     either is a sign that a responsibility has drifted. The collision set is the one
+     borderline case and it is allowed exactly two: Vector3 and the matrix it applies. */
+  const threeCount = (f) => (strip(texts[f] || '').match(/\bTHREE\./g) || []).length;
+  chk(threeCount('asset-registry.js') === 0, 'asset-registry.js is pure data — 0 THREE references');
+  const collThree = threeCount('asset-collision.js');
+  chk(collThree <= 2, 'asset-collision.js names THREE at most twice (has ' + collThree + ')');
+
+  /* ---- 4. THE LOADER IS RESOLVED IN EXACTLY ONE PLACE ----
+     This is what makes the pipeline version-agnostic, and it is why the deferred r186
+     upgrade is a one-line change rather than a rewrite. See vendor/three/README.md. */
+  const lib = strip(texts['asset-library.js'] || '');
+  chk((lib.match(/new THREE\.GLTFLoader\(/g) || []).length === 1,
+      'exactly ONE place constructs a GLTFLoader — the pipeline is renderer-version-agnostic');
+  const mat = strip(texts['asset-materials.js'] || '');
+  chk(/SRGBColorSpace/.test(mat) && /sRGBEncoding/.test(mat),
+      'and the materials module handles BOTH colour-space APIs (r128 and r152+)');
+
+  /* ---- 5. THE LIBRARY SCHEDULES NOTHING ----
+     Section 61's rule for the audio director, and for the same reason: a countdown a test
+     cannot drive is a countdown that can leak. */
+  chk(lib.indexOf('setTimeout') < 0 && lib.indexOf('setInterval') < 0,
+      'AssetLibrary schedules nothing — no timer to leak');
+
+  /* ---- 6. THREE IS VENDORED, AND VENDORED CODE IS NOT THE BUILD ----
+     three.js moved from a CDN to vendor/ in E2.0a. The reassembly harness must keep it
+     OUT, or eighteen text-scanning suites silently start reading three.js. */
+  const refs = SRC.vendorRefs ? SRC.vendorRefs().map(r => r.rel) : [];
+  chk(refs.indexOf('vendor/three/three.min.js') >= 0, 'game.html loads three from vendor/, not a CDN');
+  chk(SRC.html().indexOf('cdnjs') < 0, 'and no CDN dependency remains');
+  chk(SRC.modules().every(r => r.rel.indexOf('vendor/') !== 0),
+      'and the reassembly harness excludes vendor/ — vendored code is a dependency, not the build');
+}
+
 console.log('\n=== 8. THE SKELETON IS DOCUMENTED ===\n');
 
 {
   const layers = ['shared','core','gameplay','world','dimensions','progression','horror',
-                  'audio','rendering','ui','persistence'];
+                  'audio','rendering','ui','persistence','assets'];
   const missing = layers.filter(l => !fs.existsSync(path.join(SRCDIR, l, 'LAYER.md')));
   chk(missing.length === 0,
       `all ${layers.length} layers carry a LAYER.md stating what they own and what moves there` +

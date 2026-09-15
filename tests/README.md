@@ -268,6 +268,56 @@ Both are gitignored: they are reproducible from git and each is over a megabyte.
 | `preview-environment.js` | writes `renders/env-{holding,released,crossing,farmyard,sub-holding,sub-board}.png` plus `env-photographs.png` — **real Chromium screenshots of the real objects in the real world**, one per piece of content, plus a 14x crop of the two family photographs taken straight out of the live texture atlas because the difference between them is eleven pixels. **It proves nothing and asserts nothing; it is for looking at** |
 | `preview-compass.js` | writes `renders/compass-tape.svg` — the compass at six headings, re-emitted from the real `updateCompass` draw calls onto the real panel colours. Derived from the shipped code; **not** a browser render |
 
+## ERA 2 E2.0a — THE ASSET PIPELINE
+
+Two suites, and they divide by what each CAN prove.
+
+| suite | proves |
+| --- | --- |
+| `npm run assets` | the registry and the attribution documents agree **both ways**; no `.glb` path exists outside the registry; no validation asset has leaked into a dimension; the four modules are classic scripts with no voxel vocabulary; the vendored renderer is the one the browser suites inject |
+| `npm run browser-assets` | a real GLB loads, decodes, normalises, instantiates, collides, fails safely and disposes — in a real Chromium, over HTTP, against a real WebGL context |
+
+**Nothing offline in this repository can decode a GLB.** That is the same reason
+`measure_runtime.js` had to be a browser tool to read 121 MP3s (`CLAUDE.md` §62.3). If a
+claim is about what is *inside* a model, it belongs in the browser suite.
+
+```
+npm run assets                 # offline
+npm run browser-assets         # the shipped r128
+npm run browser-assets-r186    # the prepared upgrade bundle — the pipeline is version-agnostic
+npm run three-drift            # re-measure the r128 -> r186 visual drift
+```
+
+### three.js is vendored now
+
+`game.html` loads `vendor/three/three.min.js`, **byte-identical** to the cdnjs r128 build
+it used before (md5 `eb85498…`) and to `tests/vendor/three.min.js`. The browser suites
+intercept `**/three.min.js`, so the glob still matches and **all sixteen of them keep
+working unchanged**.
+
+`tests/harness/source.js` **excludes `vendor/` from reassembly.** Without that rule, three
+stopped being a CDN URL and started being a repository-relative script, and every one of
+the eighteen text-scanning suites would have begun reading 700KB of minified third-party
+source — a `setTimeout` grep, a longest-string-literal check, an XP-symbol audit, all of
+them scanning three.js. Vendored code is a dependency, not the build. `vendorRefs()`
+exposes the tags so a suite can assert *about* them without inlining them.
+
+### The resource test, and what it took to make it honest
+
+`browser-assets.js` §9 asks whether repeated load/unload leaks engine-managed resources.
+Its first version read a climb from 312 geometries to 406 across five cycles and would
+have reported a leak. There was none — the **chunk streamer runs in the same frame loop**
+and creates geometries of its own, contaminating `peak - before` and `peak - after` in
+opposite directions.
+
+Adding a control loop showed the residual sat inside the streamer's own drift, which is
+evidence. The test now **freezes `world.updateChunks` for the measurement** and restores it
+in a `finally`, which makes the claim exact instead of statistical.
+
+> `renderer.info.memory` counts three.js objects the renderer holds. **It is not VRAM, no
+> browser API exposes VRAM, and nothing here pretends otherwise.** What it can prove is
+> that a load/unload cycle returns the counter to where it started.
+
 ## About the browser run
 
 `browser-save.js`, `browser-onboarding.js`, `browser-menu.js`, `browser-opening.js`,

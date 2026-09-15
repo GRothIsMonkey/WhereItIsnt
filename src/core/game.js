@@ -74,6 +74,17 @@ class Game {
     this.farmAnimals = new FarmAnimalManager(this.scene, this.world, this.sound, this.physical);
     this.world.farmAnimals = this.farmAnimals;
     this.arrows = new ArrowManager(this.scene, this.world);
+    /* ERA 2 E2.0a — THE ASSET LIBRARY. Fetch, decode, cache, clone and dispose for
+       imported models. Handed the RENDERER and nothing else: it reads `renderer.info`
+       for the resource report and never renders, never touches a scene, and knows
+       nothing about dimensions, chunks or blocks.
+
+       Nothing places an asset yet and that is correct — E2.0a builds the pipeline and
+       proves it against one validation model. What goes where is a creative decision
+       that has not been supplied. See src/assets/LAYER.md. */
+    this.assets = new AssetLibrary(this.renderer);
+    this.assetCollision = new AssetCollisionSet();
+
     this.postfx = new PostFX(this.renderer, this.scene, this.camera);
 
     /* PHASE 22 — everything the settings touch now exists, so apply them for real. The
@@ -339,6 +350,11 @@ class Game {
     this.ashParticles.setActive(false);
     this.farmAnimals.destroyAll();
     this.stalkerDistance = Infinity;
+    /* ERA 2 E2.0a — imported models go with the scene they were in. `disposeAll` rather
+       than per-instance `release` because the scene is being emptied anyway and the
+       instances are going with it; this is the teardown case the method exists for. */
+    this.assetCollision.clear();
+    this.assets.disposeAll();
 
     /* Lantern and Soul Anchor props are registered per world position rather than per
        chunk, so disposeChunk never takes them down. Left alone they would stack up one

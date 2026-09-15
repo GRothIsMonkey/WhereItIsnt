@@ -262,7 +262,15 @@
   <button id="nextLevelBtn" class="action-btn">DESCEND TO STAGE 2</button>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- ERA 2 E2.0a — three.js is VENDORED, not fetched from a CDN. Byte-identical to
+     the r128 build this game has always used (md5 eb85498…), so the swap changed
+     nothing; what it removes is a runtime dependency on a third party and the two
+     divergent copies the game and the suites used to load. GLTFLoader is r128's own
+     classic-script loader and attaches itself to the THREE global.
+     Version strategy, the measured r186 evidence and the rebuild commands:
+     vendor/three/README.md. -->
+<script src="vendor/three/three.min.js"></script>
+<script src="vendor/three/GLTFLoader.js"></script>
 <!-- ERA 1.5.1 — extracted modules. CLASSIC scripts, ordered, one shared
      global scope. Order is the contract: see ARCHITECTURE.md. -->
 <script src="src/shared/items-catalog.js"></script>
@@ -296,6 +304,13 @@
 <script src="src/dimensions/farmlands/generation.js"></script>
 <script src="src/dimensions/farmlands/stampers.js"></script>
 <script src="src/dimensions/finale/scene.js"></script>
+<!-- ERA 2 E2.0a — the asset pipeline. Registry (what exists) before materials
+     (what surfaces become) before the library (fetch/cache/clone/dispose) before
+     collision (what shape a placed model is). Order is the contract. -->
+<script src="src/assets/asset-registry.js"></script>
+<script src="src/assets/asset-materials.js"></script>
+<script src="src/assets/asset-library.js"></script>
+<script src="src/assets/asset-collision.js"></script>
 <!-- ERA 1.5.6 — THE RENDERING BOUNDARY. Presentation that Era 2 rewrites, out of the
      monolith and ahead of the composition root that builds it. The voxel BLOCK ATLAS
      and the two Suburbia block-catalogue registrars are deliberately NOT here: they

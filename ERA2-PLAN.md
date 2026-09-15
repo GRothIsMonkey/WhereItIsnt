@@ -50,7 +50,7 @@ three phases the locked creative additions require but the roadmap predates.
 | # | Phase | Roadmap | New? |
 | --- | --- | --- | --- |
 | **E2.1** | Foundation Rebuild — the Physical World contract | §16 | scoped |
-| **E2.0a** | Render / Asset Pipeline Foundation | — | **NEW** |
+| ~~**E2.0a**~~ | Render / Asset Pipeline Foundation | — | ✅ **DONE** |
 | **E2.2** | Terrain Rebirth | §17 | |
 | **E2.3** | Vegetation Rebirth | §18 | |
 | **E2.4** | Architecture Rebirth | §19 | |
@@ -118,26 +118,60 @@ actually makes:
 **Do NOT yet.** Do not write a second implementation. Do not touch rendering. Do not change
 what any number means.
 
-## E2.0a — Render / Asset Pipeline Foundation
+## E2.0a — Render / Asset Pipeline Foundation — ✅ **IMPLEMENTED**
 
-**Purpose.** There is currently no way to load a model or a texture. Every later phase
-produces art that cannot enter the game.
+> **DONE.** `src/assets/` — four modules, 814 lines. three.js is vendored instead of
+> fetched from a CDN. GLB loading, a registry with licence tracking, material
+> normalisation, reference-counted disposal, honest failure handling, and a collision
+> proxy that answers three of E2.1's queries with no voxel in it. Validated against one
+> real GLB in a real browser over HTTP. See `ARCHITECTURE.md` §4.9 and
+> `src/assets/LAYER.md`.
 
-**Changes.** A three.js version decision and upgrade; `GLTFLoader` + a texture pipeline;
-a material/PBR convention; an asset manifest with attribution carried through (§42); a
-load-failure path that is honest (the §61.07 lesson — a dead transport is a subsystem
-failure and must be reported, not silently degraded).
+**Purpose.** There was no way to load a model or a texture. Every later phase produces art
+that could not enter the game.
 
-**Primarily touches.** NEW `src/rendering/asset-library.js`, `src/rendering/materials.js`;
-`game.html` script order; `tests/tools/` for a manifest/attribution checker.
+**What shipped.**
 
-**Depends on.** Nothing technically; should land after E2.1 so the boundary exists first.
+| | |
+| --- | --- |
+| `src/assets/asset-registry.js` | keys, paths, status, collision modes, licences. 0 `THREE.` |
+| `src/assets/asset-materials.js` | colour space per map role, filtering, shadow flags, within-asset dedup, resource collection |
+| `src/assets/asset-library.js` | GLTFLoader, cache, promise dedup, refcounting, disposal, failure latch, transport aggregate |
+| `src/assets/asset-collision.js` | declared proxies → world-space boxes; `collidesAABB` / `groundHeightAt` / `isSolid` |
+| `vendor/three/` | r128 + GLTFLoader (shipped), r186 bundle + build recipe (prepared, not shipped), and the measured evidence |
+| `tests/assets.js` | 74 checks — registry, attribution both ways, layer rules, vendoring |
+| `tests/browser-assets.js` | the real GLB in a real browser; runs on **both** renderer generations |
+
+**THE THREE.JS DECISION.** Vendored and pinned; the version **upgrade is deferred**, on
+measurement rather than preference. r186 renders the existing game ~2.7× darker and no
+cheap shim recovers it; the remedy is re-tuning the voxel renderer's lighting, which is
+**E2.5 Lighting Rebirth**'s work. The pipeline is version-agnostic and tested on both, so
+the switch is a one-line change whenever E2.5 wants it. Full table: `vendor/three/README.md`.
+
+**THE VALIDATION ASSET.** `road_signs.glb` — `ASSET_STATUS.VALIDATION`, **not production
+content**, referenced by no dimension and asserted to be referenced by none. E2.0a ships
+**zero** production assets.
+
+**What was explicitly deferred, and to where.**
+
+| deferred | to |
+| --- | --- |
+| A **composite PhysicalWorld** (terrain + props + architecture, with a resolution order) so asset collision reaches live gameplay | E2.2, the phase that introduces mesh terrain |
+| The three.js **version switch** and the Era 1 lighting re-tune it requires | E2.5 Lighting Rebirth |
+| LOD, instancing / `BatchedMesh`, streaming, KTX2 / Draco / meshopt | the phases that have something to measure |
+| Skinned meshes and animation (`acquire()` uses `Object3D.clone()`, correct for static props only) | the phase that imports a creature |
+| An asset **director** — which asset belongs in which place | blocked on creative decisions that have not been supplied |
+| A standalone `measure_assets.js` | not built: `browser-assets.js` already prints tri counts, material and texture counts, bounds and load time, and there is one asset. Build it when there are enough assets for a table to beat a suite. |
+
+**Depends on.** Nothing technically; landed after E2.1 so the boundary existed first.
 **Blocks.** E2.2–E2.5 and all content phases.
 
-> **CREATIVE DECISION NEEDED — art direction target.** "Stylized semi-realistic" (CLAUDE.md
-> §3) and "does not need photorealism" (ROADMAP §14 Rule 6) bound it but do not specify
-> texel density, polygon budgets, palette, or whether D1/D2/D3 share one material language.
-> The pipeline can be built without this; the first *asset* cannot.
+> **CREATIVE DECISION NEEDED — art direction target.** Unchanged and still open. The
+> pipeline is built and the first *production* asset still needs texel density, polygon
+> budgets, palette and whether D1/D2/D3 share one material language. E2.0a deliberately
+> did not decide any of it: `ASSET_MATERIAL_POLICY` holds import-correctness values only,
+> and the registry's `normalize` is null for the one asset present, so nothing was
+> silently locked in.
 
 ## E2.2 — Terrain Rebirth · E2.3 Vegetation · E2.4 Architecture · E2.5 Lighting
 

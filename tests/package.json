@@ -46,6 +46,10 @@
     "playability": "node playability.js",
     "browser-playability": "node browser-playability.js",
     "architecture": "node architecture.js",
+    "assets": "node assets.js",
+    "browser-assets": "node browser-assets.js",
+    "browser-assets-r186": "node browser-assets.js --r186",
+    "three-drift": "node browser-assets.js --drift",
     "inventory": "node tools/inventory.js",
     "launch-check": "node tools/launch-check.js"
   },
