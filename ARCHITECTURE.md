@@ -1009,6 +1009,130 @@ place and asks which colour-space API exists in **one** other, and
 
 ---
 
+## 4.10. THE D1 NON-VOXEL TERRAIN FOUNDATION — ERA 2, E2.2
+
+The first Era 2 *Rebirth* phase. `src/world/terrain/` is a finite, continuous, streamed,
+non-voxel world for the final **Dimension 1 — Shattered Farmlands**: ten files, ~1,900
+lines, **zero voxel tokens**.
+
+> **STATUS: FOUNDATION. COMPLETE, RUNNING, AND NOT YET THE LIVE D1.**
+> It generates, streams, collides, renders and disposes, and `tests/browser-terrain.js`
+> drops a real player on it in a real browser. The playable chain still runs on the Era 1
+> voxel implementation — see *Why it is parallel* below.
+
+### The one property everything rests on
+
+**Height is a pure function of (x, z) over the reals, and it is authoritative.** The mesh
+SAMPLES it; collision QUERIES it; scatter is placed ON it; roads are CUT INTO it.
+
+That ordering is what makes this non-voxel rather than voxel-with-smoothing. A region can
+be rebuilt at 2 m or 16 m spacing and the ground the player walks on does not move, because
+the ground is the function and the mesh is a picture of it. Measured: a body walking 900 m
+across it never sees the surface step more than **0.151 m over a 0.5 m stride**.
+
+### The finite world, and the number that is provisional
+
+| | |
+| --- | --- |
+| extent | **4,096 m square**, centred on the origin |
+| regions | 16 × 16 = **256**, of 256 m |
+| vertical budget | **derived** from the relief amplitudes, not typed |
+| LOD | 2 / 4 / 8 / 16 m vertex spacing by distance |
+| seed | one constant; no `Math.random` anywhere in the layer |
+
+The Era 1 Farmlands is 64,512 m square and its own header says a player "cannot reach an
+edge in normal play". That is effectively infinite, and it is the wrong shape for a world
+somebody has to compose: there is no far side, no silhouette that means anything, and no
+way to author a journey.
+
+**`D1_WORLD_SIZE` is PROVISIONAL and the final figure is a creative decision.** Its
+derivation is written out in `terrain-config.js` (crossing time at the build's real walk
+speed, seven landmarks, region count). It is one constant, everything derives from it, and
+nothing authored exists yet — so changing it costs an edit and a regeneration.
+
+**The finiteness is proved by termination, not by assertion.** `d1AllRegions()` returns 256
+entries and stops; the streamer intersects its load radius with that fixed grid. Measured in
+a real browser: at the map's far corner **11** regions are resident instead of 40 — the ring
+is simply shorter — and a viewpoint 1,000 km outside the world streams in **nothing**.
+
+### Why it is parallel, and not a replacement yet
+
+Swapping the dimension now would take out the Phase 20 journey, the Disconnected Home, the
+guaranteed Level 2 Core Disk and both rift crossings — all covered by suites that walk a
+real New Game to the credits. ROADMAP §43 forbids combining a risky architectural change
+with an unrelated gameplay redesign, and the E2.2 brief requires existing gameplay to keep
+working. `tests/architecture.js` §4j asserts the voxel engine contains **no reference** to
+the terrain layer, so "parallel" is a checked property rather than a claim.
+
+### The E2.1 contract, second implementation
+
+`TerrainPhysicalWorld` answers all eleven queries with no voxel in it. §4j asserts both
+implementations expose the same set, so they cannot drift.
+
+**Ground height is continuous — and ten call sites in the build floor their arguments.**
+`groundHeightAt(Math.floor(x), Math.floor(z))`, seven in `game.html`, one in `dev-tools`,
+two in `save-lifecycle`. Against the voxel world that is *correct* and free. Against this
+one it quantises a continuous surface to a 1 m grid.
+
+**E2.2 does not change them** — they are legacy voxel gameplay, right for the world they
+serve. It **measures the consequence** instead, so the phase that makes this world live
+inherits a number: flooring costs a mean of **0.066 m** and at worst **0.469 m** on this
+terrain (3,000 samples, `tests/terrain.js` §6).
+
+**Collision is a heightfield test, not a mesh test**, and that is reasoned rather than
+asserted: the visual mesh has ~33k triangles per near region, it *changes* with distance,
+and colliding against it would make the ground's physical shape depend on where the camera
+is. Authored structures use the E2.0a asset collision proxies instead.
+
+### The authored-content seam — three tables, all empty
+
+`terrain-authoring.js` is the reason the phase exists. A site declares a footprint, a
+terrain treatment (pad / grade / none), a scatter exclusion and a long-range visibility
+distance; the treatment is applied *inside* the height function, so collision, scatter and
+the mesh all agree without any of them knowing a site is there.
+
+**`D1_AUTHORED_SITES`, `D1_ROAD_NETWORK` and `D1_SCATTER_SPECIES` all ship EMPTY, and three
+tests enforce it.** The seven landmarks are a roster, not a design: coordinates,
+architecture, interiors, routes and relationships are **CREATIVE DECISION NEEDED**. Not one
+appears, *not even as a placeholder* — a placeholder coordinate is what a later phase
+mistakes for approval. §4j also fails if a landmark name appears as authored data anywhere
+in the layer.
+
+The machinery is nonetheless proven: test fixtures show a PAD site levels its footprint to
+within **0.00001 m** and a lane flattens its carriageway to **0.105 m** against the natural
+field's **0.248 m** over the same span.
+
+### What it cost, measured
+
+| | |
+| --- | --- |
+| initial load at map centre | **157 ms**, 40 regions |
+| resident | 749,568 triangles / 381,992 vertices |
+| one frame | **32 draw calls**, ~400k triangles |
+| near region build | **67 ms** — down from 290 ms |
+
+That 4.3× came from one change, and it is the phase's performance lesson: the first loop
+called `d1TerrainHeight` for the position, `d1TerrainNormal` for four more, and
+`d1SurfaceAt` for six more — **eleven evaluations per vertex**. Sampling a grid with a
+one-cell border makes every vertex's neighbours already available, so normals and slope are
+central differences over an array. CLAUDE.md §14: measure, then optimise.
+
+### Resource lifetime
+
+A region owns its **geometry** and not its **material**. Unload frees every geometry it
+built; the six shared materials are module-owned and freed only on a full dimension
+teardown. Verified in the browser across four load/unload cycles — counters return exactly
+to baseline, and the shared material survives by uuid.
+
+> **The first version of that resource test read `added 0, freed 0, residual 0` and passed.**
+> `renderer.info.memory` only counts a geometry once it has been *uploaded*, which happens
+> on first draw — so a test that builds and unloads without rendering measures nothing and
+> scores perfectly. Rendering a frame between build and read is what makes the number real,
+> and the suite now also asserts the counters *moved*. Same shape as every lesson in
+> §61.05–61.07: ask which half of the claim the test actually covers.
+
+---
+
 ## 5. THE DIMENSION EXTENSION POINT — AND DIMENSION 3, THE BELOW
 
 ### What is there now

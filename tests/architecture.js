@@ -314,6 +314,27 @@ else {
       'src/dimensions/farmlands/generation.js':    17,
       'src/dimensions/finale/scene.js':             1,  // the finale's own scene root
     };
+
+    /* ERA 2 E2.2 — A SEPARATE TABLE, AND THE SEPARATION IS THE POINT.
+
+       The D1 terrain foundation lives under src/world/, so the layer's THREE ban applies to
+       it and three of its ten files genuinely need a renderer. But it must NOT be added to
+       the P0-3 total above, because that number means "the whole of what Era 2 REPLACES"
+       and this is what Era 2 BUILDS. Folding the two together would make the hotspot grow
+       every time the replacement got further along, which is precisely backwards — and
+       raising a ceiling to accommodate new code is what CLAUDE.md section 62.7 forbids in
+       as many words.
+
+       So: exempted from the layer rule, capped here, and counted nowhere near P0-3. The
+       other seven files are pure maths at ZERO and section 4j asserts that separately,
+       because they have to survive any future change of renderer. A ceiling may fall. It
+       may never rise. */
+    const ERA2_TERRAIN_BUDGET = {
+      'src/world/terrain/terrain-mesh.js':         11,  // BufferGeometry + 4 BufferAttribute,
+                                                        // Box3, Sphere, 3 Vector3, PlaneGeometry
+      'src/world/terrain/terrain-materials.js':     2,  // the two shared materials
+      'src/world/terrain/terrain-regions.js':       2,  // the terrain mesh and the water mesh
+    };
     /* ERA 1.5.4 — THE SAME MECHANISM, FOR THE APPLICATION LAYER.
 
        `core/` and `persistence/` were declared THREE-free when they held a settings
@@ -380,7 +401,8 @@ else {
       const layer = u.name.split('/')[1];
       const declared = FORBIDDEN[layer];
       if (!declared) { chk(false, `${u.name} is in an unknown layer — add it to ARCHITECTURE.md §1`); continue; }
-      const budgeted = Object.prototype.hasOwnProperty.call(WORLD_GEOMETRY_BUDGET, u.name);
+      const budgeted = Object.prototype.hasOwnProperty.call(WORLD_GEOMETRY_BUDGET, u.name) ||
+                       Object.prototype.hasOwnProperty.call(ERA2_TERRAIN_BUDGET, u.name);
       const app = APP_BUDGET[u.name] || RENDER_BUDGET[u.name] || ASSET_BUDGET[u.name] || null;
       const rules = declared.filter(r =>
         !(r === 'THREE' && budgeted) && !(app && Object.prototype.hasOwnProperty.call(app, r)));
@@ -445,6 +467,19 @@ else {
     console.log(`      world + dimension geometry: ${total} THREE references across ` +
                 `${Object.keys(threeSeen).length} files — the whole of what Era 2 replaces`);
     worldGeometryTHREE = total;
+
+    /* The Era 2 terrain budget, audited the same way and deliberately kept out of `total`. */
+    let t2Over = 0, t2Missing = 0, t2Total = 0;
+    for (const name of Object.keys(ERA2_TERRAIN_BUDGET)) {
+      if (!Object.prototype.hasOwnProperty.call(threeSeen, name)) { t2Missing++; continue; }
+      t2Total += threeSeen[name];
+      if (threeSeen[name] > ERA2_TERRAIN_BUDGET[name]) t2Over++;
+    }
+    chk(t2Missing === 0, 'every file the ERA 2 TERRAIN budget names still exists');
+    chk(t2Over === 0,
+        `and none of the ${Object.keys(ERA2_TERRAIN_BUDGET).length} Era 2 terrain files is over ` +
+        `its ceiling (${t2Total} THREE references — what Era 2 BUILDS, counted apart from P0-3)` +
+        (t2Over ? ` — ${t2Over} over` : ''));
 
     /* THE ONE DELIBERATE EXCEPTION, ASSERTED RATHER THAN LEFT SILENT. `audio` is the only
        layer above whose forbidden list omits BLOCK, because AUDIO_SURFACE_GROUPS maps
@@ -1641,6 +1676,137 @@ console.log('\n=== 4i. THE ASSET PIPELINE (ERA 2, E2.0a) ===\n');
   chk(SRC.html().indexOf('cdnjs') < 0, 'and no CDN dependency remains');
   chk(SRC.modules().every(r => r.rel.indexOf('vendor/') !== 0),
       'and the reassembly harness excludes vendor/ — vendored code is a dependency, not the build');
+}
+
+console.log('\n=== 4j. THE D1 TERRAIN FOUNDATION (ERA 2, E2.2) ===\n');
+
+/* src/world/terrain/ is the non-voxel D1 world foundation. It sits UNDER src/world/ because
+   it is a world engine, and it must be able to outlive the voxel one — so the one property
+   that matters is that it knows nothing about voxels at all.
+
+   The deep terrain checks are tests/terrain.js and tests/browser-terrain.js. This block is
+   the LAYER BOUNDARY, plus the two rules that keep the phase honest: the authored tables
+   ship empty, and the legacy voxel world was not made to depend on any of this. */
+{
+  const fs2 = require('fs');
+  const dir = path.join(SRCDIR, 'world', 'terrain');
+  const FILES = ['terrain-config.js', 'terrain-roads.js', 'terrain-authoring.js',
+                 'terrain-heightfield.js', 'terrain-materials.js', 'terrain-mesh.js',
+                 'terrain-scatter.js', 'terrain-regions.js', 'terrain-physical-world.js',
+                 'terrain-world.js'];
+  chk(fs2.existsSync(dir), 'src/world/terrain/ exists — the D1 non-voxel foundation');
+  chk(fs2.existsSync(path.join(dir, 'LAYER.md')), 'and carries a LAYER.md');
+
+  const texts = {};
+  for (const f of FILES) {
+    const fp = path.join(dir, f);
+    chk(fs2.existsSync(fp), 'src/world/terrain/' + f + ' exists');
+    texts[f] = fs2.existsSync(fp) ? fs2.readFileSync(fp, 'utf8') : '';
+  }
+  const strip = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+
+  /* ---- 1. NOT ONE VOXEL TOKEN IN THE WHOLE LAYER ----
+     This is the property the phase stands on. A block id, a chunk size or a call into
+     VoxelWorld here would make the Era 2 world a dependent of the thing Era 2 deletes. */
+  const VOXEL = ['BLOCK.', 'CHUNK_SX', 'CHUNK_SY', 'CHUNK_SZ', 'getBlockWorld', 'setBlockWorld',
+                 'VoxelWorld', 'findSpawnHeight', 'worldEdits', 'blockAt', 'getChunk',
+                 'editedChunks', 'isFarmlandsWorldPos'];
+  for (const f of FILES) {
+    const live = strip(texts[f] || '');
+    const found = VOXEL.filter(v => live.indexOf(v) >= 0);
+    chk(found.length === 0, 'src/world/terrain/' + f + ' names no voxel vocabulary' +
+        (found.length ? ' — FOUND: ' + found.join(', ') : ''));
+  }
+
+  /* ---- 2. AND IT REACHES NOTHING ABOVE ITSELF ---- */
+  const ABOVE = ['window.game', 'UIManager', 'SoundEngine', 'ObjectiveSystem', 'SaveSystem',
+                 'PlayerController', 'document.'];
+  for (const f of FILES) {
+    const live = strip(texts[f] || '');
+    const found = ABOVE.filter(v => live.indexOf(v) >= 0);
+    chk(found.length === 0, 'src/world/terrain/' + f + ' reaches nothing above it' +
+        (found.length ? ' — FOUND: ' + found.join(', ') : ''));
+  }
+
+  /* ---- 3. DETERMINISM IS STRUCTURAL ----
+     CLAUDE.md section 11. A single Math.random in generation makes the world unrepeatable
+     and makes every resource measurement meaningless. */
+  for (const f of FILES) {
+    chk(strip(texts[f] || '').indexOf('Math.random') < 0,
+        'src/world/terrain/' + f + ' contains no Math.random');
+  }
+
+  /* ---- 4. NOTHING SCHEDULES ----
+     Same rule section 61 put on the audio director: a countdown a test cannot drive is a
+     countdown that can leak. The streamer spends a per-frame budget and stops. */
+  for (const f of FILES) {
+    const live = strip(texts[f] || '');
+    chk(live.indexOf('setTimeout') < 0 && live.indexOf('setInterval') < 0,
+        'src/world/terrain/' + f + ' schedules nothing');
+  }
+
+  /* ---- 5. THE AUTHORED TABLES SHIP EMPTY ----
+     The seven landmarks are a roster, not a design. A coordinate here would be an invented
+     creative decision, and a placeholder is the kind of thing a later phase mistakes for
+     approval. */
+  const emptyArray = (src, name) =>
+    new RegExp('const\\s+' + name + '\\s*=\\s*Object\\.freeze\\(\\s*\\[\\s*\\]\\s*\\)').test(src);
+  chk(emptyArray(texts['terrain-authoring.js'], 'D1_AUTHORED_SITES'),
+      'D1_AUTHORED_SITES ships EMPTY — no landmark coordinate was invented');
+  chk(emptyArray(texts['terrain-roads.js'], 'D1_ROAD_NETWORK'),
+      'D1_ROAD_NETWORK ships EMPTY — the road route is a creative decision');
+  chk(emptyArray(texts['terrain-scatter.js'], 'D1_SCATTER_SPECIES'),
+      'D1_SCATTER_SPECIES ships EMPTY — vegetation is E2.3');
+
+  /* And no landmark name appears anywhere in the layer, in any spelling. */
+  const LANDMARKS = ['schoolhouse', 'substation', 'grain elevator', 'motel', 'water tower',
+                     'rural church'];
+  let named = [];
+  for (const f of FILES) {
+    const low = (texts[f] || '').toLowerCase();
+    for (const L of LANDMARKS) {
+      /* The roster may be NAMED in a comment explaining why the table is empty; what may
+         not exist is a landmark used as an identifier or a key. */
+      const asCode = new RegExp("['\"`][^'\"`]*" + L.replace(' ', '[-_ ]?') + "[^'\"`]*['\"`]\\s*:", 'i');
+      if (asCode.test(texts[f] || '')) named.push(f + ':' + L);
+    }
+  }
+  chk(named.length === 0, 'no landmark appears as authored data anywhere in the layer' +
+      (named.length ? ' — FOUND: ' + named.join(', ') : ''));
+
+  /* ---- 6. THE VOXEL WORLD WAS NOT MADE TO DEPEND ON THIS ----
+     The legacy implementation must be untouched by the new one, or the "parallel
+     foundation" claim is false and the two are now entangled. */
+  const voxelFiles = ['voxel-world.js', 'physical-world.js', 'chunk.js', 'world-content.js'];
+  for (const vf of voxelFiles) {
+    const fp = path.join(SRCDIR, 'world', vf);
+    if (!fs2.existsSync(fp)) continue;
+    const t = fs2.readFileSync(fp, 'utf8');
+    chk(t.indexOf('d1Terrain') < 0 && t.indexOf('D1TerrainWorld') < 0 && t.indexOf('D1_WORLD') < 0,
+        'src/world/' + vf + ' does NOT reference the Era 2 terrain — the two are parallel');
+  }
+
+  /* ---- 7. THE CONTRACT HAS TWO IMPLEMENTATIONS AND THEY MATCH ---- */
+  const pwSrc = texts['terrain-physical-world.js'] || '';
+  const CONTRACT = ['collidesAABB', 'isSolid', 'groundHeightAt', 'waterLevelAt',
+                    'isResidentAround', 'editEpoch', 'hasOpenSkyAbove', 'lightLevelAt',
+                    'nearestLightSourceDistance', 'isInsideSafeZone', 'isInsideSoulAnchorZone'];
+  const missing = CONTRACT.filter(m => !new RegExp('^\\s{2}' + m + '\\s*\\(', 'm').test(pwSrc));
+  chk(missing.length === 0,
+      'TerrainPhysicalWorld implements all ' + CONTRACT.length + ' E2.1 contract queries' +
+      (missing.length ? ' — MISSING: ' + missing.join(', ') : ''));
+
+  /* ---- 8. THREE IS BUDGETED, AND THE PURE LAYERS ARE AT ZERO ----
+     Config, roads, authoring, heightfield and scatter are MATHS and must stay renderer-free
+     so they survive any future change of renderer. Only the three that build or hold
+     graphics may name THREE. */
+  const threeCount = (f) => (strip(texts[f] || '').match(/\bTHREE\./g) || []).length;
+  for (const pure of ['terrain-config.js', 'terrain-roads.js', 'terrain-authoring.js',
+                      'terrain-heightfield.js', 'terrain-scatter.js']) {
+    chk(threeCount(pure) === 0, 'src/world/terrain/' + pure + ' is pure maths — 0 THREE references');
+  }
+  chk(threeCount('terrain-physical-world.js') === 0,
+      'and the PhysicalWorld implementation is renderer-free too — 0 THREE references');
 }
 
 console.log('\n=== 8. THE SKELETON IS DOCUMENTED ===\n');

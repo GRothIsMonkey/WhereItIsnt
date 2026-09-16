@@ -304,6 +304,21 @@
 <script src="src/dimensions/farmlands/generation.js"></script>
 <script src="src/dimensions/farmlands/stampers.js"></script>
 <script src="src/dimensions/finale/scene.js"></script>
+<!-- ERA 2 E2.2 — THE D1 NON-VOXEL TERRAIN FOUNDATION. Finite, continuous, streamed.
+     Config (the finite world) before roads and authoring (which the height function
+     calls) before the heightfield, then the mesh, materials, scatter, regions, the
+     PhysicalWorld implementation and the composition. Loaded but NOT yet the live
+     dimension: the playable chain still runs on the voxel world. ARCHITECTURE.md 4.10. -->
+<script src="src/world/terrain/terrain-config.js"></script>
+<script src="src/world/terrain/terrain-roads.js"></script>
+<script src="src/world/terrain/terrain-authoring.js"></script>
+<script src="src/world/terrain/terrain-heightfield.js"></script>
+<script src="src/world/terrain/terrain-materials.js"></script>
+<script src="src/world/terrain/terrain-mesh.js"></script>
+<script src="src/world/terrain/terrain-scatter.js"></script>
+<script src="src/world/terrain/terrain-regions.js"></script>
+<script src="src/world/terrain/terrain-physical-world.js"></script>
+<script src="src/world/terrain/terrain-world.js"></script>
 <!-- ERA 2 E2.0a — the asset pipeline. Registry (what exists) before materials
      (what surfaces become) before the library (fetch/cache/clone/dispose) before
      collision (what shape a placed model is). Order is the contract. -->

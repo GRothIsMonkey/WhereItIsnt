@@ -44,6 +44,30 @@ function classBody(src, name) {
   }
   return '';
 }
+/* ERA 2 E2.2 — SCOPE A METHOD LOOKUP TO ITS CLASS, BECAUSE A BARE NAME IS NOT UNIQUE.
+
+   `methodBody(LIVE, 'begin')` searched the WHOLE reassembled build for the first two-space
+   `begin(`. That was FinalSequence's for as long as FinalSequence was the earliest class
+   with one — and it stopped being true the moment another class declared `begin`, which
+   D1TerrainWorld did. The assertion then compared two indexes inside the wrong method body
+   and failed, while the finale itself was untouched.
+
+   This is CLAUDE.md section 62.11's lesson in a new place: when a test stands in for a
+   claim, ask which half of the claim it actually covers. A method lookup that is not scoped
+   to a class is a lookup waiting for a name collision. */
+function classScope(src, className) {
+  const i = src.indexOf('class ' + className + ' {');
+  if (i < 0) return '';
+  const open = src.indexOf('{', i);
+  let depth = 0;
+  for (let j = open; j < src.length; j++) {
+    const c = src[j];
+    if (c === '{') depth++;
+    else if (c === '}') { depth--; if (depth === 0) return src.slice(open, j + 1); }
+  }
+  return '';
+}
+
 function methodBody(src, name) {
   const i = src.indexOf('\n  ' + name + '(');
   if (i < 0) return null;
@@ -310,8 +334,11 @@ head('4b. THE PLAYER IS STANDING IN THE OPEN');
       'but the streaming lock is deliberately left alone: clearing it would have the ' +
       'streamer generate Overworld terrain underneath the finale');
 
-  const begin = methodBody(LIVE, 'begin') || '';
-  chk(begin.indexOf('clearHavenForFinale') < begin.indexOf('buildFinale'),
+  /* Scoped to FinalSequence — see classScope above for why a bare 'begin' is not enough. */
+  const begin = methodBody(classScope(LIVE, 'FinalSequence'), 'begin') || '';
+  chk(begin.length > 0, 'FinalSequence.begin() was located inside its own class');
+  chk(begin.indexOf('clearHavenForFinale') >= 0 && begin.indexOf('buildFinale') >= 0 &&
+      begin.indexOf('clearHavenForFinale') < begin.indexOf('buildFinale'),
       'and it happens BEFORE the finale scene is built, not after');
 
   /* Driven: after clearing, no voxel stands between the player and the creature. The

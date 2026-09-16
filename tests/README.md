@@ -268,6 +268,35 @@ Both are gitignored: they are reproducible from git and each is over a megabyte.
 | `preview-environment.js` | writes `renders/env-{holding,released,crossing,farmyard,sub-holding,sub-board}.png` plus `env-photographs.png` — **real Chromium screenshots of the real objects in the real world**, one per piece of content, plus a 14x crop of the two family photographs taken straight out of the live texture atlas because the difference between them is eleven pixels. **It proves nothing and asserts nothing; it is for looking at** |
 | `preview-compass.js` | writes `renders/compass-tape.svg` — the compass at six headings, re-emitted from the real `updateCompass` draw calls onto the real panel colours. Derived from the shipped code; **not** a browser render |
 
+## ERA 2 E2.2 — THE D1 NON-VOXEL TERRAIN FOUNDATION
+
+```
+npm run terrain            # offline: finite bounds, continuity, determinism, the contract
+npm run browser-terrain    # a real scene, a real player, real streaming, real disposal
+```
+
+| suite | proves |
+| --- | --- |
+| `terrain.js` | the world is **finite** and the streamer cannot leave it; height is continuous and deterministic; no voxel vocabulary and no `Math.random` anywhere in the layer; the E2.1 contract is complete and matches the voxel implementation's shape; roads, scatter and authored sites all ship **empty** |
+| `browser-terrain.js` | it renders; what a region costs; a body falls onto it and walks 900 m without stepping; regions stream in and out; resources return to baseline; the shared material survives; the legacy voxel game is untouched |
+
+### Two ways these tests were wrong first, both worth remembering
+
+**A time-budgeted call is not a determinism test.** Three load/unload cycles read 23/17/17
+because `update()` spends a millisecond budget and builds however many regions the machine
+managed. That measured the CPU. Draining to completion is what makes the claim about
+*generation*.
+
+**A resource test that never renders measures nothing.** The browser cycle test read
+`added 0, freed 0, residual 0` and passed — `renderer.info.memory` only counts a geometry
+once it has been **uploaded**, which happens on first draw. Rendering between build and read
+makes it real (`added 32, freed 32`), and the suite now asserts the counters *moved*.
+
+A third: the screenshot initially showed the **voxel world**, because `PostFX` caches its
+own `scene`/`camera` at construction and swapping `game.scene` alone does nothing. The suite
+repoints both and then counts `d1-region-*` meshes in what was drawn, because a screenshot
+cannot prove what it is a picture of.
+
 ## ERA 2 E2.0a — THE ASSET PIPELINE
 
 Two suites, and they divide by what each CAN prove.
