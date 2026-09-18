@@ -2821,3 +2821,21 @@ The horror exists to make the player's experience memorable.
 And the player should finish Where It Isn't carrying one final thought:
 
 “I don't know what that world was trying to become. I just know I did not want to be there when it finished.”
+## D1 — Shattered Farmlands
+
+D1's detailed creative landmark specification is now formally locked.
+
+The canonical seven-landmark sequence is:
+
+1. Farm Compound + Water Tower
+2. Schoolhouse
+3. Electrical Substation
+4. Rural Church
+5. Abandoned Motel
+6. Abandoned Grain Elevator
+7. Ordinary Barn / Underground Elevator System
+
+See `D1_DESIGN.md` for the complete player-facing creative specification, landmark roles, exploration structure, horror sequences, progression relationships, finale, and D1→Suburbia transition.
+
+`STORY.md` remains the high-level story canon; `D1_DESIGN.md` is the detailed D1 design companion and must not contradict it.
+
