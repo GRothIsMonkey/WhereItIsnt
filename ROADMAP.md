@@ -3220,7 +3220,11 @@ Implementation should proceed through the finalized seven-landmark chain:
 
 Implementation work should be staged rather than building all seven landmarks simultaneously.
 
-Recommended implementation order:
+Recommended implementation order (status is tracked in `PROGRESS.md`):
+
+**Phase 1 — Composite PhysicalWorld: COMPLETE.** One gameplay-facing physical world composes
+terrain with mesh/architecture collision, which is the prerequisite for any enterable D1
+building. Engineering only — it builds no landmark. See `ARCHITECTURE.md` section 4.11.
 
 1. D1 world/layout foundation
 2. landmark placement and traversal

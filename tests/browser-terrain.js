@@ -78,6 +78,7 @@ function serve() {
       config: typeof D1_WORLD_SIZE === 'number',
       world: typeof D1TerrainWorld === 'function',
       physical: typeof TerrainPhysicalWorld === 'function',
+      composite: typeof CompositePhysicalWorld === 'function',
       regions: typeof D1TerrainRegions === 'function',
       height: typeof d1TerrainHeight === 'function',
       size: D1_WORLD_SIZE, grid: D1_REGION_GRID, regionSize: D1_REGION_SIZE,
@@ -85,8 +86,36 @@ function serve() {
     }));
     chk(present.config && present.world && present.physical && present.regions && present.height,
         'all ten terrain modules loaded as classic scripts alongside the existing build');
+    chk(present.composite,
+        'and CompositePhysicalWorld loaded with them — D1 Implementation Phase 1');
     note('finite world: ' + present.size + ' m square, ' + present.grid + ' x ' + present.grid +
          ' regions of ' + present.regionSize + ' m = ' + present.totalRegions + ' regions');
+
+    /* D1 PHASE 1 — THE PHYSICAL WORLD THE NON-VOXEL PATH INITIALISES IS THE COMPOSITE.
+       Everything after this point in the suite drives `__d1.physical`, so this is the
+       integration claim the rest of the run stands on: a body walking 900 m in section 4
+       is walking on the composite. */
+    const comp = await page.evaluate(() => {
+      const scene = new THREE.Scene();
+      const w = new D1TerrainWorld(scene, null, null);
+      const g = w.physical.groundHeightAt(12.5, -7.25);
+      const t = w.terrain.groundHeightAt(12.5, -7.25);
+      const out = {
+        isComposite: w.physical instanceof CompositePhysicalWorld,
+        baseIsTerrain: w.physical.base instanceof TerrainPhysicalWorld,
+        providers: w.physical.providerCount,
+        providerIsAssetSet: w.physical.providers[0] === w.assetCollision,
+        sameAsTerrainWhenEmpty: g === t,
+      };
+      w.dispose(false);
+      return out;
+    });
+    chk(comp.isComposite, 'D1TerrainWorld.physical IS a CompositePhysicalWorld in the live build');
+    chk(comp.baseIsTerrain, 'its base is the terrain backend');
+    chk(comp.providers === 1 && comp.providerIsAssetSet,
+        'and its one provider is the shared AssetCollisionSet — terrain + architecture, one world');
+    chk(comp.sameAsTerrainWhenEmpty,
+        'with nothing placed it answers exactly what the terrain answers');
 
     // -------------------------------------------------------------------------------
     head('2. A REAL SCENE, A REAL BUILD, AND WHAT IT COSTS');

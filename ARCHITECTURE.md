@@ -1153,6 +1153,106 @@ to baseline, and the shared material survives by uuid.
 
 ---
 
+## 4.11. THE COMPOSITE PHYSICAL WORLD — D1 IMPLEMENTATION PHASE 1
+
+`src/world/composite-physical-world.js` — 225 lines, one class, **zero block ids and zero
+`THREE.` references**. It is the physical world gameplay talks to when the world is made of
+more than one thing.
+
+### Why it exists
+
+E2.1 gave gameplay eleven queries and E2.2 gave them a second implementation over the D1
+heightfield. Both answer for ONE representation. The final D1 is terrain **plus** authored
+architecture, and a building the player can walk into is exactly a place where the ground is
+not the terrain. Something has to answer across both, and it must not be gameplay deciding
+which backend to ask.
+
+The composition already existed in the wrong place: `TerrainPhysicalWorld` reached through
+`this.regions.assetCollision` in three of its eleven methods. That made a **terrain** backend
+responsible for knowing assets exist, allowed exactly one provider, and left the resolution
+policy implicit in three method bodies with nowhere to write it down. Phase 1 took it out of
+the terrain backend and made it explicit.
+
+```
+GAMEPLAY
+  |
+  v
+CompositePhysicalWorld            implements the full eleven-query contract
+  |-- base      : a COMPLETE PhysicalWorld   (TerrainPhysicalWorld, or VoxelPhysicalWorld)
+  `-- providers : zero or more PARTIAL shape providers   (AssetCollisionSet, ...)
+```
+
+The asymmetry is deliberate. A **base** answers everything. A **provider** may implement any
+subset of `collidesAABB`, `isSolid` and `groundHeightAt`, and a method it does not implement
+is never called. `AssetCollisionSet` answers three questions and has no opinion about water,
+sky, light, sanctuary or streaming; requiring it to implement eleven would mean inventing
+eight answers, which is how a composition layer starts lying.
+
+### The resolution policy, per query
+
+This is the part that matters, and it is different per query because each question means
+something different.
+
+| query | policy | why |
+| --- | --- | --- |
+| `collidesAABB` | **UNION** (OR) | Solid is additive. Nothing becomes passable by being next to something else — the rule that stops a wall being walk-through because its collision came from a mesh. |
+| `isSolid` | **UNION** (OR) | Same, about a point. |
+| `groundHeightAt` | **MAXIMUM**, base as floor | A floor is what you stand on. A barn floor above the terrain wins; where no provider has anything, the terrain answers unchanged. A provider's `null` means *no opinion* and is **never** read as zero. |
+| `waterLevelAt` | **BASE ONLY** | No provider carries water information. Architecture above water does not drain it: letting a floor report dry ground below would be a new global water system, which Phase 1 is forbidden to build. |
+| `editEpoch` | **base + provider revision** | The one composed non-shape query, and a correctness fix rather than a choice — adding or removing a proxy *does* change the world's shape, and a resting-item cache keyed on this must invalidate. `undefined` in gives `undefined` out: "cannot tell" never becomes a number. |
+| `isResidentAround`, `hasOpenSkyAbove`, `lightLevelAt`, `nearestLightSourceDistance`, `isInsideSafeZone`, `isInsideSoulAnchorZone` | **BASE ONLY**, forwarded | Nothing in the build has a provider-side answer to offer, and inventing one is out of scope. |
+
+### Lifecycle
+
+`addProvider` is **idempotent** — a region that streams in twice does not register its
+collision twice. `removeProvider` is a safe no-op for something never added or already
+removed, because a disposed region is allowed to unregister sloppily. `clearProviders` drops
+every provider and **does not touch the base**: it is a teardown of what was placed on the
+world, not of the world. A removed provider leaves no entry behind and stops contributing on
+the very next query — `tests/composite.js` proves the ground falls back to the terrain rather
+than to a stale height.
+
+### Streaming and cost
+
+One array walk over the providers, short-circuited: a query the base already answered
+affirmatively never consults a provider. Measured over 200,000 `groundHeightAt` calls —
+terrain-only 460 ms, composite with no providers 458 ms (**−0.3%**), one proxy 465 ms,
+twenty-four proxies 488 ms (**+6%**). No allocation per query, no global registry, nothing
+that grows without bound.
+
+The provider walk is linear in proxy count **by design**. `AssetCollisionSet` is a flat list
+by its own deliberate decision, and choosing a spatial index before there is a distribution
+to measure is a guess (CLAUDE.md section 14). The phase that places thousands adds one, with
+a benchmark.
+
+### Determinism
+
+No `Math.random`, no clock, and — because UNION and MAXIMUM are both commutative — **the
+answer does not depend on the order providers were added.** `tests/composite.js` proves that
+by building two composites with the providers in opposite orders and comparing 1,800 answers.
+
+### Why gameplay uses the composite and not a backend
+
+Ask the composite and you do not need to know whether the floor under you is ground, a barn
+or a catwalk. `D1TerrainWorld` exposes both: `world.physical` is the composite and is what
+gameplay uses; `world.terrain` is the bare heightfield backend, kept reachable so a test that
+wants the ground with nothing on it can ask for exactly that.
+
+### What did not change
+
+**The Era 1 voxel path is untouched.** `Game` still builds a `VoxelPhysicalWorld` directly and
+`tests/browser-terrain.js` asserts it. The composite is available to it and is not forced on
+it, because the voxel world has no mesh architecture to compose. The two implementations
+remain valid and neither was deleted.
+
+**And the answers did not change.** The A/B gate: the pre-phase `terrain-physical-world.js` is
+loaded from git and driven alongside the new build over 12,000 comparisons — ground height,
+water, `isSolid` and `collidesAABB` at 1,200 points across the map — plus 1,200 more with a
+proxy placed. **Zero differences.** The new asset-collision capability is additive; nothing
+about terrain moved.
+
+---
+
 ## 5. THE DIMENSION EXTENSION POINT — AND DIMENSION 3, THE BELOW
 
 ### What is there now

@@ -48,6 +48,7 @@
     "architecture": "node architecture.js",
     "assets": "node assets.js",
     "terrain": "node terrain.js",
+    "composite": "node composite.js",
     "browser-terrain": "node browser-terrain.js",
     "browser-assets": "node browser-assets.js",
     "browser-assets-r186": "node browser-assets.js --r186",

@@ -279,6 +279,7 @@ npm run browser-terrain    # a real scene, a real player, real streaming, real d
 | --- | --- |
 | `terrain.js` | the world is **finite** and the streamer cannot leave it; height is continuous and deterministic; no voxel vocabulary and no `Math.random` anywhere in the layer; the E2.1 contract is complete and matches the voxel implementation's shape; roads, scatter and authored sites all ship **empty** |
 | `browser-terrain.js` | it renders; what a region costs; a body falls onto it and walks 900 m without stepping; regions stream in and out; resources return to baseline; the shared material survives; the legacy voxel game is untouched |
+| `composite.js` | ONE physical world composes terrain with mesh/architecture collision; the full E2.1 contract; the resolution policy per query (union for solidity, maximum for ground, base-only for water); provider lifecycle is idempotent and leaks nothing; the answer does not depend on provider order; and the **A/B gate** — terrain answers are identical to the pre-phase build, proved against the file loaded from git |
 
 ### Two ways these tests were wrong first, both worth remembering
 

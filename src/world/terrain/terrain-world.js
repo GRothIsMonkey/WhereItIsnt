@@ -47,7 +47,20 @@ class D1TerrainWorld {
        does not gets a private one, and the terrain still works with no assets at all. */
     this.assetCollision = assetCollision || new AssetCollisionSet();
     this.regions = new D1TerrainRegions(scene, assets, this.assetCollision);
-    this.physical = new TerrainPhysicalWorld(this.regions);
+
+    /* D1 PHASE 1 — THE PHYSICAL WORLD GAMEPLAY SEES IS THE COMPOSITE, NOT THE TERRAIN.
+
+       `terrain` answers for the heightfield alone. `physical` is the composite that folds
+       the authored-structure proxies in on top of it, and it is what every gameplay caller
+       must use: ask the composite and you do not need to know whether the floor under you
+       is ground or a barn. The terrain backend is kept reachable because a test that wants
+       the ground with nothing on it should be able to ask for exactly that.
+
+       The answers through `physical` are identical to what this class returned before the
+       composite existed — same union for solidity, same maximum for ground height. See
+       ARCHITECTURE.md section 4.11. */
+    this.terrain = new TerrainPhysicalWorld(this.regions);
+    this.physical = new CompositePhysicalWorld(this.terrain, [this.assetCollision]);
     this.active = false;
   }
 

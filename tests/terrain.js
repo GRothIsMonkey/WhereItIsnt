@@ -59,6 +59,10 @@ const T = (() => {
       this.isSolid = function () { return false; };
       this.groundHeightAt = function () { return null; }; };
   `, ctx);
+  /* D1 PHASE 1 — the terrain world now composes through CompositePhysicalWorld, which
+     lives one directory up. Loaded first because terrain-world.js names it. */
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'src', 'world', 'composite-physical-world.js'), 'utf8'),
+                  ctx, { filename: 'composite-physical-world.js' });
   for (const f of FILES) vm.runInContext(read(f), ctx, { filename: f });
   const EXPORTS = ['D1_WORLD_SIZE','D1_REGION_SIZE','D1_REGION_GRID','D1_WORLD_MIN_X','D1_WORLD_MAX_X',
     'D1_WORLD_MIN_Z','D1_WORLD_MAX_Z','D1_MIN_Y','D1_MAX_Y','D1_RELIEF','D1_EDGE_DROP','D1_EDGE_MARGIN','D1_TERRAIN_SEED',
@@ -72,7 +76,8 @@ const T = (() => {
     'd1ResetScatterSpecies','d1BuildRegionScatter','D1_AUTHORED_SITES','d1SetAuthoredSites',
     'd1AuthoredSites','d1ResetAuthoredSites','d1SitesInRegion','D1_SITE_TERRAIN',
     'd1BuildRegionGeometry','d1BuildRegionWater','TerrainPhysicalWorld','D1TerrainRegions',
-    'D1TerrainWorld','terrainMaterialStatus','terrainScatterStatus','terrainAuthoringStatus'];
+    'D1TerrainWorld','terrainMaterialStatus','terrainScatterStatus','terrainAuthoringStatus',
+    'CompositePhysicalWorld'];
   vm.runInContext('globalThis.__T = {' + EXPORTS.join(',') + '};', ctx);
   return ctx.__T;
 })();

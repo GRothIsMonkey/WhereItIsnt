@@ -10,6 +10,12 @@ Current phase              ERA 2 — IN PROGRESS. E2.1 (Physical World contract)
 Next phase                 ERA 2 continues — E2.3 vegetation, E2.4 architecture, E2.5 lighting,
                            then E2.6/E2.7 the D1 landmarks. What Era 2 replaces is bounded and
                            named in ARCHITECTURE.md section 10; ERA2-PLAN.md is the phase plan.
+D1 Impl Phase 1            COMPLETE — Composite PhysicalWorld. ONE gameplay-facing physical
+                           world composes terrain + mesh/architecture collision. Terrain
+                           answers are IDENTICAL to the pre-phase build (12,000 A/B
+                           comparisons, 0 differences). See ARCHITECTURE.md section 4.11.
+                           D1 IMPLEMENTATION IS NOT STARTED BEYOND THIS: no landmark, no
+                           asset, no interaction, no creature exists.
 D1 creative design         LOCKED. D1_DESIGN.md is the SINGLE DETAILED D1 SOURCE OF TRUTH.
                            STORY.md = high-level canon, ROADMAP.md = implementation staging,
                            this file = status. None of them re-specifies a D1 sequence.
@@ -6407,9 +6413,18 @@ and where any of them disagrees with `D1_DESIGN.md` about D1, `D1_DESIGN.md` win
 * D1 flashlight resource model: LOCKED
 * Landmark 7 destination signal: LOCKED
 * Visual numeric budgets: DOCUMENTED (`VISUAL_RULE_BIBLE.md` section 9.1)
-* **D1 implementation: NOT STARTED.** No landmark exists in the build. The authored tables in
+* **D1 content: NOT STARTED.** No landmark exists in the build. The authored tables in
   `src/world/terrain/` (`D1_AUTHORED_SITES`, `D1_ROAD_NETWORK`, `D1_SCATTER_SPECIES`) all ship
   empty and `tests/terrain.js` enforces that they stay empty.
+* **D1 Implementation Phase 1 — Composite PhysicalWorld: COMPLETE.** `CompositePhysicalWorld`
+  composes a base PhysicalWorld with zero or more partial shape providers, so gameplay asks one
+  service where the floor is without knowing whether the answer is terrain or a building. The
+  resolution policy is explicit per query — union for solidity, maximum for ground height,
+  base-only for water — and is documented in `ARCHITECTURE.md` section 4.11 and asserted in
+  `tests/composite.js`. `TerrainPhysicalWorld` is pure terrain again; `D1TerrainWorld.physical`
+  is the composite. **The Era 1 voxel path is untouched and still uses `VoxelPhysicalWorld`.**
+  This is engineering foundation only: it builds no landmark, adds no asset and implements no
+  interaction, flashlight, creature or elevator.
 * Final D1 first-person playtest: NOT YET COMPLETE
 
 Implementation-level details may still be refined where required by assets, technical

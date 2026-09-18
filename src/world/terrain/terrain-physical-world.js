@@ -52,6 +52,25 @@
    representation. Authored structures are a different problem and get the asset collision
    proxies E2.0a already built.
 
+   ─────────────────────────────────────────────────────────────────────────────────────
+   THIS CLASS ANSWERS FOR THE TERRAIN AND NOTHING ELSE — D1 PHASE 1
+
+   Until D1 Implementation Phase 1 these three methods — `collidesAABB`, `isSolid` and
+   `groundHeightAt` — reached through `this.regions.assetCollision` and folded authored
+   structures in themselves. That worked, and it was in the wrong place: a TERRAIN backend
+   knowing that assets exist, with exactly one provider possible and the resolution policy
+   implicit in three method bodies.
+
+   That composition now lives in `CompositePhysicalWorld`, which holds this class as its
+   base and the asset proxies as a provider. **The answers a caller gets through
+   `D1TerrainWorld.physical` are unchanged** — the composite applies the same union for
+   the two solidity queries and the same maximum for ground height — and `tests/composite.js`
+   proves it by A/B against this file's previous behaviour.
+
+   What this class gained is the property that makes it worth doing: it is now honestly
+   named. It answers for the heightfield, at any resolution, resident or not, with nothing
+   placed on it.
+
    CLASSIC script. See src/world/terrain/LAYER.md.
    ===================================================================================== */
 
@@ -62,9 +81,9 @@ const D1_COLLIDE_PROBE_STEP = 0.5;
 
 class TerrainPhysicalWorld {
   /* `regions` is the streaming manager, or null. It is used ONLY to answer
-     `isResidentAround` and to reach placed asset colliders — never to find the ground,
-     which is why terrain queries work perfectly on a world with nothing streamed in and
-     why a test can ask about a point on the far side of the map without loading it. */
+     `isResidentAround` — never to find the ground, which is why terrain queries work
+     perfectly on a world with nothing streamed in and why a test can ask about a point on
+     the far side of the map without loading it. */
   constructor(regions) {
     this.regions = regions || null;
     /* Authored zones that grant sanctuary. Empty in E2.2: the Anchor Monument is Era 1
@@ -96,31 +115,18 @@ class TerrainPhysicalWorld {
       if (px >= maxX) break;
     }
 
-    /* Authored structures, through the E2.0a proxy set. Terrain is the ground; a building
-       is an asset with a declared collision proxy, and neither knows about the other. */
-    if (this.regions && this.regions.assetCollision &&
-        this.regions.assetCollision.collidesAABB(aabb)) return true;
-
     return false;
   }
 
   isSolid(x, y, z) {
-    if (y < d1TerrainHeight(x, z)) return true;
-    if (this.regions && this.regions.assetCollision &&
-        this.regions.assetCollision.isSolid(x, y, z)) return true;
-    return false;
+    return y < d1TerrainHeight(x, z);
   }
 
   /* CONTINUOUS. A real number, exact at the point asked, at any resolution, resident or
-     not. Where an authored structure stands higher than the ground, the structure wins —
-     a floor is what you stand on. */
+     not. THE TERRAIN'S answer — an authored structure standing higher is the composite's
+     business, not this class's. */
   groundHeightAt(x, z) {
-    const terrain = d1TerrainHeight(x, z);
-    if (this.regions && this.regions.assetCollision) {
-      const onAsset = this.regions.assetCollision.groundHeightAt(x, z);
-      if (onAsset !== null && onAsset > terrain) return onAsset;
-    }
-    return terrain;
+    return d1TerrainHeight(x, z);
   }
 
   /* 0 dry / 1 wadeable / 2 swimmable, matching the voxel implementation's tri-state
