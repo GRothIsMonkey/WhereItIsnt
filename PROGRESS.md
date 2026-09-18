@@ -6304,3 +6304,34 @@ Core fear:
 “I was never supposed to be here.”
 
 Use STORY.md and ROADMAP.md as the creative authority for Era 2 implementation.
+## D1 Creative Design — LOCKED ✅
+
+The complete D1 — Shattered Farmlands creative design is now formally locked.
+
+### Seven major landmarks
+
+1. Farm Compound + Water Tower
+2. Schoolhouse
+3. Electrical Substation
+4. Rural Church
+5. Abandoned Motel
+6. Abandoned Grain Elevator
+7. Ordinary Barn / Underground Elevator System
+
+### Canonical design document
+
+`D1_DESIGN.md`
+
+### Status
+
+* D1 landmark structure: LOCKED
+* D1 exploration philosophy: LOCKED
+* Landmark purposes: LOCKED
+* Major horror sequences: LOCKED
+* Progression relationships: LOCKED
+* D1 finale: LOCKED
+* D1→Suburbia elevator transition: LOCKED
+* D1 implementation: NOT YET COMPLETE
+* Final D1 first-person playtest: NOT YET COMPLETE
+
+Implementation-level details may still be refined where required by assets, technical constraints, performance, or playtesting, but the player-facing creative design is now canonical.
