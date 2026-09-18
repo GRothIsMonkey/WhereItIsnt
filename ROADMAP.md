@@ -1867,6 +1867,16 @@ never illuminate the whole environment
 
 create meaningful blind areas
 
+LOCKED RESOURCE MODEL: a permanent handheld flashlight with a finite battery charge that drains
+while it is on. Batteries and charge pickups are found in the world; there is no automatic
+regeneration and no crafting. It stays relevant for the whole of D1. Landmark 1 yields an
+UPGRADE TO THE FLASHLIGHT ITSELF — beam quality, range, efficiency — not a replacement system.
+Battery management should create tension, not inventory micromanagement. See `D1_DESIGN.md`
+section 0.3.
+
+D1 WORLD EXTENT: 4,096 m x 4,096 m, centred on the origin of D1's local space. LOCKED, not
+provisional. See `D1_DESIGN.md` section 0.4.
+
 Darkness
 Used deliberately rather than permanently.
 
@@ -2732,6 +2742,15 @@ player.
 Surface:
 - believable rural barn
 - mostly ordinary
+- one exterior work light still on — the subtle reason to notice and approach it
+
+Destination signal (LOCKED, and it is environmental):
+- the barn matches the location on the Church map from Landmark 4
+- the exterior work light is still burning
+- on entering, the entrance slams shut behind the player
+- heavy movement is heard outside
+- the objective changes to a survival/hiding state
+- **no quest marker, no glowing waypoint, no supernatural "final landmark" indicator**
 
 Interior:
 - final progression puzzle

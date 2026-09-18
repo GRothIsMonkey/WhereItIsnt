@@ -1030,7 +1030,7 @@ be rebuilt at 2 m or 16 m spacing and the ground the player walks on does not mo
 the ground is the function and the mesh is a picture of it. Measured: a body walking 900 m
 across it never sees the surface step more than **0.151 m over a 0.5 m stride**.
 
-### The finite world, and the number that is provisional
+### The finite world, and the number that is now locked
 
 | | |
 | --- | --- |
@@ -1045,10 +1045,22 @@ edge in normal play". That is effectively infinite, and it is the wrong shape fo
 somebody has to compose: there is no far side, no silhouette that means anything, and no
 way to author a journey.
 
-**`D1_WORLD_SIZE` is PROVISIONAL and the final figure is a creative decision.** Its
-derivation is written out in `terrain-config.js` (crossing time at the build's real walk
-speed, seven landmarks, region count). It is one constant, everything derives from it, and
-nothing authored exists yet — so changing it costs an edit and a regeneration.
+**`D1_WORLD_SIZE` IS LOCKED AT 4,096 m × 4,096 m.** When E2.2 shipped this was flagged as a
+provisional figure awaiting a creative decision; that decision has since been made and the
+number is approved. Its derivation is written out in `terrain-config.js` (crossing time at the
+build's real walk speed, seven landmarks, region count) and the shipped value already matches,
+so nothing in the terrain layer changes — what changed is that the number is a decision rather
+than a placeholder, and the seven landmarks are to be composed inside it.
+
+The comment block at the head of `terrain-config.js` was updated to match (comment text only —
+no executable line changed, and `tests/terrain.js` still passes). **If a technical constraint
+ever makes this extent unworkable, that is a finding to report separately, not a licence to
+change it quietly.**
+
+The world's EDGE TREATMENT is a separate question and remains open: `D1_EDGE_MARGIN` and
+`d1ClampToWorld` still describe themselves as provisional, correctly, because what the boundary
+IS — a river, a thickening treeline, a collapsed road — is environmental authorship nobody has
+decided. Locking the extent did not lock the edge.
 
 **The finiteness is proved by termination, not by assertion.** `d1AllRegions()` returns 256
 entries and stops; the streamer intersects its load radius with that fixed grid. Measured in

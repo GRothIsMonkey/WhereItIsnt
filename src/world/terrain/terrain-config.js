@@ -20,7 +20,7 @@
    So this world is finite, and the boundary is a real edge with a real location.
 
    ─────────────────────────────────────────────────────────────────────────────────────
-   ⚠ THE EXTENT IS PROVISIONAL AND THE NUMBER IS NOT MINE
+   THE EXTENT IS LOCKED AT 4,096 m SQUARE
 
    `D1_WORLD_SIZE` below is 4,096 m square. That figure is DERIVED, not chosen from taste,
    and the derivation is written out so it can be argued with:
@@ -35,11 +35,14 @@
      · 4,096 m at the region size below is a 16 x 16 grid of 256 m regions: 256 regions,
        which is a tractable number to author against and to stream.
 
-   **THE FINAL FIGURE IS A CREATIVE DECISION AND HAS NOT BEEN APPROVED.** It is one
-   constant; every other number in this file derives from it, the heightfield is a pure
-   function of world coordinates, and nothing authored exists yet — so changing it costs
-   an edit here and a regeneration. It is deliberately cheap to change and deliberately
-   easy to find. See ARCHITECTURE.md section 4.10.
+   **THIS FIGURE IS NOW APPROVED AND LOCKED.** It was provisional when this file shipped
+   in E2.2; the creative decision has since been made and 4,096 m x 4,096 m is the final
+   D1 extent. The seven landmarks and the route between them are composed inside it.
+
+   It remains one constant that every other number in this file derives from, so it is
+   still cheap to change — but changing it is now a CANON change, not a tuning tweak. If a
+   technical constraint ever makes this extent unworkable, REPORT THAT SEPARATELY rather
+   than editing the number. See D1_DESIGN.md section 0.4 and ARCHITECTURE.md section 4.10.
 
    ─────────────────────────────────────────────────────────────────────────────────────
    METRES, NOT BLOCKS

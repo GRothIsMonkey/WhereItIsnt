@@ -384,6 +384,43 @@ Texture density should feel consistent when assets are placed next to each other
 
 ---
 
+# 9.1. NUMERIC BUDGETS
+
+These are the agreed production budgets. **They are guidelines, not absolute hard limits.**
+An asset that has a real reason to exceed one may, but the reason should be stated rather
+than assumed.
+
+| Asset type | Triangle target | Texture target |
+| --- | ---: | ---: |
+| Small prop | 200–1,500 | 512² |
+| Standard prop | 1,000–5,000 | 1K |
+| Architectural module | 1,000–6,000 | 1K |
+| Major / hero landmark | 10,000–30,000 | 2K |
+| Major creature | 10,000–25,000 | 2K |
+| Small foliage instance | 50–500 | atlas / 512–1K |
+
+## Texel density
+
+* **Standard: ~64 px/m**
+* **Hero assets: up to ~128 px/m**
+
+Texel density is what section 9 above is actually asking for. Two assets at the same
+density read as one world even when their triangle counts differ by an order of magnitude;
+two assets at different densities read as two games, however good each one is on its own.
+
+## What these budgets exist to prevent
+
+* **Avoid unnecessary 4K textures.** A 4K map on an object the player walks past is
+  memory spent on detail nobody resolves. The audio library already taught this project
+  what an unbudgeted asset class costs at runtime.
+* **Avoid excessive geometry.** Silhouette is what sells an object at the distances this
+  game is played at (section 4.2). Triangles spent below the silhouette are usually spent
+  on nothing.
+* A budget is checked against the CAMERA, not the viewport of a modelling tool. Section 36
+  is the test: if it does not change what the player sees, it did not need the triangles.
+
+---
+
 # 10. COLOR LANGUAGE
 
 The overall game uses **cinematic color grading with controlled saturation**.

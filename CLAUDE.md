@@ -3687,6 +3687,10 @@ one `:root` block at the top of the stylesheet:
 Use them. A new interface element that invents its own colour is how the HUD became
 five unrelated widgets the first time.
 
+`VISUAL_RULE_BIBLE.md` section 9.1 carries the Era 2 ASSET budgets — per-class triangle and
+texture targets and a texel-density guideline (~64 px/m standard, ~128 px/m hero). They are
+guidelines, not hard limits, and they are about world assets rather than the HUD.
+
 Phase 29 added the TYPE side of the same system — one face, one shadow token, one
 four-step size scale — in section 55.1. Use those too: a new interface element that
 invents its own size or its own colour is how the HUD became five unrelated widgets the
@@ -4098,7 +4102,24 @@ creatures or invent a relationship between them.
 
 Landmark 7 is visually ordinary on the surface and hides the impossible elevator infrastructure
 beneath it. **The D1 final transition is the elevator, not a Rift** — the barn does not reveal a
-Rift and no D1 Rift replaces it.
+Rift and no D1 Rift replaces it. The physical chain is **barn → underground chamber → elevator →
+D2 transition**, and it is gated on no Core.
+
+**HOW THE PLAYER KNOWS THE BARN IS THE DESTINATION — ENVIRONMENTAL, NEVER A MARKER.** The barn
+matches the location on the Church map from Landmark 4, and one exterior work light is still on.
+Confirmation comes only after they are inside: the entrance slams shut, heavy movement is heard
+outside, and the objective changes to a survival/hiding state. **No quest marker, no glowing
+waypoint, no supernatural "final landmark" indicator** — sections 65 and 66 already forbid it.
+
+**THE D1 FLASHLIGHT IS LOCKED.** Permanent handheld light; finite battery charge that drains
+while it is on; batteries and charge pickups found in the world; **no** automatic regeneration
+and **no** crafting; relevant for the whole of D1. Landmark 1 yields an **upgrade to the
+flashlight itself** — beam quality, range, efficiency — never a replacement system. Battery
+management is meant to create tension, not inventory micromanagement. `D1_DESIGN.md` section 0.3.
+
+**THE D1 WORLD EXTENT IS LOCKED AT 4,096 m × 4,096 m** and is no longer provisional. If a
+technical constraint makes it unworkable, report that separately rather than changing it.
+`D1_DESIGN.md` section 0.4.
 
 ### D2
 Final D2 is Static Suburbia.
@@ -4152,8 +4173,9 @@ The elevator discovered beneath the D1 barn is a canonical bridge between recons
 Do not replace the D2 → D3 elevator transition with a generic portal/fall unless explicitly redesigned.
 
 RIFT CORES AND THE ELEVATOR BOTH EXIST AND NEITHER REPLACES THE OTHER (settled during Era 2
-planning; see ROADMAP.md "CANON RESOLUTIONS"). Cores remain the THREE progression hinges —
-there is no fourth Core. The elevator is the PHYSICAL TRAVERSAL MECHANISM. A Core is WHY the
+planning; see ROADMAP.md "CANON RESOLUTIONS"). The broader game RETAINS the existing THREE-Core
+progression and Rift/Core progression remains part of it — but **there is no fourth Core, and
+the D1 Landmark 7 finale reveals no Rift and requires no Core.** The elevator is the PHYSICAL TRAVERSAL MECHANISM. A Core is WHY the
 next layer becomes reachable; the elevator is HOW the player physically gets there. Do not
 gate the elevator on a new Core, and DO NOT CHANGE THE SAVE SCHEMA for it — the elevator is
 world state, not progression state.

@@ -214,10 +214,17 @@ the vocabulary, not the sentences.
 **Primarily touches.** `src/dimensions/farmlands/`, `src/rendering/environment-system.js`,
 `game.html`'s `PlayerController` (flashlight input), `src/horror/`.
 
-> **CREATIVE DECISION NEEDED — flashlight resource model.** STORY §4.3 says it "does not
-> make the player powerful" and gives "a small amount of certainty". Whether it has
-> batteries, heat, a failure state, or is simply always available is undecided, and it
-> changes D1's entire tension curve and item economy.
+**RESOLVED — flashlight resource model.** Locked in `D1_DESIGN.md` section 0.3: a permanent
+handheld flashlight, finite battery charge that drains while on, batteries and charge pickups
+found in the world, **no** automatic regeneration and **no** crafting. Relevant throughout D1.
+Landmark 1 yields an upgrade to the flashlight itself (beam quality, range, efficiency), not a
+replacement system. Battery management is meant to create tension without becoming inventory
+micromanagement.
+
+Technically this means: a light the player toggles, one charge value that drains on a timer
+while lit, a pickup item type, and an upgrade that changes the light's parameters rather than
+swapping the item. It touches `PlayerController` (input), the lighting work in E2.5, and the
+item catalogue — where an item id is a save-file value and is **appended, never inserted**.
 
 ## E2.7 — D1 Journey: the seven landmarks
 
@@ -253,11 +260,15 @@ Tower brass/survey/utility disk (L1), a ceramic/electrical component (L3), a mot
 knowledge rather than objects. The separate **Old Utility Master Key** (L1 → L2) is not a
 barn-puzzle object. Build against `D1_DESIGN.md`, not against this paragraph.
 
-> **CREATIVE DECISION NEEDED — "something in the world tells the player"** that the barn is the
-> final destination and to get inside and hide. `D1_DESIGN.md` section 12 lists the converging
-> clues (the objective change, the match to the Church map, the single exterior light, the
-> preparation evidence) but does not name the signal that first points the player there. Still
-> open.
+**RESOLVED — the barn destination signal.** Locked in `D1_DESIGN.md` section 12. It is
+environmental and there is **no marker of any kind**: the barn matches the location on the
+Church map the player saw at Landmark 4, and one exterior work light is still on — a mundane
+reason to notice it. Confirmation arrives only *after* the player commits: the entrance slams
+shut, heavy movement is heard outside, and the objective changes to a survival/hiding state.
+
+Technically: a site row with the work light as authored geometry, one objective-chain state
+for the hiding instruction, and a scripted door event. **No waypoint, marker or beam** —
+`CLAUDE.md` sections 65 and 66 forbid it and a test should assert it.
 
 ## E2.7e — Elevator & Layer Traversal System (NEW)
 
@@ -527,12 +538,9 @@ Nothing below is invented here. Each is a place the canon stops.
 
 | # | Decision | Blocks |
 | --- | --- | --- |
-| 1 | **Where the three Rift Cores sit in the Era 2 chain.** The Overworld is discarded, so the Behemoth's Core has no home — and `D1_DESIGN.md` places no Core at any of the seven landmarks. D1's own final transition is the elevator, not a Core-opened Rift. | E2.7e, the whole progression spine |
-| 4 | **What signals the player that the barn is the destination.** `D1_DESIGN.md` section 12 lists the converging clues but not the first signal. | E2.7 |
-| 5 | **Flashlight resource model** — batteries, heat, failure, or always-on. | E2.6 |
+| 1 | **Where the three Rift Cores sit in the Era 2 chain.** The broader game keeps the existing **three**-Core progression and there is **no fourth**. The Overworld is discarded, so the Behemoth's Core has no home. This is **not** a D1-finale blocker: D1 ends through the barn → underground chamber → elevator, which reveals no Rift and is gated on no Core. | the wider progression spine |
 | 6 | **What advances Suburbia's deterioration stage.** | E2.8d |
 | 7 | **The Below's spatial model** — authored volumes vs. generated. | E2.10 |
-| 8 | **Art direction NUMBERS** — texel density, polygon budget, texture resolution, LOD policy, memory budget. `VISUAL_RULE_BIBLE.md` has since locked the *creative* half (style, palette, material language, weathering, scale principles) and states no numeric budgets; only the numbers remain open. | first asset |
 | 9 | **Where Haven sits in the new chain** — Era 1 had it after Suburbia; with The Below inserted, its position is unstated. | E2.13 |
 | 10 | **The Behemoth's and the Stalker's roles in Era 2.** Both are canonical entities (STORY §7, §8) with no place in the seven-landmark D1. | E2.6 |
 
@@ -542,6 +550,10 @@ Nothing below is invented here. Each is a place the canon stops.
 | --- | --- | --- |
 | 2 | Landmarks 2–5 content — Schoolhouse, Substation, Church, Motel | **`D1_DESIGN.md`** specifies all seven landmarks in full: architecture, atmosphere, story function, horror function and puzzle contribution |
 | 3 | The barn puzzle's objects and solve action | **`D1_DESIGN.md` section 15** — four physical objects (L1 disk, L3 component, L5 motel key, L6 cage component) into four sockets, plus knowledge from L2 and L4. The recurring symbol's *visual design* remains an art task, not a canon gap |
+| 4 | What signals the player that the barn is the destination | **`D1_DESIGN.md` section 12** — Church-map match, exterior work light, then door slam / heavy movement / objective change once inside. No marker of any kind |
+| 5 | Flashlight resource model | **`D1_DESIGN.md` section 0.3** — permanent, finite battery, world pickups, no regeneration, no crafting, L1 upgrades the light itself |
+| 8 | Art direction numbers | **`VISUAL_RULE_BIBLE.md` section 9.1** — per-class triangle and texture targets, texel density ~64 px/m standard and ~128 px/m hero. Guidelines, not hard limits |
+| — | D1 world extent | **`D1_DESIGN.md` section 0.4** — **4,096 m × 4,096 m, locked**, no longer provisional |
 
 ---
 

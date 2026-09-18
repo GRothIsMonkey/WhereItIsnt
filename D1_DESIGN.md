@@ -185,6 +185,59 @@ imply; it may not confirm.
 The Church's two final lines — "They're coming." and "We tried." — are **spoken audio lines**.
 They are not a requirement for readable text and must not be converted into one.
 
+---
+
+# 0.3. THE D1 FLASHLIGHT — LOCKED
+
+The flashlight is the player's one reliable tool in D1, and its resource model is now locked.
+
+## The model
+
+* **Permanent handheld flashlight.** The player carries it for the whole of D1. It is never
+  taken away and never breaks permanently.
+* **Finite battery charge**, which **drains while the flashlight is on**.
+* **Batteries / charge pickups are found in the world.** That is the only way charge returns.
+* **No automatic regeneration.** Charge does not refill by waiting, resting or progressing.
+* **No flashlight crafting.** The flashlight is not built, and neither are its batteries.
+* **It remains relevant throughout D1.** Later landmarks do not obsolete it.
+
+## The Landmark 1 upgrade
+
+Landmark 1's Water Tower cache contains an **upgraded flashlight**.
+
+The upgrade improves **the flashlight itself** — beam quality, range, efficiency — and does
+**not** replace it with a separate system, a second tool or a different item class. The player
+ends Landmark 1 holding a better version of the thing they already had.
+
+## The tension it is for
+
+Battery management exists to make darkness a **decision**: whether to light this room, how far
+to look, when to walk in the dark and listen instead. `STORY.md` section 4.3 is the standard —
+the flashlight "does not make the player powerful", it gives "a small amount of certainty",
+and the player must repeatedly confront that seeing one thing means not seeing everything else.
+
+It must **not** become inventory micromanagement. The pressure is the choice of when to switch
+it on, not the bookkeeping of a consumable.
+
+---
+
+# 0.4. D1 WORLD EXTENT — LOCKED
+
+## 4,096 m × 4,096 m
+
+Centred on the origin of D1's own local space, running −2,048 m to +2,048 m on both axes.
+
+**This is no longer provisional.** The figure is approved and the seven landmarks, the road
+network and every authored coordinate are to be composed inside it.
+
+The implementation already carries this value (`D1_WORLD_SIZE` in
+`src/world/terrain/terrain-config.js`), which divides into a 16 × 16 grid of 256 m regions —
+256 regions in total. Nothing needs to change in the terrain layer for this lock; what changed
+is that the number is now a decision rather than a placeholder.
+
+If a technical constraint ever makes this extent unworkable, that is a finding to **report
+separately**, not a licence to change it quietly.
+
 # 1. D1 MAJOR LANDMARK ORDER
 
 ## Landmark 1
@@ -381,7 +434,8 @@ Inside/around the tower:
 
 At the top the player finds:
 
-* improved flashlight or flashlight upgrade
+* the **upgraded flashlight** — an improvement to the flashlight the player already carries
+  (beam quality, range, efficiency), never a replacement system. See section 0.3.
 * partial surrounding map
 * medical supplies
 * **the Old Utility Master Key**
@@ -1788,16 +1842,33 @@ This creates:
 
 ---
 
-## Why This Is the Final Landmark
+## Why This Is the Final Landmark — THE DESTINATION SIGNAL, LOCKED
 
-The player recognizes it through several converging clues.
+The player recognizes Landmark 7 through converging environmental clues. There is **no quest
+marker, no glowing waypoint and no supernatural "final landmark" indicator**, and none may be
+added — `CLAUDE.md` sections 65 and 66 forbid exactly that, and a marker over the barn would
+undo the discovery the whole of D1 has been building.
 
-Locked:
+The locked signal, in order:
 
-* objective changes to a survival/hiding instruction
-* barn matches the structure from the strange Church map
-* a single exterior light remains on
-* evidence suggests someone deliberately prepared the barn as a hiding place
+1. **The barn is an ordinary rural barn.** Nothing about its appearance announces it. That is
+   the point: it must read as believable farmland infrastructure right up until the floor
+   opens.
+2. **It matches the location represented on the Church map.** The player has already seen that
+   map at Landmark 4. Recognition does the work a marker would otherwise do.
+3. **An exterior work light is still on.** One light, still burning in an abandoned region — a
+   subtle, entirely mundane reason to notice the building and walk toward it. It is
+   infrastructure, not a beacon.
+4. **After entering, the entrance slams shut behind the player.**
+5. **Heavy movement is heard outside.**
+6. **The objective changes to a survival/hiding state.**
+
+Beats 4–6 are what confirm the barn was the destination — *after* the player has committed to
+it, never before. The player is not told where to go; they are told what has happened once they
+are inside.
+
+**Evidence that someone deliberately prepared the barn as a hiding place** (section 13) is
+found after this, inside, and deepens the recognition rather than delivering it.
 
 ---
 
@@ -2365,7 +2436,7 @@ The asset library will eventually need dedicated support for:
 * tower key
 * Old Utility Master Key (with its stamped marking)
 * Water Tower brass/survey/utility disk
-* flashlight upgrade
+* flashlight, flashlight upgrade, and battery / charge pickups
 * medical supplies
 
 ## Landmark 2
@@ -2572,6 +2643,8 @@ D1 should eventually be validated as one connected player experience, not just a
 
 * the chase is performed by the Skin Stitcher
 * barn arrival
+* the destination signal: Church-map match, exterior work light, door slam, heavy movement
+  outside, objective changes to survival/hiding — and NO marker or waypoint anywhere
 * hiding-place logic
 * all four physical objects already held on arrival — no backtracking
 * puzzle logic

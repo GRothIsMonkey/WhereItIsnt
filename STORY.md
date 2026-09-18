@@ -365,6 +365,12 @@ The player must repeatedly confront the fact that:
 
 Seeing one thing means not seeing everything else.
 
+The resource model is locked: a permanent handheld flashlight with a finite battery charge that
+drains while it is on, recharged only by batteries found in the world. No automatic
+regeneration and no crafting. Landmark 1 yields an upgrade to the flashlight itself — better
+beam, range and efficiency — not a replacement for it. Battery management exists to make
+darkness a decision, never to become inventory micromanagement. See `D1_DESIGN.md` section 0.3.
+
 4.4 Why the Farmlands are abandoned
 There was no documented evacuation.
 
@@ -2237,7 +2243,11 @@ Landmark 7 is deliberately mundane on the surface: an ordinary rural barn. It sh
 like a giant underground facility from outside.
 
 Something in the world tells the player this is the final Farmlands destination and that they
-need to get inside and hide.
+need to get inside and hide — and it is environmental, never a marker. The barn matches the
+location on the Church map the player has already seen, and one exterior work light is still
+burning. Once they are inside, the entrance slams shut, heavy movement is heard outside, and
+the objective becomes survival and hiding. There is no quest marker, no waypoint and no
+supernatural indicator. `D1_DESIGN.md` section 12 owns the detail.
 
 The barn contains a progression puzzle using **four physical objects and knowledge gathered
 from earlier Farmlands landmarks**. The required pieces must already have been obtained before
@@ -2252,6 +2262,12 @@ barn, carrying distant industrial sounds, and leading to an elevator system far 
 → concrete stairwell → massive underground chamber → giant elevator → descent → D2. Rift Cores
 remain the three progression hinges of the wider game and there is no fourth; the elevator is
 the physical traversal mechanism, not a progression token.
+
+## D1's extent
+
+D1 is a finite, composed place: **4,096 m × 4,096 m**, centred on the origin of its own local
+space. This is locked, not provisional. The seven landmarks and the route between them are
+composed inside it.
 
 ## Readable environmental text
 

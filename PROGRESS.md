@@ -23,7 +23,17 @@ D1 creatures               The Thing Below (skinwalker-like, crawling, fast, let
 D1 readable text           PERMITTED. The old blanket ban on readable human sentences is
                            obsolete; exposition dumps remain forbidden. See CLAUDE.md 57.
 D1 final transition        THE ELEVATOR, NOT A RIFT. barn -> mechanism -> stairwell ->
-                           chamber -> elevator -> descent -> D2. No fourth Rift Core.
+                           chamber -> elevator -> descent -> D2. The wider game keeps its
+                           THREE Cores; there is no fourth and D1's finale reveals no Rift.
+D1 world extent            4096 m x 4096 m. LOCKED, no longer provisional.
+D1 flashlight              LOCKED. Permanent, finite battery draining while lit, pickups
+                           found in the world, no regeneration, no crafting. L1 upgrades
+                           the light itself, never replaces it.
+D1 barn signal             ENVIRONMENTAL, NO MARKER. Church-map match + one exterior work
+                           light; then door slam, heavy movement outside, objective turns
+                           to survival/hiding once inside.
+Visual budgets             VISUAL_RULE_BIBLE.md section 9.1 — per-class triangle/texture
+                           targets, texel density ~64 px/m (hero ~128). Guidelines.
 Architecture               ARCHITECTURE.md (the map, and section 4.8 is this phase)
                            + ARCHITECTURE-INVENTORY.md (the 1.5.1 numbers)
                            src/<layer>/LAYER.md is that layer's work order
@@ -6366,7 +6376,21 @@ and where any of them disagrees with `D1_DESIGN.md` about D1, `D1_DESIGN.md` win
   Stitcher cage metal component (L6). Landmarks 2 and 4 contribute knowledge, not objects.
 * **The Rift is replaced by the elevator in the D1 final transition** — barn → hidden mechanism
   → concrete stairwell → underground chamber → giant elevator → descent → D2. Rift Cores remain
-  the three progression hinges of the wider game and there is no fourth.
+  the three progression hinges of the wider game and there is no fourth. The D1 finale reveals
+  no Rift and is gated on no Core; the elevator is the physical traversal mechanism.
+* **The D1 world extent is locked at 4,096 m × 4,096 m** and is no longer provisional. The
+  shipped `D1_WORLD_SIZE` already carries this value.
+* **The flashlight model is locked** — permanent handheld light, finite battery that drains
+  while on, batteries and charge pickups found in the world, no automatic regeneration, no
+  crafting, relevant throughout D1. Landmark 1 yields an upgrade to the flashlight itself
+  (beam quality, range, efficiency), not a replacement system. Tension, not micromanagement.
+* **The Landmark 7 destination signal is locked and environmental** — the barn matches the
+  Church map and one exterior work light is still on; after entering, the entrance slams shut,
+  heavy movement is heard outside, and the objective turns to survival/hiding. **No quest
+  marker, no waypoint, no supernatural indicator.**
+* **Visual numeric budgets exist** — `VISUAL_RULE_BIBLE.md` section 9.1 gives per-class
+  triangle and texture targets and a texel-density guideline (~64 px/m standard, ~128 px/m
+  hero). They are guidelines, not hard limits.
 
 ### Status
 
@@ -6378,7 +6402,11 @@ and where any of them disagrees with `D1_DESIGN.md` about D1, `D1_DESIGN.md` win
 * Landmark 6 → 7 chase ownership: LOCKED (the Skin Stitcher)
 * Readable environmental text: PERMITTED
 * Progression relationships: LOCKED
-* D1 finale and elevator transition: LOCKED
+* D1 finale and elevator transition: LOCKED (no Rift, no fourth Core)
+* D1 world extent (4,096 m × 4,096 m): LOCKED
+* D1 flashlight resource model: LOCKED
+* Landmark 7 destination signal: LOCKED
+* Visual numeric budgets: DOCUMENTED (`VISUAL_RULE_BIBLE.md` section 9.1)
 * **D1 implementation: NOT STARTED.** No landmark exists in the build. The authored tables in
   `src/world/terrain/` (`D1_AUTHORED_SITES`, `D1_ROAD_NETWORK`, `D1_SCATTER_SPECIES`) all ship
   empty and `tests/terrain.js` enforces that they stay empty.
