@@ -3145,6 +3145,50 @@ And after the ending:
 “What the hell was that?”
 
 The game should answer enough to make the experience coherent.
+## D1 — Shattered Farmlands Implementation
+
+The complete creative design for D1 is locked in `D1_DESIGN.md`.
+
+D1 implementation must follow that document.
+
+Implementation should proceed through the finalized seven-landmark chain:
+
+1. Farm Compound + Water Tower
+2. Schoolhouse
+3. Electrical Substation
+4. Rural Church
+5. Abandoned Motel
+6. Abandoned Grain Elevator
+7. Ordinary Barn / Underground Elevator System
+
+Implementation work should be staged rather than building all seven landmarks simultaneously.
+
+Recommended implementation order:
+
+1. D1 world/layout foundation
+2. landmark placement and traversal
+3. reusable rural/environment assets
+4. Landmark 1
+5. Landmark 2
+6. Landmark 3
+7. Landmark 4
+8. Landmark 5
+9. Landmark 6
+10. Landmark 7
+11. D1-wide progression integration
+12. D1-wide audio/horror integration
+13. save/load and persistence validation
+14. full first-person D1 playtest
+15. performance and regression pass
+
+Do not redesign D1 during implementation.
+
+If an implementation constraint requires a change, preserve the intended player experience and update the detailed design document explicitly rather than silently changing canon.
+
+D1 implementation must not begin by inventing replacement landmark concepts.
+
+The creative source of truth is `D1_DESIGN.md`, with `STORY.md` remaining the broader story canon.
+
 
 It should never answer enough to make the experience harmless.
 
