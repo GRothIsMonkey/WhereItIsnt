@@ -6,13 +6,24 @@ This document translates the locked creative canon into technically coherent pha
 invents no creative content. Where an implementation detail has not been creatively
 decided, it says **CREATIVE DECISION NEEDED** and stops.
 
-**Authority order:** `STORY.md` → `ROADMAP.md` → this document. This file is a *how*, never
-a *what*. If it ever disagrees with the first two, they win and this file is wrong.
+**Authority order:** `D1_DESIGN.md` (for D1) → `STORY.md` → `ROADMAP.md` → this document. This
+file is a *how*, never a *what*. If it ever disagrees with those, they win and this file is
+wrong.
+
+**D1's creative design is now locked in `D1_DESIGN.md`.** Statements in this plan about D1
+creative decisions being open were true when it was written and have since been superseded;
+they are corrected below rather than left standing.
 
 **Canon resolutions settled before planning** (recorded in `ROADMAP.md` → CANON RESOLUTIONS):
 the seven-landmark D1 chain is authoritative and the old six-beat chain is historical; the
-cage creature IS the Suburbia entity and "belongs here" is behavioural, never an origin;
+**Skin Stitcher** IS the Suburbia entity and "belongs here" is behavioural, never an origin;
 Rift Cores and the elevator both exist and neither replaces the other.
+
+**Settled since**, in `D1_DESIGN.md`: The Thing Below and the Skin Stitcher are two distinct
+creatures; the Skin Stitcher owns the Landmark 6 → 7 chase and does not pursue the player when
+it escapes Landmark 6; readable environmental text is permitted; the Landmark 1 progression
+item is the Old Utility Master Key; the barn puzzle takes four physical objects plus knowledge;
+and **the D1 final transition is the elevator, not a Rift.**
 
 ---
 
@@ -60,7 +71,7 @@ three phases the locked creative additions require but the roadmap predates.
 | **E2.7e** | **Elevator & Layer Traversal System** | — | **NEW** |
 | **E2.8** | D2 Static Suburbia Rebirth | §23 | |
 | **E2.8d** | **Suburbia Deterioration & Collapse** | — | **NEW** |
-| **E2.9** | D2 Entity — the escaped cage creature | §24 | content replaced |
+| **E2.9** | D2 Entity — the escaped Skin Stitcher | §24 | content replaced |
 | **E2.10** | The Below | §25 | |
 | **E2.11** | The Collector | §26 | |
 | **E2.12** | Horror Expansion | §27 | |
@@ -216,7 +227,10 @@ increasingly disturbing rural region.
 **Changes.** Each landmark as an authored site: Farm Compound + Water Tower, Schoolhouse,
 Electrical Substation, Rural Church, Abandoned Motel, Abandoned Grain Elevator, Ordinary
 Barn. Plus the Grain Elevator cage sequence, the Scientist, the barn puzzle, and the D1
-chase.
+chase (performed by **the Skin Stitcher**).
+
+**The creative design for all seven landmarks is locked in `D1_DESIGN.md`.** Read it first;
+this section is the technical plan for building what it specifies.
 
 **Primarily touches.** `src/dimensions/farmlands/generation.js` (placement — survives Era
 2), a replacement for `farmlands/stampers.js` (construction — does not survive),
@@ -224,23 +238,26 @@ chase.
 
 **Depends on.** E2.2–E2.6, E2.7e (the elevator the barn opens onto).
 
-**The no-backtracking gate is the load-bearing technical requirement.** STORY §2252 and
-§2370 both require that the objective system withhold departure until the required pieces
-are held. Implementation: extend the **existing** `progression.noticed` string-id Set
+**The no-backtracking gate is the load-bearing technical requirement.** `D1_DESIGN.md` section
+28 and `STORY.md`'s Landmark 7 canon both require that the objective system withhold departure
+until the required pieces are held. Implementation: extend the **existing** `progression.noticed` string-id Set
 (Phase 31, already in the save) with landmark-visit and piece-possession ids, and add a
 per-landmark `requires` clause to the objective chain. **This needs no schema change** —
 `noticed` is already a saved set of opaque ids.
 
-> **CREATIVE DECISION NEEDED — the puzzle's actual content.** STORY §2252 names the *kinds*
-> (objects, symbols, knowledge, relationships between landmarks) and the *reveal* (diagram,
-> map fragment, combined symbol, elevator information, doesn't-fit evidence). It does not
-> say which object comes from which landmark, what the symbols are, or what the solve
-> action is. Landmarks 2–5 (Schoolhouse, Substation, Church, Motel) have **no authored
-> content at all** in any document beyond their names — each needs its architecture,
-> atmosphere, story function, horror function, and its puzzle contribution decided.
+**RESOLVED — the puzzle's content and Landmarks 2–5.** This section previously recorded both
+as open creative decisions. `D1_DESIGN.md` has since specified all seven landmarks in full, and
+its section 15 fixes the barn puzzle at **four physical objects plus knowledge**: the Water
+Tower brass/survey/utility disk (L1), a ceramic/electrical component (L3), a motel key/key-fob
+(L5) and a Skin Stitcher cage metal component (L6), with Landmarks 2 and 4 contributing
+knowledge rather than objects. The separate **Old Utility Master Key** (L1 → L2) is not a
+barn-puzzle object. Build against `D1_DESIGN.md`, not against this paragraph.
 
-> **CREATIVE DECISION NEEDED — "something in the world tells the player" (STORY §2252)** that
-> the barn is the final destination and to get inside and hide. The signal is unspecified.
+> **CREATIVE DECISION NEEDED — "something in the world tells the player"** that the barn is the
+> final destination and to get inside and hide. `D1_DESIGN.md` section 12 lists the converging
+> clues (the objective change, the match to the Church map, the single exterior light, the
+> preparation evidence) but does not name the signal that first points the player there. Still
+> open.
 
 ## E2.7e — Elevator & Layer Traversal System (NEW)
 
@@ -290,10 +307,10 @@ variants), NEW `src/dimensions/suburbia/deterioration.js`, `src/progression/`.
 > landmark count, elapsed time, entity encounters, or distance to the centre? §2501 gives the
 > order and the imagery, not the trigger.
 
-## E2.9 — The D2 entity (the escaped cage creature)
+## E2.9 — The D2 entity (the escaped Skin Stitcher)
 
-**Purpose.** The same creature from the D1 cage, hunting. Observation → positioning →
-interception → pursuit → cornering.
+**Purpose.** The same creature from the D1 cage — **the Skin Stitcher** — hunting. Observation →
+positioning → interception → pursuit → cornering.
 
 **Changes.** An AI that gets *ahead* of the player rather than following — the horror in
 STORY §5.4 is specifically interception; the large-house hunt; the one authored hallway
@@ -363,10 +380,17 @@ the barn stairwell descends into it, and before E2.8d, because the collapse expo
 
 # 4. WHAT MUST NOT BE IMPLEMENTED YET
 
-* **No creative content for Landmarks 2–5.** They have names and nothing else. Building them
-  before they are designed is inventing canon.
-* **No second D2 entity**, no creature origin story, no Collector backstory.
+* **No invented D1 content.** All seven landmarks are now specified in `D1_DESIGN.md`. Build
+  what it says; do not invent replacements, and do not treat an implementation constraint as
+  permission to redesign a landmark.
+* **No second D2 entity**, no creature origin story, no Collector backstory. The D2 entity is
+  the Skin Stitcher and nothing else.
+* **Do not merge The Thing Below with the Skin Stitcher**, or with any other creature, and do
+  not invent a relationship between them. They are separate entities.
+* **Do not give the Landmark 6 → 7 chase to The Thing Below.** It belongs to the Skin Stitcher.
 * **No fourth Rift Core**, and no save-schema change for the elevator.
+* **No D1 Rift transition.** The D1 finale is the barn → stairwell → chamber → elevator. Do not
+  reintroduce the obsolete Rift transition and do not invent a replacement for it.
 * **No red-light explanation**, ever. It must never become an objective or a warning.
 * **No Below content before its spatial model is decided.**
 * **No Era 3 world-memory systems** (§34) — E2.16 is a first version only.
@@ -499,18 +523,25 @@ terrain, and the player walks the same routes.
 
 Nothing below is invented here. Each is a place the canon stops.
 
+### Still open
+
 | # | Decision | Blocks |
 | --- | --- | --- |
-| 1 | **Where the three Rift Cores sit in the Era 2 chain.** The Overworld is discarded, so the Behemoth's Core has no home. | E2.7e, the whole progression spine |
-| 2 | **Landmarks 2–5 content** — Schoolhouse, Substation, Church, Motel: architecture, atmosphere, story function, horror function, puzzle contribution. | E2.7 |
-| 3 | **The barn puzzle's actual objects, symbols and solve action.** | E2.7 |
-| 4 | **What signals the player that the barn is the destination** (STORY §2252). | E2.7 |
+| 1 | **Where the three Rift Cores sit in the Era 2 chain.** The Overworld is discarded, so the Behemoth's Core has no home — and `D1_DESIGN.md` places no Core at any of the seven landmarks. D1's own final transition is the elevator, not a Core-opened Rift. | E2.7e, the whole progression spine |
+| 4 | **What signals the player that the barn is the destination.** `D1_DESIGN.md` section 12 lists the converging clues but not the first signal. | E2.7 |
 | 5 | **Flashlight resource model** — batteries, heat, failure, or always-on. | E2.6 |
 | 6 | **What advances Suburbia's deterioration stage.** | E2.8d |
 | 7 | **The Below's spatial model** — authored volumes vs. generated. | E2.10 |
-| 8 | **Art direction target** — texel density, polygon budget, palette, shared vs. per-dimension material language. | first asset |
+| 8 | **Art direction NUMBERS** — texel density, polygon budget, texture resolution, LOD policy, memory budget. `VISUAL_RULE_BIBLE.md` has since locked the *creative* half (style, palette, material language, weathering, scale principles) and states no numeric budgets; only the numbers remain open. | first asset |
 | 9 | **Where Haven sits in the new chain** — Era 1 had it after Suburbia; with The Below inserted, its position is unstated. | E2.13 |
 | 10 | **The Behemoth's and the Stalker's roles in Era 2.** Both are canonical entities (STORY §7, §8) with no place in the seven-landmark D1. | E2.6 |
+
+### Resolved since this plan was written
+
+| # | Was | Resolved by |
+| --- | --- | --- |
+| 2 | Landmarks 2–5 content — Schoolhouse, Substation, Church, Motel | **`D1_DESIGN.md`** specifies all seven landmarks in full: architecture, atmosphere, story function, horror function and puzzle contribution |
+| 3 | The barn puzzle's objects and solve action | **`D1_DESIGN.md` section 15** — four physical objects (L1 disk, L3 component, L5 motel key, L6 cage component) into four sockets, plus knowledge from L2 and L4. The recurring symbol's *visual design* remains an art task, not a canon gap |
 
 ---
 

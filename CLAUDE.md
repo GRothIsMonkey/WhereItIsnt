@@ -1936,14 +1936,29 @@ WHAT THE FRAMEWORK IS:
 
 RULES THAT NOW HOLD:
 
-- IT NEVER SPEAKS. No notes, no journals, no handwriting, no readable human sentence
-  anywhere (STORY.md section 13). No toast, no objective line, no marker, no waypoint, no
-  discovery sound. A player who does not notice does not notice. `tests/environment.js`
-  fails if a string literal in the phase gets long enough to be a sentence.
-- IT NEVER RESOLVES. STORY.md section 22's list is the boundary. Imply, never confirm.
-- NOTHING CHANGES WHILE IT IS BEING WATCHED. Section 16 rule 1, which the water tower's
-  lamp, the diorama mailbox and the Phase 15 revision layer already obey. A callback
-  appears in a chunk the player has not reached; it is discovered, never witnessed.
+- IT DOES NOT ANNOUNCE ITSELF. No toast, no objective line, no marker, no waypoint, no
+  discovery sound. A player who does not notice does not notice.
+- **READABLE TEXT IS ALLOWED, AND THE OLD BLANKET BAN IS RETIRED.** This rule used to read
+  "IT NEVER SPEAKS — no notes, no journals, no handwriting, no readable human sentence
+  anywhere". That is **obsolete**: the locked D1 design (`D1_DESIGN.md` section 0.2) permits
+  natural environmental writing — handwritten notes, investigation notes, logs, records,
+  names, maps, school materials, warning signs, technical labels, annotations, short
+  messages and diagrams.
+  What is forbidden is **exposition**, not text: no giant lore dumps, no unnatural
+  exposition, no excessive text, and never text that explains a mystery the environment
+  should deliver through discovery. Readable text may imply; it may not confirm.
+  **The Phase 31 code itself was written under the old rule and still contains no long
+  string literal; `tests/environment.js` still enforces that on that phase's source, and
+  `tests/onboarding.js` still fails on any string literal of 140+ characters anywhere in the
+  build.** Those guards were written for the old canon and have NOT been changed — aligning
+  them with this rule is implementation work for the phase that first ships readable D1 text,
+  and it must not be done by quietly weakening a test that is also guarding the tutorial's
+  removal (section 54).
+- IT NEVER RESOLVES. STORY.md section 26's list — THINGS THE GAME MUST NEVER EXPLAIN — is
+  the boundary. Imply, never confirm.
+- NOTHING CHANGES WHILE IT IS BEING WATCHED. STORY.md section 24 (OBSERVATION RULES), which
+  the water tower's lamp, the diorama mailbox and the Phase 15 revision layer already obey. A
+  callback appears in a chunk the player has not reached; it is discovered, never witnessed.
 - REPETITION IS LITERAL. The four farmstead yard arrangements are stamped VERBATIM — not
   varied, not mirrored, not re-seeded per farm — in the same corner of every yard. A
   variation is a different object and defeats the entire point.
@@ -2257,8 +2272,11 @@ RULES THAT NOW HOLD:
   footstep at 0.5. It stops completely beyond 34 metres and inside the Haven and the
   finale. `playStalkerScreech` remains Phase 5's ONE loud Stalker event; the recorded path
   cannot reach it.
-- NO LEGIBLE HUMAN SPEECH IS REACHABLE (STORY.md section 13). The two assets in the
-  library that are sentences are catalogued and deliberately NOT wired.
+- THE TWO SENTENCE ASSETS IN THE LIBRARY REMAIN UNWIRED. They are catalogued in
+  `AUDIO_INDEX.md` with the reason. That is a **curation decision about those two
+  recordings**, not a blanket ban on legible speech: the Rural Church's two authored lines
+  ("They're coming." / "We tried.") are spoken audio and are canon (`D1_DESIGN.md` section
+  0.2). Wiring a new spoken line is a creative decision, and these two recordings are not it.
 - ONE SETTINGS SYSTEM. `ambienceVolume` is the seventh key in the EXISTING Phase 22
   schema and `ambienceBus` the fourth and last bus, at unity, so the mix at default
   settings is unchanged. The fourth argument to `applyVolumes` DEFAULTS, so every
@@ -4055,6 +4073,10 @@ Do not preserve cube-based world construction merely because Era 1 uses it.
 ### D1
 Final D1 is Shattered Farmlands.
 
+**`D1_DESIGN.md` IS THE SINGLE DETAILED D1 SOURCE OF TRUTH.** Read it before any D1 work. This
+file carries engineering rules and the high-level roster only; it does not specify D1
+sequences, and where it and `D1_DESIGN.md` disagree about D1, `D1_DESIGN.md` wins.
+
 Current authored landmark sequence:
 1. Farm Compound + Water Tower
 2. Schoolhouse
@@ -4064,9 +4086,19 @@ Current authored landmark sequence:
 6. Abandoned Grain Elevator
 7. Ordinary Barn / underground elevator facility
 
-Landmark 6 contains the caged creature that becomes the primary Suburbia entity.
+Landmark 6 contains **the Skin Stitcher** — the official name of the creature in the cage — which
+becomes the primary Suburbia entity. It escapes into the woods without pursuing the player, and
+it is the creature that performs the Landmark 6 → 7 chase later, on the route to Landmark 7.
 
-Landmark 7 is visually ordinary on the surface and hides the impossible elevator infrastructure beneath it.
+**THE THING BELOW IS A SEPARATE CREATURE.** Skinwalker-like, human-like, crawling, extremely
+fast; it can stalk, frighten, chase and kill the player, and it appears in multiple D1
+situations. It is separate from the Skin Stitcher, the Stalker, the Behemoth, the Collector and
+the final creature, and **it does NOT perform the Landmark 6 → 7 chase.** Do not merge the two
+creatures or invent a relationship between them.
+
+Landmark 7 is visually ordinary on the surface and hides the impossible elevator infrastructure
+beneath it. **The D1 final transition is the elevator, not a Rift** — the barn does not reveal a
+Rift and no D1 Rift replaces it.
 
 ### D2
 Final D2 is Static Suburbia.
@@ -4126,7 +4158,7 @@ next layer becomes reachable; the elevator is HOW the player physically gets the
 gate the elevator on a new Core, and DO NOT CHANGE THE SAVE SCHEMA for it — the elevator is
 world state, not progression state.
 
-THE CAGE CREATURE'S "BELONGING" IS BEHAVIOURAL. Section 5.7 of STORY.md asks the Suburbia
+THE SKIN STITCHER'S "BELONGING" IS BEHAVIOURAL. Section 5.7 of STORY.md asks the Suburbia
 entity to feel like it belongs there; that means it treats the neighbourhood as its
 territory once it arrives. It does NOT mean a Suburbia origin or a mythology. The player
 witnesses an ESCAPE, never an ORIGIN. Do not write one.

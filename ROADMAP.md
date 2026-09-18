@@ -1956,8 +1956,13 @@ THE CURRENT FINAL-GAME CHAIN IS THE SEVEN AUTHORED LANDMARKS:
 
 7. Ordinary Barn / underground elevator facility
 
-Landmark 6 holds the caged creature; Landmark 7 holds the barn puzzle and the
-underground elevator. See the ERA 2 CREATIVE EXPANSION section below, and STORY.md.
+Landmark 6 holds the Skin Stitcher; Landmark 7 holds the barn puzzle and the underground
+elevator.
+
+**`D1_DESIGN.md` IS THE DETAILED D1 SOURCE OF TRUTH.** It owns every landmark's architecture,
+interiors, sequences, horror beats, progression relationships and the finale. This roadmap
+carries sequencing and implementation direction only and must not re-specify a D1 sequence.
+Where this file and `D1_DESIGN.md` disagree about D1, `D1_DESIGN.md` wins.
 
 Landmarks must remain materially distinct in architecture, atmosphere, story function
 and horror function.
@@ -2379,7 +2384,9 @@ Rebuild:
 
 opening
 
-major Rift transitions where needed
+the D1 barn → stairwell → elevator descent → D2 transition (the elevator, not a Rift)
+
+remaining Rift transitions where they are still used
 
 Farmlands signature sequences
 
@@ -2680,6 +2687,13 @@ NEW KEY ADDITION:
 
 These additions translate the current creative design into implementation-facing milestones.
 
+**For D1, `D1_DESIGN.md` is the detailed source of truth.** This section carries
+implementation-facing milestones only. The staged D1 implementation order is in the
+"D1 — Shattered Farmlands Implementation" section at the end of this file. Between the three,
+there is exactly one authority for each kind of information: `D1_DESIGN.md` for what D1 *is*,
+this section for what the milestones *are*, and the tail section for what order to *build* them
+in. None of them may re-specify a D1 sequence that `D1_DESIGN.md` owns.
+
 ## Era 2 — Dimension 1: Shattered Farmlands
 
 The final Farmlands should contain a substantial authored journey with seven major landmark beats:
@@ -2706,9 +2720,12 @@ Implement as:
 - bottomless shaft
 - rattling/mechanical activity below
 
-Add the caged creature discovery sequence.
+Add the **Skin Stitcher** discovery sequence. The Skin Stitcher is the official name of the
+creature contained in the cage.
 
-The creature is a major D2-facing entity and must survive the D1 → D2 narrative transition.
+The Skin Stitcher is a major D2-facing entity and must survive the D1 → D2 narrative
+transition. When it escapes it runs into the woods and does **not** immediately pursue the
+player.
 
 ### Landmark 7 — Ordinary Barn / Underground Elevator
 
@@ -2718,7 +2735,7 @@ Surface:
 
 Interior:
 - final progression puzzle
-- physical objects and knowledge gathered across earlier landmarks
+- **four physical objects** plus knowledge gathered across earlier landmarks
 - no arbitrary backtracking
 - final hidden mechanism
 - concrete stairwell
@@ -2726,11 +2743,29 @@ Interior:
 
 This elevator becomes the canonical physical bridge between reconstruction layers.
 
+**The D1 final transition is the elevator, not a Rift.** The barn does not reveal a Rift. Rift
+Cores remain the three progression hinges and there is no fourth; the elevator is physical
+traversal. Do not reintroduce a D1 Rift transition.
+
+### D1 progression items
+
+- **Old Utility Master Key** — found in the Landmark 1 Water Tower cache. It opens the locked
+  maintenance/basement access at the Schoolhouse (Landmark 2). It carries an unusual stamped
+  marking whose significance is not initially understood. It is **not** a barn-puzzle object.
+- **The four barn-puzzle objects** — Water Tower brass/survey/utility disk (L1), ceramic/
+  electrical component (L3), motel key/key-fob (L5), Skin Stitcher cage metal component (L6).
+  Landmarks 2 and 4 contribute **knowledge**, not objects.
+
+`D1_DESIGN.md` sections 2 and 15 own the detail.
+
 ### D1 finale
 
-The Farmlands finale includes the previously approved physical chase:
+The Farmlands finale includes the previously approved physical chase, and **the Skin Stitcher
+performs it** — not The Thing Below:
 
-The cage creature is discovered behind the player while traveling toward Landmark 7, disappears, then reappears directly in front of the player for the major authored jumpscare, followed by a physical chase into the barn.
+While travelling toward Landmark 7 the Skin Stitcher appears behind the player, disappears,
+then reappears directly in front of them for the major authored jumpscare, followed by a
+physical chase into the barn. `D1_DESIGN.md` section 11 owns the beat list.
 
 ---
 
@@ -2782,7 +2817,7 @@ This deterioration is a major progression/pacing mechanic, not random cosmetic c
 
 ---
 
-## Era 2 — Phase 9: Suburbia Entity / Cage Creature
+## Era 2 — Phase 9: Suburbia Entity / the Skin Stitcher
 
 The primary Suburbia entity is the same creature first encountered in the Farmlands Grain Elevator.
 
@@ -2855,7 +2890,7 @@ Suburbia collapses
 → player reaches elevator
 → nostalgic music briefly returns
 → music distorts
-→ cage creature heard moving deeper
+→ the Skin Stitcher heard moving deeper
 → impossible descent
 → elevator stops
 → doors open extremely slowly
@@ -2896,10 +2931,11 @@ They are recorded here so a future session does not flag them again or invent a 
 The six-beat chain that used to head section 22 is obsolete historical material from the
 Era 1 Phase 20 voxel journey. Section 22 now carries the seven landmarks and says so.
 
-### 2. The cage creature IS the Suburbia entity, and "it belongs here" is BEHAVIOURAL
+### 2. The Skin Stitcher IS the Suburbia entity, and "it belongs here" is BEHAVIOURAL
 
-The creature caged in the D1 Grain Elevator is the same entity that hunts the player in
-Static Suburbia. Its cage encounter and escape are canonical.
+**The Skin Stitcher** — formerly called "the cage creature" — is the creature caged in the D1
+Grain Elevator, and it is the same entity that hunts the player in Static Suburbia. Its cage
+encounter and escape are canonical, and it also performs the Landmark 6 → 7 chase.
 
 STORY.md section 5.7 says the Suburbia entity should feel like it "belongs here". That
 means: ONCE IT REACHES SUBURBIA IT BEHAVES AS THOUGH THE NEIGHBOURHOOD IS ITS TERRITORY.
@@ -3147,9 +3183,11 @@ And after the ending:
 The game should answer enough to make the experience coherent.
 ## D1 — Shattered Farmlands Implementation
 
-The complete creative design for D1 is locked in `D1_DESIGN.md`.
+**This is the D1 implementation staging order. It is the only place in this file that defines
+one.** The creative design it implements is locked in `D1_DESIGN.md`; the milestone list is in
+the ERA 2 CREATIVE EXPANSION section above.
 
-D1 implementation must follow that document.
+D1 implementation must follow `D1_DESIGN.md`.
 
 Implementation should proceed through the finalized seven-landmark chain:
 

@@ -2180,134 +2180,109 @@ The sequence should feel like a continuous journey through one increasingly dist
 
 Landmarks must remain materially distinct from one another in architecture, atmosphere, story function, and horror function.
 
-## Farmlands — Grain Elevator
+**`D1_DESIGN.md` is the detailed creative source of truth for D1.** It owns every landmark's
+architecture, interiors, sequences, horror beats, progression relationships and the finale.
+This section carries only the high-level canon below and must not re-specify a D1 sequence.
 
-Landmark 6 is an enormous abandoned grain elevator complex.
+## Farmlands creatures
 
-It is:
-- visibly enormous from far away
-- heavily deteriorated but still standing
-- partially collapsed
-- filled with industrial machinery and large storage spaces
-- partly inaccessible because of structural collapse
-- capable of creating both large-scale and claustrophobic spaces
+Two distinct creatures appear in D1. They are separate entities and must never be merged or
+given an invented relationship.
 
-Deep inside is a huge vertical shaft with no visible bottom.
+### The Thing Below
 
-The player hears:
-- rattling from below
-- movement from deep in the shaft
-- industrial/mechanical sounds
+A distinct D1 creature: skinwalker-like, human-like, crawling, extremely fast. It can stalk,
+frighten, chase and kill the player. It is a major D1 horror presence and appears in multiple
+D1 situations.
 
-The player investigates and discovers a cage containing a completely new creature.
+It is separate from the Skin Stitcher, the Stalker, the Hollowed Behemoth, the Collector and
+the final creature.
 
-This creature is not the Stalker, not the Hollowed Behemoth, and not the final creature.
+The Thing Below does **not** perform the Landmark 6 → Landmark 7 chase.
 
-The creature is severely cramped into a cage that is clearly much too small for its body.
+### The Skin Stitcher
 
-It should be ambiguous whether:
-- it is rapidly growing and has outgrown the cage
-- or it was deliberately forced into a cage far too small for it
+**The Skin Stitcher is the official name of the creature contained in the Landmark 6 cage.**
+Earlier material called it "the cage creature"; that name is retired.
 
-The creature is massive, muscular, humanoid in broad structure, but physically unnatural and incomplete in places.
+It is massive, muscular, broadly humanoid, physically unnatural and incomplete in places, and
+it is severely cramped inside a cage clearly too small for it. It must remain ambiguous
+whether it outgrew the cage or was forced into one far too small.
 
-When the player approaches:
-- it immediately notices the player
-- it violently throws itself against the cage
-- its head turns toward the player while its body remains severely constrained
+When it breaks free it shoves the scientist/handler down the shaft and **runs away into the
+woods**. It does **not** immediately pursue the player; the player escapes Landmark 6
+unpursued. It runs with obvious purpose, as if it knows where it needs to go.
 
-The cage is visibly and intentionally bolted into the concrete.
+**Later, on the route toward Landmark 7, the Skin Stitcher performs the major D1 chase.**
 
-A machine connected to the cage can be activated.
-
-When it reacts to the machine, the creature violently breaks free.
-
-It shoves the scientist/handler down the shaft and immediately runs away.
-
-It does not pursue the player.
-
-It runs with obvious purpose, as if it knows where it needs to go.
-
-This is the player's first indication that another major entity exists beyond the Farmlands horror already established.
+The Skin Stitcher is the same entity that hunts the player in Static Suburbia. The player
+witnesses an escape, never an origin.
 
 ## Grain Elevator Scientist
 
 A visibly unstable scientist/handler may be encountered at the cage.
 
-The scientist:
-- records observations
-- checks the creature
-- notices damage to the containment
-- operates equipment connected to the cage
+The scientist records observations, checks the Skin Stitcher, notices damage to the
+containment, and operates equipment connected to the cage.
 
-The scientist should not become a lore-dump character.
+The scientist should not become a lore-dump character. The player's important takeaway is
+behavioural and visual: someone was deliberately studying and containing this creature.
 
-The player's important takeaway is behavioral and visual:
-someone was deliberately studying and containing this creature.
-
-When the creature escapes, the scientist is shoved into the shaft and later cannot be accounted for.
-
-The game should not cleanly explain what happened to the scientist afterward.
+When the Skin Stitcher escapes, the scientist is shoved into the shaft and later cannot be
+accounted for. The game should not cleanly explain what happened to the scientist afterward.
 
 ## Farmlands — Landmark 7
 
-Landmark 7 is deliberately mundane on the surface:
+Landmark 7 is deliberately mundane on the surface: an ordinary rural barn. It should not look
+like a giant underground facility from outside.
 
-an ordinary rural barn.
+Something in the world tells the player this is the final Farmlands destination and that they
+need to get inside and hide.
 
-It should not look like a giant underground facility from outside.
+The barn contains a progression puzzle using **four physical objects and knowledge gathered
+from earlier Farmlands landmarks**. The required pieces must already have been obtained before
+the objective system allows the player to leave those earlier landmarks, so the puzzle never
+requires arbitrary backtracking. `D1_DESIGN.md` section 15 owns the object list.
 
-Something in the world tells the player this is the final Farmlands destination and that they need to get inside and hide.
+Once solved, part of the barn floor folds back and reveals an enormous concrete stairwell
+descending into darkness — far deeper than the barn should physically allow, older than the
+barn, carrying distant industrial sounds, and leading to an elevator system far below.
 
-The barn contains a progression puzzle that uses physical objects and knowledge gathered from earlier Farmlands landmarks.
+**The D1 final transition is the elevator, not a Rift.** The chain is: barn → hidden mechanism
+→ concrete stairwell → massive underground chamber → giant elevator → descent → D2. Rift Cores
+remain the three progression hinges of the wider game and there is no fourth; the elevator is
+the physical traversal mechanism, not a progression token.
 
-The player must already have obtained the required progression pieces before the objective system allows the player to leave those earlier landmarks. The final barn puzzle must therefore never require arbitrary backtracking.
+## Readable environmental text
 
-The puzzle should combine:
-- physical objects gathered earlier
-- symbols discovered earlier
-- knowledge gathered through exploration
-- relationships between earlier landmarks
+Readable environmental text is **permitted**. Handwritten notes, investigation notes, logs,
+records, names, maps, school materials, warning signs, technical labels, annotations, short
+messages and diagrams are all allowed where they are natural and purposeful.
 
-The mechanism reveals:
-- a diagram showing how the objects fit together
-- a map fragment revealing the underground structure
-- a strange combined symbol
-- information connected to an elevator
-- evidence that the underground structure cannot physically fit beneath the barn
-
-Once solved, part of the barn floor folds back and reveals an enormous concrete stairwell descending into darkness.
-
-The stairwell:
-- is much deeper than the barn should physically allow
-- is older than the barn
-- contains distant industrial sounds
-- contains an elevator system far below
-
-The player eventually reaches an enormous underground elevator chamber.
-
-This elevator system becomes the physical bridge between dimensions.
+What remains forbidden is exposition: giant lore dumps, unnatural exposition, excessive text,
+and using text to explain mysteries the environment should deliver through discovery. Section
+26 still governs what the game must never explain. Readable text may imply; it may not confirm.
 
 ## Farmlands → Suburbia transition
 
-The D1 final chase is:
+The D1 final chase is performed by **the Skin Stitcher**:
 
 1. The player leaves Landmark 6 and heads toward Landmark 7.
-2. Something is heard behind them.
-3. The player turns.
-4. The cage creature is already chasing them.
+2. Movement in the surrounding fields stops and everything goes silent.
+3. Something is heard behind them.
+4. The player turns — the Skin Stitcher is there.
 5. The player turns forward and runs.
 6. Nothing is ahead.
-7. The player turns back.
-8. The creature is gone.
-9. The player turns forward again.
-10. The creature is suddenly directly in front of them.
-11. A massive authored jumpscare occurs.
-12. A full physical chase begins toward Landmark 7.
-13. The player reaches the barn and escapes inside.
-14. The entrance closes behind them.
+7. The player turns back — the Skin Stitcher is gone.
+8. The player turns forward again — the Skin Stitcher is directly in front of them.
+9. A massive authored jumpscare occurs.
+10. A full physical chase begins toward Landmark 7.
+11. The player reaches the barn and escapes inside.
+12. The entrance closes behind them.
 
-This is the major physical horror climax of the Farmlands.
+This is the major physical horror climax of the Farmlands. `D1_DESIGN.md` section 11 owns the
+full beat list.
+
 
 ## Dimension 2 — Static Suburbia
 
@@ -2381,7 +2356,7 @@ The objective system must ensure required items are obtained before advancement 
 
 Progression should feel like uncovering a real route rather than collecting generic keys.
 
-## The escaped cage creature in Suburbia
+## The escaped Skin Stitcher in Suburbia
 
 The creature encountered in the Grain Elevator is the same entity present in Static Suburbia.
 
@@ -2540,7 +2515,7 @@ Its legs disappear into the enormous cracks beneath it.
 
 Water may leak from high above despite no understandable source.
 
-The escaped cage creature's tracks lead toward the Water Tower.
+The escaped Skin Stitcher's tracks lead toward the Water Tower.
 
 This is a major visual and narrative connection between D1 and D2.
 
@@ -2593,7 +2568,7 @@ The same impossible descent returns.
 
 The nostalgic music may briefly return, then become warped and unrecognizable.
 
-The player hears the escaped cage creature moving somewhere else in the elevator system ahead of them.
+The player hears the escaped Skin Stitcher moving somewhere else in the elevator system ahead of them.
 
 The elevator keeps descending after the controls stop showing recognizable symbols.
 
@@ -2837,5 +2812,12 @@ The canonical seven-landmark sequence is:
 
 See `D1_DESIGN.md` for the complete player-facing creative specification, landmark roles, exploration structure, horror sequences, progression relationships, finale, and D1→Suburbia transition.
 
-`STORY.md` remains the high-level story canon; `D1_DESIGN.md` is the detailed D1 design companion and must not contradict it.
+`STORY.md` remains the high-level story canon. **`D1_DESIGN.md` is the single detailed D1
+source of truth**, and where any other document describes a D1 sequence in detail and
+disagrees with it, `D1_DESIGN.md` wins.
+
+The high-level D1 canon this file carries is in the ERA 2 additions above: the two distinct
+creatures (The Thing Below and the Skin Stitcher), the Skin Stitcher's escape into the woods
+and its later ownership of the Landmark 6 → 7 chase, the permission for readable environmental
+text, and the elevator — not a Rift — as the D1 final transition.
 

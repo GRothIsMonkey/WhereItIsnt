@@ -1092,11 +1092,19 @@ distance; the treatment is applied *inside* the height function, so collision, s
 the mesh all agree without any of them knowing a site is there.
 
 **`D1_AUTHORED_SITES`, `D1_ROAD_NETWORK` and `D1_SCATTER_SPECIES` all ship EMPTY, and three
-tests enforce it.** The seven landmarks are a roster, not a design: coordinates,
-architecture, interiors, routes and relationships are **CREATIVE DECISION NEEDED**. Not one
-appears, *not even as a placeholder* — a placeholder coordinate is what a later phase
-mistakes for approval. §4j also fails if a landmark name appears as authored data anywhere
-in the layer.
+tests enforce it.** Not one entry appears, *not even as a placeholder* — a placeholder
+coordinate is what a later phase mistakes for approval. §4j also fails if a landmark name
+appears as authored data anywhere in the layer.
+
+> **UPDATED SINCE E2.2 SHIPPED.** When this phase landed, the seven landmarks were a roster
+> with no design behind them. **`D1_DESIGN.md` now specifies all seven in full** — architecture,
+> interiors, sequences, horror beats, progression and the finale — and it is the single detailed
+> D1 source of truth. What is still **CREATIVE DECISION NEEDED** is narrower than this section
+> originally said: the landmark **coordinates**, the **road route**, the **scatter species**,
+> and the final `D1_WORLD_SIZE`. The comments inside `terrain-authoring.js` and
+> `terrain-roads.js` still carry the original, broader wording and were deliberately not edited
+> in the canon pass — that file is code, and the phase that fills these tables should correct
+> them as it does so.
 
 The machinery is nonetheless proven: test fixtures show a PAD site levels its footprint to
 within **0.00001 m** and a lane flattens its carriageway to **0.105 m** against the natural

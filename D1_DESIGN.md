@@ -7,7 +7,14 @@
 **Major landmarks:** 7
 **Design purpose:** Complete canonical creative specification for the D1 landmark journey.
 
-This document is the detailed creative source of truth for the seven major D1 landmarks.
+**This document is THE single detailed creative source of truth for D1.** Where any other
+document in this repository describes D1 in detail and disagrees with this one, this one wins
+and the other is stale.
+
+Authority order for D1: this document → `STORY.md` (broader canon) → `ROADMAP.md`
+(implementation direction) → `ERA2-PLAN.md` (technical planning). `STORY.md`, `ROADMAP.md`,
+`PROGRESS.md`, `CLAUDE.md` and `ERA2-PLAN.md` carry only high-level D1 statements and point
+here for detail; they must not re-specify a D1 sequence.
 
 It expands the broader story canon without replacing it.
 
@@ -94,6 +101,89 @@ The major-landmark discovery loop is:
 **see something interesting → decide to investigate → travel there → discover something meaningful → receive a payoff → gain a reason to keep exploring**
 
 ---
+
+# 0.1. D1 CREATURE CANON
+
+Two distinct creatures appear in D1. They are separate entities. They must never be merged,
+conflated, or given an invented relationship to one another.
+
+## The Thing Below
+
+Canonical identity:
+
+* skinwalker-like
+* human-like
+* crawling
+* extremely fast
+* can stalk the player
+* can frighten the player
+* can chase the player
+* can kill the player
+
+The Thing Below is a major D1 horror presence and appears in multiple D1 situations.
+
+It is separate from the Skin Stitcher, the Stalker, the Hollowed Behemoth, the Collector,
+and the final creature.
+
+**The Thing Below does NOT perform the Landmark 6 → Landmark 7 chase.**
+
+Do not invent a deeper relationship between The Thing Below and any other creature.
+
+## The Skin Stitcher
+
+**The Skin Stitcher is the official name of the creature contained in the Landmark 6 cage.**
+
+Earlier documentation called it "the cage creature" or "the caged creature". That language is
+retired and must not be reintroduced.
+
+Canonical behaviour:
+
+* it is the massive creature encountered in Landmark 6
+* it is severely cramped inside the cage
+* it reacts violently to the player
+* it is involved in the containment/machine sequence specified in section 10
+* when it escapes it does **NOT** immediately chase the player
+* it runs away into the woods
+* the player escapes Landmark 6 without being pursued
+* **later, on the route toward Landmark 7, the Skin Stitcher performs the major chase**
+
+The Skin Stitcher is the D2 entity. The player witnesses an escape, never an origin.
+
+## Chase ownership
+
+The Landmark 6 → Landmark 7 chase belongs **exclusively to the Skin Stitcher**.
+
+The correct order is:
+
+**escape Landmark 6 → the Skin Stitcher runs away into the woods → later, on the route toward
+Landmark 7, the Skin Stitcher performs the chase**
+
+---
+
+# 0.2. READABLE TEXT IN D1
+
+**Readable environmental text is permitted in D1.**
+
+Natural environmental writing is allowed, including handwritten notes, investigation notes,
+logs, records, names, maps, school materials, warning signs, technical labels, annotations,
+short messages, diagrams and other environmental writing.
+
+The principle is:
+
+> Readable text is allowed when it is natural, purposeful, and appropriately restrained.
+
+What remains forbidden is not text but **exposition**:
+
+* giant lore dumps
+* unnatural exposition
+* excessive text
+* using text to explain mysteries the environment should deliver through discovery
+
+`STORY.md` section 26 still governs what the game must never explain. Readable text may
+imply; it may not confirm.
+
+The Church's two final lines — "They're coming." and "We tried." — are **spoken audio lines**.
+They are not a requirement for readable text and must not be converted into one.
 
 # 1. D1 MAJOR LANDMARK ORDER
 
@@ -294,9 +384,47 @@ At the top the player finds:
 * improved flashlight or flashlight upgrade
 * partial surrounding map
 * medical supplies
-* **Progression Item #1**
+* **the Old Utility Master Key**
+* **the Water Tower brass/survey/utility disk**
 
-The exact identity/function of Progression Item #1 is intentionally determined by Landmark 2 so that its use is natural.
+---
+
+## The two Landmark 1 reward objects are NOT the same object
+
+Landmark 1 yields two small objects that matter later. They serve different roles and must
+never be conflated, merged, or presented as one item.
+
+### Old Utility Master Key
+
+A believable old heavy-duty utility/master key. It must read as ordinary hardware, never as
+an obviously magical or videogame-like item.
+
+* **Role:** practical progression.
+* **Use:** it opens the locked maintenance/basement access door at the Schoolhouse
+  (Landmark 2).
+* **Thematic detail:** it carries an unusual stamped marking/symbol whose deeper
+  significance is not initially understood.
+* **What the player is told at Landmark 1:** nothing explicit. The player is not informed
+  that this is a Landmark 2 progression item.
+
+The intended reactions are, at Landmark 1:
+
+> "Old utility key. This might be useful."
+
+and later, at the Schoolhouse:
+
+> "This opens this door."
+
+The key's deeper meaning may become relevant as the D1 mystery develops. It is **not** one of
+the four barn-puzzle objects.
+
+### Water Tower brass/survey/utility disk
+
+A small, old, mundane object associated with the Water Tower area.
+
+* **Role:** it is **one of the four physical objects used in the Landmark 7 barn puzzle**
+  (see section 15).
+* It must not be presented as an obvious puzzle piece.
 
 ---
 
@@ -307,6 +435,8 @@ The player leaves Landmark 1 with:
 * better exploration capability
 * a stronger understanding of the geography
 * a major navigation landmark
+* the Old Utility Master Key
+* the Water Tower brass/survey/utility disk
 * the first serious indication that the Farmlands are not normal
 * unanswered questions
 
@@ -457,6 +587,19 @@ The creature:
 The creature is not constantly attacking.
 
 Its behavior is observational and predatory.
+
+---
+
+## Basement Access
+
+The route down is **locked**. It is opened with the **Old Utility Master Key** recovered from
+the Landmark 1 Water Tower.
+
+This is the Old Utility Master Key's practical purpose and the reason Landmark 1 hands it over
+without explanation. The player is not told at Landmark 1 that the key will be needed here;
+they simply find that it fits.
+
+The stamped marking on the key remains unexplained.
 
 ---
 
@@ -660,6 +803,12 @@ The player leaves with:
 * evidence of previous investigators
 * knowledge that The Thing Below can reach this area
 * no knowledge of what actually lies at the end
+* **an old ceramic/electrical component** — a believable part associated with the substation
+  machinery, and one of the four physical objects used in the Landmark 7 barn puzzle
+  (see section 15)
+
+The component must not be presented as an obvious puzzle piece. It is a piece of hardware the
+player picks up in a place full of hardware.
 
 The power ultimately shuts off.
 
@@ -803,6 +952,25 @@ The Church only establishes that such a route/elevator exists.
 
 ---
 
+## What the Church contributes to the barn puzzle
+
+**Knowledge and interpretation. No physical barn-puzzle object.**
+
+The Church yields no physical component for the Landmark 7 mechanism. What the player takes
+away is understanding:
+
+* the recurring symbol
+* impossible / spatially unstable geography
+* contradictory routes
+* Suburbia
+* the underground mystery
+* evidence that the place itself may be changing
+
+That understanding is what allows the player to interpret the mechanism at Landmark 7. See
+section 15.
+
+---
+
 ## Church Horror Ending
 
 Near the end:
@@ -822,6 +990,9 @@ Then two final intelligible lines are heard:
 > **“They’re coming.”**
 
 > **“We tried.”**
+
+**These are SPOKEN AUDIO LINES.** They are heard, not read. They are not readable text and must
+not be converted into a note, an inscription or any other written object. See section 0.2.
 
 Nothing else immediately happens.
 
@@ -1024,6 +1195,11 @@ The player discovers:
 * survival supplies
 * bandages
 * shotgun ammunition
+* **an old motel key / key-fob** — the key associated with the relevant motel room and
+  investigation, and one of the four physical objects used in the Landmark 7 barn puzzle
+  (see section 15)
+
+The key-fob must read as an ordinary motel key, not as a collectible.
 
 But:
 
@@ -1325,16 +1501,20 @@ It should not immediately sound like a recognizable monster.
 
 ---
 
-# 8. THE NEW CREATURE
+# 8. THE SKIN STITCHER
 
-The player eventually discovers a cage containing a completely new creature.
+The player eventually discovers a cage containing a completely new creature: **the Skin
+Stitcher**. See section 0.1 for its canonical identity.
 
 This creature is:
 
 * not The Thing Below
+* not the Stalker
+* not the Hollowed Behemoth
+* not the Collector
 * not a minor variant
-* not a final creature
-* intended as the D2 creature foreshadowing
+* not the final creature
+* the D2 entity, encountered here for the first time
 
 Its role is to communicate:
 
@@ -1342,7 +1522,7 @@ Its role is to communicate:
 
 ---
 
-## Creature Anatomy
+## Skin Stitcher Anatomy
 
 Locked direction:
 
@@ -1352,7 +1532,7 @@ Locked direction:
 * physically unnatural
 * physically incomplete in places
 
-The creature is severely crammed into a cage obviously too small for its body.
+The Skin Stitcher is severely crammed into a cage obviously too small for its body.
 
 It must remain ambiguous whether:
 
@@ -1375,15 +1555,15 @@ The cage is visibly and intentionally:
 * physically restraining
 * **bolted into the concrete**
 
-This tells the player someone expected the creature to be dangerous.
+This tells the player someone expected the Skin Stitcher to be dangerous.
 
 ---
 
-## Creature Reaction
+## Skin Stitcher Reaction
 
 When the player approaches:
 
-* creature immediately notices them
+* the Skin Stitcher immediately notices them
 * it violently throws itself against the cage
 * its head turns toward the player while the rest of its body remains constrained
 
@@ -1403,9 +1583,9 @@ The player realizes:
 
 > **There is something farther down.**
 
-The creature reacts to the sound.
+The Skin Stitcher reacts to the sound.
 
-This shows the creature is responding to something beyond the player.
+This shows it is responding to something beyond the player.
 
 ---
 
@@ -1426,7 +1606,7 @@ The player learns through observation rather than exposition.
 The scientist:
 
 * calmly records observations
-* checks the creature
+* checks the Skin Stitcher
 * notices cage damage
 * becomes visibly concerned
 * operates the connected machine
@@ -1439,18 +1619,21 @@ The player watches this from concealment.
 
 The machine triggers a violent reaction.
 
-The creature:
+The Skin Stitcher:
 
 * violently reacts
 * breaks the cage
 * shoves the scientist into the bottomless pit
-* immediately runs away
+* **runs away into the woods**
 
-It does not pursue the player.
+## It does NOT pursue the player.
 
-This is crucial.
+This is crucial, and it is the single most misread beat in D1.
 
-The creature behaves as though it has:
+The Skin Stitcher does not chase the player out of Landmark 6. It leaves. The player escapes
+Landmark 6 unpursued.
+
+The Skin Stitcher behaves as though it has:
 
 ## **somewhere important to go**
 
@@ -1460,6 +1643,10 @@ This creates the major question:
 
 > **Where is it going?**
 
+The Skin Stitcher returns later, on the route toward Landmark 7, and it is the creature that
+performs the chase in section 11. That is a separate, later beat — not a continuation of this
+one.
+
 ---
 
 ## Aftermath
@@ -1468,6 +1655,13 @@ The player:
 
 * waits for an opening long enough to escape
 * runs for the exit
+
+Nothing pursues them.
+
+The player also recovers, organically from the broken containment, **a metal component from
+the cage** — one of the four physical objects used in the Landmark 7 barn puzzle (see section
+15). It becomes available through the escape and its aftermath rather than being placed as a
+collectible, and it must never feel like an arbitrary videogame pickup.
 
 The shaft lights later return.
 
@@ -1483,11 +1677,11 @@ The pit remains unexplained.
 
 Outside the Grain Elevator:
 
-* the creature can be seen impossibly far away running through the fields
+* the Skin Stitcher can be seen impossibly far away running through the fields
 * a huge flock of birds suddenly takes off
 * the objective updates toward Landmark 7
 
-Then the creature disappears into the landscape.
+Then the Skin Stitcher disappears into the landscape.
 
 The player continues.
 
@@ -1497,6 +1691,13 @@ The player continues.
 
 This is the first truly horrifying physical encounter in D1.
 
+## The chase belongs to the Skin Stitcher
+
+**The Skin Stitcher owns this chase. The Thing Below does not.**
+
+This is the Skin Stitcher's return. It left Landmark 6 into the woods without pursuing the
+player (section 10); it reappears here, on the route toward Landmark 7.
+
 The sequence is locked:
 
 1. Landmark 6 ends.
@@ -1505,15 +1706,15 @@ The sequence is locked:
 4. Player sees Landmark 7 clearly.
 5. Complete silence.
 6. Something suddenly appears behind the player.
-7. **The Thing Below is there.**
+7. **The Skin Stitcher is there.**
 8. Player runs forward.
 9. Nothing is ahead.
 10. Player turns back.
-11. **The Thing Below is gone.**
+11. **The Skin Stitcher is gone.**
 12. Player turns forward again.
-13. **The Thing Below is suddenly directly in front of them.**
+13. **The Skin Stitcher is suddenly directly in front of them.**
 14. Massive jumpscare sound.
-15. Full chase begins.
+15. Full chase begins, toward Landmark 7.
 
 ---
 
@@ -1521,12 +1722,13 @@ The sequence is locked:
 
 Locked chase behavior:
 
-* The Thing Below crawls extremely fast.
-* It uses hands and feet unnaturally.
+* The Skin Stitcher moves extremely fast.
 * The player constantly hears it behind them even when it cannot be seen.
 * The player dodges obstacles and damaged/collapsed structures.
 
 The chase should feel physical and immediate.
+
+It ends at the barn (section 12).
 
 ---
 
@@ -1575,9 +1777,9 @@ Locked arrival behavior:
 
 * player reaches entrance
 * door slams shut behind them
-* The Thing Below is cut off
-* creature lunges at the player immediately before they get inside
-* once inside, player hears the creature violently hit the exterior
+* the Skin Stitcher is cut off
+* the Skin Stitcher lunges at the player immediately before they get inside
+* once inside, player hears the Skin Stitcher violently hit the exterior
 * entrance had already been open, as though something expected the player
 
 This creates:
@@ -1655,13 +1857,38 @@ The player should feel like they are finally understanding things they encounter
 
 The mechanism requires:
 
-* physical objects collected during D1
-* symbols discovered during D1
-* knowledge gathered through D1 exploration
+* **four physical objects** collected during D1
+* **knowledge accumulated from previous landmarks**
 
 The player does not simply enter a password.
 
 The player must recognize relationships between earlier discoveries.
+
+---
+
+## The four physical objects
+
+There are **four**, and only four. Each comes from a different landmark, and each is picked up
+naturally in the course of that landmark rather than presented as a puzzle piece.
+
+| Landmark | Contribution | Object |
+| --- | --- | --- |
+| **1 — Farm Compound + Water Tower** | PHYSICAL OBJECT | Old brass/survey/utility disk — a small, old, mundane object associated with the Water Tower area |
+| **2 — Schoolhouse** | ENVIRONMENTAL KNOWLEDGE | *no physical barn-puzzle object* |
+| **3 — Electrical Substation** | PHYSICAL OBJECT | Old ceramic/electrical component associated with the substation machinery |
+| **4 — Rural Church** | ENVIRONMENTAL KNOWLEDGE / INTERPRETATION | *no physical barn-puzzle object* |
+| **5 — Abandoned Motel** | PHYSICAL OBJECT | Old motel key / key-fob associated with the relevant room and investigation |
+| **6 — Abandoned Grain Elevator** | PHYSICAL OBJECT | Skin Stitcher cage-related metal component, available organically through the escape and its aftermath |
+
+**Landmark 2 and Landmark 4 contribute knowledge, not objects.** Landmark 2's contribution is
+environmental knowledge, including spatial and location relationships and the other clues
+specified in section 3. Landmark 4's is the interpretation described in section 5 — the
+recurring symbol, impossible and spatially unstable geography, contradictory routes, Suburbia,
+the underground mystery, and evidence that the place itself may be changing.
+
+**The Old Utility Master Key is NOT one of these four objects.** It is the Landmark 1 → 2
+progression item and is spent opening the Schoolhouse maintenance/basement access. See section
+2.
 
 ---
 
@@ -1670,6 +1897,12 @@ The player must recognize relationships between earlier discoveries.
 Locked:
 
 **B + C + F + G + H**
+
+The barn contains a hidden mechanism beneath the floor, with **four physical input
+locations/sockets**.
+
+The objects should NOT be presented as obvious puzzle pieces. They should feel like ordinary
+objects that later turn out to matter.
 
 The player inserts the relevant objects.
 
@@ -1681,6 +1914,31 @@ Then:
 * wrong combinations trigger disturbing sounds from underneath
 * the correct combination causes the barn to shake
 * a final hidden component appears
+
+The mechanism should feel **physical and mechanical**:
+
+* metal plates move
+* components engage
+* parts rotate
+* hidden sections open
+* symbols align
+* panels shift
+
+The player must combine the four physical objects **and** the knowledge gathered from previous
+landmarks.
+
+Wrong combinations create disturbing sounds from beneath the barn. Those sounds exist to create
+tension. They are not a conventional videogame "wrong answer" punishment system and must not
+become one.
+
+On the correct combination:
+
+* the mechanism fully engages
+* the barn shakes
+* dust and debris react
+* something deep beneath responds
+* the final hidden component appears
+* the player can use the mechanism
 
 The mechanism should feel like a physical system that was waiting for the correct combination of pieces.
 
@@ -1782,6 +2040,20 @@ The player should understand:
 ---
 
 # 21. THE ELEVATOR
+
+## The D1 final transition is the elevator. It is NOT a Rift.
+
+The earlier Rift-based D1 transition is **obsolete**. The barn does not reveal a Rift, and no
+Rift is used to leave D1. The chain is:
+
+**barn → hidden mechanism → concrete stairwell → massive underground chamber → giant elevator
+→ elevator descent → D2 transition**
+
+Rift Cores remain the three progression hinges of the wider game (`STORY.md` section 11) and
+there is no fourth. The elevator is the physical traversal mechanism, not a progression token.
+Do not reintroduce a D1 Rift and do not invent a replacement for it.
+
+---
 
 The elevator:
 
@@ -1904,19 +2176,19 @@ The complete authored D1 progression is:
 
 → impossible depth
 
-→ new caged creature
+→ the Skin Stitcher, caged
 
 → scientist
 
 → containment failure
 
-→ creature escapes
-
-→ creature runs toward somewhere unknown
+→ the Skin Stitcher escapes into the woods, without pursuing
 
 → player continues toward final barn
 
-→ The Thing Below appears
+→ the Skin Stitcher returns
+
+→ appears behind
 
 → disappears
 
@@ -2091,6 +2363,8 @@ The asset library will eventually need dedicated support for:
 * blueprint
 * tower markings
 * tower key
+* Old Utility Master Key (with its stamped marking)
+* Water Tower brass/survey/utility disk
 * flashlight upgrade
 * medical supplies
 
@@ -2123,6 +2397,7 @@ The asset library will eventually need dedicated support for:
 * shaft
 * camera
 * investigator equipment
+* ceramic/electrical component
 * notes
 * warnings
 
@@ -2163,6 +2438,7 @@ The asset library will eventually need dedicated support for:
 * survival supplies
 * bandages
 * shotgun ammunition
+* motel key / key-fob
 
 ## Landmark 6
 
@@ -2180,7 +2456,8 @@ The asset library will eventually need dedicated support for:
 * shaft
 * cables
 * cage
-* new creature
+* the Skin Stitcher
+* cage metal component
 * scientist equipment
 * notebook/device
 * machine
@@ -2228,11 +2505,14 @@ D1 should eventually be validated as one connected player experience, not just a
 * photograph/blueprint sequence
 * tower access
 * tower reward
+* Old Utility Master Key obtained
+* Water Tower brass/survey/utility disk obtained
 * no unintended major creature encounter
 
 ## Landmark 2
 
 * school accessibility
+* maintenance/basement access opened with the Old Utility Master Key
 * basement accessibility
 * story clues
 * creature observation behavior
@@ -2278,20 +2558,22 @@ D1 should eventually be validated as one connected player experience, not just a
 * shaft
 * rattling audio
 * cage
-* creature
+* the Skin Stitcher
 * scientist
 * machine
 * breakout
+* the Skin Stitcher runs into the woods and does NOT pursue the player
+* cage metal component obtained
 * scientist disappearance
-* exterior creature sighting
+* exterior Skin Stitcher sighting
 * transition toward Landmark 7
 
 ## Landmark 7
 
-* chase
+* the chase is performed by the Skin Stitcher
 * barn arrival
 * hiding-place logic
-* progression item availability
+* all four physical objects already held on arrival — no backtracking
 * puzzle logic
 * mechanism
 * floor opening

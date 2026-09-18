@@ -4,12 +4,26 @@
 HOW TO RUN IT              SERVE IT. python3 -m http.server 8000, then
                            http://localhost:8000/game.html  — opening game.html
                            from disk plays NO recorded audio at all (section 0.000000000000000)
-Current phase              ERA 1.5.6 — COUPLING CUTS + RENDERING BOUNDARY (COMPLETE)
-                           ERA 1.5 IS COMPLETE. The architecture is ready for Era 2.
-                           Phase 36 is COMPLETE and still needs a human playthrough
-Next phase                 ERA 2 — replace the voxel presentation/world with the intended
-                           final non-voxel game. What it replaces is bounded and named
-                           in ARCHITECTURE.md section 10.
+Current phase              ERA 2 — IN PROGRESS. E2.1 (Physical World contract), E2.0a (asset
+                           pipeline) and E2.2 (D1 non-voxel terrain foundation) have SHIPPED.
+                           ERA 1.5 is complete; Phase 36 still needs a human playthrough.
+Next phase                 ERA 2 continues — E2.3 vegetation, E2.4 architecture, E2.5 lighting,
+                           then E2.6/E2.7 the D1 landmarks. What Era 2 replaces is bounded and
+                           named in ARCHITECTURE.md section 10; ERA2-PLAN.md is the phase plan.
+D1 creative design         LOCKED. D1_DESIGN.md is the SINGLE DETAILED D1 SOURCE OF TRUTH.
+                           STORY.md = high-level canon, ROADMAP.md = implementation staging,
+                           this file = status. None of them re-specifies a D1 sequence.
+D1 implementation          NOT STARTED. D1_AUTHORED_SITES, D1_ROAD_NETWORK and
+                           D1_SCATTER_SPECIES all ship EMPTY and tests/terrain.js enforces it.
+D1 creatures               The Thing Below (skinwalker-like, crawling, fast, lethal) and the
+                           SKIN STITCHER (the creature in the Landmark 6 cage, and the D2
+                           entity) are
+                           SEPARATE. The Skin Stitcher owns the Landmark 6 -> 7 chase; it runs
+                           into the woods on escape and does NOT immediately pursue.
+D1 readable text           PERMITTED. The old blanket ban on readable human sentences is
+                           obsolete; exposition dumps remain forbidden. See CLAUDE.md 57.
+D1 final transition        THE ELEVATOR, NOT A RIFT. barn -> mechanism -> stairwell ->
+                           chamber -> elevator -> descent -> D2. No fourth Rift Core.
 Architecture               ARCHITECTURE.md (the map, and section 4.8 is this phase)
                            + ARCHITECTURE-INVENTORY.md (the 1.5.1 numbers)
                            src/<layer>/LAYER.md is that layer's work order
@@ -6265,6 +6279,9 @@ Era 2 is the final non-voxel visual/horror rebirth.
 The current locked creative direction is:
 
 ### D1 — Shattered Farmlands
+**See `D1_DESIGN.md` — it is the detailed D1 source of truth, and the D1 status block at the
+end of this file records what the canon pass settled.** Summary only:
+
 Seven major authored landmark beats:
 1. Farm Compound + Water Tower
 2. Schoolhouse
@@ -6274,18 +6291,19 @@ Seven major authored landmark beats:
 6. Abandoned Grain Elevator
 7. Ordinary Barn / Underground Elevator
 
-Major new D1 creative lock:
-- Grain Elevator contains the severely cramped caged creature.
-- The creature escapes and deliberately runs toward Suburbia.
-- The D1 finale contains the approved chase/jumpscare into the barn.
-- The barn contains the puzzle and underground elevator route.
+- The Grain Elevator contains the severely cramped **Skin Stitcher**.
+- It escapes into the woods without pursuing the player, and deliberately makes its way toward
+  Suburbia.
+- **The Skin Stitcher** later performs the D1 finale chase/jumpscare into the barn.
+- **The Thing Below** is a separate D1 creature and does not own that chase.
+- The barn contains the four-object puzzle and the underground elevator route. **Not a Rift.**
 
 ### D2 — Static Suburbia
 Core direction:
 - beautiful empty liminal suburb
 - preserved-memory feeling
 - direct recognition of Farmlands
-- same escaped creature from D1
+- the same escaped Skin Stitcher from D1
 - meaningful progression items and survival resources
 - pursuit / interception / cornering
 - one major house hunt horror sequence
@@ -6306,7 +6324,15 @@ Core fear:
 Use STORY.md and ROADMAP.md as the creative authority for Era 2 implementation.
 ## D1 Creative Design — LOCKED ✅
 
-The complete D1 — Shattered Farmlands creative design is now formally locked.
+The complete D1 — Shattered Farmlands creative design is formally locked.
+
+### Canonical design document
+
+**`D1_DESIGN.md` is the single detailed D1 source of truth.** It owns the seven landmarks,
+their architecture and interiors, every authored sequence, the horror beats, the progression
+relationships and the finale. `STORY.md` carries the high-level canon; `ROADMAP.md` carries the
+implementation staging; this file carries status. **None of them re-specifies a D1 sequence**,
+and where any of them disagrees with `D1_DESIGN.md` about D1, `D1_DESIGN.md` wins.
 
 ### Seven major landmarks
 
@@ -6318,9 +6344,29 @@ The complete D1 — Shattered Farmlands creative design is now formally locked.
 6. Abandoned Grain Elevator
 7. Ordinary Barn / Underground Elevator System
 
-### Canonical design document
+### What the canon reconciliation pass settled
 
-`D1_DESIGN.md`
+* **The Thing Below is canonically defined** — a distinct D1 creature: skinwalker-like,
+  human-like, crawling, extremely fast, able to stalk, frighten, chase and kill the player. It
+  is separate from the Skin Stitcher, the Stalker, the Behemoth, the Collector and the final
+  creature.
+* **The Skin Stitcher is the official name** of the creature contained in the Landmark 6 cage.
+  "Cage creature" / "caged creature" is retired.
+* **The Skin Stitcher performs the Landmark 6 → 7 chase.** It escapes Landmark 6 by running
+  into the woods and does **not** immediately pursue the player; the chase comes later, on the
+  route toward Landmark 7. The Thing Below does **not** own that chase.
+* **Readable environmental text is allowed** — natural notes, logs, records, names, maps,
+  signs, labels and annotations. The old blanket ban on readable human sentences is obsolete.
+  Exposition dumps remain forbidden. The Church's two lines are spoken audio.
+* **Progression Item #1 is resolved: it is the Old Utility Master Key**, found in the Landmark 1
+  Water Tower cache, opening the Schoolhouse maintenance/basement access at Landmark 2, and
+  carrying an unexplained stamped marking. It is **not** a barn-puzzle object.
+* **The barn puzzle is four physical objects plus knowledge** — the Water Tower brass/survey/
+  utility disk (L1), a ceramic/electrical component (L3), a motel key/key-fob (L5) and a Skin
+  Stitcher cage metal component (L6). Landmarks 2 and 4 contribute knowledge, not objects.
+* **The Rift is replaced by the elevator in the D1 final transition** — barn → hidden mechanism
+  → concrete stairwell → underground chamber → giant elevator → descent → D2. Rift Cores remain
+  the three progression hinges of the wider game and there is no fourth.
 
 ### Status
 
@@ -6328,10 +6374,17 @@ The complete D1 — Shattered Farmlands creative design is now formally locked.
 * D1 exploration philosophy: LOCKED
 * Landmark purposes: LOCKED
 * Major horror sequences: LOCKED
+* D1 creature canon (The Thing Below, the Skin Stitcher): LOCKED
+* Landmark 6 → 7 chase ownership: LOCKED (the Skin Stitcher)
+* Readable environmental text: PERMITTED
 * Progression relationships: LOCKED
-* D1 finale: LOCKED
-* D1→Suburbia elevator transition: LOCKED
-* D1 implementation: NOT YET COMPLETE
+* D1 finale and elevator transition: LOCKED
+* **D1 implementation: NOT STARTED.** No landmark exists in the build. The authored tables in
+  `src/world/terrain/` (`D1_AUTHORED_SITES`, `D1_ROAD_NETWORK`, `D1_SCATTER_SPECIES`) all ship
+  empty and `tests/terrain.js` enforces that they stay empty.
 * Final D1 first-person playtest: NOT YET COMPLETE
 
-Implementation-level details may still be refined where required by assets, technical constraints, performance, or playtesting, but the player-facing creative design is now canonical.
+Implementation-level details may still be refined where required by assets, technical
+constraints, performance, or playtesting, but the player-facing creative design is now
+canonical. An implementation constraint is not permission to redesign D1: preserve the intended
+player experience and update `D1_DESIGN.md` explicitly rather than changing canon silently.
