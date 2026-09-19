@@ -14,8 +14,17 @@ D1 Impl Phase 1            COMPLETE — Composite PhysicalWorld. ONE gameplay-fa
                            world composes terrain + mesh/architecture collision. Terrain
                            answers are IDENTICAL to the pre-phase build (12,000 A/B
                            comparisons, 0 differences). See ARCHITECTURE.md section 4.11.
-                           D1 IMPLEMENTATION IS NOT STARTED BEYOND THIS: no landmark, no
-                           asset, no interaction, no creature exists.
+D1 Impl Phase 2            COMPLETE — the normalized raycast + the interaction VOCABULARY.
+                           raycast(origin, direction, maxDistance) -> a plain hit or null,
+                           implemented by all four backends. voxelRaycast and its two call
+                           sites were NOT changed; the voxel backend ADAPTS it. Three
+                           affordances (none/inspect/use), a registry keyed on a physical
+                           ref, and refusals with reasons. No behaviour, no dispatcher, no
+                           UI: the live suite proves it adds NOT ONE DOM element.
+                           See ARCHITECTURE.md section 4.12.
+                           D1 IMPLEMENTATION IS NOT STARTED BEYOND THESE TWO: no landmark,
+                           no interaction target, no prompt, no verb, no flashlight, no
+                           creature and no elevator exists.
 D1 creative design         LOCKED. D1_DESIGN.md is the SINGLE DETAILED D1 SOURCE OF TRUTH.
                            STORY.md = high-level canon, ROADMAP.md = implementation staging,
                            this file = status. None of them re-specifies a D1 sequence.
@@ -6425,6 +6434,28 @@ and where any of them disagrees with `D1_DESIGN.md` about D1, `D1_DESIGN.md` win
   is the composite. **The Era 1 voxel path is untouched and still uses `VoxelPhysicalWorld`.**
   This is engineering foundation only: it builds no landmark, adds no asset and implements no
   interaction, flashlight, creature or elevator.
+* **D1 Implementation Phase 2 — Normalized raycast + interaction vocabulary: COMPLETE.**
+  `raycast(origin, direction, maxDistance)` returns a representation-neutral hit — distance,
+  point, normal, category, opaque ref — or `null`, and `VoxelPhysicalWorld`,
+  `TerrainPhysicalWorld`, `AssetCollisionSet` and `CompositePhysicalWorld` all implement it.
+  **`voxelRaycast` was not changed**: the voxel backend adapts it, and mining, placement, door
+  toggling and the look-target prompt are untouched. The mesh provider raycasts **declared
+  collision proxies**, never the render mesh. Beside it, `src/gameplay/interaction.js` is a
+  vocabulary and nothing else — three affordances, a registry keyed on a physical `ref`, and
+  refusals with reasons; it dispatches nothing and the live browser suite proves it adds not
+  one element to the document. `ARCHITECTURE.md` section 4.12, `tests/raycast.js` (88 checks)
+  and `tests/browser-raycast.js` (37 checks, over HTTP). This is engineering foundation only:
+  it builds no landmark, authors no interaction target, adds no prompt and implements no
+  flashlight, creature or elevator.
+  **VALIDATION:** all 33 offline suites green, 0 failures. 11 of 13 browser suites green one
+  at a time over HTTP. Two are not, and **both were A/B'd against the pre-phase commit
+  `2ab373e` rather than assumed** (CLAUDE.md section 62.11). `browser-menu` failed once
+  mid-sweep on its canvas-resize check and passes on BOTH builds when run alone — a race in
+  the test's resize wait, not a regression and not fixed. `browser-playability` throws at
+  `browser-playability.js:588` waiting 60s for the Suburbia crossing, and **the pre-phase
+  build throws at the same line with the same message** — this is the `riftArming` defect
+  Era 1.5.4 recorded, still decremented by the `dt` clamped to 0.06 for physics safety, so
+  its real duration scales with frame rate. Nothing in this phase touched it.
 * Final D1 first-person playtest: NOT YET COMPLETE
 
 Implementation-level details may still be refined where required by assets, technical

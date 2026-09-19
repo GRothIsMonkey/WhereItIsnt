@@ -3226,6 +3226,14 @@ Recommended implementation order (status is tracked in `PROGRESS.md`):
 terrain with mesh/architecture collision, which is the prerequisite for any enterable D1
 building. Engineering only — it builds no landmark. See `ARCHITECTURE.md` section 4.11.
 
+**Phase 2 — Normalized raycast + interaction vocabulary: COMPLETE.** The physical world can be
+asked what is along a ray and answers in representation-neutral terms, and there is one shared
+vocabulary for the difference between *the ray hit something* and *the player can do something
+with it* — three affordances, a registry, and refusals with reasons. `voxelRaycast` and every
+one of its gameplay callers were left exactly as they were. Engineering only: **no interaction
+target, no prompt, no verb and no D1 content is authored by it.** See `ARCHITECTURE.md`
+section 4.12.
+
 1. D1 world/layout foundation
 2. landmark placement and traversal
 3. reusable rural/environment assets

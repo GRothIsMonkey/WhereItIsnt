@@ -1253,6 +1253,156 @@ about terrain moved.
 
 ---
 
+## 4.12. THE NORMALIZED RAYCAST AND THE INTERACTION VOCABULARY — D1 IMPLEMENTATION PHASE 2
+
+Two new files, and between them they answer a question the E2.1 contract deliberately left
+open.
+
+```
+src/world/raycast.js        208 lines   the hit vocabulary and the ray/box primitive
+src/gameplay/interaction.js 158 lines   three affordances, a registry, and a refusal
+```
+
+Neither names `THREE.`. Neither reaches the DOM. `interaction.js` contains no D1 noun —
+`tests/raycast.js` greps for fifteen of them.
+
+### Why it could not exist before, and what changed
+
+`src/world/physical-world.js` shipped eleven queries and said, in its own header, why
+`raycast` was not the twelfth: `voxelRaycast` returns `{ bx, by, bz, face }` — block
+coordinates and a block face — while a mesh world returns a point, a normal and a surface.
+Changing it in place meant rewriting mining, placement, door toggling and the look-target
+prompt inside the phase that moved the collision seam. It ended: *"The interaction model gets
+its own phase when it is rebuilt for meshes."*
+
+**This is that phase, and `voxelRaycast` was not changed.** Its definition, its signature, its
+return statement, the one call site (`PlayerController._getLookTarget`) and the four gameplay
+paths that consume that result — mining, the break, placement and the interaction prompt — are
+all exactly as they were, and `tests/raycast.js` asserts each of them by name. Phase 2 adds a
+SECOND query beside it.
+
+### The contract
+
+```
+raycast(origin, direction, maxDistance) -> hit | null
+```
+
+| term | rule | why it is a rule and not a convention |
+| --- | --- | --- |
+| `origin` | world space, built by the caller | The physical world is a world-query service and does not know what a camera is. Whoever has an eye builds the ray. |
+| `direction` | **MUST be unit length** | Distances are compared ACROSS providers, so a provider that normalises and one that does not is exactly how two backends start disagreeing about which hit is nearer. `rayIsNormalized` exists for tests; runtime does not police it, because a per-ray square root is a cost paid forever to catch a bug once. |
+| `maxDistance` | explicit, no default | A default here is a gameplay tuning constant, and this phase authors none. |
+| a miss | **`null`** | Not `{ hit: false }`. Every call site is `if (h)`, and an object that is falsy-when-missing is a trap. `RAYCAST_MISS` documents the choice. |
+| solidity | **from both sides** | Proxies are volumes, not sheets. A ray starting inside one reports distance 0. Backface culling would let a player inside a wall aim through it, and would need a facing convention the two backends have no way to share. |
+
+A hit is `{ distance, point, normal, category, ref, providerId }` — a plain object, never a
+`THREE.Vector3`, never a mesh, never a block id. `ref` is **opaque**: the producing provider's
+handle for what was struck, meaningless to everyone else, and the hook a later phase resolves
+an interaction target through.
+
+### Four implementations, one answer shape
+
+| backend | how it answers | notes |
+| --- | --- | --- |
+| `VoxelPhysicalWorld` | **adapts** `voxelRaycast` | Nothing reimplemented. The voxel world really does know where the ray meets a block; the adapter expresses that in the shared vocabulary. |
+| `TerrainPhysicalWorld` | marches at `D1_COLLIDE_PROBE_STEP` (0.5 m), then 12 bisections | Normal from `d1TerrainNormal`'s analytic gradient. Starting below the surface returns distance 0. |
+| `AssetCollisionSet` | slab test against **declared proxy boxes** | Never the render mesh. An asset with `ASSET_COLLISION.NONE` registers no box and is therefore not hittable at all — the same rule `collidesAABB` already followed. |
+| `CompositePhysicalWorld` | **nearest hit across base and every provider** | See below. |
+
+**ONE LIMIT IS RECORDED RATHER THAN HIDDEN.** `voxelRaycast` refines a hit against a shaped
+block's own boxes but returns only the cell and the face, discarding the exact `t`. The
+adapter recovers the distance by intersecting the ray with the hit CELL, which for a slab, a
+stair or a fence is the cell's entry rather than the shape's. **The face is exact; the
+distance can be up to one cell optimistic on a shaped block.** Correct for every full cube,
+bounded, known, and fixing it means changing `voxelRaycast`'s return type — which is the one
+thing this phase may not do. The voxel interaction path does not use this method.
+
+### The composite's policy: nearest hit, and NO short-circuit
+
+`collidesAABB` may stop at the first `true`, because solidity is a union. **A raycast may
+not** — every provider must be consulted, because the nearest hit is not known until they all
+have answered. That difference is written in the method.
+
+At effectively the same distance (within `RAYCAST_TIE_EPSILON`, one millimetre) the tie is
+broken by a **declared** order, never by registration order:
+
+1. nearer wins;
+2. then `RAYCAST_CATEGORY_RANK` — `asset` (0) beats `terrain` (1), because a floor laid exactly
+   on the ground is a floor;
+3. then the smaller **stable proxy id**.
+
+That third step is why `AssetCollisionSet`'s id counter is **module-level rather than
+per-set**. With a per-set counter, two sets composed as two providers both mint id 1, the
+tie-break finds them equal, and the winner falls back to the order the composite happened to
+consult them in — the one thing the rule exists to forbid. `tests/raycast.js` caught exactly
+that: its two-provider tie test passed while comparing two DIFFERENT entries that merely
+shared a number. The id is a runtime handle, never saved, never hashed, never fed into
+generation.
+
+### Cost — counted, not timed
+
+A ray costs a **bounded, predictable number of heightfield samples**: one to reject "already
+underground", one per half-metre of march, twelve bisections, four for the normal. A 5 m
+crosshair ray is 22 samples; a 200 m ray that hits nothing is 401, exactly `maxDistance /
+step`. Doubling `maxDistance` doubles the work and nothing worse.
+
+**That is asserted by counting, not by a clock.** A wall-clock ceiling would have been
+measuring the container — an empty 200,000-iteration arithmetic loop costs 245 ms in this
+test VM — and CLAUDE.md section 62.11 is explicit that the answer to a drifty threshold is not
+to raise it. The clock is still reported, as a ratio against the cost of the same samples
+taken raw, which is a figure that survives a slow machine.
+
+### The interaction vocabulary — and it does nothing
+
+The moment a normalized raycast exists, an expensive confusion becomes possible: treating
+"the ray hit something" as "the player can do something with it". Almost everything in the
+world is hittable and almost nothing is interactive.
+
+```
+PHYSICAL HIT    ray met geometry. Says nothing about whether it can be acted on.
+INTERACTABLE    a registered target with a stable id and declared affordances.
+AFFORDANCE      none | inspect | use.   THREE WORDS, AND THAT IS ALL.
+RESULT          { ok, refused, target, hit } — refusals are normal outcomes with reasons.
+```
+
+`InteractionRegistry` is a `Map` from a physical `ref` to an interactable. The gap between a
+hit and an interaction **is that Map miss**, and it is deliberately one lookup.
+
+**No D1-specific affordance may be added** — not `open_door`, not `read_note`, not
+`activate_tower`. Every one of those is `use` or `inspect` plus a target that knows what it
+is, and they belong to the phase that authors the content. It is not a dispatcher, holds no
+handlers, calls nothing, and knows nothing about a camera, a key binding, a prompt or a
+player. `tests/browser-raycast.js` asserts that exercising the whole vocabulary in the live
+page adds **not one element to the document**.
+
+### What did not change
+
+The shipped game still builds a `VoxelPhysicalWorld`; mining, placement, doors and the
+look-target prompt are untouched; no gameplay call site was rewritten; no interaction target,
+prompt, verb or D1 content exists. The save schema is still **version 5**. `tests/raycast.js`
+is 88 offline checks and `tests/browser-raycast.js` 37 live ones, over HTTP, in Chromium.
+
+### Validation, and the two failures are A/B'd rather than explained away
+
+All 33 offline suites green. 11 of 13 browser suites green, one at a time over HTTP. The two
+that are not were both run against the pre-phase commit `2ab373e` in a separate worktree:
+
+- **`browser-menu`** failed once during a back-to-back sweep on its canvas-resize check and
+  **passes on both builds when run alone.** A race in the test's resize wait — the suite waits
+  for `innerWidth` to settle but not for the window `resize` listener to repaint the canvas.
+  Not a regression, and not fixed here.
+- **`browser-playability`** throws at `browser-playability.js:588`, a 60-second wait for the
+  Static Suburbia crossing. **The pre-phase build throws at the same line with the same
+  message.** This is the `riftArming` defect section 4.6 recorded: the arming delay is
+  decremented by the `dt` clamped to 0.06 for physics safety, so its real duration is
+  `RIFT_ARM_TIME / min(realDt, 0.06)` and scales with frame rate. Nothing in this phase
+  touched it, and an engineering foundation phase is not where gameplay timing gets changed.
+
+And `browser-transitions` reached 51/0 here. **That is not a fix** — section 4.8's rule
+stands: a green timing-sensitive suite means this container was fast enough, nothing more.
+
+---
+
 ## 5. THE DIMENSION EXTENSION POINT — AND DIMENSION 3, THE BELOW
 
 ### What is there now

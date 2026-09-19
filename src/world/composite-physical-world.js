@@ -75,6 +75,12 @@
                     forbidden to build. A provider that one day has a real water opinion is
                     a contract change with its own phase.
 
+     raycast        NEAREST HIT. Every participant that can answer is asked for its own
+                    nearest hit; misses are discarded; the smallest valid distance wins.
+                    Added by D1 Implementation Phase 2 — see `src/world/raycast.js` for the
+                    conventions and `rayHitBeats` for the tie-break, which is a DECLARED
+                    category rank and a stable id rather than registration order.
+
      isResidentAround / editEpoch / hasOpenSkyAbove / lightLevelAt /
      nearestLightSourceDistance / isInsideSafeZone / isInsideSoulAnchorZone
                     BASE ONLY, forwarded unchanged — with ONE composition, below.
@@ -195,6 +201,37 @@ class CompositePhysicalWorld {
       if (h !== null && h !== undefined && h > best) best = h;
     }
     return best;
+  }
+
+  /* ---- SHAPE — NEAREST HIT ---------------------------------------------------------- */
+
+  /* WHAT IS ALONG THIS RAY. The nearest hit from the base and every provider that can
+     answer one, or null.
+
+     `direction` MUST be normalized by the caller and `maxDistance` is explicit — one
+     convention for every participant, stated in `src/world/raycast.js`, so the distances
+     coming back are directly comparable and "nearest" means something.
+
+     A participant that has no `raycast` method is simply skipped, exactly as the shape
+     queries skip a provider that cannot answer them. That is what lets a provider be
+     partial without the composite inventing an answer on its behalf.
+
+     THERE IS NO SHORT-CIRCUIT HERE, and that is the difference from `collidesAABB`.
+     Collision asks "is anything solid", so the first yes ends it. This asks "what is
+     NEAREST", and a provider consulted later can still win — so every participant is
+     asked, every time, and `rayHitBeats` decides. */
+  raycast(origin, direction, maxDistance) {
+    let best = this.base.raycast ? this.base.raycast(origin, direction, maxDistance) : null;
+    if (best && best.distance > maxDistance) best = null;
+
+    for (let i = 0; i < this.providers.length; i++) {
+      const p = this.providers[i];
+      if (!p.raycast) continue;
+      const h = p.raycast(origin, direction, maxDistance);
+      if (!h || h.distance > maxDistance) continue;
+      if (rayHitBeats(h, best)) best = h;
+    }
+    return best || RAYCAST_MISS;
   }
 
   /* ---- BASE ONLY -------------------------------------------------------------------- */

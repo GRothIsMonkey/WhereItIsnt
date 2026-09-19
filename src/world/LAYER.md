@@ -92,3 +92,37 @@ changing mining, placement, doors and the look-target prompt in the same phase) 
 seam Phase 34 already named).
 
 Proved behaviour-identical against the pre-phase build: **11,447 values, zero differences.**
+
+> **The raycast omission was ANSWERED by D1 Phase 2, and not by changing `voxelRaycast`.**
+> See `raycast.js` below. The block-identity omission still stands.
+
+## `composite-physical-world.js` — one world made of more than one thing (D1 Phase 1)
+
+`CompositePhysicalWorld` implements the full eleven-query contract over a **base** (a
+complete `PhysicalWorld`) plus zero or more **partial providers** (`AssetCollisionSet`).
+UNION for solidity, MAXIMUM for ground height, BASE ONLY for water and the six forwarded
+queries, base + provider revision for `editEpoch`. A provider's `null` ground height means
+*no opinion* and is never read as zero.
+
+Order-independent by construction, so `addProvider` order cannot change an answer.
+`D1TerrainWorld.physical` is the composite and is what gameplay uses; `world.terrain` is the
+bare heightfield, kept reachable for tests. Per-query policy table: ARCHITECTURE.md §4.11.
+
+## `raycast.js` — the normalized hit vocabulary (D1 Phase 2)
+
+The **second** query, beside the eleven. `raycast(origin, direction, maxDistance)` returns
+`{ distance, point, normal, category, ref, providerId }` or **`null`** — a plain object that
+names no `THREE` type and carries no block id.
+
+Four backends implement it and must not drift: `VoxelPhysicalWorld` (an **adapter** over the
+existing `voxelRaycast` — nothing reimplemented, and that function's type was NOT changed),
+`TerrainPhysicalWorld` (march plus bisection), `AssetCollisionSet` (slab test against
+**declared proxy boxes**, never the render mesh) and `CompositePhysicalWorld` (nearest hit,
+and unlike `collidesAABB` it may **not** short-circuit).
+
+Conventions are one set for every provider: world-space origin, **caller-normalized**
+direction, explicit `maxDistance`, solid from both sides. Ties break by declared category
+rank and then a stable proxy id — **never** by registration order, which is why the proxy id
+counter is module-level rather than per-set.
+
+ARCHITECTURE.md §4.12.

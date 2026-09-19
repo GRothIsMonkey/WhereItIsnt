@@ -129,6 +129,63 @@ class TerrainPhysicalWorld {
     return d1TerrainHeight(x, z);
   }
 
+  /* ---- D1 PHASE 2 — THE NORMALIZED RAYCAST ---------------------------------------- */
+
+  /* WHERE THIS RAY MEETS THE GROUND, or null.
+
+     A heightfield has no triangles to intersect and no closed-form solution, so this is a
+     MARCH: step along the ray until the sample point drops below the surface, then bisect
+     the last interval to converge on the crossing. That is the same reasoning
+     `collidesAABB` is built on — the terrain is a height FUNCTION, and the right way to ask
+     it a question is to evaluate it, not to intersect a mesh whose resolution changes with
+     the camera.
+
+     THE STEP IS THE ACCURACY / COST TRADE AND IT IS DELIBERATE. A coarse march can step
+     over a thin ridge; a fine one costs a height evaluation per step. 0.5 m matches
+     `D1_COLLIDE_PROBE_STEP` — the same resolution the collision query already trusts on
+     this terrain — and twelve bisections then pin the crossing to under a millimetre, which
+     is far below anything a player can aim at.
+
+     A ray that starts BELOW the surface reports a hit at distance 0: solid from both sides,
+     the convention src/world/raycast.js states for every provider.
+
+     The normal comes from the terrain's own analytic gradient, so it is the real surface
+     normal rather than the facet normal of whatever LOD happens to be resident. */
+  raycast(origin, direction, maxDistance) {
+    const ox = origin.x, oy = origin.y, oz = origin.z;
+    const dx = direction.x, dy = direction.y, dz = direction.z;
+
+    const below = (t) => (oy + dy * t) < d1TerrainHeight(ox + dx * t, oz + dz * t);
+
+    if (below(0)) {
+      const n = d1TerrainNormal(ox, oz);
+      return makeRayHit(0, { x: ox, y: oy, z: oz }, n ? { x: n.x, y: n.y, z: n.z } : null,
+                        RAYCAST_CATEGORY.TERRAIN, null, null);
+    }
+
+    const step = D1_COLLIDE_PROBE_STEP;
+    let prev = 0;
+    for (let t = step; ; t += step) {
+      const at = Math.min(t, maxDistance);
+      if (below(at)) {
+        /* Bisect the bracket [prev, at]: prev is above the surface, at is below. */
+        let lo = prev, hi = at;
+        for (let i = 0; i < 12; i++) {
+          const mid = (lo + hi) * 0.5;
+          if (below(mid)) hi = mid; else lo = mid;
+        }
+        const px = ox + dx * hi, py = oy + dy * hi, pz = oz + dz * hi;
+        const n = d1TerrainNormal(px, pz);
+        return makeRayHit(hi, { x: px, y: py, z: pz },
+                          n ? { x: n.x, y: n.y, z: n.z } : null,
+                          RAYCAST_CATEGORY.TERRAIN, null, null);
+      }
+      prev = at;
+      if (at >= maxDistance) break;
+    }
+    return RAYCAST_MISS;
+  }
+
   /* 0 dry / 1 wadeable / 2 swimmable, matching the voxel implementation's tri-state
      exactly — the callers compare against those three values and the contract's meaning
      must not shift because the representation did. The thresholds are the player's own

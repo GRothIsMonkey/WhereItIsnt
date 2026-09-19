@@ -60,7 +60,10 @@ const T = (() => {
       this.groundHeightAt = function () { return null; }; };
   `, ctx);
   /* D1 PHASE 1 — the terrain world now composes through CompositePhysicalWorld, which
-     lives one directory up. Loaded first because terrain-world.js names it. */
+     lives one directory up. D1 PHASE 2 — and the normalized raycast vocabulary it and the
+     terrain backend both build hits with. Loaded first because they are named downstream. */
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'src', 'world', 'raycast.js'), 'utf8'),
+                  ctx, { filename: 'raycast.js' });
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'src', 'world', 'composite-physical-world.js'), 'utf8'),
                   ctx, { filename: 'composite-physical-world.js' });
   for (const f of FILES) vm.runInContext(read(f), ctx, { filename: f });
@@ -77,7 +80,8 @@ const T = (() => {
     'd1AuthoredSites','d1ResetAuthoredSites','d1SitesInRegion','D1_SITE_TERRAIN',
     'd1BuildRegionGeometry','d1BuildRegionWater','TerrainPhysicalWorld','D1TerrainRegions',
     'D1TerrainWorld','terrainMaterialStatus','terrainScatterStatus','terrainAuthoringStatus',
-    'CompositePhysicalWorld'];
+    'CompositePhysicalWorld','RAYCAST_CATEGORY','RAYCAST_MISS','makeRayHit','rayHitBeats',
+    'rayAabbDistance','rayAabbNormal','rayIsNormalized'];
   vm.runInContext('globalThis.__T = {' + EXPORTS.join(',') + '};', ctx);
   return ctx.__T;
 })();

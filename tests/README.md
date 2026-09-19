@@ -273,15 +273,20 @@ Both are gitignored: they are reproducible from git and each is over a megabyte.
 ```
 npm run terrain            # offline: finite bounds, continuity, determinism, the contract
 npm run browser-terrain    # a real scene, a real player, real streaming, real disposal
+npm run composite          # D1 Phase 1: one world composed of terrain + architecture
+npm run raycast            # D1 Phase 2: the normalized ray, and the interaction vocabulary
+npm run browser-raycast    # D1 Phase 2, live: the real terrain, a real GLB, a real camera
 ```
 
 | suite | proves |
 | --- | --- |
 | `terrain.js` | the world is **finite** and the streamer cannot leave it; height is continuous and deterministic; no voxel vocabulary and no `Math.random` anywhere in the layer; the E2.1 contract is complete and matches the voxel implementation's shape; roads, scatter and authored sites all ship **empty** |
 | `browser-terrain.js` | it renders; what a region costs; a body falls onto it and walks 900 m without stepping; regions stream in and out; resources return to baseline; the shared material survives; the legacy voxel game is untouched |
+| `raycast.js` | D1 Phase 2. The hit vocabulary is a contract, not a convention: a miss is `null`, a point is a plain object, the two categories are closed. The slab primitive, including the both-sides rule. The mesh provider raycasts **declared proxies** — an `ASSET_COLLISION.NONE` asset registers nothing and is not hittable. The terrain provider's march lands on the surface `groundHeightAt` reports, honours `maxDistance` and answers 0 from below. The composite takes the NEAREST hit across base and every provider, with a tie-break that is the declared category rank and then a stable proxy id — **and a two-provider tie resolves identically in either registration order**, which is the check that caught the per-set id counter. Lifecycle: a removed proxy stops being hittable on the next query, not the next frame. `voxelRaycast` still returns `{ bx, by, bz, face }`, is still defined with its original signature, is still called by `PlayerController._getLookTarget`, still has its four gameplay consumers, and the voxel backend **adapts** it rather than replacing it. Cost is asserted by **counting heightfield samples, not by a clock** — 22 for a 5 m crosshair ray, 401 for a 200 m miss, linear in `maxDistance`. And the vocabulary: exactly three affordances, no D1 noun anywhere in the file, refusals with reasons, and a layer that resolves and refuses without dispatching anything |
+| `browser-raycast.js` | D1 Phase 2 **in Chromium, over HTTP**. Both new modules load as classic scripts in the shipped page. The live voxel adapter and the live `voxelRaycast` are asked the SAME ray and must agree about the cell struck. The real streamed D1 terrain is hit by a vertical ray and by an **oblique** one, both landing on the surface. A real `road_signs.glb` is loaded through the real `AssetLibrary`, placed on the real terrain and registered in a real `AssetCollisionSet` — the ray is answered by the **declared box**, exactly at its top, carrying the proxy's stable id, and a three.js triangle raycaster on a ray that genuinely meets the mesh confirms the box bounds it. Removing the proxy drops the ray back to the ground immediately. The interaction vocabulary is resolved against that live hit and **adds not one element to the document**. A screenshot of a real camera's ray fan is written. Finally the shipped voxel game is still running, still on `VoxelPhysicalWorld`, with no page error |
 | `composite.js` | ONE physical world composes terrain with mesh/architecture collision; the full E2.1 contract; the resolution policy per query (union for solidity, maximum for ground, base-only for water); provider lifecycle is idempotent and leaks nothing; the answer does not depend on provider order; and the **A/B gate** — terrain answers are identical to the pre-phase build, proved against the file loaded from git |
 
-### Two ways these tests were wrong first, both worth remembering
+### Four ways these tests were wrong first, all worth remembering
 
 **A time-budgeted call is not a determinism test.** Three load/unload cycles read 23/17/17
 because `update()` spends a millisecond budget and builds however many regions the machine
@@ -297,6 +302,21 @@ A third: the screenshot initially showed the **voxel world**, because `PostFX` c
 own `scene`/`camera` at construction and swapping `game.scene` alone does nothing. The suite
 repoints both and then counts `d1-region-*` meshes in what was drawn, because a screenshot
 cannot prove what it is a picture of.
+
+A fourth, from D1 Phase 2, and it is the same shape as all of them: **a comparison against
+something that was never there proves nothing.** `browser-raycast.js` first fired its
+three.js triangle raycaster straight down the instance origin, where this validation asset
+has no geometry — three.js reported no hit, the "a box bounds its mesh" assertion had nothing
+to compare, and it passed. It now searches the footprint for a ray that genuinely meets the
+mesh and asserts a triangle was found *before* comparing. Twice in the same suite: its ray
+fan struck only the asset, so the screenshot carried one colour and the caption under it was
+not true of the picture; the fan is now wide enough to leave the asset and the suite asserts
+**both** categories were struck.
+
+And a fact about the validation asset that surprises every test written against it: at its
+native scale `prop.road-signs` is **139.75 x 23.36 x 18.82 m**, because E2.0a normalises
+nothing and REPORTS the native scale rather than guessing at it. A test that places it and
+then reasons about what is nearby is reasoning about a 140-metre object.
 
 ## ERA 2 E2.0a — THE ASSET PIPELINE
 

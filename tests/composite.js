@@ -96,6 +96,8 @@ function boot(terrainPhysicalSource) {
   ctx.globalThis = ctx;
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'src', 'shared', 'simplex-noise.js'), 'utf8'), ctx);
   vm.runInContext(makeThreeStub(), ctx);
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'src', 'world', 'raycast.js'), 'utf8'),
+                  ctx, { filename: 'raycast.js' });
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'src', 'assets', 'asset-collision.js'), 'utf8'),
                   ctx, { filename: 'asset-collision.js' });
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'src', 'world', 'composite-physical-world.js'), 'utf8'),
@@ -147,13 +149,20 @@ chk(threw, 'a composite REFUSES to be built without a base — it has no answers
 head('2. A/B AGAINST THE PRE-PHASE BUILD — TERRAIN BEHAVIOUR IS UNCHANGED');
 
 /* The OLD terrain physical world composed assets inline. Booted here from git, unmodified,
-   so the comparison is against what actually shipped rather than a memory of it. */
+   so the comparison is against what actually shipped rather than a memory of it.
+
+   THE REF IS PINNED, NOT `HEAD`, AND THAT MATTERS. This assertion's claim is "terrain
+   answers are identical to the build BEFORE the composite existed". Read from HEAD it would
+   have quietly become "identical to the previous commit" the moment Phase 1 landed — still
+   green, and no longer the claim in its own message. `961a975` is the last commit before
+   D1 Implementation Phase 1, the same way tests/README.md pins the comparison fixtures. */
+const PRE_COMPOSITE_REF = '961a975';
 let OLD = null;
 try {
-  const oldSrc = execFileSync('git', ['show', 'HEAD:src/world/terrain/terrain-physical-world.js'],
+  const oldSrc = execFileSync('git', ['show', PRE_COMPOSITE_REF + ':src/world/terrain/terrain-physical-world.js'],
                               { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 24 });
   OLD = boot(oldSrc);
-  note('pre-phase terrain-physical-world.js loaded from git HEAD');
+  note('pre-composite terrain-physical-world.js loaded from git ' + PRE_COMPOSITE_REF);
 } catch (e) {
   note('could not load the pre-phase file from git: ' + e.message);
 }

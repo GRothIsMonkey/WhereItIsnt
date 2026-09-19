@@ -69,6 +69,30 @@
    to rediscover the reasoning.
 
    ─────────────────────────────────────────────────────────────────────────────────────
+   D1 PHASE 2 ANSWERED THE RAYCAST OMISSION, AND NOT BY CHANGING `voxelRaycast`
+
+   The paragraph above is still true: `voxelRaycast` returns block coordinates and a block
+   face, and mining, placement, door toggling and the look-target prompt all depend on that
+   type. **All four are untouched, and so is `voxelRaycast` itself.**
+
+   What Phase 2 added is a SECOND query — `raycast(origin, direction, maxDistance)` —
+   returning the representation-neutral hit that `src/world/raycast.js` defines. This class
+   implements it by ADAPTING the existing DDA rather than reimplementing one, which is the
+   honest thing to do when a raycast concept already exists: the voxel world really does
+   know where the ray meets a block, and the adapter's only job is to express that answer in
+   the shared vocabulary.
+
+   ONE LIMIT IS RECORDED RATHER THAN HIDDEN. `voxelRaycast` refines a hit against a shaped
+   block's own boxes but returns only the cell and the face, discarding the exact `t` it
+   computed. The adapter therefore recovers the distance by intersecting the ray with the
+   hit CELL, which for a shaped block (a slab, a stair, a fence) is the cell's entry rather
+   than the shape's. The face is exact; the distance can be up to one cell optimistic on a
+   shaped block. That is correct for every full cube, it is bounded and known, and fixing it
+   means changing `voxelRaycast`'s return type — which is precisely what this phase is
+   forbidden to do. The voxel INTERACTION path does not use this method; it still calls
+   `voxelRaycast` directly and is unaffected.
+
+   ─────────────────────────────────────────────────────────────────────────────────────
    NO NUMBER IN HERE DECIDES ANYTHING
 
    This file OBTAINS values. Every rate, threshold, radius and rule stayed with the system
@@ -105,6 +129,37 @@ class VoxelPhysicalWorld {
 
   waterLevelAt(x, y, z) {
     return this.world.waterLevelAt(x, y, z);
+  }
+
+  /* THE NORMALIZED RAYCAST — an ADAPTER over `voxelRaycast`, see the header.
+
+     `voxelRaycast` is named from inside this function body rather than at load time, which
+     is the module rule that lets a `src/` file reach a name the monolith declares later
+     (ARCHITECTURE.md section 0). Nothing is reimplemented here. */
+  raycast(origin, direction, maxDistance) {
+    const hit = voxelRaycast(this.world, origin, direction, maxDistance);
+    if (!hit) return RAYCAST_MISS;
+
+    /* The cell the DDA stopped in, as a world-space box. */
+    const cell = { minX: hit.bx, minY: hit.by, minZ: hit.bz,
+                   maxX: hit.bx + 1, maxY: hit.by + 1, maxZ: hit.bz + 1 };
+    let t = rayAabbDistance(origin.x, origin.y, origin.z,
+                            direction.x, direction.y, direction.z, cell, maxDistance);
+    if (t === null) t = 0;                   // the ray began inside the cell
+
+    /* The face `voxelRaycast` already resolved — exact, including for shaped blocks. */
+    const f = hit.face;
+    const normal = (f && (f[0] || f[1] || f[2])) ? { x: f[0], y: f[1], z: f[2] } : null;
+
+    return makeRayHit(
+      t,
+      { x: origin.x + direction.x * t, y: origin.y + direction.y * t,
+        z: origin.z + direction.z * t },
+      normal,
+      RAYCAST_CATEGORY.TERRAIN,
+      null,
+      null,
+    );
   }
 
   /* IS THIS FOOTPRINT STREAMED IN? Asked in WORLD UNITS, not chunk units.

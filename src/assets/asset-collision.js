@@ -75,12 +75,30 @@ function assetLocalProxy(key, source) {
   return [];
 }
 
+/* D1 PHASE 2 — THE PROXY ID COUNTER, AND IT IS DELIBERATELY NOT PER-SET.
+
+   It exists for the raycast tie-break: when two proxies are struck at effectively the same
+   distance, something has to choose, and "whichever happens to be earlier in the array" is
+   not a rule — a removal shifts every later index.
+
+   IT IS SHARED BY EVERY SET BECAUSE A PER-SET COUNTER IS NOT A TIE-BREAK. Two sets composed
+   as two providers would both mint id 1, the tie-break would find them equal, and the winner
+   would fall back to the order the composite happened to consult them in — which is the one
+   thing the rule exists to forbid. `tests/raycast.js` catches exactly that: with per-set ids
+   its two-provider tie test passed while comparing two DIFFERENT entries that merely shared
+   a number.
+
+   It is a runtime handle and nothing else. It is never saved, never hashed, never fed into
+   generation, and carries no meaning beyond "not the same proxy as that one" — so it is not
+   a determinism surface in the sense of CLAUDE.md section 11. */
+let _assetProxyNextId = 1;
+
 /* A set of placed proxies. Bounded, flat, and deliberately unindexed: E2.0a places one
    asset, and a spatial index chosen before there is a distribution to measure is a guess.
    The phase that places thousands adds one, with a benchmark — CLAUDE.md section 14. */
 class AssetCollisionSet {
   constructor() {
-    this.entries = [];        // { instance, key, boxes: [world-space] }
+    this.entries = [];        // { id, instance, key, boxes: [world-space] }
   }
 
   get size() { return this.entries.length; }
@@ -114,7 +132,7 @@ class AssetCollisionSet {
       }
       return assetBox(nx, ny, nz, xx, xy, xz);
     });
-    this.entries.push({ instance, key, boxes });
+    this.entries.push({ id: _assetProxyNextId++, instance, key, boxes });
     return boxes.length;
   }
 
@@ -150,6 +168,45 @@ class AssetCollisionSet {
       for (const b of e.boxes)
         if (x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ)
           if (best === null || b.maxY > best) best = b.maxY;
+    return best;
+  }
+
+  /* ---- D1 PHASE 2 — THE NORMALIZED RAYCAST ---------------------------------------- */
+
+  /* THE NEAREST PROXY ALONG THIS RAY, or null.
+
+     This is the MESH/ARCHITECTURE provider for the composite's raycast, and it deliberately
+     raycasts the DECLARED COLLISION PROXIES — never the render mesh. A decorative object
+     with `ASSET_COLLISION.NONE` contributes no boxes at `add` time and is therefore not
+     hittable here at all, which is the same rule `collidesAABB` already follows and is why
+     "an asset does not bring its own physics" survives into interaction.
+
+     `direction` must already be normalized — one convention for every provider, stated in
+     src/world/raycast.js. Distances are world units along the ray.
+
+     The `ref` on the returned hit is the entry's STABLE ID, not the instance and not the
+     mesh: the id is what a later system keys an interaction target on, and handing out the
+     THREE object here would put the renderer back into gameplay's hands. */
+  raycast(origin, direction, maxDistance) {
+    const ox = origin.x, oy = origin.y, oz = origin.z;
+    const dx = direction.x, dy = direction.y, dz = direction.z;
+    let best = null;
+
+    for (const e of this.entries) {
+      for (const b of e.boxes) {
+        const t = rayAabbDistance(ox, oy, oz, dx, dy, dz, b, maxDistance);
+        if (t === null || t > maxDistance) continue;
+        const hit = makeRayHit(
+          t,
+          { x: ox + dx * t, y: oy + dy * t, z: oz + dz * t },
+          rayAabbNormal(ox, oy, oz, dx, dy, dz, b, t),
+          RAYCAST_CATEGORY.ASSET,
+          e.id,
+          e.id,
+        );
+        if (rayHitBeats(hit, best)) best = hit;
+      }
+    }
     return best;
   }
 }

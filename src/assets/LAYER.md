@@ -23,7 +23,7 @@ Asserted in `tests/architecture.js` §4i.
 | `asset-registry.js` | 180 | **WHAT EXISTS.** Keys, paths, status, collision modes, licences. Pure data plus four lookups. |
 | `asset-materials.js` | 190 | **WHAT SURFACES BECOME.** Colour space, filtering, shadow flags, within-asset material dedup, resource collection. |
 | `asset-library.js` | 289 | **FILES.** GLTFLoader, cache, reference counting, disposal, failure latching, the transport aggregate. |
-| `asset-collision.js` | 155 | **WHAT SHAPE A PLACED MODEL IS.** Declared proxies, world-space boxes, three PhysicalWorld-shaped queries. |
+| `asset-collision.js` | 212 | **WHAT SHAPE A PLACED MODEL IS.** Declared proxies, world-space boxes, three PhysicalWorld-shaped queries, and (D1 Phase 2) the normalized raycast over those same proxies. |
 
 ## The rules that hold
 
@@ -37,7 +37,15 @@ Asserted in `tests/architecture.js` §4i.
   it is a validation asset; it ships **zero** production assets.
 - **AN ASSET DOES NOT BRING ITS OWN PHYSICS.** Collision comes from a declared proxy.
   There is no `mesh` collision mode, deliberately — a render mesh as a collision surface is
-  the coupling E2.1 exists to prevent, wearing a new costume.
+  the coupling E2.1 exists to prevent, wearing a new costume. **D1 Phase 2 extended that to
+  aiming**: `AssetCollisionSet.raycast` intersects the declared boxes, so an asset with
+  `ASSET_COLLISION.NONE` registers nothing and cannot be aimed at any more than it can be
+  walked into. `tests/raycast.js` proves it with a decorative fixture.
+- **A PROXY'S ID IS A STABLE RUNTIME HANDLE AND THE COUNTER IS SHARED BY EVERY SET.** It is
+  the raycast tie-break, and a per-set counter would let two sets mint the same number and
+  push the decision back onto the order the composite consulted them in. Never saved, never
+  hashed, never fed into generation. A hit's `ref` is that id — never the instance and never
+  the mesh.
 - **ONE SOURCE, MANY CLONES, ONE OWNER.** `acquire()` clones; clones share geometry,
   material and texture with the cached source; `release()` drops a reference and only the
   last one disposes. A caller never disposes anything it finds inside an instance.
