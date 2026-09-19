@@ -370,14 +370,34 @@ else {
     /* ERA 2 E2.0a — THREE per asset file. The registry is DATA and the collision set is
        geometry MATHS; a drifting responsibility shows up here first. A ceiling may fall.
        It may never rise. */
+    /* D1 PHASE 3 — THESE THREE NUMBERS ARE MEASURED FOR THE FIRST TIME, NOT RAISED.
+
+       The E2.0a table below said 4 / 4 / 1 and nothing ever compared anything to it (see
+       the roll-up further down, where ASSET_BUDGET was left out of `BOTH`). The written
+       numbers were an estimate of the CONSTRUCTION SITES; the probe counts every `THREE`
+       node, including the `typeof THREE` guard each lazy accessor opens with. So they were
+       wrong from the day they were typed and nothing said so.
+
+       They are now the counts this build actually has. **Nothing was relaxed**: the same
+       two files measure 8 and 5 at the commit before this phase as well, and D1 Phase 3
+       added no THREE reference to any of them. A number that was never in force is not a
+       ceiling being raised — it is a ceiling being set, the way Era 1.5.1 set the P0
+       hotspot ceilings against the build in front of it. From here: A CEILING MAY FALL. IT
+       MAY NEVER RISE. */
     const ASSET_BUDGET = {
-      'src/assets/asset-library.js':   { THREE: 4 },
-      //  THREE: GLTFLoader (the one construction site), Box3 and two Vector3 in _measure.
-      'src/assets/asset-materials.js': { THREE: 4 },
-      //  THREE: the two colour-space spellings, r128's and r152+'s, asked for rather than
-      //         assumed — which is what makes the pipeline version-agnostic.
+      'src/assets/asset-library.js':   { THREE: 8 },
+      //  THREE: the `typeof THREE` guard and `THREE.GLTFLoader` in the lazy accessor, the
+      //         one `new THREE.GLTFLoader()`, then Box3 and four Vector3 in _measure.
+      'src/assets/asset-materials.js': { THREE: 5 },
+      //  THREE: the `typeof THREE` guard, and the two colour-space spellings — r128's and
+      //         r152+'s — each asked for twice. That pair is what makes the pipeline
+      //         version-agnostic and it is the whole of this file's renderer contact.
       'src/assets/asset-collision.js': { THREE: 1 },
       //  THREE: one Vector3, transforming proxy corners into world space.
+      'src/assets/asset-budgets.js':   { THREE: 0 },
+      'src/assets/asset-measure.js':   { THREE: 0 },
+      //  THREE: NONE, and locked there. D1 Phase 3's guardrail measures duck-typed objects
+      //         so it outlives the renderer it is measuring. Section 4i re-asserts it.
       //  asset-registry.js is deliberately absent: 0, and tests/assets.js re-asserts it.
     };
     const APP_BUDGET = {
@@ -429,7 +449,16 @@ else {
     /* THE APPLICATION BUDGET IS AUDITED IN BOTH DIRECTIONS TOO. */
     {
       let over = 0, stale = 0;
-      const BOTH = Object.assign({}, APP_BUDGET, RENDER_BUDGET);
+      /* D1 PHASE 3 — `ASSET_BUDGET` WAS DECLARED AND NEVER ENFORCED, AND IT IS THE SHAPE
+         THIS REPOSITORY KEEPS FINDING. E2.0a wrote a per-file THREE ceiling for the asset
+         layer, the loop above dutifully COUNTED against it into `appSeen`, and then this
+         roll-up compared only APP_BUDGET and RENDER_BUDGET. `FORBIDDEN.assets` does not
+         list THREE either, so nothing anywhere checked those three numbers: the table read
+         as a ratchet and was decoration.
+         Found while adding two modules to that layer and reasoning that the ceiling would
+         catch a THREE reference in them. It would not have. CLAUDE.md sections 61.05-61.07:
+         when a test stands in for a claim, ask which half of the claim it covers. */
+      const BOTH = Object.assign({}, APP_BUDGET, RENDER_BUDGET, ASSET_BUDGET);
       for (const name of Object.keys(BOTH)) {
         if (!appSeen[name]) { stale++; continue; }
         for (const k of Object.keys(BOTH[name]))
@@ -1607,16 +1636,19 @@ console.log('\n=== 4i. THE ASSET PIPELINE (ERA 2, E2.0a) ===\n');
 {
   const fs2 = require('fs');
   const dir = path.join(SRCDIR, 'assets');
-  const FILES = ['asset-registry.js', 'asset-materials.js', 'asset-library.js', 'asset-collision.js'];
+  /* DERIVED, NOT TYPED. D1 Phase 3 added two modules here; a hardcoded list would have
+     gone on passing while checking four files out of six. The E2.0a four are asserted
+     present by name underneath, so deriving cannot hide a deletion. */
+  const FILES = fs2.existsSync(dir)
+    ? fs2.readdirSync(dir).filter((f) => f.endsWith('.js')).sort() : [];
+  const REQUIRED = ['asset-collision.js', 'asset-library.js', 'asset-materials.js',
+                    'asset-registry.js'];
   chk(fs2.existsSync(dir), 'src/assets/ exists — the Era 2 asset pipeline');
   chk(fs2.existsSync(path.join(dir, 'LAYER.md')), 'and carries a LAYER.md');
 
   const texts = {};
-  for (const f of FILES) {
-    const fp = path.join(dir, f);
-    chk(fs2.existsSync(fp), 'src/assets/' + f + ' exists');
-    texts[f] = fs2.existsSync(fp) ? fs2.readFileSync(fp, 'utf8') : '';
-  }
+  for (const f of REQUIRED) chk(FILES.indexOf(f) >= 0, 'src/assets/' + f + ' exists');
+  for (const f of FILES) texts[f] = fs2.readFileSync(path.join(dir, f), 'utf8');
   const strip = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 
   /* ---- 1. NO VOXEL VOCABULARY, ANYWHERE IN THE LAYER ----
@@ -1651,6 +1683,31 @@ console.log('\n=== 4i. THE ASSET PIPELINE (ERA 2, E2.0a) ===\n');
   chk(threeCount('asset-registry.js') === 0, 'asset-registry.js is pure data — 0 THREE references');
   const collThree = threeCount('asset-collision.js');
   chk(collThree <= 2, 'asset-collision.js names THREE at most twice (has ' + collThree + ')');
+
+  /* ---- 3b. D1 PHASE 3 — THE BUDGET AND MEASUREMENT MODULES ARE LOCKED AT ZERO ----
+     They measure DUCK-TYPED objects — `isMesh`, `geometry.index.count`,
+     `matrixWorld.elements` — which is what lets the same code measure a three.js scene
+     today and whatever Era 2's renderer rebirth produces tomorrow. A THREE reference here
+     would quietly tie the guardrail to the thing it is supposed to outlive.
+     A CEILING MAY FALL. IT MAY NEVER RISE. */
+  for (const f of ['asset-budgets.js', 'asset-measure.js']) {
+    chk(FILES.indexOf(f) >= 0, 'src/assets/' + f + ' exists — the D1 Phase 3 guardrail');
+    chk(threeCount(f) === 0, f + ' names THREE zero times — it outlives the renderer');
+  }
+
+  /* ---- 3c. THERE IS ONE COUNTING DEFINITION AND ONE PLACE THAT DECLARES IT ----
+     `countNodeTriangles` is it. Before Phase 3 `normalizeAssetMaterials` had its own inline
+     count that also divided a Points cloud's VERTEX count by three, so two numbers called
+     "triangles" disagreed. Two counts that disagree is the failure CLAUDE.md sections
+     61.05-61.07 name three times in the audio system. */
+  const declarations = FILES.filter((f) => /function\s+countNodeTriangles\s*\(/.test(texts[f] || ''));
+  chk(declarations.length === 1,
+      'exactly ONE file declares countNodeTriangles (' + declarations.join(', ') + ')');
+  const inlineCounts = FILES.filter((f) => f !== 'asset-measure.js' &&
+    /(index|position)\.count\s*\/\s*3/.test(strip(texts[f] || '')));
+  chk(inlineCounts.length === 0,
+      'and no other asset module divides a vertex or index count by three' +
+      (inlineCounts.length ? ' — FOUND: ' + inlineCounts.join(', ') : ''));
 
   /* ---- 4. THE LOADER IS RESOLVED IN EXACTLY ONE PLACE ----
      This is what makes the pipeline version-agnostic, and it is why the deferred r186

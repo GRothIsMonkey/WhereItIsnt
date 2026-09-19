@@ -25,7 +25,15 @@ const note = (m) => console.log('      ' + m);
 const head = (t) => console.log('\n--- ' + t + ' ' + '-'.repeat(Math.max(0, 74 - t.length)));
 
 const ASSET_DIR = path.join(ROOT, 'src', 'assets');
-const MODULES = ['asset-registry.js', 'asset-materials.js', 'asset-library.js', 'asset-collision.js'];
+/* DERIVED FROM THE DIRECTORY, NOT TYPED OUT. D1 Phase 3 added two modules to this layer
+   and a hand-written list would have gone on passing while covering four files out of six —
+   the exact shape CLAUDE.md sections 61.05-61.07 name three times and section 62.10 names
+   again for the DOM hooks. The four E2.0a modules are asserted present separately below, so
+   deriving the list cannot hide a deletion either. */
+const MODULES = fs.readdirSync(path.join(ROOT, 'src', 'assets'))
+                  .filter((f) => f.endsWith('.js')).sort();
+const E2_0A_MODULES = ['asset-collision.js', 'asset-library.js', 'asset-materials.js',
+                       'asset-registry.js'];
 const read = (f) => fs.readFileSync(path.join(ASSET_DIR, f), 'utf8');
 const strip = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 
@@ -205,7 +213,12 @@ for (const q of ['collidesAABB', 'groundHeightAt', 'isSolid']) {
 }
 
 // =====================================================================================
-head('6. THE FOUR MODULES ARE CLASSIC SCRIPTS AND OBEY THE LAYER RULES');
+head('6. EVERY MODULE IN THE LAYER IS A CLASSIC SCRIPT AND OBEYS THE LAYER RULES');
+
+note('src/assets/ holds ' + MODULES.length + ' modules: ' + MODULES.join(', '));
+for (const f of E2_0A_MODULES) {
+  chk(MODULES.indexOf(f) >= 0, 'the E2.0a module ' + f + ' is still here');
+}
 
 for (const f of MODULES) {
   const raw = read(f);

@@ -3234,6 +3234,15 @@ one of its gameplay callers were left exactly as they were. Engineering only: **
 target, no prompt, no verb and no D1 content is authored by it.** See `ARCHITECTURE.md`
 section 4.12.
 
+**Phase 3 — Visual rules + production budget enforcement: COMPLETE.** `VISUAL_RULE_BIBLE.md`
+section 9.1's production budgets are now a measurable model with a validator, and geometry,
+materials, textures, texel density and live scene resources can all be measured
+deterministically. Budgets stay GUIDELINES: every result reports both what the number is and
+what a gate should do about it, only the texture rule blocks, and a deliberate overrun must
+be stated on the asset with a reason and reads as an exception rather than a pass.
+Engineering only: **no production asset, no Blender, no Astra, no D1 content.** See
+`ARCHITECTURE.md` section 4.13.
+
 1. D1 world/layout foundation
 2. landmark placement and traversal
 3. reusable rural/environment assets

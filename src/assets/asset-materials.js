@@ -106,7 +106,7 @@ function normalizeAssetMaterials(root, opts) {
   const policy = ASSET_MATERIAL_POLICY;
   const report = {
     meshes: 0, materialsBefore: 0, materialsAfter: 0, deduped: 0,
-    textures: 0, srgbMarked: 0, triangles: 0,
+    textures: 0, srgbMarked: 0, triangles: 0, normalized: 0,
   };
   if (!root) return report;
 
@@ -116,15 +116,9 @@ function normalizeAssetMaterials(root, opts) {
 
   root.traverse((node) => {
     if (!node.isMesh && !node.isPoints && !node.isLine) return;
-    report.meshes++;
+    report.normalized++;
     node.castShadow = o.castShadow !== undefined ? o.castShadow : policy.castShadow;
     node.receiveShadow = o.receiveShadow !== undefined ? o.receiveShadow : policy.receiveShadow;
-
-    const g = node.geometry;
-    if (g) {
-      if (g.index) report.triangles += g.index.count / 3;
-      else if (g.attributes && g.attributes.position) report.triangles += g.attributes.position.count / 3;
-    }
 
     const mats = Array.isArray(node.material) ? node.material : [node.material];
     const out = [];
@@ -163,7 +157,32 @@ function normalizeAssetMaterials(root, opts) {
   });
 
   report.materialsAfter = bySignature.size;
-  report.triangles = Math.round(report.triangles);
+
+  /* D1 PHASE 3 — THE COUNTS COME FROM THE ONE COUNTING DEFINITION.
+
+     This function used to count triangles inline, in the same loop that normalises
+     materials, and that loop deliberately includes `isPoints` and `isLine` nodes because
+     they have materials to normalise. So a points cloud's VERTEX count was being divided by
+     three and added to a triangle total, and a hidden helper mesh counted as fully as a
+     visible one. Neither is what section 9.1's budgets mean.
+
+     `measureAssetGeometry` is now the only place in the build that decides what a triangle
+     is (src/assets/asset-measure.js), and this report takes both of its player-facing counts
+     from it. The normalising traversal above is UNCHANGED and still touches hidden nodes —
+     it must, because a hidden node may be shown later and an unnormalised material is a
+     rendering bug whenever it appears. `normalized` records how many nodes it touched, so
+     the two numbers are both available and neither is pretending to be the other.
+
+     Named from inside a function body, which is the classic-script rule, and guarded because
+     asset-materials.js is evaluated alone by tests. */
+  if (typeof measureAssetGeometry === 'function') {
+    const geo = measureAssetGeometry(root, { updateMatrices: false });
+    report.meshes = geo.meshes;
+    report.triangles = geo.triangles;
+  } else {
+    report.meshes = report.normalized;
+    report.triangles = Math.round(report.triangles);
+  }
   return report;
 }
 

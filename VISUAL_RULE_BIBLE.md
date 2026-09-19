@@ -419,6 +419,23 @@ two assets at different densities read as two games, however good each one is on
 * A budget is checked against the CAMERA, not the viewport of a modelling tool. Section 36
   is the test: if it does not change what the player sees, it did not need the triangles.
 
+## These numbers are now checked, and this section is still the source
+
+The table above and the two texel-density figures are implemented as the measurable subset of
+this section in `src/assets/asset-budgets.js`, and `tests/budgets.js` **reads them out of this
+file** and asserts the code agrees — matching rows by the labels written here. So the two
+cannot drift apart without a test going red, and **this document stays the place the numbers
+are decided.** If they ever disagree, this file is right and the code is wrong.
+
+What the checker preserves, because it is what this section says: they are GUIDELINES. A
+triangle or texel-density overrun is reported and does not fail anything. The one rule that
+blocks is texture dimension, because that is the one named above. And an asset with a real
+reason to exceed a budget states the reason on the asset itself, where a reviewer can see it —
+which is this section's own sentence turned into something mechanical.
+
+`ARCHITECTURE.md` section 4.13 is the engineering side of this. It changes no rule written
+here.
+
 ---
 
 # 10. COLOR LANGUAGE

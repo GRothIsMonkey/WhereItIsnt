@@ -114,6 +114,7 @@ const ASSET_LIMITS = Object.freeze({
    `credit`     key into ASSET_CREDITS
    `lod`        RESERVED, always null in E2.0a. Adding LODs later is a row edit.
    `compression` RESERVED, always null in E2.0a. KTX2/Draco is a later phase.
+   `budget`     D1 PHASE 3. `null`, or { class, exceptions } — see below.
    ------------------------------------------------------------------------------------- */
 const MODEL_ASSETS = Object.freeze({
   /* THE PIPELINE VALIDATION ASSET, AND NOTHING ELSE.
@@ -134,6 +135,17 @@ const MODEL_ASSETS = Object.freeze({
     credit: 'prop.road-signs',
     lod: null,
     compression: null,
+    /* D1 PHASE 3 — NULL, AND THAT IS THE CORRECT VALUE FOR THIS ROW.
+
+       A VALIDATION asset exists to prove the pipeline and is never placed in the shipped
+       world, so `VISUAL_RULE_BIBLE.md` section 9.1's PRODUCTION budgets do not apply to it
+       and declaring a class here would invent a creative decision. At its native scale this
+       model is 139.75 x 23.36 x 18.82 m — it is a scale probe, not a prop.
+
+       `assetBudgetSpecOf` returns null for it and the validator answers `unavailable`,
+       which is the honest outcome: E2.0a ships zero production assets, so there is nothing
+       in this repository that a production budget applies to yet. */
+    budget: null,
   }),
 });
 
@@ -167,6 +179,24 @@ function modelAssetUrl(key) {
 function isProductionAsset(key) {
   const a = MODEL_ASSETS[key];
   return !!(a && a.status === ASSET_STATUS.PRODUCTION);
+}
+
+/* D1 PHASE 3 — THE BUDGET A ROW DECLARES, OR NULL.
+
+   `{ class, exceptions }` where `class` is a key of `ASSET_BUDGET_CLASSES` and `exceptions`
+   is an optional list of `{ metric, allow, reason }`. The exception lives on the ASSET and
+   nowhere else, which is what makes it reviewable in a diff — `asset-budgets.js` refuses a
+   global switch and refuses an exception with no stated reason.
+
+   Returns null for a row with no budget AND for any VALIDATION asset, whatever it declares.
+   A pipeline probe is not production content and section 9.1's budgets are production
+   guidance; letting one claim a class would put a fake entry in the only table that is
+   supposed to describe the shipped game. */
+function assetBudgetSpecOf(key) {
+  const a = MODEL_ASSETS[key];
+  if (!a || !a.budget) return null;
+  if (a.status !== ASSET_STATUS.PRODUCTION) return null;
+  return a.budget;
 }
 
 /* Assets whose licence forbids a paid, monetised or ad-supported release. The LICENCE

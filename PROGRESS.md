@@ -25,6 +25,18 @@ D1 Impl Phase 2            COMPLETE — the normalized raycast + the interaction
                            D1 IMPLEMENTATION IS NOT STARTED BEYOND THESE TWO: no landmark,
                            no interaction target, no prompt, no verb, no flashlight, no
                            creature and no elevator exists.
+D1 Impl Phase 3            COMPLETE — the visual budget guardrail. VISUAL_RULE_BIBLE.md
+                           section 9.1's budgets are now a measurable model, and the suite
+                           PARSES the bible rather than transcribing it, so a drift either
+                           way fails. Every result carries a band (within/near/over/
+                           unmeasured) and a status (pass/advisory/fail/unavailable/
+                           exception); triangles and texel density are ADVISORY, texture
+                           dimension BLOCKS. ONE counting definition for triangles, used by
+                           the validator, the live scene statistics and the existing
+                           pipeline. Texel density is a state, never a number with a
+                           fallback. Exceptions are local, stated, justified and visible;
+                           there is no global switch. NO production asset, no Blender, no
+                           Astra, no D1 content. See ARCHITECTURE.md section 4.13.
 D1 creative design         LOCKED. D1_DESIGN.md is the SINGLE DETAILED D1 SOURCE OF TRUTH.
                            STORY.md = high-level canon, ROADMAP.md = implementation staging,
                            this file = status. None of them re-specifies a D1 sequence.
@@ -6456,6 +6468,35 @@ and where any of them disagrees with `D1_DESIGN.md` about D1, `D1_DESIGN.md` win
   build throws at the same line with the same message** — this is the `riftArming` defect
   Era 1.5.4 recorded, still decremented by the `dt` clamped to 0.06 for physics safety, so
   its real duration scales with frame rate. Nothing in this phase touched it.
+* **D1 Implementation Phase 3 — Visual rules + production budget enforcement: COMPLETE.**
+  `src/assets/asset-budgets.js` carries the measurable subset of `VISUAL_RULE_BIBLE.md`
+  section 9.1 — six asset classes, their triangle ranges, texture targets and texel-density
+  targets — and `tests/budgets.js` **parses those numbers out of the bible** and joins them
+  by the bible's own row labels, so neither document can drift from the other silently.
+  `src/assets/asset-measure.js` is every measurement: geometry (and the ONE definition of
+  what a triangle is, now used by `normalizeAssetMaterials` too), materials and textures
+  (including *equivalent materials instantiated repeatedly*, which is CLAUDE.md section 72's
+  exporter problem as a number), texel density (a STATE — `measured` / `unavailable` with a
+  reason / `invalid` — never a number with a fallback), live scene statistics and a baseline
+  comparison. **Both modules name zero `THREE`**, because a guardrail must outlive the
+  renderer it measures. Budgets are guidelines and the model says so in its types: a `band`
+  says what the number is, a `status` says what a gate should do, triangles and texel density
+  are advisory, and the one BLOCKING rule is texture dimension — the thing section 9.1 names
+  outright. Exceptions are local to the asset, must state a reason, and report as
+  `exception` rather than `pass`; there is no global bypass. The instrumentation has **no
+  call site in the build** and the browser suite counts zero calls across three seconds of
+  real gameplay. `ARCHITECTURE.md` section 4.13, `tests/budgets.js` (216 checks) and
+  `tests/browser-budgets.js` (38 checks, over HTTP, against a real decoded GLB).
+  **This is a guardrail, not art: no production asset was created, no Blender or Astra work
+  was required, and no D1 landmark, vegetation, lighting, flashlight, creature or content
+  exists.** Save schema still version 5.
+  **VALIDATION:** all 34 offline suites green, 0 failures. 13 of 14 browser suites green one
+  at a time over HTTP. `browser-transitions` is the known `riftArming` blocker (14 PASS / 0
+  FAIL at the Farmlands crossing) — and **the first A/B suggested a regression**, with this
+  build failing and `948e527` passing. Alternating three runs of each showed **one pass in
+  three on BOTH builds**, in opposite order: the suite is a coin toss on this container and
+  one sample was not an A/B. `browser-opening` also exited non-zero inside the sweep and
+  passes completely when run alone.
 * Final D1 first-person playtest: NOT YET COMPLETE
 
 Implementation-level details may still be refined where required by assets, technical

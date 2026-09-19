@@ -1403,6 +1403,257 @@ stands: a green timing-sensitive suite means this container was fast enough, not
 
 ---
 
+## 4.13. THE VISUAL BUDGET GUARDRAIL — D1 IMPLEMENTATION PHASE 3
+
+Two new files in `src/assets/`, and between them they turn `VISUAL_RULE_BIBLE.md` section
+9.1 from prose into something the repository can check.
+
+```
+src/assets/asset-budgets.js  445 lines   the rules, the vocabulary and the validator
+src/assets/asset-measure.js  566 lines   every measurement, and the ONE counting definition
+```
+
+**Both name ZERO `THREE`.** They read duck-typed properties — `isMesh`,
+`geometry.index.count`, `matrixWorld.elements` — so the same code measures a three.js scene
+today and whatever Era 2's renderer rebirth produces tomorrow. That is why they live in
+`src/assets/` (the layer documented as surviving Era 2) rather than in `src/rendering/` (the
+layer documented as being rewritten wholesale): putting the thing that MEASURES the rebuild
+inside the layer being rebuilt is the mistake this file exists to catch.
+
+### Where the numbers live, and who owns them
+
+`VISUAL_RULE_BIBLE.md` section 9.1 **remains the source**. It is a creative document and
+`asset-budgets.js` implements its measurable subset. They are joined mechanically:
+`tests/budgets.js` PARSES the bible's own table and asserts every range, texture target,
+atlas flag and texel target against the model, matching rows by the bible's own label text.
+A drift in either direction is a test failure, which is the only way two documents stay in
+agreement without somebody remembering.
+
+| class | triangles | texture | texel | atlas |
+| --- | ---: | ---: | ---: | :---: |
+| `small-prop` | 200–1,500 | 512 | 64 px/m | |
+| `standard-prop` | 1,000–5,000 | 1024 | 64 px/m | |
+| `architectural-module` | 1,000–6,000 | 1024 | 64 px/m | |
+| `hero-landmark` | 10,000–30,000 | 2048 | 128 px/m | |
+| `major-creature` | 10,000–25,000 | 2048 | 128 px/m | |
+| `small-foliage` | 50–500 | 1024 | 64 px/m | ✔ |
+
+### Two fields, because they answer different questions
+
+Section 9.1 opens with *"They are guidelines, not absolute hard limits."* A validator that
+turns that into pass/fail gets switched off within a month, and one that never fails is
+decoration. So every metric result carries both:
+
+| field | values | what it answers |
+| --- | --- | --- |
+| `band` | `within` · `near` · `over` · `unmeasured` | **what the number is**, against the rule alone |
+| `status` | `pass` · `advisory` · `fail` · `unavailable` · `exception` | **what a gate should do**, once enforcement and any exception are applied |
+
+Collapsing the two makes "clearly over budget" and "a hundred triangles past the boundary"
+the same message, and then neither means anything.
+
+**ADVISORY VS BLOCKING.** Triangles and texel density are `advisory` — they are guidelines
+and a clear overrun produces an `advisory` with band `over`, which is loud and does not stop
+anything. **Texture dimension is `blocking`**, because it is the one the bible names outright:
+*"Avoid unnecessary 4K textures."* A 4K map on a 512-target small prop `fail`s; the same map
+on a 2K-target hero is `advisory`. That asymmetry is the bible's, kept.
+
+**BEING UNDER A MINIMUM NEVER BLOCKS.** The minima catch a MISCLASSIFIED asset — a
+90-triangle object declared a standard prop is probably foliage — not an asset that needs
+more triangles. Under-range is capped at `advisory`, on every rule, including the blocking one.
+
+**THE TOLERANCE IS SCALE-FREE.** `ASSET_BUDGET_NEAR` is 25% **of the boundary**, not of the
+range width. 25% past 1,500 is 375 triangles; 25% past 30,000 is 7,500. A fraction of the
+range width would have made the foliage band 112 and the hero band 5,000 — the same rule
+being strictest on the class that matters least.
+
+**TEXEL DENSITY IS BANDED IN OCTAVES**, because a factor of two is one mip level and because
+the measurement has real uncertainty in it (below). Within one octave of target is `within`,
+two is `near`, beyond is `over`. Banding tighter than the measurement's own error produces
+findings that are noise.
+
+Severity rolls up `pass` < `exception` < `unavailable` < `advisory` < `fail`. An unchecked
+metric outranks a reviewed decision; an actual finding outranks both.
+
+### What a triangle is, exactly
+
+Stated rather than implied, because every one of these is a real choice, and **one function
+(`countNodeTriangles`) is the only place in the build that decides.** `tests/architecture.js`
+§4i asserts exactly one file declares it and that no other asset module divides an index or
+vertex count by three.
+
+| case | rule |
+| --- | --- |
+| indexed | `index.count / 3` |
+| non-indexed | `attributes.position.count / 3` |
+| `Points` / `Line` | **zero.** Reported separately by vertex count |
+| geometry `groups` | do **not** multiply — they partition one index buffer between materials |
+| `InstancedMesh` | source geometry counted **once**; `instances` reported separately. A budget is about the mesh an artist authored |
+| shared geometry | counted **once per mesh**, because it is drawn once per mesh. `uniqueGeometries` reports the upload cost |
+| `visible === false` | excluded, subtree and all, and attributed under `hidden` |
+| `userData.collisionOnly` | excluded and attributed. **Dead today** — this project declares collision as boxes and has no collision meshes — and present so the first DCC that exports one does not silently inflate a landmark's budget |
+
+`normalizeAssetMaterials` now takes its `triangles` and `meshes` from this function.
+It previously counted inline, in the loop that normalises materials — a loop that
+deliberately includes `Points` and `Line` nodes because they have materials — so a points
+cloud's **vertex** count was being divided by three and added to a triangle total. Its
+normalising traversal is unchanged and still visits hidden nodes (it must; a hidden node may
+be shown later); `report.normalized` records how many it touched.
+
+### Textures, materials and what duplication looks like
+
+| number | meaning |
+| --- | --- |
+| `materialSlots` | every material reference across every visible mesh |
+| `uniqueMaterials` | distinct material **objects** |
+| `materialSignatures` | distinct **rendered** materials, via `materialSignature` |
+| `duplicateMaterials` | `uniqueMaterials − materialSignatures` — **CLAUDE.md section 72's exporter problem**: forty identical materials are forty shader programs |
+| `sharedMaterialUses` | `materialSlots − uniqueMaterials` — reuse already happening |
+| `missingTextureData` | a texture reference with no image at all |
+| `unknownTextureSize` | an image with no resolvable dimensions. **A different answer** from missing |
+
+`assetTextureSize` reads three spellings (`image`, r152+'s `source.data`, a compressed
+texture's explicit width/height) and returns **null** rather than a guess. Null becomes
+`unavailable`; an invented 512 would have become a pass.
+
+### Texel density: the formula, and what makes it an estimate
+
+For each sampled triangle of each mesh whose material has a base-colour map:
+
+```
+texels  = uvArea x texWidth x texHeight          (UV space is the unit square)
+metres² = worldArea                              (positions through matrixWorld)
+px/m    = sqrt( Σtexels / ΣworldArea )
+```
+
+The square root is because density is per **linear** metre. Each mesh contributes at **its
+own** map's dimensions, so a 2K body map and a 512 detail map are weighted correctly rather
+than measured against whichever texture happened to be biggest.
+
+**The uncertainty is stated rather than buried.** UV area counts overlap twice, so mirrored
+or stacked shells report denser than they are — the largest single source of error and one
+with no cheap fix. Only meshes with a `map` are sampled. Above `ASSET_TEXEL_SAMPLE_CAP`
+(4,096) triangles per mesh it **strides**, never samples randomly, so two runs give the
+identical number. Non-uniform scale is handled (the world matrix is applied before the area
+is taken); a texture repeated by `repeat` is not.
+
+It returns a **state**: `measured` with the number and its evidence, `unavailable` with a
+reason (no UVs, no map, no dimensions, no area), or `invalid`. **`unavailable` and "outside
+guidance" are different answers**, and the validator keeps them different.
+
+### Exceptions
+
+`{ metric, allow, reason }` on the asset row. All three required; a reason shorter than
+twelve characters is rejected, because "because" is not a reason and an exception nobody has
+to justify is a global switch with extra steps.
+
+- There is **no global bypass**, and `tests/budgets.js` greps for five spellings of one.
+- An **invalid** exception excuses nothing and appears in the output with why it was refused.
+- An exception for 40,000 does **not** excuse 90,000 — it states what was agreed.
+- A metric a valid exception covers reports **`exception`**, never `pass`. A justified hero
+  overrun should look intentional in the validation data; an accidental 4K texture should not.
+- An exception that turned out **not to be needed** is itself a warning. A stale excuse is a
+  finding.
+
+### The registry's `budget` field, and why it is null
+
+`MODEL_ASSETS` reserves `budget` exactly as it reserves `lod` and `compression`.
+`assetBudgetSpecOf(key)` returns null for a row without one **and for any `VALIDATION` asset
+whatever it declares** — a pipeline probe is not production content, and letting one claim a
+class would put a fake entry in the only table that describes the shipped game.
+
+**E2.0a ships zero production assets, so today nothing in this repository has a production
+budget, and that is the correct state rather than a gap.** The validator answers
+`unavailable` for the one asset present, and `tests/browser-budgets.js` asserts it.
+
+### Runtime instrumentation
+
+`measureSceneResources(scene, renderer)` reports what is resident right now: nodes, meshes,
+triangles, vertices, unique geometries, draw groups, instances, hidden totals, materials,
+signatures, duplicates, textures and the largest texture dimension — plus, **separately and
+labelled**, `renderer.info`'s draw calls, drawn triangles, resident geometries and textures,
+and program count.
+
+**Drawn and resident are different numbers and are never conflated.** Measured live: 546,096
+triangles resident in the Overworld scene, 190,722 drawn in one frame across 367 draw calls.
+
+**AND `renderer.info.render` DESCRIBES THE LAST RENDER CALL, NOT THE LAST FRAME.** This
+build's frame ends with the PostFX full-screen quad, so reading it cold reports **1 draw call
+and 2 triangles** — which looks broken and is the correct answer to a differently-phrased
+question. `browser-budgets.js` reports both readings and says which is which.
+
+**STREAMING IS RESPECTED BY CONSTRUCTION.** It counts the scene graph as it stands, so a
+region removed and disposed is not in it; a region resident but hidden is counted under
+`hidden` rather than as live cost. There is no registry of "things that were ever loaded" to
+go stale.
+
+**IT MUTATES NOTHING AND IT IS NEVER SCHEDULED.** `measureAssetGeometry` updates world
+matrices once when measuring a freshly loaded asset; `measureSceneResources` explicitly does
+not, because the renderer already has. There is no call site in the build, and
+`browser-budgets.js` proves it about the running game rather than the source: the functions
+are wrapped, three seconds of real gameplay are played with three.js's own frame counter
+advancing, and both are called **zero** times.
+
+`compareResourceMeasurements(baseline, current)` gives a future phase the ability to say
+"this added 16,442 triangles" instead of "this feels heavier". It **asserts nothing and sets
+no threshold** — CLAUDE.md section 79 forbids claiming a performance budget from one machine,
+and neither module contains the string `fps`.
+
+### A budget that was declared and never enforced
+
+`ASSET_BUDGET` in `tests/architecture.js` §4b has carried a per-file `THREE` ceiling for the
+asset layer since E2.0a. The per-unit loop dutifully **counted** against it — and the roll-up
+that checks ceilings compared only `APP_BUDGET` and `RENDER_BUDGET`. `FORBIDDEN.assets` does
+not list `THREE` either. **Nothing, anywhere, ever compared those three numbers to anything.**
+
+Found while adding two modules to that layer and reasoning that the ceiling would catch a
+`THREE` reference in them. It would not have. The written numbers (4 / 4 / 1) were an estimate
+of construction sites; the AST probe counts every `THREE` node including the `typeof THREE`
+guard each lazy accessor opens with, so they were wrong from the day they were typed.
+
+The ceilings are now **8 / 5 / 1**, enforced, and that is a ceiling being **set** rather than
+raised: the same files measure 8 and 5 at the commit before this phase, and Phase 3 added no
+`THREE` reference to any of them. From here the usual rule applies — **a ceiling may fall, it
+may never rise.** The two new modules are in the table at **0**.
+
+### Validation, and the one drifty suite is A/B'd rather than explained away
+
+All **34 offline suites green, 0 failures**, including the new `budgets.js` at 216 checks.
+**13 of 14 browser suites green**, one at a time over HTTP, including `browser-budgets.js`
+at 38 and `browser-playability.js` at 71 — the latter crossing both rifts through the real
+interaction path.
+
+`browser-transitions.js` is the exception, and it is the `riftArming` defect section 4.6
+recorded: it reaches **14 PASS / 0 FAIL** and then exceeds a hard 30-second wait for the
+Farmlands crossing. The arming delay is decremented by the `dt` clamped to 0.06 for physics
+safety, so its real duration is `RIFT_ARM_TIME / min(realDt, 0.06)` and scales with frame
+rate. Nothing in this phase touched it.
+
+**The first A/B said the opposite, and that is why there was a second.** One run of each had
+this build failing and the pre-phase build passing — which is the shape of a regression.
+Alternating three runs of each on the same container instead:
+
+| | run 1 | run 2 | run 3 |
+| --- | --- | --- | --- |
+| this build | 14 | **51 PASS** | 14 |
+| `948e527` | **51 PASS** | 14 | 14 |
+
+**One pass in three, each.** Identical distribution, opposite order — the suite is a coin
+toss on this container and a single A/B was not enough to say anything. Same lesson section
+4.8 recorded for `performance.js`, sprung in a new place: **one sample of a drifty
+measurement is not an A/B.** `browser-opening.js` also exited non-zero inside the sweep and
+passes completely when run alone.
+
+### What Phase 3 deliberately did NOT implement
+
+No production asset, no D1 landmark, no vegetation, no architecture kit, no lighting, no
+flashlight, no creature, no material system, no texture compression, no LOD selection or
+generation (schema and a consistency check only), no asset browser, no renderer change, no
+three.js upgrade, no Blender dependency and no Astra work. No gameplay, save-schema or
+world-generation change. **The save schema is still version 5.**
+
+---
+
 ## 5. THE DIMENSION EXTENSION POINT — AND DIMENSION 3, THE BELOW
 
 ### What is there now

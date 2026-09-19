@@ -3691,6 +3691,15 @@ five unrelated widgets the first time.
 texture targets and a texel-density guideline (~64 px/m standard, ~128 px/m hero). They are
 guidelines, not hard limits, and they are about world assets rather than the HUD.
 
+D1 IMPLEMENTATION PHASE 3 MADE THEM MEASURABLE, and the bible is still where they are
+DECIDED. `src/assets/asset-budgets.js` implements the measurable subset and `tests/budgets.js`
+PARSES the bible's own table to check it, so the two cannot drift apart silently. They remain
+guidelines in the code as well as in the prose: a triangle or texel-density overrun is an
+ADVISORY, the one BLOCKING rule is texture dimension (the thing 9.1 names outright), and an
+asset with a real reason to exceed a budget states that reason on its own registry row and
+reports as an `exception` rather than a pass — there is no global bypass. `ARCHITECTURE.md`
+section 4.13 is the engineering side of it.
+
 Phase 29 added the TYPE side of the same system — one face, one shadow token, one
 four-step size scale — in section 55.1. Use those too: a new interface element that
 invents its own size or its own colour is how the HUD became five unrelated widgets the
