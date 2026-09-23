@@ -1,0 +1,63 @@
+{
+  "source_reopens": true,
+  "source_packed_images": 5,
+  "source_objects": [
+    "rural_fence_post_01_wood",
+    "rural_fence_post_01_bracket",
+    "REVIEW_ONLY_ground",
+    "REVIEW_ONLY_camera",
+    "REVIEW_ONLY_sky_softbox",
+    "REVIEW_ONLY_sky_fill",
+    "REVIEW_ONLY_repeat_rural_fence_post_01_wood_-3",
+    "REVIEW_ONLY_repeat_rural_fence_post_01_bracket_-3",
+    "REVIEW_ONLY_repeat_rural_fence_post_01_wood_-2",
+    "REVIEW_ONLY_repeat_rural_fence_post_01_bracket_-2",
+    "REVIEW_ONLY_repeat_rural_fence_post_01_wood_-1",
+    "REVIEW_ONLY_repeat_rural_fence_post_01_bracket_-1",
+    "REVIEW_ONLY_repeat_rural_fence_post_01_wood_1",
+    "REVIEW_ONLY_repeat_rural_fence_post_01_bracket_1",
+    "REVIEW_ONLY_repeat_rural_fence_post_01_wood_2",
+    "REVIEW_ONLY_repeat_rural_fence_post_01_bracket_2",
+    "REVIEW_ONLY_repeat_rural_fence_post_01_wood_3",
+    "REVIEW_ONLY_repeat_rural_fence_post_01_bracket_3",
+    "REVIEW_ONLY_repeat_rural_fence_post_01_wood_4",
+    "REVIEW_ONLY_repeat_rural_fence_post_01_bracket_4",
+    "REVIEW_ONLY_repeat_rural_fence_post_01_wood_5",
+    "REVIEW_ONLY_repeat_rural_fence_post_01_bracket_5",
+    "REVIEW_ONLY_overcast_sun",
+    "REVIEW_ONLY_finite_air",
+    "REVIEW_ONLY_flashlight"
+  ],
+  "component_audits": [
+    {
+      "name": "rural_fence_post_01_bracket",
+      "welded_vertices": 236,
+      "nonmanifold_edges_after_seam_weld": 0,
+      "components": 7,
+      "all_component_signed_volumes_positive": true,
+      "component_volumes": [
+        1.0564326657913632e-06,
+        6.834737079467838e-05,
+        1.2454638635972527e-06,
+        1.0558488838796618e-06,
+        1.057144572769175e-06,
+        1.245803484077137e-06,
+        1.2452078408387032e-06
+      ]
+    },
+    {
+      "name": "rural_fence_post_01_wood",
+      "welded_vertices": 394,
+      "nonmanifold_edges_after_seam_weld": 0,
+      "components": 2,
+      "all_component_signed_volumes_positive": true,
+      "component_volumes": [
+        0.027655884831195448,
+        0.014440191181152947
+      ]
+    }
+  ],
+  "roundtrip_render_mean_absolute_rgb_difference": 8.385576961700281e-07,
+  "roundtrip_render_max_absolute_rgb_difference": 0.00784313678741455,
+  "roundtrip_pixels_with_difference_over_1_of_255": 1.1564625850340136e-05
+}

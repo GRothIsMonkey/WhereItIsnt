@@ -1,0 +1,86 @@
+[
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\export\\rural_fence_post_01.glb",
+    "sha256": "19FAB2A159E3BEA08D679D92CA1F547FFA14588E07F79D2D754F9922F48F4202"
+  },
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\report\\asset_report.md",
+    "sha256": "9E3F42965B63C96C9CC45B36321F2D335EC2B09E5B0FBCAC1E6EFE8C8D9D2009"
+  },
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\report\\project_budget_validation.json",
+    "sha256": "23373B109BC41DA2F1C5D87265FBB11E4D1EF6896DCACF809E6DDA920CC5B6A5"
+  },
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\report\\roundtrip_validation.json",
+    "sha256": "3478608D30B882C4CCC3932FC68677AD5F95E55C3537DA0E31E16A9A3907E668"
+  },
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\report\\technical_validation.json",
+    "sha256": "CF953778492603EF50E1B674206B31B245D634DF2BA291E6A48407C1474FFE97"
+  },
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\review\\01_three_quarter_day.png",
+    "sha256": "955932214833F899ACB4CA86CB88C78092283F61D8DBE3603D69FE5E2822788E"
+  },
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\review\\02_side_day.png",
+    "sha256": "27870FFFFC6EE562DF5078C2FD2F3C4B5BC48ABB9BB5BFB3B038E038932F056A"
+  },
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\review\\03_bracket_closeup.png",
+    "sha256": "2B9C5A0FE7F091E40EC96A6974B984079B75A5C239C8096ED46396817842BD60"
+  },
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\review\\04_overcast.png",
+    "sha256": "5E7DB2414066E604ABFE06B73F96F031C9E9517BA53D7B22DB325AC71B68BF53"
+  },
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\review\\05_evening.png",
+    "sha256": "208EB3621FD1FC901DEF137A895A75C6EE57730E8846EF8C7BB7ED8E612D8EB0"
+  },
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\review\\06_glb_reimport_overcast.png",
+    "sha256": "0AE6736D2EFCB1B4D951990EB720EB91CC4673E3E381E86F821189559A4893E2"
+  },
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\source\\build_asset.py",
+    "sha256": "73CDFAF1D933B0D1DDDA642ADA131584622B95574C75535E6CE11F066DE68F25"
+  },
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\source\\check_project_budget.cjs",
+    "sha256": "08085DD1F3544C8563F27A105554A1BC8CF96ECEAD6577F25574F406345730C1"
+  },
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\source\\rural_fence_post_01.blend",
+    "sha256": "B5611BE79C13AAC3C7E9122D910746557A9C8F487663EF8D5DAD1ED132A0D186"
+  },
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\source\\rural_fence_post_01.blend1",
+    "sha256": "157A572CE0502423F9BD6F8E16A5BCA8D43BCDB9788785E99BAEEF1CCF024DF4"
+  },
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\source\\verify_asset.py",
+    "sha256": "2E5117DA881D4A9CAEE2DE924A5506C8B19B413F2CECA7EEF9A9FBE823ACE02C"
+  },
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\textures\\galvanized_steel_basecolor.png",
+    "sha256": "43A0D10C46A9151CCC4F1D218D14766DDC67681C87748000BA1972817C45EC86"
+  },
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\textures\\galvanized_steel_metallicroughness.png",
+    "sha256": "6A323F29D72F2CC1F96B86542BAFE37930318B72D0D9E43B2E0795C516AE9EC9"
+  },
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\textures\\weathered_timber_basecolor.png",
+    "sha256": "F107BB8EECA5774A20D59E167F831BD5CA68C9BADA531E1FCA357E5FCEE0AE2F"
+  },
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\textures\\weathered_timber_metallicroughness.png",
+    "sha256": "C59762E5E4F5B360DE214B58FB9257406E135FE962CE24C55B66715E3368F7AE"
+  },
+  {
+    "path": "C:\\Users\\rothc\\OneDrive\\Documents\\grayson_github\\WhereItIsnt\\assets\\_raw_review\\rural_fence_post_01\\textures\\weathered_timber_normal.png",
+    "sha256": "DFDAF72059ED0BA54D574D4EBE4411F50742AC4887362C40D58895302295F87E"
+  }
+]

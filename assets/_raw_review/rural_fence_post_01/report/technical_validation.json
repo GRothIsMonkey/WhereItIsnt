@@ -1,0 +1,187 @@
+{
+  "blender": "5.2.2 LTS",
+  "source": {
+    "dimensions": [
+      1.9437956660985947,
+      0.14122426509857178,
+      1.2000000476837158
+    ],
+    "min": [
+      -0.07079564034938812,
+      -0.07063539326190948,
+      0.0
+    ],
+    "max": [
+      1.8730000257492065,
+      0.07058887183666229,
+      1.2000000476837158
+    ],
+    "triangles": 712,
+    "vertices": 388,
+    "meshes": 2,
+    "objects": [
+      {
+        "name": "rural_fence_post_01_wood",
+        "triangles": 184,
+        "vertices": 96,
+        "uv_layers": 1,
+        "nonmanifold_edges": 0,
+        "volume": 0.03256608097220557,
+        "degenerate_faces": 0,
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "texel_density": 64.03505237753605
+      },
+      {
+        "name": "rural_fence_post_01_bracket",
+        "triangles": 528,
+        "vertices": 292,
+        "uv_layers": 1,
+        "nonmanifold_edges": 0,
+        "volume": 0.00014160185663727903,
+        "degenerate_faces": 0,
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "texel_density": 63.85444327410027
+      }
+    ],
+    "texel_density": 64.01856299528367
+  },
+  "reimport": {
+    "dimensions": [
+      1.9437956660985947,
+      0.14122426509857178,
+      1.2000000476837158
+    ],
+    "min": [
+      -0.07079564034938812,
+      -0.07063539326190948,
+      0.0
+    ],
+    "max": [
+      1.8730000257492065,
+      0.07058887183666229,
+      1.2000000476837158
+    ],
+    "triangles": 712,
+    "vertices": 1520,
+    "meshes": 2,
+    "objects": [
+      {
+        "name": "rural_fence_post_01_bracket",
+        "triangles": 528,
+        "vertices": 1008,
+        "uv_layers": 1,
+        "nonmanifold_edges": 1008,
+        "volume": 0.00014160185663727903,
+        "degenerate_faces": 0,
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "texel_density": 63.85444434886064
+      },
+      {
+        "name": "rural_fence_post_01_wood",
+        "triangles": 184,
+        "vertices": 512,
+        "uv_layers": 1,
+        "nonmanifold_edges": 512,
+        "volume": 0.03256608097220557,
+        "degenerate_faces": 0,
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "texel_density": 64.03505363811362
+      }
+    ],
+    "texel_density": 64.01856423891773
+  },
+  "glb": {
+    "nodes": 2,
+    "meshes": 2,
+    "materials": [
+      "MAT_galvanized_steel",
+      "MAT_weathered_timber"
+    ],
+    "images": 5,
+    "textures": 5,
+    "external_uris": [],
+    "triangles": 712,
+    "vertices": 1520,
+    "extensions": [],
+    "cameras": 0
+  },
+  "image_dimensions": {
+    "galvanized_steel_basecolor": [
+      32,
+      32
+    ],
+    "galvanized_steel_metallicroughness": [
+      32,
+      32
+    ],
+    "weathered_timber_basecolor": [
+      128,
+      128
+    ],
+    "weathered_timber_metallicroughness": [
+      128,
+      128
+    ],
+    "weathered_timber_normal": [
+      128,
+      128
+    ]
+  },
+  "post_height": 1.2000000476837158
+}

@@ -1,0 +1,248 @@
+{
+  "blender": "5.2.2 LTS",
+  "source": {
+    "dimensions": [
+      1.962397426366806,
+      0.16659188270568848,
+      1.1998250484466553
+    ],
+    "min": [
+      -0.08239743113517761,
+      -0.08699999749660492,
+      0.0
+    ],
+    "max": [
+      1.8799999952316284,
+      0.07959188520908356,
+      1.1998250484466553
+    ],
+    "triangles": 1224,
+    "vertices": 630,
+    "mesh_objects": 2,
+    "objects": [
+      {
+        "name": "rural_fence_post_01_wood",
+        "triangles": 780,
+        "source_vertices": 394,
+        "uv_layers": 1,
+        "nonmanifold_edges_after_seam_weld": 0,
+        "signed_volume": 0.04209608402040696,
+        "degenerate_faces": 0,
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "texel_density": 64.15276208901287
+      },
+      {
+        "name": "rural_fence_post_01_bracket",
+        "triangles": 444,
+        "source_vertices": 236,
+        "uv_layers": 1,
+        "nonmanifold_edges_after_seam_weld": 0,
+        "signed_volume": 7.525398332425669e-05,
+        "degenerate_faces": 0,
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "texel_density": 63.27003138951603
+      }
+    ],
+    "texel_density": 64.1201969014972
+  },
+  "reimport": {
+    "dimensions": [
+      1.962397426366806,
+      0.16659188270568848,
+      1.1998250484466553
+    ],
+    "min": [
+      -0.08239743113517761,
+      -0.08699999749660492,
+      0.0
+    ],
+    "max": [
+      1.8799999952316284,
+      0.07959188520908356,
+      1.1998250484466553
+    ],
+    "triangles": 1224,
+    "vertices": 1812,
+    "mesh_objects": 2,
+    "objects": [
+      {
+        "name": "rural_fence_post_01_bracket",
+        "triangles": 444,
+        "source_vertices": 654,
+        "uv_layers": 1,
+        "nonmanifold_edges_after_seam_weld": 0,
+        "signed_volume": 7.525398332425669e-05,
+        "degenerate_faces": 0,
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "texel_density": 63.2700383676125
+      },
+      {
+        "name": "rural_fence_post_01_wood",
+        "triangles": 780,
+        "source_vertices": 1158,
+        "uv_layers": 1,
+        "nonmanifold_edges_after_seam_weld": 0,
+        "signed_volume": 0.04209608402040696,
+        "degenerate_faces": 0,
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "texel_density": 64.15276259024714
+      }
+    ],
+    "texel_density": 64.12019764007538
+  },
+  "post_height": 1.1998250484466553,
+  "glb": {
+    "nodes": 2,
+    "meshes": 2,
+    "materials": [
+      "MAT_galvanized_steel",
+      "MAT_weathered_timber"
+    ],
+    "images": 5,
+    "textures": 5,
+    "vertices": 1812,
+    "triangles": 1224,
+    "external_uris": [],
+    "extensions": []
+  },
+  "image_dimensions": {
+    "r02_galvanized_steel_basecolor": [
+      128,
+      128
+    ],
+    "r02_galvanized_steel_metallicroughness": [
+      128,
+      128
+    ],
+    "r02_weathered_timber_basecolor": [
+      256,
+      256
+    ],
+    "r02_weathered_timber_metallicroughness": [
+      256,
+      256
+    ],
+    "r02_weathered_timber_normal": [
+      256,
+      256
+    ]
+  },
+  "distance_review": [
+    {
+      "distance_m": 1,
+      "actual_camera_target_distance": 1.0000000074505806,
+      "target": [
+        0.10000000149011612,
+        0.0,
+        0.8700000047683716
+      ],
+      "lens_mm": 50.0,
+      "sensor_width_mm": 36.0,
+      "resolution": [
+        1400,
+        1050
+      ]
+    },
+    {
+      "distance_m": 5,
+      "actual_camera_target_distance": 5.000000071525573,
+      "target": [
+        0.8299999833106995,
+        0.0,
+        0.6800000071525574
+      ],
+      "lens_mm": 50.0,
+      "sensor_width_mm": 36.0,
+      "resolution": [
+        1400,
+        1050
+      ]
+    },
+    {
+      "distance_m": 15,
+      "actual_camera_target_distance": 14.999999833106994,
+      "target": [
+        0.8299999833106995,
+        0.0,
+        0.6800000071525574
+      ],
+      "lens_mm": 50.0,
+      "sensor_width_mm": 36.0,
+      "resolution": [
+        1400,
+        1050
+      ]
+    },
+    {
+      "distance_m": 30,
+      "actual_camera_target_distance": 29.999999407927188,
+      "target": [
+        0.8299999833106995,
+        0.0,
+        0.6800000071525574
+      ],
+      "lens_mm": 50.0,
+      "sensor_width_mm": 36.0,
+      "resolution": [
+        1400,
+        1050
+      ]
+    }
+  ]
+}

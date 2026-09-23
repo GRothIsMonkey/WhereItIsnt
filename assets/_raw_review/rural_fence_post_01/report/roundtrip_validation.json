@@ -1,0 +1,51 @@
+{
+  "source_reopens": true,
+  "source_packed_images": 5,
+  "source_objects": [
+    "rural_fence_post_01_wood",
+    "rural_fence_post_01_bracket",
+    "REVIEW_ONLY_neutral_ground",
+    "REVIEW_ONLY_camera",
+    "REVIEW_ONLY_key",
+    "REVIEW_ONLY_fill"
+  ],
+  "component_audits": [
+    {
+      "name": "rural_fence_post_01_bracket",
+      "welded_vertices": 292,
+      "nonmanifold_edges_after_seam_weld": 0,
+      "components": 14,
+      "all_component_signed_volumes_positive": true,
+      "component_volumes": [
+        6.122111127145521e-05,
+        3.4953563954332013e-07,
+        3.49106358044082e-07,
+        3.489551545499119e-07,
+        3.4912106154175997e-07,
+        3.4902056237721507e-07,
+        3.491158319472252e-07,
+        3.6259886352733464e-07,
+        3.6250958146410973e-07,
+        3.6267996013824327e-07,
+        3.624554665293543e-07,
+        3.624780523144477e-07,
+        3.62231579250267e-07,
+        7.61120727474917e-05
+      ]
+    },
+    {
+      "name": "rural_fence_post_01_wood",
+      "welded_vertices": 96,
+      "nonmanifold_edges_after_seam_weld": 0,
+      "components": 2,
+      "all_component_signed_volumes_positive": true,
+      "component_volumes": [
+        0.009019399163740612,
+        0.023546682464925396
+      ]
+    }
+  ],
+  "roundtrip_render_mean_absolute_rgb_difference": 4.986532076145522e-08,
+  "roundtrip_render_max_absolute_rgb_difference": 0.003921568393707275,
+  "roundtrip_pixels_with_difference_over_1_of_255": 0.0
+}

@@ -1,0 +1,103 @@
+{
+  "measurement": {
+    "triangles": 712,
+    "maxTextureDim": 128,
+    "texelDensity": 64.01856403543006,
+    "texelStatus": "measured",
+    "texelWhy": null,
+    "lods": null,
+    "geometry": {
+      "meshes": 2,
+      "triangles": 712,
+      "vertices": 1520,
+      "instancedMeshes": 0,
+      "instances": 0,
+      "points": 0,
+      "pointVertices": 0,
+      "lines": 0,
+      "lineVertices": 0,
+      "uniqueGeometries": 2,
+      "drawGroups": 2,
+      "hidden": {
+        "meshes": 0,
+        "triangles": 0
+      },
+      "collisionOnly": {
+        "meshes": 0,
+        "triangles": 0
+      },
+      "nodes": 3
+    },
+    "materials": {
+      "materialSlots": 2,
+      "uniqueMaterials": 2,
+      "materialSignatures": 2,
+      "duplicateMaterials": 0,
+      "sharedMaterialUses": 0,
+      "textures": 5,
+      "textureSlots": 5,
+      "maxTextureDim": 128,
+      "textureDims": [
+        32,
+        32,
+        128,
+        128,
+        128
+      ],
+      "missingTextureData": 0,
+      "unknownTextureSize": 0
+    },
+    "texel": {
+      "status": "measured",
+      "pxPerMetre": 64.01856403543006,
+      "worldArea": 1.3617540430993709,
+      "texels": 5580.980825066148,
+      "samples": 712,
+      "meshes": 2
+    }
+  },
+  "budget": {
+    "assetClass": "small-prop",
+    "label": "Small prop",
+    "metrics": {
+      "triangles": {
+        "metric": "triangles",
+        "value": 712,
+        "band": "within",
+        "side": null,
+        "status": "pass",
+        "enforcement": "advisory",
+        "limit": {
+          "min": 200,
+          "max": 1500
+        }
+      },
+      "texture": {
+        "metric": "texture",
+        "value": 128,
+        "band": "within",
+        "side": null,
+        "status": "pass",
+        "enforcement": "blocking",
+        "limit": {
+          "target": 512
+        }
+      },
+      "texel": {
+        "metric": "texel",
+        "value": 64.01856403543006,
+        "band": "within",
+        "side": null,
+        "status": "pass",
+        "enforcement": "advisory",
+        "limit": {
+          "target": 64
+        }
+      }
+    },
+    "lods": null,
+    "exceptions": [],
+    "warnings": [],
+    "status": "pass"
+  }
+}
