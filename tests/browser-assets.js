@@ -13,6 +13,12 @@
    without a voxel anywhere in it; and that repeated load/unload does not leak
    engine-managed resources.
 
+   D1 PHASE 4 ADDED section 9b: the same claims for the first PRODUCTION asset,
+   `prop.rural-fence-post-01` — colour spaces, the packed metallic/roughness map, the normal
+   map and its scale in the running loader's convention, the shadow policy — and its cache,
+   clone, reference-count and disposal lifecycle measured against `renderer.info.memory`.
+   Its placement in a representative D1 scene is `tests/browser-asset-scene.js`.
+
    WHAT IT DOES NOT PROVE. Whether the model LOOKS right. `renderer.info.memory` counts
    three.js objects the renderer holds — it is not VRAM, no browser API exposes VRAM, and
    nothing here pretends otherwise. A screenshot is written for a person to look at.
@@ -522,6 +528,191 @@ async function drift(browser) {
     chk(cycles.report.resident === 0 && cycles.report.pending === 0,
         'and the library holds nothing at the end (resident ' + cycles.report.resident +
         ', pending ' + cycles.report.pending + ')');
+
+    // -------------------------------------------------------------------------------
+    head('9b. D1 PHASE 4 — THE FIRST PRODUCTION ASSET THROUGH THE SAME PIPELINE');
+
+    const FENCE = 'prop.rural-fence-post-01';
+    const fm = await page.evaluate(async (KEY) => {
+      const g = window.game;
+      const req0 = g.assets.stats.requested;
+      /* Two concurrent calls must share ONE fetch, and a third after it lands must be a cache
+         hit that returns the very same source record. */
+      const [a, b] = await Promise.all([g.assets.load(KEY), g.assets.load(KEY)]);
+      const c = await g.assets.load(KEY);
+      if (!a) return { error: Array.from(g.assets.failed.entries()).map((e) => e.join(': ')).join('; ') };
+      const src = a;
+      /* Read a texture's channels back through a 2D canvas, so "the timber is not metal" is a
+         measurement of the decoded pixels rather than an assumption about the author. */
+      const channelMeans = (tex) => {
+        const img = tex && tex.image;
+        if (!img || !img.width) return null;
+        const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height;
+        const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0);
+        const d = cx.getImageData(0, 0, img.width, img.height).data;
+        let r = 0, gg = 0, bb = 0; const n = d.length / 4;
+        for (let i = 0; i < d.length; i += 4) { r += d[i]; gg += d[i + 1]; bb += d[i + 2]; }
+        return [r / n / 255, gg / n / 255, bb / n / 255];
+      };
+      const cs = (t) => t ? String(t.colorSpace !== undefined ? t.colorSpace : t.encoding) : null;
+      const mats = [];
+      src.root.traverse((n) => {
+        if (!n.isMesh) return;
+        const m = n.material;
+        mats.push({
+          node: n.name, type: m.type, name: m.name,
+          cast: n.castShadow, receive: n.receiveShadow,
+          side: m.side, doubleSide: m.side === THREE.DoubleSide,
+          metalness: m.metalness, roughness: m.roughness,
+          map: cs(m.map), normal: cs(m.normalMap), rough: cs(m.roughnessMap), metal: cs(m.metalnessMap),
+          packedMR: !!m.roughnessMap && m.roughnessMap === m.metalnessMap,
+          normalScale: m.normalMap ? [m.normalScale.x, m.normalScale.y] : null,
+          hasTangents: !!(n.geometry && n.geometry.attributes && n.geometry.attributes.tangent),
+          aniso: [m.map, m.normalMap, m.roughnessMap].filter(Boolean).map((t) => t.anisotropy),
+          flipY: [m.map, m.normalMap, m.roughnessMap].filter(Boolean).map((t) => t.flipY),
+          mr: channelMeans(m.roughnessMap),
+          base: channelMeans(m.map),
+        });
+      });
+      return { same: a === b && b === c, requested: g.assets.stats.requested - req0,
+               report: src.report, mats, rev: Number(THREE.REVISION),
+               srgb: String(THREE.SRGBColorSpace !== undefined ? THREE.SRGBColorSpace : THREE.sRGBEncoding),
+               linear: String(THREE.LinearSRGBColorSpace !== undefined ? THREE.LinearSRGBColorSpace : THREE.LinearEncoding),
+               policyAniso: ASSET_MATERIAL_POLICY.anisotropy };
+    }, FENCE);
+    if (fm.error) { chk(false, 'the production fence failed to load: ' + fm.error); }
+    else {
+      chk(fm.same && fm.requested === 1,
+          'two concurrent loads and one later load returned ONE source for ONE request (' + fm.requested + ')');
+      chk(fm.mats.length === 2 && fm.mats.every((m) => m.type === 'MeshStandardMaterial'),
+          'two meshes, both MeshStandardMaterial — glTF metallic-roughness PBR, as authored');
+      chk(fm.report.materialsBefore === 2 && fm.report.materialsAfter === 2 && fm.report.deduped === 0,
+          'normalisation kept both materials — two genuinely different surfaces, nothing to collapse');
+      const wood = fm.mats.find((m) => /timber/.test(m.name)), steel = fm.mats.find((m) => /steel/.test(m.name));
+      chk(!!wood && !!steel, 'the materials are the authored MAT_weathered_timber and MAT_galvanized_steel');
+      if (wood && steel) {
+        for (const m of [wood, steel]) {
+          note(m.name + ': base ' + (m.base ? m.base.map((v) => v.toFixed(3)).join('/') : '-') +
+               ', MR map mean R/G/B ' + (m.mr ? m.mr.map((v) => v.toFixed(3)).join('/') : '-') +
+               ', metalness x' + m.metalness + ', roughness x' + m.roughness +
+               (m.normalScale ? ', normalScale ' + m.normalScale.map((v) => v.toFixed(3)).join(',') : ''));
+        }
+        chk([wood, steel].every((m) => m.map === fm.srgb),
+            'both base-colour maps are sRGB — authored colour ("' + fm.srgb + '")');
+        /* r128 labels a data map LinearEncoding; r152+ labels it NoColorSpace (''). Both mean
+           "not decoded as colour", which is the claim; neither may be sRGB. */
+        const isData = (v) => v !== null && v !== fm.srgb && (v === fm.linear || v === '');
+        chk([wood, steel].every((m) => isData(m.rough) && isData(m.metal)) && isData(wood.normal),
+            'the metallic-roughness maps and the normal map are DATA, never sRGB-decoded (' +
+            JSON.stringify(wood.rough) + ', normal ' + JSON.stringify(wood.normal) + ')');
+        chk([wood, steel].every((m) => m.packedMR),
+            'metalness and roughness read ONE packed map (glTF: G = roughness, B = metalness), not two');
+        chk(wood.mr && wood.mr[2] < 0.02 && steel.mr && steel.mr[2] > 0.3,
+            'decoded metal channel: timber ' + (wood.mr ? wood.mr[2].toFixed(3) : '?') + ' (not metal), steel ' +
+            (steel.mr ? steel.mr[2].toFixed(3) : '?') + ' (metal) — the map drives it, the factor is 1');
+        chk(wood.normal !== null && steel.normal === null,
+            'the timber keeps its normal map through the pipeline; the steel was authored without one');
+        /* THE Y SIGN IS THE LOADER'S, AND IT DEPENDS ON TANGENTS, NOT ON THE VERSION. glTF
+           normal maps are +Y-up in a UV space whose V runs the other way to three.js's; with
+           no TANGENT attribute three builds the tangent frame from screen derivatives, and
+           both r128 and r186 compensate by storing normalScale.y NEGATED (r128 starts at
+           (1,-1); r186 starts at (1,1) and flips it for derivative tangents). The export has
+           no tangents, so the correct value is (0.7, -0.7) on both — anything else would be a
+           flipped normal map. */
+        const ns = wood.normalScale || [0, 0];
+        const want = wood.hasTangents ? 1 : -1;
+        chk(Math.abs(Math.abs(ns[0]) - 0.7) < 1e-6 && Math.abs(ns[1] - want * Math.abs(ns[0])) < 1e-6 && ns[0] > 0,
+            'normalScale is the authored 0.7 with the Y sign the loader requires for ' +
+            (wood.hasTangents ? 'vertex' : 'derivative') + ' tangents (r' + fm.rev + ': ' +
+            ns.map((v) => v.toFixed(3)).join(', ') + ') — not flipped, not rescaled');
+        chk([wood, steel].every((m) => m.flipY.every((f) => f === false)),
+            'every map keeps glTF\'s flipY = false — no texture was re-oriented on the way in');
+        chk([wood, steel].every((m) => m.aniso.every((a) => a === fm.policyAniso)),
+            'anisotropy is the asset policy\'s ' + fm.policyAniso + ' on every map');
+        chk([wood, steel].every((m) => m.cast && m.receive),
+            'both meshes cast and receive shadows, per ASSET_MATERIAL_POLICY');
+        chk([wood, steel].every((m) => m.doubleSide),
+            'both are double-sided, as the approved export declares — nothing culled a thin strap face');
+      }
+    }
+
+    const life = await page.evaluate(async (KEY) => {
+      const g = window.game;
+      const read = () => ({ geom: g.renderer.info.memory.geometries, tex: g.renderer.info.memory.textures });
+      const settle = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const origUpdate = g.world.updateChunks;
+      const out = {};
+      try {
+        /* Same control as section 9: freeze the only other producer of geometries. */
+        g.world.updateChunks = function () {};
+        await settle();
+        out.base = read();
+        const src = g.assets.sources.get(KEY);
+        const insts = [];
+        for (let i = 0; i < 3; i++) {
+          const inst = await g.assets.acquire(KEY);
+          inst.position.set(g.player.position.x + 2 + i * 2, g.player.position.y, g.player.position.z + 3);
+          inst.rotation.y = i * 0.7;
+          g.scene.add(inst); insts.push(inst);
+        }
+        await settle();
+        out.peak = read();
+        out.refs3 = src.refs;
+        const srcRes = collectAssetResources(src.root);
+        out.shared = insts.every((inst) => {
+          const r = collectAssetResources(inst);
+          return [...r.geometries].every((x) => srcRes.geometries.has(x)) &&
+                 [...r.materials].every((x) => srcRes.materials.has(x)) &&
+                 [...r.textures].every((x) => srcRes.textures.has(x));
+        });
+        out.distinctNodes = insts[0] !== insts[1] && insts[0].children[0] !== insts[1].children[0];
+        out.ownTransforms = Math.abs(insts[1].rotation.y - 0.7) < 1e-9 && src.root.rotation.y === 0;
+        out.srcCounts = { g: srcRes.geometries.size, m: srcRes.materials.size, t: srcRes.textures.size };
+
+        g.assets.release(insts[0]);
+        out.refs2 = src.refs; out.resident2 = g.assets.isLoaded(KEY);
+        out.survivorDrawable = insts[1].children.every((n) => !n.isMesh || !!n.geometry.attributes.position);
+        out.releasedTwice = g.assets.release(insts[0]);
+        out.refsAfterDouble = src.refs;
+        g.assets.release(insts[1]); g.assets.release(insts[2]);
+        await settle();
+        out.after = read();
+        out.resident0 = g.assets.isLoaded(KEY);
+        out.inScene = insts.filter((i) => i.parent).length;
+
+        /* A disposed asset is not failed: the next acquire is a fresh load, and it works. */
+        const again = await g.assets.acquire(KEY);
+        out.reloaded = !!again && g.assets.isLoaded(KEY) && !g.assets.isFailed(KEY);
+        g.assets.release(again);
+        await settle();
+        out.end = read();
+      } finally {
+        g.world.updateChunks = origUpdate;
+      }
+      return out;
+    }, FENCE);
+    note('fence source owns ' + life.srcCounts.g + ' geometries, ' + life.srcCounts.m + ' materials, ' +
+         life.srcCounts.t + ' textures');
+    note('renderer.info geometries/textures: ' + life.base.geom + '/' + life.base.tex + ' -> three instances ' +
+         life.peak.geom + '/' + life.peak.tex + ' -> released ' + life.after.geom + '/' + life.after.tex +
+         ' -> reload+release ' + life.end.geom + '/' + life.end.tex);
+    chk(life.refs3 === 3 && life.shared,
+        'three placed clones -> refcount 3, and every clone SHARES the source geometry, materials and textures');
+    chk(life.peak.geom - life.base.geom === life.srcCounts.g && life.peak.tex - life.base.tex === life.srcCounts.t,
+        'three instances cost ONE upload: +' + (life.peak.geom - life.base.geom) + ' geometries, +' +
+        (life.peak.tex - life.base.tex) + ' textures, not three times that');
+    chk(life.distinctNodes && life.ownTransforms,
+        'yet each clone is its own node with its own transform — the source itself never moved');
+    chk(life.refs2 === 2 && life.resident2 && life.survivorDrawable,
+        'releasing one leaves refcount 2, the source resident and the survivors drawable');
+    chk(life.releasedTwice === false && life.refsAfterDouble === 2,
+        'releasing the same instance twice is a no-op — no double decrement into an early disposal');
+    chk(life.resident0 === false && life.inScene === 0,
+        'the last release disposed the source and detached every instance from the scene');
+    chk(life.after.geom === life.base.geom && life.after.tex === life.base.tex,
+        'and renderer.info is back EXACTLY where it began — no residual geometry or texture');
+    chk(life.reloaded && life.end.geom === life.base.geom && life.end.tex === life.base.tex,
+        'a disposed asset reloads cleanly on the next acquire, and that cycle leaves no residue either');
 
     // -------------------------------------------------------------------------------
     head('10. THE GAME IS STILL THE GAME');

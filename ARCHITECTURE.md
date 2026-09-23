@@ -1654,6 +1654,71 @@ world-generation change. **The save schema is still version 5.**
 
 ---
 
+## 4.14. THE FIRST PRODUCTION ASSET — D1 IMPLEMENTATION PHASE 4, ASSET 001
+
+`prop.rural-fence-post-01` is the first `ASSET_STATUS.PRODUCTION` row. It went through the
+pipeline sections 4.9 and 4.13 built and changed none of it. It is integrated into the pipeline
+and **placed nowhere** in the shipped world.
+
+```
+assets/models/props/rural_fence_post_01.glb        byte-identical copy of the approved R03 export
+assets/models/props/First_Party_Credits.md         the provenance record
+src/assets/asset-registry.js                       the row, its credit, and FIRST-PARTY
+```
+
+**The approved art is not re-exported.** The runtime file has the SHA-256 of
+`assets/_raw_review/rural_fence_post_01/revision_03/export/rural_fence_post_01_r03.glb`, the
+credit row carries that hash, and `tests/assets.js` checks it. The review tree (all three
+revisions) stays as history.
+
+**FIRST-PARTY is a licence status, not the absence of one.** The vocabulary only had Creative
+Commons grants, and borrowing one for work the project authored would be false. The
+`ASSET_LICENCES` value `FIRST-PARTY` means project-owned, unrestricted for this project's
+commercial use, with no external attribution required. A first-party credit is only accepted
+with an in-repo provenance record that exists and a hash the shipped file actually has. No
+licence id means "none".
+
+**Collision is two declared boxes, fitted to the file's own vertices.** They are the post
+(including the joint housing) and the rail's sag envelope, and they abut at x = 0.159. Every
+timber vertex is inside one of them. The steel strap is at most 1.0 cm outside the nearest
+box, so it gets no box of its own. The proxies fill 16.9% of the bounding box, so the space
+under the rail stays open: a player-sized body stops at the rail and a 0.4 m one walks
+under it. `tests/assets.js` re-derives all of this from the shipped GLB on every run
+(`tests/harness/glb.js`).
+
+**Measured on the shipped file, three ways.** Offline from its buffers (`budgets.js` §13),
+decoded in the browser (`browser-budgets.js` §3b), and in the source report. All three agree:
+1,296 triangles, two materials, five maps (largest 256 px), 64.37 px/m. It is `small-prop`,
+PASS, with no exception.
+
+### What the representative scene found — and did not fix
+
+`tests/browser-asset-scene.js` builds the E2.2 terrain in its own scene and stands six fences
+on it, placed by the test at a flat site the test searches for. Their proxies go into the
+terrain world's composite, and the scene renders through the game's own PostFX pass. Load,
+sharing, scale (122 px against the 120 px a 1.2 m object at 5 m must be), collision, raycast
+and teardown all pass. **Two things about how it LOOKS do not pass, and neither is the asset's
+fault:**
+
+- **The renderer has no output colour transform.** `outputEncoding` is Linear, and PostFX
+  writes its target straight to the canvas. The pipeline correctly decodes sRGB base-colour
+  maps to linear, but they are never re-encoded, so a textured PBR asset appears at about
+  its *linear* albedo. The fence shows at **21%** of the brightness it has in a
+  colour-managed frame of the same scene, and the timber reads near-black. Era 1 never
+  noticed because none of its surfaces is decoded.
+- **There is no environment lighting.** A metalness-1 surface has no diffuse term. The
+  galvanised strap is authored about twice as light as the timber and renders darker than
+  it, even colour-managed, because it has nothing to reflect.
+
+Both are graded in that suite, so it stays red until they are fixed. That is deliberate.
+Fixing either one means re-grading every surface in the game (Era 1's canvas textures and the
+terrain's vertex colours are authored as display values), or giving the D1 render path its
+own colour-managed output, or adding environment lighting. **All three are lighting / colour
+decisions for E2.5 and the project owner, not for an asset-integration phase.** The
+diagnostic frames the suite writes show what each fix would recover.
+
+---
+
 ## 5. THE DIMENSION EXTENSION POINT — AND DIMENSION 3, THE BELOW
 
 ### What is there now

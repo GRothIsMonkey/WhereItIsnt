@@ -56,6 +56,7 @@
     "browser-terrain": "node browser-terrain.js",
     "browser-assets": "node browser-assets.js",
     "browser-assets-r186": "node browser-assets.js --r186",
+    "browser-asset-scene": "node browser-asset-scene.js",
     "three-drift": "node browser-assets.js --drift",
     "inventory": "node tools/inventory.js",
     "launch-check": "node tools/launch-check.js"

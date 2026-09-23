@@ -15,10 +15,17 @@
    correctly: nothing offline in this repository can decode one (CLAUDE.md section 62.3).
    `tests/browser-budgets.js` makes that claim, in a real Chromium, over HTTP.
 
-   EVERY FIXTURE IN HERE IS SYNTHETIC AND BUILT IN CODE. No production asset exists, none is
-   created, and none of these shapes may become D1 content. They are duck-typed plain
-   objects rather than THREE objects on purpose — the measurement modules name no THREE, and
-   measuring a plain object is how that claim is proved rather than asserted. */
+   EVERY FIXTURE IN SECTIONS 1-12 IS SYNTHETIC AND BUILT IN CODE, and none of those shapes
+   may become D1 content. They are duck-typed plain objects rather than THREE objects on
+   purpose — the measurement modules name no THREE, and measuring a plain object is how that
+   claim is proved rather than asserted.
+
+   SECTION 13 (D1 PHASE 4) IS THE ONE EXCEPTION: the first production asset, measured from
+   the shipped GLB's own vertex, index and UV buffers and its PNG headers by
+   `harness/glb.js`, through the UNCHANGED `measureAsset` and `validateAssetBudget`. That is
+   an offline cross-check of the geometry and texture numbers, not a substitute for
+   `tests/browser-budgets.js`, which measures the same file after the real GLTFLoader has
+   decoded it. */
 const vm = require('vm');
 const fs = require('fs');
 const path = require('path');
@@ -670,11 +677,53 @@ chk(callSites === 1,
 chk((inline.match(/measureAsset\(/g) || []).length <= 1,
     'and measureAsset has no call site in the build either — validation is a test-time tool');
 
+/* ======================================================================================
+   13. D1 PHASE 4 — THE FIRST PRODUCTION ASSET, FROM ITS OWN BYTES
+   ==================================================================================== */
+head('13. THE FIRST PRODUCTION ASSET, MEASURED FROM THE SHIPPED FILE');
+
+{
+  const REGB = (() => {
+    const ctx = vm.createContext({});
+    vm.runInContext(read('asset-registry.js') +
+                    '\n;globalThis.__R = { assetBudgetSpecOf, modelAssetUrl };', ctx);
+    return ctx.__R;
+  })();
+  const KEY = 'prop.rural-fence-post-01';
+  const spec = REGB.assetBudgetSpecOf(KEY);
+  chk(!!spec && spec.class === 'small-prop' && Array.isArray(spec.exceptions) && spec.exceptions.length === 0,
+      KEY + ' declares small-prop with an explicit, empty exception list');
+
+  const { readGlb } = require('./harness/glb.js');
+  const glb = readGlb(path.join(ROOT, REGB.modelAssetUrl(KEY)));
+  const m = M.measureAsset(glb.root);
+  note('shipped file: ' + glb.byteLength.toLocaleString() + ' bytes, ' + m.geometry.meshes + ' meshes, ' +
+       m.triangles.toLocaleString() + ' triangles, ' + m.geometry.vertices.toLocaleString() + ' vertices');
+  note('materials ' + m.materials.uniqueMaterials + ', textures ' + m.materials.textures +
+       ' [' + m.materials.textureDims.join(', ') + '], texel ' +
+       (m.texelDensity ? m.texelDensity.toFixed(2) + ' px/m' : m.texelStatus));
+  chk(m.triangles === 1296, 'the real counting definition finds 1,296 triangles in the shipped file');
+  chk(m.geometry.meshes === 2 && m.materials.uniqueMaterials === 2,
+      'across two meshes and two materials — timber and galvanised steel');
+  chk(m.materials.textures === 5 && m.maxTextureDim === 256,
+      'five embedded maps, the largest 256 px — inside the 512 small-prop target');
+  chk(m.texelStatus === 'measured' && near(m.texelDensity, 64.37, 0.05),
+      'texel density MEASURED at ' + (m.texelDensity || 0).toFixed(2) + ' px/m, on the ~64 px/m standard');
+
+  const v = M.validateAssetBudget(m, spec.class, spec.exceptions);
+  note('verdict: ' + v.status + ' — triangles ' + v.metrics.triangles.band + ', texture ' +
+       v.metrics.texture.band + ', texel ' + v.metrics.texel.band);
+  chk(v.status === 'pass' && v.warnings.length === 0 && v.exceptions.length === 0,
+      'the validator PASSES it as a small-prop with no warning and no exception');
+  chk(['triangles', 'texture', 'texel'].every((k) => v.metrics[k].band === 'within'),
+      'and every metric is WITHIN its band, not merely tolerated');
+}
+
 console.log('');
 if (fail === 0) {
   console.log('ALL VISUAL BUDGET CHECKS PASS');
-  note('Offline, on synthetic fixtures. This proves the rules, the measurements and the');
-  note('verdicts. It does not prove a real GLB measures correctly — nothing offline here');
+  note('Offline, on synthetic fixtures plus the first production GLB read from its own');
+  note('buffers. It does not prove a DECODED GLB measures correctly — nothing offline here');
   note('can decode one — and it does not prove the art direction is right.');
 } else {
   console.log(fail + ' VISUAL BUDGET FAILURES');

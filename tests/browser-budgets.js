@@ -10,10 +10,15 @@
    is exactly where it was.
 
    WHAT IT DOES NOT PROVE. That the budgets are the right budgets — that is
-   `VISUAL_RULE_BIBLE.md`'s job and a person's. **No production asset is created, loaded or
-   placed by this suite.** `prop.road-signs` is the E2.0a pipeline VALIDATION asset, the
-   registry marks it so, and the budget model deliberately returns no production budget for
-   it.
+   `VISUAL_RULE_BIBLE.md`'s job and a person's. `prop.road-signs` is the E2.0a pipeline
+   VALIDATION asset, the registry marks it so, and the budget model deliberately returns no
+   production budget for it.
+
+   D1 PHASE 4 ADDED section 3b: the first PRODUCTION asset, `prop.rural-fence-post-01`,
+   LOADED through the real GLTFLoader and measured AS DECODED — the file the browser actually
+   receives, not the authoring report and not the offline buffer read — then validated
+   against the class its own registry row declares. It is loaded, never placed: section 7
+   asserts the live scene holds no instance of it.
 
    REQUIREMENTS. Playwright and a Chromium build. Without them it skips and exits 0. */
 const fs = require('fs');
@@ -211,6 +216,56 @@ function serve() {
         'and a stated exception reads as EXCEPTION on real data, never as pass');
 
     // -------------------------------------------------------------------------------
+    head('3b. D1 PHASE 4 — THE FIRST PRODUCTION ASSET, DECODED AND VALIDATED');
+
+    const prod = await page.evaluate(async () => {
+      const KEY = 'prop.rural-fence-post-01';
+      const src = await window.game.assets.load(KEY);
+      if (!src) return { error: Array.from(window.game.assets.failed.values()).join('; ') };
+      const spec = assetBudgetSpecOf(KEY);
+      const m = measureAsset(src.root);
+      const v = validateAssetBudget(m, spec && spec.class, spec && spec.exceptions);
+      return {
+        spec, production: isProductionAsset(KEY),
+        report: src.report, size: src.bounds.size, scale: src.scale,
+        triangles: m.triangles, meshes: m.geometry.meshes, vertices: m.geometry.vertices,
+        materials: m.materials.uniqueMaterials, duplicates: m.materials.duplicateMaterials,
+        textures: m.materials.textures, dims: m.materials.textureDims, maxTex: m.maxTextureDim,
+        missing: m.materials.missingTextureData, unknown: m.materials.unknownTextureSize,
+        texelStatus: m.texelStatus, texel: m.texelDensity,
+        status: v.status, warnings: v.warnings, exceptions: v.exceptions,
+        bands: { tri: v.metrics.triangles.band, tex: v.metrics.texture.band, texel: v.metrics.texel.band },
+      };
+    });
+    if (prod.error) { chk(false, 'the production fence failed to load: ' + prod.error); }
+    else {
+      note('decoded: ' + prod.triangles.toLocaleString() + ' triangles, ' + prod.meshes + ' meshes, ' +
+           prod.vertices.toLocaleString() + ' vertices, ' + prod.materials + ' materials, ' +
+           prod.textures + ' textures [' + prod.dims.join(', ') + ']');
+      note('size ' + prod.size.map((n) => n.toFixed(4)).join(' x ') + ' m at scale ' + prod.scale +
+           ', texel ' + (prod.texel ? prod.texel.toFixed(2) + ' px/m' : prod.texelStatus));
+      note('verdict: ' + prod.status + ' (triangles ' + prod.bands.tri + ', texture ' + prod.bands.tex +
+           ', texel ' + prod.bands.texel + ')');
+      chk(prod.production === true && !!prod.spec && prod.spec.class === 'small-prop',
+          'the fence is a PRODUCTION asset and its row declares small-prop — assetBudgetSpecOf is not null for it');
+      chk(prod.triangles === 1296 && prod.report.triangles === 1296,
+          'the DECODED file measures 1,296 triangles, and the pipeline report agrees exactly');
+      chk(prod.meshes === 2 && prod.materials === 2 && prod.duplicates === 0,
+          'two meshes, two materials, no duplicate material — nothing for dedup to collapse');
+      chk(prod.textures === 5 && prod.maxTex === 256 && prod.missing === 0 && prod.unknown === 0,
+          'five DECODED maps, largest 256 px, every one sized — inside the 512 small-prop target');
+      chk(prod.texelStatus === 'measured' && Math.abs(prod.texel - 64.37) < 0.05,
+          'texel density measured on the decoded UVs at ' + (prod.texel || 0).toFixed(2) + ' px/m');
+      chk(Math.abs(prod.size[1] - 1.2) < 0.001 && Math.abs(prod.size[0] - 1.9955) < 0.001 &&
+          Math.abs(prod.size[2] - 0.1647) < 0.001 && prod.scale === 1,
+          'native scale is the approved 1.996 x 1.200 x 0.165 m, and nothing rescaled it');
+      chk(prod.status === 'pass' && prod.warnings.length === 0 && prod.exceptions.length === 0,
+          'the validator PASSES the shipped asset with no warning and no exception');
+      chk(prod.bands.tri === 'within' && prod.bands.tex === 'within' && prod.bands.texel === 'within',
+          'every metric is WITHIN its band');
+    }
+
+    // -------------------------------------------------------------------------------
     head('4. LIVE RUNTIME RESOURCE STATISTICS');
 
     const live = await page.evaluate(() => {
@@ -345,15 +400,19 @@ function serve() {
                              return !h || h.style.display !== 'none'; })(),
         physicalIsVoxel: g.physical instanceof VoxelPhysicalWorld,
         assetsLoaded: g.assets.stats.loaded,
-        productionAssets: modelAssetKeys().filter((k) => isProductionAsset(k)).length,
+        productionAssets: modelAssetKeys().filter((k) => isProductionAsset(k)),
+        fencePlaced: (() => { let n = 0; g.scene.traverse((o) => {
+          if (o.userData && o.userData.assetKey === 'prop.rural-fence-post-01') n++; }); return n; })(),
         sceneChildren: g.scene.children.length,
       };
     });
     chk(after.running && after.alive, 'the game is still running and the player is still alive');
     chk(after.physicalIsVoxel, 'the shipped physical world is untouched — Phase 3 replaced nothing');
     chk(after.hudVisible, 'and the HUD is where it was');
-    chk(after.productionAssets === 0,
-        'the registry still ships ZERO production assets — nothing was authored by this phase');
+    chk(after.productionAssets.length === 1 && after.productionAssets[0] === 'prop.rural-fence-post-01',
+        'the registry ships exactly ONE production asset, the approved fence (D1 Phase 4)');
+    chk(after.fencePlaced === 0,
+        'and the live game scene holds NO instance of it — loaded for measurement, placed nowhere');
     chk(errors.length === 0, 'no page error in the whole run' + (errors.length ? ': ' + errors[0] : ''));
 
   } catch (e) {

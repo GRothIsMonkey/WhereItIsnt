@@ -37,6 +37,18 @@ D1 Impl Phase 3            COMPLETE — the visual budget guardrail. VISUAL_RULE
                            fallback. Exceptions are local, stated, justified and visible;
                            there is no global switch. NO production asset, no Blender, no
                            Astra, no D1 content. See ARCHITECTURE.md section 4.13.
+D1 Impl Phase 4            IN PROGRESS — ASSET 001 INTEGRATED. prop.rural-fence-post-01, the
+                           human-approved Revision 03 fence, is the first PRODUCTION row:
+                           byte-identical runtime copy, FIRST-PARTY provenance (a real
+                           licence status, hash-pinned), small-prop PASS with no exception
+                           (1,296 tris, 256 px maps, 64.37 px/m, measured on the shipped
+                           file), two declared collision boxes fitted to its own vertices.
+                           PLACED NOWHERE. It loads, shares, scales, collides and disposes
+                           correctly in the live renderer. It does NOT yet look right there:
+                           the renderer has no output colour transform (the fence shows at
+                           21% of its colour-managed brightness) and no environment
+                           lighting (the steel strap reads dark). Both are renderer-wide
+                           E2.5 decisions, not asset defects. See ARCHITECTURE.md 4.14.
 D1 creative design         LOCKED. D1_DESIGN.md is the SINGLE DETAILED D1 SOURCE OF TRUTH.
                            STORY.md = high-level canon, ROADMAP.md = implementation staging,
                            this file = status. None of them re-specifies a D1 sequence.
@@ -6497,6 +6509,42 @@ and where any of them disagrees with `D1_DESIGN.md` about D1, `D1_DESIGN.md` win
   three on BOTH builds**, in opposite order: the suite is a coin toss on this container and
   one sample was not an A/B. `browser-opening` also exited non-zero inside the sweep and
   passes completely when run alone.
+* **D1 Implementation Phase 4 — Production assets: IN PROGRESS. Asset 001 INTEGRATED.**
+  `prop.rural-fence-post-01` is the human-approved Revision 03 rural fence. It is now the first
+  `ASSET_STATUS.PRODUCTION` row, at `assets/models/props/rural_fence_post_01.glb`, a
+  **byte-identical** copy of the approved review export (SHA-256 `8f1d6934…`). The review
+  tree, all three revisions, is kept as history. The art was not touched. The licence
+  vocabulary had only Creative Commons grants, so it gained **`FIRST-PARTY`**:
+  project-owned, unrestricted for this project's commercial use, no external attribution
+  required. It is earned rather than declared. The credit must name an in-repo provenance
+  record that exists and a hash the shipped file has, and no licence may mean "none". Budget:
+  `small-prop`, **PASS, no exception**. It was measured three ways on the shipped file and all
+  three agree: 1,296 triangles, two materials, five maps (largest 256 px), 64.37 px/m.
+  Collision is **two declared boxes** (post + joint housing, rail sag envelope) fitted to the
+  file's own vertices. Every timber vertex is inside one, the strap is at most 1.0 cm
+  outside, and the gap under the rail is open. **It is placed nowhere**, and `tests/assets.js`
+  fails if any `src/` file but the registry names it. No D1 layout, landmark, road or
+  progression was touched.
+  **THE REPRESENTATIVE SCENE (`tests/browser-asset-scene.js`) FOUND TWO RENDERER-WIDE GAPS,
+  AND THEY ARE NOT FIXED.** The scene is D1 foundation terrain plus six fences placed by the
+  test, rendered through the game's own PostFX pass. It passes on loading, one-upload sharing,
+  on-screen scale (122 px vs 120 px expected), composite collision and raycast, and exact
+  teardown. It FAILS on how the fence looks. The renderer's output encoding is Linear and
+  nothing re-encodes, so sRGB-decoded PBR albedo reaches the screen at its linear value: the
+  fence shows at **21%** of its colour-managed brightness and the timber reads near-black.
+  There is also no environment lighting, so the galvanised strap renders darker than the
+  timber. Neither is an asset defect. Both are E2.5 lighting / colour decisions that touch
+  every surface in the game, so the suite is deliberately red until then (ARCHITECTURE.md
+  section 4.14). **Visual equivalence with the approved Blender renders is NOT claimed.**
+  **VALIDATION:** all 31 offline suites run: 30 green. `performance.js` read +14.5% against its
+  14% ceiling. The A/B against the handoff commit `79443ce` gave +5.2% and +14.2% there and
+  +18.2% and +13.3% here, so it is noise, and the threshold was not raised.
+  `architecture.js` 301/0, `assets.js` 159/0, `budgets.js` 223/0. Browser, one at a time over
+  HTTP: `browser-assets` 71/0 on r128 and 71/0 on r186, `browser-budgets` 47/0,
+  `browser-raycast` 37/0, `browser-terrain` 38/0, `launch-check` clean, and
+  `browser-asset-scene` 29/2 (the two graded renderer gaps above, as designed). The other
+  browser suites were NOT run in this phase. Nobody has looked at the fence in the game
+  except through the seven images the scene suite writes.
 * Final D1 first-person playtest: NOT YET COMPLETE
 
 Implementation-level details may still be refined where required by assets, technical

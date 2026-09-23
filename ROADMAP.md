@@ -3243,6 +3243,23 @@ be stated on the asset with a reason and reads as an exception rather than a pas
 Engineering only: **no production asset, no Blender, no Astra, no D1 content.** See
 `ARCHITECTURE.md` section 4.13.
 
+**Phase 4 — Production assets: IN PROGRESS. Asset 001 (`prop.rural-fence-post-01`) is
+INTEGRATED.** The human-approved Revision 03 fence is in the production pipeline:
+byte-identical runtime copy, registry row, `FIRST-PARTY` provenance, `small-prop` budget
+(PASS, no exception), two declared collision boxes, and representative-scene validation in the
+live renderer. It is **placed nowhere** in the shipped world. D1 layout is not started. The
+representative scene found two renderer-wide gaps: no output colour transform and no
+environment lighting. They make every sRGB-textured PBR asset render far too dark and every
+metal read dark. They are recorded in `ARCHITECTURE.md` section 4.14 as E2.5 decisions, not
+asset defects.
+
+*Phase 4 planning note — asset sourcing (TENTATIVE, project owner's current direction, not yet
+implemented):* a HYBRID strategy. **Generic / common assets** should prefer high-quality,
+legally usable sourced base assets where appropriate, then be normalised and touched up to
+`VISUAL_RULE_BIBLE.md`. **Unique / signature assets** should prefer Astra / custom authoring.
+No sourcing system exists yet. Every asset still enters through the registry with an explicit
+licence status: a third-party grant, or `FIRST-PARTY`.
+
 1. D1 world/layout foundation
 2. landmark placement and traversal
 3. reusable rural/environment assets

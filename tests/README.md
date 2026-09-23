@@ -380,6 +380,35 @@ in a `finally`, which makes the claim exact instead of statistical.
 > browser API exposes VRAM, and nothing here pretends otherwise.** What it can prove is
 > that a load/unload cycle returns the counter to where it started.
 
+## D1 PHASE 4 — THE FIRST PRODUCTION ASSET (`prop.rural-fence-post-01`)
+
+```
+npm run assets                 # registry, FIRST-PARTY provenance, hash, collision vs the file's vertices
+npm run budgets                # §13: the real measurement over the shipped GLB's own buffers
+npm run browser-assets         # §9b: colour spaces, packed MR map, normal map, cache/clone/refcount/disposal
+npm run browser-assets-r186    # the same on the prepared upgrade bundle
+npm run browser-budgets        # §3b: the DECODED file measured and validated against its declared class
+npm run browser-asset-scene    # the representative scene: D1 terrain, six fences, the composite, three ranges
+```
+
+Four existing suites were extended and one was added. Nothing was built beside them as a
+parallel validator. `tests/harness/glb.js` reads a GLB's own buffers and PNG headers, so an
+offline suite can check the shipped file's geometry instead of an authoring report. It
+decodes nothing and is not a loader.
+
+**`browser-asset-scene.js` IS RED BY DESIGN, and it says why.** All its functional checks
+pass: loading over HTTP, one upload shared by six instances, projected scale (122 px against
+the 120 px a 1.2 m object at 5 m must be), the normal map shading, composite collision and
+raycast, the open gap under the rail, and a teardown that returns `renderer.info` exactly.
+Two checks grade how the asset LOOKS in the shipped render path against a colour-managed
+frame of the same scene, and both fail. The renderer has no output colour transform, so the
+fence shows at about 21% of its colour-managed brightness. There is also no environment
+lighting, so the galvanised strap reads darker than the timber. Neither is the asset's
+defect and neither is fixed here (ARCHITECTURE.md §4.14). The suite turns green when E2.5
+provides them. Look at the seven images it writes to `tests/renders/`. The two
+`*-DIAGNOSTIC-srgb-output.png` frames show what an output encode recovers. The shipped game
+cannot produce them.
+
 ## About the browser run
 
 `browser-save.js`, `browser-onboarding.js`, `browser-menu.js`, `browser-opening.js`,

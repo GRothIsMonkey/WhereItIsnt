@@ -20,7 +20,7 @@ Asserted in `tests/architecture.js` §4i.
 
 | module | lines | what it owns |
 | --- | ---: | --- |
-| `asset-registry.js` | 180 | **WHAT EXISTS.** Keys, paths, status, collision modes, licences. Pure data plus four lookups. |
+| `asset-registry.js` | 294 | **WHAT EXISTS.** Keys, paths, status, collision modes, licences. Pure data plus four lookups. D1 Phase 4 added the first production row and the `FIRST-PARTY` licence status. |
 | `asset-materials.js` | 190 | **WHAT SURFACES BECOME.** Colour space, filtering, shadow flags, within-asset material dedup, resource collection. |
 | `asset-library.js` | 289 | **FILES.** GLTFLoader, cache, reference counting, disposal, failure latching, the transport aggregate. |
 | `asset-collision.js` | 212 | **WHAT SHAPE A PLACED MODEL IS.** Declared proxies, world-space boxes, three PhysicalWorld-shaped queries, and (D1 Phase 2) the normalized raycast over those same proxies. |
@@ -34,9 +34,20 @@ Asserted in `tests/architecture.js` §4i.
 - **AN ASSET WITHOUT AN ATTRIBUTION LINE IS A LICENCE BREACH, NOT UNTIDINESS.**
   `tests/assets.js` fails in both directions — an asset with no credit, a credit with no
   asset — and keeps the restricted-licence quarantine list current.
+- **FIRST-PARTY IS A LICENCE STATUS, NOT THE ABSENCE OF ONE** (D1 Phase 4). Work authored
+  for this project carries `FIRST-PARTY`: project-owned, unrestricted for this project's
+  commercial use, with no external attribution required. It is earned. The credit must name
+  an in-repo provenance record that exists and a SHA-256 the shipped file actually has, and
+  the attribution document must carry the same hash. Every licence is either a third-party
+  grant with a URL to its text or first-party. There is no "none".
 - **`ASSET_STATUS.VALIDATION` IS NOT CONTENT.** A validation asset proves the pipeline. No
-  dimension may reference one, and the test enforces it. E2.0a ships exactly one asset and
-  it is a validation asset; it ships **zero** production assets.
+  dimension may reference one, and the test enforces it. E2.0a shipped exactly one asset,
+  and it was a validation asset.
+- **ONE PRODUCTION ASSET, INTEGRATED AND PLACED NOWHERE** (D1 Phase 4).
+  `prop.rural-fence-post-01` is a byte-identical copy of the human-approved Revision 03
+  export. It is budgeted `small-prop` with no exception, and its collision is two declared
+  boxes fitted to its own vertices. No file under `src/` except the registry names it. The
+  phase that places it changes that check on purpose. See ARCHITECTURE.md section 4.14.
 - **THE GUARDRAIL LIVES HERE BECAUSE IT OUTLIVES THE RENDERER.** `asset-budgets.js` and
   `asset-measure.js` name **zero** `THREE` and `tests/architecture.js` §4i locks them there.
   They read duck-typed properties — `isMesh`, `geometry.index.count`, `matrixWorld.elements`
@@ -99,7 +110,8 @@ Asserted in `tests/architecture.js` §4i.
 | **A composite PhysicalWorld** | Still not here, and now it EXISTS — `src/world/composite-physical-world.js`, D1 Phase 1. It composes this layer's `AssetCollisionSet` with a terrain base. The resolution order lives with the world, not with the model pipeline. |
 | **LOD** | The registry reserves the field. No selection, no switching, no generation. D1 Phase 3 added `ASSET_LOD_SCHEMA` and a CONSISTENCY check — levels are 0..n and each is meaningfully cheaper than the last — and nothing else. Without a selection policy there is nothing else to check. |
 | **A texture platform** | Dimensions are read and compared. No compression, no transcoding, no atlas packing, no budget for VRAM (no browser API exposes it). |
-| **A between-assets density check** | Section 9's real claim is that two assets should AGREE. That needs more than one production asset to exist, and there are none. Each asset is measured against its class target instead. |
+| **A between-assets density check** | Section 9's real claim is that two assets should AGREE. That needs more than one production asset to exist, and there is one (D1 Phase 4, 64.37 px/m). Each asset is measured against its class target instead. |
+| **An output colour transform / environment lighting** | D1 Phase 4 measured that the live renderer has neither. The fence shows at about 21% of its colour-managed brightness, and its metal strap has nothing to reflect. That is a renderer and lighting decision (E2.5), not an import-policy one, and this layer's sRGB marking is correct for PBR. `tests/browser-asset-scene.js` grades it and stays red until it is fixed. |
 | **Instancing / BatchedMesh** | The resource test places clones on purpose, to establish the naive cost the later optimisation is measured against. |
 | **Streaming** | Cache yes, proximity-driven load/unload no. |
 | **KTX2 / Draco / meshopt** | Registry field reserved; nothing implemented; not in the vendored bundle until an asset needs it. |
