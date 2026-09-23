@@ -276,6 +276,7 @@
 <script src="src/shared/items-catalog.js"></script>
 <script src="src/ui/item-icons.js"></script>
 <script src="src/shared/simplex-noise.js"></script>
+<script src="src/shared/color-transfer.js"></script>
 <script src="src/core/settings.js"></script>
 <script src="src/world/block-catalog.js"></script>
 <script src="src/world/block-shapes.js"></script>
@@ -335,6 +336,8 @@
      monolith and ahead of the composition root that builds it. The voxel BLOCK ATLAS
      and the two Suburbia block-catalogue registrars are deliberately NOT here: they
      are voxel data, not rendering, and Era 2 deletes them. See ARCHITECTURE.md 4.8. -->
+<script src="src/rendering/color-pipeline.js"></script>
+<script src="src/rendering/sky-environment.js"></script>
 <script src="src/rendering/environment-system.js"></script>
 <script src="src/rendering/postfx.js"></script>
 <script src="src/rendering/ash-particles.js"></script>
@@ -346,6 +349,11 @@
 <script src="src/core/dev-tools.js"></script>
 <script>
 "use strict";
+
+/* D1 PHASE 4 — HEX AND CSS COLOURS ARE sRGB FROM HERE ON, ON EVERY THREE VERSION. This must
+   run before the first THREE.Color is made, and the first ones are made at load time further
+   down this script (the sky and sun colours). See src/rendering/color-pipeline.js. */
+installColorManagement();
 
 class SoundEngine {
   constructor() {
@@ -2544,6 +2552,7 @@ function buildCrackStageTextures(stages) {
       for (let i = 0; i < n; i++) g.fillRect(path[i][0], path[i][1], 1, 1);
     }
     const t = new THREE.CanvasTexture(c);
+    markColorTexture(t);   // painted with CSS colours: authored sRGB
     t.magFilter = THREE.NearestFilter;
     t.minFilter = THREE.NearestFilter;
     t.generateMipmaps = false;
@@ -4374,6 +4383,7 @@ function buildBlockAtlas() {
   }
 
   const tex = new THREE.CanvasTexture(canvas);
+  markColorTexture(tex);   // painted with CSS colours: authored sRGB
   tex.magFilter = THREE.NearestFilter;
   tex.minFilter = THREE.NearestFilter;
   tex.wrapS = THREE.ClampToEdgeWrapping;
@@ -6447,6 +6457,7 @@ function _farmLampHaloTexture() {
     ctx.fillRect(0, 0, N, N);
   }
   _farmLampHalo = new THREE.CanvasTexture(c);
+  markColorTexture(_farmLampHalo);   // painted with CSS colours: authored sRGB
   return _farmLampHalo;
 }
 
@@ -6567,6 +6578,7 @@ function _makeCrossTexture(drawFn) {
   const ctx = c.getContext('2d');
   drawFn(ctx);
   const tex = new THREE.CanvasTexture(c);
+  markColorTexture(tex);   // painted with CSS colours: authored sRGB
   tex.magFilter = THREE.NearestFilter;
   tex.minFilter = THREE.NearestFilter;
   tex.needsUpdate = true;
@@ -11402,6 +11414,7 @@ function _makeCloudVariantTexture(variant) {
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
   puffs.forEach(([x, y, r]) => { ctx.beginPath(); ctx.arc(x, y - r * 0.28, r * 0.72, 0, Math.PI * 2); ctx.fill(); });
   const tex = new THREE.CanvasTexture(c);
+  markColorTexture(tex);   // painted with CSS colours: authored sRGB
   return tex;
 }
 
@@ -11416,6 +11429,7 @@ function _makeGlowSprite(coreColor, glowColor, size) {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 128, 128);
   const tex = new THREE.CanvasTexture(c);
+  markColorTexture(tex);   // painted with CSS colours: authored sRGB
   const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
   const sprite = new THREE.Sprite(mat);
   sprite.scale.set(size, size, 1);
@@ -11431,6 +11445,7 @@ function _makeCloudSprite() {
   const puffs = [[30, 34, 20], [55, 26, 24], [80, 32, 20], [100, 38, 14], [45, 42, 16]];
   puffs.forEach(([x, y, r]) => { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); });
   const tex = new THREE.CanvasTexture(c);
+  markColorTexture(tex);   // painted with CSS colours: authored sRGB
   return tex;
 }
 
@@ -11907,7 +11922,7 @@ class StalkerAI {
     // PHASE 6 — the eyes now fade with the body instead of hanging in the air as two
     // fully-opaque points after the rest of the creature has gone.
     this.eyeMat.opacity = fadeMult;
-    this.eyeLight.intensity = (2.2 + pulse * 2.4) * fadeMult;
+    this.eyeLight.intensity = legacyLinear(2.2 + pulse * 2.4) * fadeMult;   // D1 Phase 4: authored level, linear fade
     const s = 0.9 + pulse * 0.3;
     this.eyeL.scale.set(s, s, s);
     this.eyeR.scale.set(s, s, s);
@@ -13059,13 +13074,13 @@ class MobManager {
 
   // Brief self-cleaning flash of light where a mob was vaporized by the anchor shield.
   _spawnShieldZap(position) {
-    const light = new THREE.PointLight(0xffcf6b, 3.2, 7, 2);
+    const light = new THREE.PointLight(0xffcf6b, legacyLinear(3.2), 7, legacyLightDecay(2));
     light.position.copy(position);
     this.scene.add(light);
     let life = 0.35;
     const fade = () => {
       life -= 0.045;
-      light.intensity = Math.max(0, life * 9);
+      light.intensity = legacyLinear(Math.max(0, life * 9));   // D1 Phase 4: authored level
       if (life > 0) requestAnimationFrame(fade);
       else this.scene.remove(light);
     };

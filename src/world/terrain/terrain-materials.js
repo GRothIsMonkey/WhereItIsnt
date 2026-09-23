@@ -79,11 +79,18 @@ function d1WaterMaterial() {
   return _d1Materials.water;
 }
 
-/* The vertex colour for a surface class, as {r,g,b} in 0..1. */
+/* The vertex colour for a surface class, as LINEAR {r,g,b} in 0..1.
+
+   D1 PHASE 4 — the palette above is hex, and hex is sRGB, so each channel is decoded once
+   here exactly as a THREE.Color decodes a hex (src/shared/color-transfer.js). Unpacked raw,
+   the display values went into the shader as linear light and the terrain rendered pale
+   and washed out on the corrected renderer. Vertex colours are the one colour input
+   three never decodes for you. */
 function d1SurfaceColor(surface) {
   const style = D1_SURFACE_STYLE[surface] || D1_SURFACE_STYLE[D1_SURFACE.FIELD];
   const c = style.color;
-  return { r: ((c >> 16) & 255) / 255, g: ((c >> 8) & 255) / 255, b: (c & 255) / 255 };
+  return { r: srgbToLinear(((c >> 16) & 255) / 255), g: srgbToLinear(((c >> 8) & 255) / 255),
+           b: srgbToLinear((c & 255) / 255) };
 }
 
 /* Shared materials are owned by the MODULE, not by a region, and are freed only on a full

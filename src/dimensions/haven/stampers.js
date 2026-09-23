@@ -135,7 +135,7 @@ registerWorldContent('haven', 'stampers', class {
     this._writeBlockRaw(cX, baseY + 3, fz, BLOCK.AIR);
 
     this.havenFirePos = new THREE.Vector3(cX + 0.5, baseY + 0.35, fz + 0.5);
-    const fireLight = new THREE.PointLight(0xffa447, 2.2, 16, 2);
+    const fireLight = new THREE.PointLight(0xffa447, legacyLinear(2.2), 16, legacyLightDecay(2));
     fireLight.position.set(cX + 0.5, baseY + 1.0, fz + 1.1);
     this.scene.add(fireLight);
     this.havenFireLight = fireLight;
@@ -159,7 +159,7 @@ registerWorldContent('haven', 'stampers', class {
 
     // A soft warm interior fill light so the cabin never reads as a dark box even
     // with the horror lighting model fully switched off.
-    const cozyLight = new THREE.PointLight(0xffe6bf, 1.1, 22, 2);
+    const cozyLight = new THREE.PointLight(0xffe6bf, legacyLinear(1.1), 22, legacyLightDecay(2));
     cozyLight.position.set(cX + 0.5, baseY + 3.2, cZ + 0.5);
     this.scene.add(cozyLight);
     this.havenCozyLight = cozyLight;

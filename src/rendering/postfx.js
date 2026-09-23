@@ -24,9 +24,12 @@ class PostFX {
     this.renderer = renderer;
     this.scene = scene;
     this.camera = camera;
-    this.target = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, {
-      minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat
-    });
+    /* D1 PHASE 4 — THE COLOUR PIPELINE. The scene target is LINEAR and, where the device
+       allows, half float; this pass is the one place it is encoded for the display, and it
+       also sets the renderer's own output so a built-in material drawn straight to the
+       canvas can never show linear values either. See src/rendering/color-pipeline.js. */
+    this.target = createSceneTarget(renderer, window.innerWidth, window.innerHeight);
+    this.outputConfig = configureRendererOutput(renderer);
     this.orthoScene = new THREE.Scene();
     this.orthoCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     const geo = new THREE.PlaneGeometry(2, 2);
@@ -70,6 +73,11 @@ class PostFX {
         uniform float uHavenFade;
         uniform vec2 uResolution;
         varying vec2 vUv;
+${COLOR_PIPELINE_GLSL}
+        /* D1 PHASE 4 — EVERY read of the scene goes through here, so the linear scene is
+           encoded for the display exactly once and every grading term below still works
+           on display values, which is what it was tuned on. */
+        vec3 sceneColor(vec2 p) { return linearToDisplay(texture2D(tDiffuse, p).rgb); }
 
         float hash(vec2 p) { return fract(sin(dot(p, vec2(41.3, 289.1)) + uTime * 60.0 + uNoise * 17.0) * 43758.5453); }
 
@@ -102,9 +110,9 @@ class PostFX {
           float caAmt = (uSanity < 0.5 ? (0.5 - uSanity) * 0.025 : 0.0) * fxGate;
           vec2 caDir = (wobUv - 0.5) * caAmt;
           vec3 color;
-          color.r = texture2D(tDiffuse, wobUv + caDir).r;
-          color.g = texture2D(tDiffuse, wobUv).g;
-          color.b = texture2D(tDiffuse, wobUv - caDir).b;
+          color.r = sceneColor(wobUv + caDir).r;
+          color.g = sceneColor(wobUv).g;
+          color.b = sceneColor(wobUv - caDir).b;
 
           float vigStrength = mix(0.25, 1.15, 1.0 - uSanity);
           vec2 centered = uv - 0.5;
@@ -134,9 +142,9 @@ class PostFX {
 
             float split = 0.02 * g;
             vec3 gc;
-            gc.r = texture2D(tDiffuse, clamp(gUv + vec2(split, 0.0), 0.0, 1.0)).r;
-            gc.g = texture2D(tDiffuse, gUv).g;
-            gc.b = texture2D(tDiffuse, clamp(gUv - vec2(split, 0.0), 0.0, 1.0)).b;
+            gc.r = sceneColor(clamp(gUv + vec2(split, 0.0), 0.0, 1.0)).r;
+            gc.g = sceneColor(gUv).g;
+            gc.b = sceneColor(clamp(gUv - vec2(split, 0.0), 0.0, 1.0)).b;
 
             // Heavy grain and a red crush.
             float gn = (hash(uv * uResolution.xy * 1.7) - 0.5) * 0.35 * g;
@@ -164,10 +172,10 @@ class PostFX {
             float f = clamp(uHavenFade, 0.0, 1.0);
             vec2 texel = 1.0 / uResolution.xy;
             float r = f * 3.5;
-            vec3 soft = texture2D(tDiffuse, clamp(uv + vec2( r, 0.0) * texel, 0.0, 1.0)).rgb
-                      + texture2D(tDiffuse, clamp(uv + vec2(-r, 0.0) * texel, 0.0, 1.0)).rgb
-                      + texture2D(tDiffuse, clamp(uv + vec2(0.0,  r) * texel, 0.0, 1.0)).rgb
-                      + texture2D(tDiffuse, clamp(uv + vec2(0.0, -r) * texel, 0.0, 1.0)).rgb;
+            vec3 soft = sceneColor(clamp(uv + vec2( r, 0.0) * texel, 0.0, 1.0)).rgb
+                      + sceneColor(clamp(uv + vec2(-r, 0.0) * texel, 0.0, 1.0)).rgb
+                      + sceneColor(clamp(uv + vec2(0.0,  r) * texel, 0.0, 1.0)).rgb
+                      + sceneColor(clamp(uv + vec2(0.0, -r) * texel, 0.0, 1.0)).rgb;
             color = mix(color, soft * 0.25, f * 0.85);
 
             float lum = dot(color, vec3(0.299, 0.587, 0.114));

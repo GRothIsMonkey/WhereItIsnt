@@ -3249,9 +3249,11 @@ byte-identical runtime copy, registry row, `FIRST-PARTY` provenance, `small-prop
 (PASS, no exception), two declared collision boxes, and representative-scene validation in the
 live renderer. It is **placed nowhere** in the shipped world. D1 layout is not started. The
 representative scene found two renderer-wide gaps: no output colour transform and no
-environment lighting. They make every sRGB-textured PBR asset render far too dark and every
-metal read dark. They are recorded in `ARCHITECTURE.md` section 4.14 as E2.5 decisions, not
-asset defects.
+environment lighting. **The Phase 4 renderer / PBR correction pass fixed both at the
+root**: one colour pipeline (inputs decoded once, the display encode once in PostFX, a
+linear half-float scene target), a SkyEnvironment for PBR materials, and one legacy transfer
+(`legacyLinear`) that keeps Era 1's look and its night. See `ARCHITECTURE.md` section 4.15.
+Human visual review of the corrected renders is pending.
 
 *Phase 4 planning note — asset sourcing (TENTATIVE, project owner's current direction, not yet
 implemented):* a HYBRID strategy. **Generic / common assets** should prefer high-quality,

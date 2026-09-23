@@ -241,10 +241,14 @@ head('3. THE CREATURE IS NOT A BOSS, A STALKER OR A BEHEMOTH');
   c.group.traverse(o => { if (o.material) mats.push(o.material); });
   chk(mats.length > 0 && mats.every(m => m.type === 'MeshBasicMaterial'),
       `all ${mats.length} materials are unlit — it can never be lit like an asset`);
-  const dark = mats.filter(m => m.color && (m.color.r + m.color.g + m.color.b) < 0.2);
+  /* D1 PHASE 4 — MEASURED IN DISPLAY VALUES. Colours are stored LINEAR now (the colour
+     pipeline decodes every hex once), so "pale" and "near-black" are read back through
+     getHex(), which returns the sRGB the colour was authored as — the value on screen. */
+  const disp = (col) => { const h = col.getHex(); return (((h >> 16) & 255) + ((h >> 8) & 255) + (h & 255)) / 255; };
+  const dark = mats.filter(m => m.color && disp(m.color) < 0.2);
   chk(dark.length === mats.length - 1,
       `every part but one is near-black; the one exception is the face`);
-  chk(!!c.faceMat && (c.faceMat.color.r + c.faceMat.color.g + c.faceMat.color.b) > 1.5,
+  chk(!!c.faceMat && disp(c.faceMat.color) > 1.5,
       'and the face is the one pale thing in the shot');
 
   /* NO BOSS VOCABULARY, ANYWHERE. Checked against the shipped source of the builder. */
@@ -644,7 +648,9 @@ head('11. THE ENVIRONMENT, AND WHAT IT DOES NOT DO');
      nightmare's red one repaints over the top of it. */
   /* Scoped to EnvironmentSystem: `update(` appears on a dozen classes and the first one
      in the file is not the sky. */
-  const upd = methodBody(classBody(LIVE, 'EnvironmentSystem'), 'update') || '';
+  /* D1 PHASE 4 — the sky's branches live in `_updateSky`; `update` now wraps it with the
+     legacy light transfer and the sky environment, so that is where the order is read. */
+  const upd = methodBody(classBody(LIVE, 'EnvironmentSystem'), '_updateSky') || '';
   const iFin = upd.indexOf('this.finaleFog !== null');
   const iNight = upd.indexOf('this.nightmareActive');
   const iHaven = upd.indexOf('this.fakeHavenActive');

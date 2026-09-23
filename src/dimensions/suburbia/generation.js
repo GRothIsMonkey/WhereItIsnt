@@ -22,7 +22,7 @@ registerWorldContent('suburbia', 'generation', class {
   // once per frame alongside updateTorchFlicker/updateSoulAnchorPulse.
   updateDisconnectedHomeGlow(t) {
     if (!this.disconnectedHomeL3Glow) return;
-    this.disconnectedHomeL3Glow.intensity = 1.6 * (0.9 + Math.sin(t * 1.3) * 0.35);
+    this.disconnectedHomeL3Glow.intensity = legacyLinear(1.6 * (0.9 + Math.sin(t * 1.3) * 0.35));
   }
 
   /* ===================================================================================

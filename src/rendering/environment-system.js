@@ -150,6 +150,45 @@ class EnvironmentSystem {
     // override so nothing can repaint over it.
     this.nightmareActive = false;
     this.nightmareColor = new THREE.Color(NIGHTMARE_SKY_COLOR);
+
+    /* D1 PHASE 4 — THE SKY AS AN ENVIRONMENT FOR PBR MATERIALS. Driven from the same sky
+       and ambient numbers the rest of this class computes, so it follows the day, every
+       dimension's override and the night — at night the ambient budget falls and so does
+       this. It is NOT attached to the voxel scene: that scene is Lambert, and r152+ would
+       light Lambert with it. A scene with PBR content attaches it
+       (`env.skyEnvironment.attach(scene)`); until one does, it builds nothing at all.
+       See src/rendering/sky-environment.js. */
+    this.skyEnvironment = new SkyEnvironment(renderer);
+  }
+
+  /* One call per frame, after the sky is decided. The sky's own colour where the hemisphere
+     is off (every dimension override sets it to zero), the fog as the horizon, the
+     hemisphere's ground colour below, and the scene's ambient budget as the brightness. */
+  _driveSkyEnvironment(dt) {
+    const bg = this.scene.background && typeof this.scene.background.r === 'number' ? this.scene.background : null;
+    const zenith = this.hemi.intensity > 0 ? this.hemi.color : (bg || this.fog.color);
+    this.skyEnvironment.request(zenith, this.fog.color, this.hemi.groundColor,
+                                this.ambient.intensity + this.hemi.intensity);
+    this.skyEnvironment.update(dt);
+  }
+
+  /* D1 PHASE 4 — THE SKY'S LIGHTS ARE AUTHORED IN ERA 1 UNITS AND TRANSFERRED ONCE A FRAME.
+
+     Every intensity `_updateSky` writes was tuned against a renderer with no output encode;
+     `legacyLinear` turns each into the linear level that looks the same on the corrected one
+     (src/shared/color-transfer.js). Not every branch of `_updateSky` writes all three lights
+     every frame, so the AUTHORED values are put back before it runs — otherwise a light a
+     branch leaves alone would be transferred again every frame and compound to black. What
+     the rest of the game reads afterwards is the linear value the renderer is using. */
+  update(dt) {
+    const a = this._authoredLight;
+    if (a) { this.sun.intensity = a.sun; this.ambient.intensity = a.ambient; this.hemi.intensity = a.hemi; }
+    this._updateSky(dt);
+    this._authoredLight = { sun: this.sun.intensity, ambient: this.ambient.intensity, hemi: this.hemi.intensity };
+    this.sun.intensity = legacyLinear(this.sun.intensity);
+    this.ambient.intensity = legacyLinear(this.ambient.intensity);
+    this.hemi.intensity = legacyLinear(this.hemi.intensity);
+    this._driveSkyEnvironment(dt);
   }
 
   get dayFraction() { return (this.t % this.cycleLength) / this.cycleLength; }
@@ -288,7 +327,7 @@ class EnvironmentSystem {
     return this.horizonColor;
   }
 
-  update(dt) {
+  _updateSky(dt) {
     this.t += dt;
     const f = this.dayFraction;
 

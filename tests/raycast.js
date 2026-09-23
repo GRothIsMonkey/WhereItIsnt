@@ -31,6 +31,9 @@ const ctx = vm.createContext({ Math, Float32Array, Uint16Array, Uint32Array, con
                                Object, Array, Set, performance: { now: () => Date.now() } });
 ctx.globalThis = ctx;
 vm.runInContext(fs.readFileSync(path.join(ROOT, 'src', 'shared', 'simplex-noise.js'), 'utf8'), ctx);
+/* D1 Phase 4 — the terrain decodes its hex palette through the shared colour arithmetic,
+   loaded here in the order game.html loads it. */
+vm.runInContext(fs.readFileSync(path.join(ROOT, 'src', 'shared', 'color-transfer.js'), 'utf8'), ctx);
 vm.runInContext(`
   var THREE = {
     Vector3: function (x, y, z) {

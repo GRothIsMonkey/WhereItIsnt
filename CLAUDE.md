@@ -4202,6 +4202,30 @@ Core fear:
 
 The Below is the strongest horror chapter.
 
+### Renderer colour pipeline (D1 Phase 4) — engineering rules that now hold
+The game had NO output colour transform and PBR materials had no environment; the first
+approved asset rendered at ~21% of its intended brightness. Fixed at the root, and these
+now hold (`ARCHITECTURE.md` section 4.15):
+- **Inputs are decoded once.** Hex / CSS colours are sRGB and become linear when set
+  (`installColorManagement()`, the first line of game.html's inline script: r152+'s own
+  ColorManagement, or an r128 backport). Colour textures go through `markColorTexture`;
+  data maps stay linear. **Vertex colours are the one input three never decodes** — a hex
+  unpacked into floats by hand must go through `srgbToLinear`.
+- **The display encode happens ONCE, in PostFX**, on every read of the linear half-float
+  scene target. Never add a second post pass, a custom shader that writes to the canvas, or
+  an sRGB-marked scene target — any of them encodes twice. `tests/browser-color-pipeline.js`
+  reads `#808080` back as 128 to prove it.
+- **Every Era 1 light and baked voxel shade goes through `legacyLinear`** (and a point light's
+  decay through `legacyLightDecay`) — the transfer that keeps the old world's look and its
+  NIGHT on the corrected renderer. Transfer the authored level; keep a designed fraction (a
+  dissolve, a fade) a linear multiplier. Era 2 content is authored in linear light and does
+  not use it.
+- **PBR materials get their ambient from `SkyEnvironment`** (`scene.environment`), owned and
+  driven by `EnvironmentSystem` and ATTACHED only by a scene with PBR content. Never attach it
+  to the Lambert voxel scene: r152+ lights Lambert with `scene.environment` too. A PBR scene
+  lit by it AND a strong ambient light counts its sky twice — that is E2.5's to design.
+  Correct colour is NOT permission to brighten: black stays intentionally black.
+
 ### Story authority
 Do not:
 - turn mystery into exposition

@@ -94,11 +94,11 @@ registerWorldContent('haven', 'generation', class {
      can extinguish the whole set generically. Adding another lamp later requires no
      change to the collapse path at all. */
   _havenAddLight(color, intensity, distance, x, y, z) {
-    const l = new THREE.PointLight(color, intensity, distance, 2);
+    const l = new THREE.PointLight(color, legacyLinear(intensity), distance, legacyLightDecay(2));
     /* PHASE 32 — the light the dissolve ramps DOWN FROM. Kept on the light itself rather
        than in a parallel array, so a lamp added later is carried by setHavenLightLevel
        without touching it — the same reason the list exists at all. */
-    l.userData.baseIntensity = intensity;
+    l.userData.baseIntensity = legacyLinear(intensity);   // D1 Phase 4: the transferred level; the dissolve scales it linearly
     l.position.set(x, y, z);
     this.scene.add(l);
     if (!this.havenWarmLights) this.havenWarmLights = [];
@@ -137,7 +137,7 @@ registerWorldContent('haven', 'generation', class {
         l.intensity = base * f;
       }
     }
-    if (this.havenCozyLight) this.havenCozyLight.intensity = 1.1 * f;
+    if (this.havenCozyLight) this.havenCozyLight.intensity = legacyLinear(1.1) * f;
     return true;
   }
 
@@ -219,7 +219,7 @@ registerWorldContent('haven', 'generation', class {
          frame and the fire alone stayed golden while the whole room around it went out. */
       const level = (this._havenLightLevel === undefined) ? 1 : this._havenLightLevel;
       this.havenFireLight.intensity =
-        (2.2 + Math.sin(f.t * 2.3) * 0.25 + Math.sin(f.t * 5.7) * 0.12) * level;
+        legacyLinear(2.2 + Math.sin(f.t * 2.3) * 0.25 + Math.sin(f.t * 5.7) * 0.12) * level;
     }
   }
 

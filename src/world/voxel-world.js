@@ -963,7 +963,7 @@ class VoxelWorld {
   _addTorchLight(wx, wy, wz) {
     const k = wx + ',' + wy + ',' + wz;
     if (this.torchLights.has(k)) return;
-    const light = new THREE.PointLight(0xffaa44, 2.0, 12, 2);
+    const light = new THREE.PointLight(0xffaa44, legacyLinear(2.0), 12, legacyLightDecay(2));
     light.position.set(wx + 0.5, wy + 0.72, wz + 0.5);
     this.scene.add(light);
     this.torchLights.set(k, light);
@@ -1021,7 +1021,7 @@ class VoxelWorld {
   _addLanternLight(wx, wy, wz) {
     const k = wx + ',' + wy + ',' + wz;
     if (this.lanternLights.has(k)) return;
-    const light = new THREE.PointLight(0xFFCC66, 3.0, 20, 2);
+    const light = new THREE.PointLight(0xFFCC66, legacyLinear(3.0), 20, legacyLightDecay(2));
     light.position.set(wx + 0.5, wy + 0.7, wz + 0.5);
     this.scene.add(light);
     this.lanternLights.set(k, light);
@@ -1050,7 +1050,7 @@ class VoxelWorld {
     const k = wx + ',' + wy + ',' + wz;
     if (this.soulAnchors.has(k)) return;
     const pos = new THREE.Vector3(wx + 0.5, wy + 0.5, wz + 0.5);
-    const light = new THREE.PointLight(0x5be0c8, 1.4, 15, 1.5);
+    const light = new THREE.PointLight(0x5be0c8, legacyLinear(1.4), 15, legacyLightDecay(1.5));
     light.position.copy(pos);
     this.scene.add(light);
     this.soulAnchors.set(k, { pos, light });
@@ -1084,7 +1084,7 @@ class VoxelWorld {
   updateSoulAnchorPulse(t) {
     for (const rec of this.soulAnchors.values()) {
       const pulse = 0.9 + Math.sin(t * 1.6 + rec.pos.x) * 0.25;
-      rec.light.intensity = 1.4 * pulse;
+      rec.light.intensity = legacyLinear(1.4 * pulse);   // D1 Phase 4: authored level
     }
     for (const prop of this.soulAnchorProps.values()) {
       const core = prop.userData.core;
@@ -1098,7 +1098,7 @@ class VoxelWorld {
   updateTorchFlicker(t) {
     for (const light of this.torchLights.values()) {
       const n = Math.sin(t * 9 + light.position.x) * 0.18 + Math.sin(t * 23 + light.position.z) * 0.1 + Math.sin(t * 31 + light.position.y) * 0.06;
-      light.intensity = 1.85 + n * 1.4; // ~ +-15% noisy flicker on a punchier base
+      light.intensity = legacyLinear(1.85 + n * 1.4); // ~ +-15% noisy flicker on a punchier base (D1 Phase 4: authored level)
     }
     for (const prop of this.torchProps.values()) {
       const flame = prop.userData.flame;
@@ -1160,6 +1160,15 @@ class VoxelWorld {
     const nb = this._nbScratch || (this._nbScratch = new Int32Array(6));
     // Per-cell light cache, one slot per face. -1 = not yet sampled.
     const lcache = this._lightScratch || (this._lightScratch = new Int32Array(6));
+    /* D1 PHASE 4 — the legacy transfer is a power law, so it distributes over the product a
+       shade is built from: (face * light * boost)^2.2 = face^2.2 * light^2.2 * boost^2.2.
+       The light factor has sixteen values and a cube face three, so both are tabulated once
+       and no Math.pow runs per cube face. Identical to transferring the product, to rounding. */
+    const shadeLin = this._legacyShadeLin || (this._legacyShadeLin = {
+      light: Float64Array.from({ length: 16 }, (_, l) => legacyLinear(0.22 + 0.78 * (l / 15))),
+      top: legacyLinear(1.0), bottom: legacyLinear(0.55), side: legacyLinear(0.78),
+    });
+    const lightLin = shadeLin.light;
     for (let x = 0; x < CHUNK_SX; x++) {
       for (let y = 0; y < CHUNK_SY; y++) {
         for (let z = 0; z < CHUNK_SZ; z++) {
@@ -1172,6 +1181,7 @@ class VoxelWorld {
              ONE geometry and ONE draw call: shaped blocks add no material, no mesh and
              no second pass. */
           const boost = BLOCK_SHADE_BOOST[id];
+          const boostLin = boost === 1 ? 1 : legacyLinear(boost);
           const shape = SHAPE_QUADS[id];
           if (shape !== null) {
             const wx = chunk.cx * CHUNK_SX + x, wz = chunk.cz * CHUNK_SZ + z;
@@ -1200,7 +1210,9 @@ class VoxelWorld {
               }
               /* PHASE 14 — interior trim. BLOCK_SHADE_BOOST is 1 for every block outside
                  a Suburbia house, so this multiply changes nothing anywhere else. */
-              const shade = q.shade * (0.22 + 0.78 * (lightLevel / 15)) * boost;
+              /* D1 PHASE 4 — an Era 1 display-space shade, transferred to the linear level
+                 that looks the same on the corrected renderer (src/shared/color-transfer.js). */
+              const shade = legacyLinear(q.shade) * lightLin[lightLevel] * boostLin;
               const u0 = q.tile * tileW;
               const p = q.p, uv = q.uv;
               for (let c = 0; c < 4; c++) {
@@ -1226,7 +1238,7 @@ class VoxelWorld {
             if (FACE_COVER[neighbor * 6 + SHAPE_FACE_OPPOSITE[fi]] === 0xFFFF) continue;
             const wx = chunk.cx * CHUNK_SX + x, wz = chunk.cz * CHUNK_SZ + z;
             let shade = 1.0;
-            if (face.top) shade = 1.0; else if (face.bottom) shade = 0.55; else shade = 0.78;
+            if (face.top) shade = shadeLin.top; else if (face.bottom) shade = shadeLin.bottom; else shade = shadeLin.side;
             // Voxel light propagation: sample the baked skylight grid at the exposed
             // (neighbor) cell just outside this face and darken shaded/enclosed
             // pockets (caves, interiors) independently of the day/night sun.
@@ -1235,7 +1247,9 @@ class VoxelWorld {
             // and other partially-occluded outdoor surfaces never crush to pitch black
             // during Day Phase; deep caves/interiors still read as dim, not blind.
             const lightLevel = Math.max(rawLightLevel, 8);
-            shade *= (0.22 + 0.78 * (lightLevel / 15)) * boost;
+            // D1 PHASE 4 — authored in display space as face * light * boost; each factor is
+            // already transferred (see the table above), so their product is the linear shade.
+            shade *= lightLin[lightLevel] * boostLin;
             for (const c of face.corners) {
               positions.push(wx + c[0], y + c[1], wz + c[2]);
               normals.push(face.n[0], face.n[1], face.n[2]);
@@ -1283,7 +1297,8 @@ class VoxelWorld {
      requirement 36 asks for and about as far from Minecraft blue as the palette goes. */
   _buildWaterMesh(chunk) {
     const positions = [], normals = [], colors = [];
-    const DEEP = [0.115, 0.135, 0.105], SHAL = [0.215, 0.205, 0.145];
+    /* D1 PHASE 4 — display colours, decoded to linear like every other colour input. */
+    const DEEP = [0.115, 0.135, 0.105].map(srgbToLinear), SHAL = [0.215, 0.205, 0.145].map(srgbToLinear);
     for (let x = 0; x < CHUNK_SX; x++) {
       for (let y = 0; y < CHUNK_SY; y++) {
         for (let z = 0; z < CHUNK_SZ; z++) {
@@ -1483,7 +1498,7 @@ class VoxelWorld {
   _addPortalLight(wx, wy, wz) {
     const k = 'p' + wx + ',' + wy + ',' + wz;
     if (this.torchLights.has(k)) return;
-    const light = new THREE.PointLight(0x9a3dff, 1.6, 12, 2);
+    const light = new THREE.PointLight(0x9a3dff, legacyLinear(1.6), 12, legacyLightDecay(2));
     light.position.set(wx + 0.5, wy + 0.5, wz + 0.5);
     this.scene.add(light);
     this.torchLights.set(k, light);

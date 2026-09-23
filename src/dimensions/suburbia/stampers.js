@@ -141,7 +141,7 @@ registerWorldContent('suburbia', 'stampers', class {
     const chestY = baseY + H - 2;
     this._writeBlockRaw(cx, chestY, cz, BLOCK.TREASURE_CHEST);
     this.level3HomeChestKey = cx + ',' + chestY + ',' + cz;
-    const glow = new THREE.PointLight(0xffe066, 1.6, 10, 2);
+    const glow = new THREE.PointLight(0xffe066, legacyLinear(1.6), 10, legacyLightDecay(2));
     glow.position.set(cx + 0.5, chestY + 0.5, cz + 0.5);
     this.scene.add(glow);
     this.disconnectedHomeL3Glow = glow;

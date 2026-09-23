@@ -396,18 +396,42 @@ parallel validator. `tests/harness/glb.js` reads a GLB's own buffers and PNG hea
 offline suite can check the shipped file's geometry instead of an authoring report. It
 decodes nothing and is not a loader.
 
-**`browser-asset-scene.js` IS RED BY DESIGN, and it says why.** All its functional checks
-pass: loading over HTTP, one upload shared by six instances, projected scale (122 px against
-the 120 px a 1.2 m object at 5 m must be), the normal map shading, composite collision and
-raycast, the open gap under the rail, and a teardown that returns `renderer.info` exactly.
-Two checks grade how the asset LOOKS in the shipped render path against a colour-managed
-frame of the same scene, and both fail. The renderer has no output colour transform, so the
-fence shows at about 21% of its colour-managed brightness. There is also no environment
-lighting, so the galvanised strap reads darker than the timber. Neither is the asset's
-defect and neither is fixed here (ARCHITECTURE.md §4.14). The suite turns green when E2.5
-provides them. Look at the seven images it writes to `tests/renders/`. The two
-`*-DIAGNOSTIC-srgb-output.png` frames show what an output encode recovers. The shipped game
-cannot produce them.
+**`browser-asset-scene.js` was red by design, and then the renderer was fixed.** Its first
+version found the fence at 21% of its colour-managed brightness, and its steel strap darker
+than the timber. The renderer had no output encode and gave PBR materials no environment.
+The renderer / PBR correction pass fixed both at the root (ARCHITECTURE.md §4.15), and the
+suite is green. **Every frame it measures goes through the game's own PostFX pass; it has
+no diagnostic alternate path.** Its graded checks are measured against the approved art's
+own texels:
+
+- the timber within one stop of its albedo in overcast daylight;
+- the steel lighter than the timber, as authored;
+- the normal map's response within ×2.5 of the first-order prediction for its tilt;
+- evening well below overcast, and night under 0.04 luma.
+
+It writes six frames to `tests/renders/fence-scene-<range>-<light>.png` for a person to
+judge.
+
+## D1 PHASE 4 — THE COLOUR PIPELINE (renderer / PBR correction)
+
+```
+npm run browser-color-pipeline        # the shipped r128
+npm run browser-color-pipeline-r186   # the prepared upgrade bundle
+node tests/tools/color-ab.js <dir>    # the legacy before/after table; <dir> is a checkout of the build before
+```
+
+| suite | proves |
+| --- | --- |
+| `browser-color-pipeline.js` | **One encode:** unlit hex colours read back from the canvas as themselves through PostFX and directly (`#808080` -> 128; a missing encode gives ~55, a double one ~188). `#040404` survives as 4, which an 8-bit linear target cannot do. **Inputs decoded once:** hex, CSS and named colours; an unmarked canvas texture displays wrong and a marked one right; every legacy colour texture is marked. **The sky environment:** it is never on the Lambert voxel scene (r152+ would light Lambert with it); with no PBR scene attached a whole day costs zero rebuilds; an attached PBR scene is lit, follows the day inside its cap and is under 5% of noon at night; nothing leaks. **The old world keeps its night.** |
+| `tools/color-ab.js` | an instrument, not a test. It serves the build before and the working tree, renders the same Overworld, Farmlands, Suburbia and D1-terrain poses through each build's own PostFX, and prints mean / p10 / p50 / p90 luma side by side. Re-run it before any future colour change. |
+
+**A test that simulates a day must let frames through.** The first version drove 14,400
+environment updates in one synchronous loop. Every prefilter pass queued on the GPU with
+nothing presented. No player can produce that. Yielding a frame every simulated second
+was the obvious fix and was too slow instead: on r186 under a software rasteriser, 720
+full voxel-world frames outran a 25-minute run, and the kill surfaced as "page closed",
+which reads like a crash and was not one. It yields every ten simulated seconds, at most
+five rebuilds between presents.
 
 ## About the browser run
 

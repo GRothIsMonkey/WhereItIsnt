@@ -95,6 +95,9 @@ function boot(terrainPhysicalSource) {
                                  performance: { now: () => Date.now() } });
   ctx.globalThis = ctx;
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'src', 'shared', 'simplex-noise.js'), 'utf8'), ctx);
+  /* D1 Phase 4 — the terrain decodes its hex palette through the shared colour arithmetic,
+     loaded here in the order game.html loads it. */
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'src', 'shared', 'color-transfer.js'), 'utf8'), ctx);
   vm.runInContext(makeThreeStub(), ctx);
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'src', 'world', 'raycast.js'), 'utf8'),
                   ctx, { filename: 'raycast.js' });

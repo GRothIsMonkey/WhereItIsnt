@@ -57,6 +57,8 @@
     "browser-assets": "node browser-assets.js",
     "browser-assets-r186": "node browser-assets.js --r186",
     "browser-asset-scene": "node browser-asset-scene.js",
+    "browser-color-pipeline": "node browser-color-pipeline.js",
+    "browser-color-pipeline-r186": "node browser-color-pipeline.js --r186",
     "three-drift": "node browser-assets.js --drift",
     "inventory": "node tools/inventory.js",
     "launch-check": "node tools/launch-check.js"

@@ -18,6 +18,13 @@ import anything, hold state, allocate a mesh, read the clock, or touch storage.
 | ~~4324–4642~~ | ~~`BLOCK` ids and tables~~ — **went to `world/` instead, see below** | 1.5.2 |
 | ~~4777–5148~~ | ~~the shape/quad tables~~ — **went to `world/` instead** | 1.5.2 |
 | — | small math helpers currently inline in `VoxelWorld` | 1.5.3 |
+| new | `color-transfer.js`: exact sRGB <-> linear, and `legacyLinear` / `legacyLightDecay`, the transfer every Era 1 light and baked shade goes through on the corrected renderer | **D1 Phase 4 · done** |
+
+> **WHY THE COLOUR ARITHMETIC IS HERE AND NOT IN `rendering/`.** The voxel engine and the
+> dimension content have to translate their Era 1 light levels, and they sit BELOW the
+> rendering layer. Pure numbers with no THREE belong here, where everything may use them.
+> The renderer-facing half (colour management, the output encode, the scene target) is in
+> `src/rendering/color-pipeline.js`. See ARCHITECTURE.md section 4.15.
 
 > **A CORRECTION MADE IN 1.5.2.** The 1.5.1 work order filed the block tables here on
 > the grounds that they are pure data. They are — but they are the VOCABULARY OF THE

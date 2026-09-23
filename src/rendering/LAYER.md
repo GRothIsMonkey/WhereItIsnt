@@ -6,7 +6,10 @@ Scene graph, camera, lighting, materials, post-processing, mesh construction and
 LOOKS. Nothing here decides what is true.
 
 ## May depend on
-`shared/`, `core/`.
+`shared/`, `core/`, and exactly one function in `assets/`: `markTextureSrgb` (with its
+predicate `_assetUsesColorSpaceApi`). That pair is the build's one answer to "which
+three.js colour-space spelling is this", and the colour pipeline asks it rather than keeping
+a second copy (D1 Phase 4).
 
 ## Must never
 own progression, objectives, or any gameplay value; decide whether the player may act;
@@ -23,6 +26,21 @@ own progression, objectives, or any gameplay value; decide whether the player ma
 | `creature-meshes.js` | 659 | Stalker, Skeleton, Spider, Behemoth |
 | `animal-meshes.js` | 406 | Phase 18.2's cow / sheep / chicken / horse, four condition tiers |
 | `finale-meshes.js` | 220 | the final creature and the ground it stands on |
+| `color-pipeline.js` | 202 | **D1 Phase 4.** Colour management (r128 backport), renderer output, the linear half-float scene target, the ONE output encode PostFX runs |
+| `sky-environment.js` | 231 | **D1 Phase 4.** The sky as a PMREM `scene.environment` for PBR scenes that attach it; follows the day, rebuilds only on change and only with a PBR consumer, disposes what it makes |
+
+**THE COLOUR RULES, SINCE D1 PHASE 4** (ARCHITECTURE.md section 4.15):
+
+- **Encode once, in PostFX, and nowhere else.** A second post pass, a custom shader writing
+  to the canvas, or an sRGB-marked scene target would encode twice.
+  `tests/browser-color-pipeline.js` reads `#808080` back as 128 to prove it.
+- **Every colour texture is marked** (`markColorTexture`); every data texture is not.
+- **An Era 1 light's authored level goes through `legacyLinear`**, and a point light's decay
+  through `legacyLightDecay`. A new Era 2 light is authored in linear light and does not.
+- **The sky environment is attached only to a scene that holds PBR content**, never to the
+  Lambert voxel scene. r128 gives `scene.environment` to Standard/Physical materials only,
+  but r152+ gives it to Lambert and Phong too, so on the upgrade it would add a second
+  ambient to the whole Era 1 world. The suite asserts the voxel scene carries none.
 
 210 `THREE.` references, 7 files, **0 block ids**.
 

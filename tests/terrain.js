@@ -34,6 +34,9 @@ const T = (() => {
                                  performance: { now: () => Date.now() } });
   ctx.globalThis = ctx;
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'src', 'shared', 'simplex-noise.js'), 'utf8'), ctx);
+  /* D1 Phase 4 — the terrain decodes its hex palette through the shared colour arithmetic,
+     loaded here in the order game.html loads it. */
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'src', 'shared', 'color-transfer.js'), 'utf8'), ctx);
   /* A THREE stub. Only the mesh builder and materials touch it; everything the assertions
      below care about is arithmetic. */
   vm.runInContext(`

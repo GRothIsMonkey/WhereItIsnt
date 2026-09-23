@@ -137,7 +137,7 @@ function buildStalkerMesh() {
   eyeR.add(new THREE.Mesh(eyeGeo, eyeMat));
   head.add(eyeL, eyeR);
 
-  const eyeLight = new THREE.PointLight(0xff0022, 3.0, 16, 2);
+  const eyeLight = new THREE.PointLight(0xff0022, legacyLinear(3.0), 16, legacyLightDecay(2));
   eyeLight.position.set(0, 0.14, 0.26);
   head.add(eyeLight);
 

@@ -1691,31 +1691,154 @@ decoded in the browser (`browser-budgets.js` §3b), and in the source report. Al
 1,296 triangles, two materials, five maps (largest 256 px), 64.37 px/m. It is `small-prop`,
 PASS, with no exception.
 
-### What the representative scene found — and did not fix
+### What the representative scene found — and how it was fixed
 
 `tests/browser-asset-scene.js` builds the E2.2 terrain in its own scene and stands six fences
 on it, placed by the test at a flat site the test searches for. Their proxies go into the
 terrain world's composite, and the scene renders through the game's own PostFX pass. Load,
 sharing, scale (122 px against the 120 px a 1.2 m object at 5 m must be), collision, raycast
-and teardown all pass. **Two things about how it LOOKS do not pass, and neither is the asset's
-fault:**
+and teardown all passed first time. **How it LOOKED did not**, and neither cause was the
+asset:
 
-- **The renderer has no output colour transform.** `outputEncoding` is Linear, and PostFX
-  writes its target straight to the canvas. The pipeline correctly decodes sRGB base-colour
-  maps to linear, but they are never re-encoded, so a textured PBR asset appears at about
-  its *linear* albedo. The fence shows at **21%** of the brightness it has in a
-  colour-managed frame of the same scene, and the timber reads near-black. Era 1 never
-  noticed because none of its surfaces is decoded.
-- **There is no environment lighting.** A metalness-1 surface has no diffuse term. The
-  galvanised strap is authored about twice as light as the timber and renders darker than
-  it, even colour-managed, because it has nothing to reflect.
+- **The renderer had no output colour transform.** The fence showed at **21%** of its
+  colour-managed brightness, and the timber read near-black.
+- **There was no environment lighting.** The metalness-1 strap had nothing to reflect and
+  rendered darker than the timber it is bolted to.
 
-Both are graded in that suite, so it stays red until they are fixed. That is deliberate.
-Fixing either one means re-grading every surface in the game (Era 1's canvas textures and the
-terrain's vertex colours are authored as display values), or giving the D1 render path its
-own colour-managed output, or adding environment lighting. **All three are lighting / colour
-decisions for E2.5 and the project owner, not for an asset-integration phase.** The
-diagnostic frames the suite writes show what each fix would recover.
+Both are fixed at the root by the renderer / PBR correction pass (section 4.15), and the
+suite is green through the shipped path. It has no diagnostic alternate output any more.
+
+---
+
+## 4.15. THE COLOUR PIPELINE AND THE SKY ENVIRONMENT — D1 PHASE 4, RENDERER CORRECTION
+
+The game had no output colour transform, and PBR materials had no environment. Both problems
+were renderer-wide and both are fixed in the renderer, not in the asset. The approved fence
+was not touched.
+
+```
+src/shared/color-transfer.js        the arithmetic: sRGB <-> linear, and the Era 1 transfer
+src/rendering/color-pipeline.js     colour management, renderer output, the scene target, THE encode
+src/rendering/sky-environment.js    the sky as a prefiltered environment for PBR materials
+```
+
+### The root cause, in two separate parts
+
+**A. Output transfer.** PostFX rendered the scene into an 8-bit **linear** target, and its
+`ShaderMaterial` wrote `gl_FragColor` straight to the canvas. three never encodes a
+`ShaderMaterial` (neither r128 nor r186 does), and r128's `outputEncoding` stayed Linear. So
+no frame was ever converted for an sRGB display. Era 1 never saw it because none of its
+inputs was *decoded* either. r128 has no colour management, so hex colours and canvas
+textures went in as display values and came out as display values. The first sRGB-decoded
+glTF map broke the symmetry.
+
+**B. Environment.** `scene.environment` did not exist. three's ambient and hemisphere lights
+feed only a material's diffuse term, and a metal has none. So the strap got the sun's
+highlight and nothing else.
+
+### Where the conversions happen now, and why each happens exactly once
+
+| stage | what happens | where |
+| --- | --- | --- |
+| hex / CSS / named colour | decoded sRGB -> linear **when it is set**, read back as sRGB | `installColorManagement()`: r152+'s own ColorManagement, or an r128 backport of it |
+| colour texture | marked sRGB, decoded by the GPU on sampling | `markColorTexture` -> `markTextureSrgb` (the one spelling) |
+| data texture (normal, MR) | left linear | unchanged |
+| lighting, fog, clear colour | linear | three |
+| scene target | **linear, half float** where renderable (8-bit linear quantises the dark end to 13/255) | `createSceneTarget` |
+| display | **encoded once**, on every read of the target, before any grading | `COLOR_PIPELINE_GLSL` in PostFX |
+| a built-in material drawn straight to the canvas | encoded by the renderer's own sRGB output setting | `configureRendererOutput` |
+
+**Proof, not argument.** `tests/browser-color-pipeline.js` renders unlit hex colours and
+reads them back from the canvas, through PostFX and directly. `#808080` returns **128**
+(a missing encode gives ~55, a double one ~188). `#040404` returns **4**, which an 8-bit
+linear target cannot do. The same holds on r186.
+
+### The sky environment
+
+`SkyEnvironment` paints a zenith / horizon / ground gradient inside one sphere and
+prefilters it with three's own `PMREMGenerator`. The result is `scene.environment`, which
+feeds both the diffuse irradiance and the rough specular reflection of every Standard
+material. `EnvironmentSystem` owns one and drives it from the sky and ambient numbers it
+already computes, so it follows the day, every dimension's override and the night. A scene
+with PBR content **attaches** it. It rebuilds only when an attached scene actually holds a
+PBR material and the sky has moved by 4%, at most once per two game seconds, with no timer.
+With nothing attached, a whole day costs zero rebuilds.
+
+**It is never put on the Lambert voxel scene, and that was measured, not assumed.** r128
+hands `scene.environment` to Standard/Physical materials only, but r152+ hands it to
+Lambert and Phong too. Attached to the voxel scene on the prepared r186 bundle, it moved
+160,955 channel values of the Era 1 world: a second ambient term. The first version of this
+pass attached it there, and the r186 run caught it.
+
+**A caution for E2.5.** Ambient and hemisphere lights also feed a Standard material's
+diffuse term, so a PBR scene lit by this and by a strong ambient light counts its sky twice.
+The representative scene uses a sun plus the environment and no ambient term.
+
+### The old world, retuned by one transfer — not by hand
+
+Correcting the output made every Era 1 light read brighter, because each intensity had been
+tuned against a display-space renderer. Night in the Overworld went from mean luma 0.034 to
+0.137, and the night was gone. The fix is one function, `legacyLinear(L) = L^2.2`, applied to
+the **authored level** of every Era 1 light and baked voxel shade. Point lights also get
+`legacyLightDecay(d) = 2.2·d`, which is exact for r128's legacy falloff `(1 - dist/cutoff)^d`.
+A voxel face's shade is a product (face × light level × block boost), and a power law
+distributes over a product. The mesher therefore tabulates the sixteen light levels and three
+face shades once and multiplies. No `Math.pow` runs per cube face (it measured about 80 ns
+per call). The result matches transferring the product to within 4.4e-16.
+
+A designed **fraction** of a lit state (the Haven dissolve, a fade) stays a linear
+multiplier, so every "half as bright" in the game is still exactly half. Era 2 content
+does not use the transfer; it goes away with the old world. The measured before/after
+table is below; `tests/tools/color-ab.js` reproduces it.
+
+Mean display luma, with the 10th / 50th / 90th percentiles, each build through its own
+PostFX pass, same pose and same cycle second (`tests/tools/color-ab.js`, run against
+`12f9392`):
+
+| pose | before | after | mean ratio |
+| --- | --- | --- | --- |
+| Overworld noon | 0.680 (0.405 / 0.691 / 0.915) | 0.647 (0.332 / 0.709 / 0.866) | 0.95 |
+| Overworld dusk | 0.284 (0.128 / 0.317 / 0.393) | 0.287 (0.109 / 0.290 / 0.425) | 1.01 |
+| Overworld night | 0.065 (0.029 / 0.052 / 0.115) | 0.046 (0.024 / 0.039 / 0.076) | 0.70 |
+| Overworld night, second view | 0.075 (0.034 / 0.076 / 0.107) | 0.056 (0.024 / 0.048 / 0.083) | 0.75 |
+| Farmlands day | 0.315 (0.160 / 0.192 / 0.678) | 0.279 (0.152 / 0.192 / 0.541) | 0.89 |
+| Static Suburbia | 0.548 (0.200 / 0.527 / 0.888) | 0.565 (0.207 / 0.575 / 0.888) | 1.03 |
+| D1 foundation terrain | 0.298 (0.000 / 0.415 / 0.575) | 0.263 (0.000 / 0.384 / 0.501) | 0.88 |
+
+Day, dusk and Suburbia hold within 5%. **The night is darker, and it was left darker.** The
+transfer is exact for a single light term. The old renderer, however, summed several terms
+in display space. Now they are summed in linear light and encoded once, and that sum is
+always smaller: `(a^2.2 + b^2.2)^(1/2.2) <= a + b`. Where moon, ambient and hemisphere
+overlap, the frame drops by up to 30%. No constant was pushed back up to hide it. The brief
+asks for a night that is black on purpose, and a night-only ambient boost would be exactly
+the hand fudge this pass exists to remove. **A human has to judge whether the Era 1 night
+is now too dark.** Farmlands and D1 terrain lose their brightest tenth (p90 0.68 -> 0.54
+and 0.58 -> 0.50) for the same reason: sun plus sky no longer add in display space. The
+D1 foundation terrain is not final art.
+
+The menu is not in the table because nothing in this pass can reach it: `MenuAtmosphere`
+is a 2D canvas, not three.js.
+
+Cost at the Overworld noon pose, one world frame: 22 draw calls, 54,012 triangles and 13
+textures before and after, 54 -> 53 programs, and the scene target type went from 1009
+(UnsignedByte) to 1016 (HalfFloat). Frame time under the software rasteriser was 569 ->
+638 ms in this run and 1051 -> 1076 ms in an earlier one. The half-float target and one
+`pow` per pixel are the only new per-frame work, and swiftshader is not a GPU.
+
+### What this pass deliberately did NOT do
+
+- No change to the approved fence (GLB, maps, roughness, metalness, normal, geometry).
+- No tone mapping, no HDR bloom, no exposure system.
+- No D1 lighting design, no new light in any dimension, and no brightening of any scene
+  beyond what the transfer reproduces.
+- No three.js upgrade. The r186 path is exercised by the suites and not shipped. On r186
+  the colour pipeline is identical: the same hex readbacks, and no environment on the voxel
+  scene. The Era 1 world, though, reads darker at noon: mean 0.35-0.36 against 0.47 on r128 (two runs each).
+  r155+ removed the legacy light scaling, and the intensities were authored against it.
+  Retuning Era 1 for that belongs to the upgrade, not to this pass. Night on r186 is 0.015.
+  r186's PMREMGenerator also keeps its blur scratch target between builds (r128 freed it
+  each time), so a live SkyEnvironment holds one texture more there. It is bounded and
+  freed by `dispose()`.
 
 ---
 

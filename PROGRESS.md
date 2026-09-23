@@ -44,11 +44,18 @@ D1 Impl Phase 4            IN PROGRESS — ASSET 001 INTEGRATED. prop.rural-fenc
                            (1,296 tris, 256 px maps, 64.37 px/m, measured on the shipped
                            file), two declared collision boxes fitted to its own vertices.
                            PLACED NOWHERE. It loads, shares, scales, collides and disposes
-                           correctly in the live renderer. It does NOT yet look right there:
-                           the renderer has no output colour transform (the fence shows at
-                           21% of its colour-managed brightness) and no environment
-                           lighting (the steel strap reads dark). Both are renderer-wide
-                           E2.5 decisions, not asset defects. See ARCHITECTURE.md 4.14.
+                           correctly in the live renderer. See ARCHITECTURE.md 4.14.
+D1 Impl Phase 4 renderer RENDERER / PBR CORRECTION DONE. The game had no output colour
+                           transform and no environment for PBR materials. Now: hex colours
+                           and colour textures are decoded once (r128 gets a backport of
+                           r152+ ColorManagement), the PostFX scene target is linear half
+                           float, the display encode happens ONCE in PostFX (#808080 reads
+                           back as 128 on r128 and r186), and a SkyEnvironment gives PBR
+                           materials a sky that follows the day and is dark at night. Every
+                           Era 1 light and baked voxel shade goes through ONE transfer,
+                           legacyLinear, so the old world keeps its look and its night. The
+                           approved fence is untouched and now reads as aged timber with a
+                           metal strap. HUMAN VISUAL REVIEW PENDING. ARCHITECTURE.md 4.15.
 D1 creative design         LOCKED. D1_DESIGN.md is the SINGLE DETAILED D1 SOURCE OF TRUTH.
                            STORY.md = high-level canon, ROADMAP.md = implementation staging,
                            this file = status. None of them re-specifies a D1 sequence.
@@ -6526,7 +6533,8 @@ and where any of them disagrees with `D1_DESIGN.md` about D1, `D1_DESIGN.md` win
   fails if any `src/` file but the registry names it. No D1 layout, landmark, road or
   progression was touched.
   **THE REPRESENTATIVE SCENE (`tests/browser-asset-scene.js`) FOUND TWO RENDERER-WIDE GAPS,
-  AND THEY ARE NOT FIXED.** The scene is D1 foundation terrain plus six fences placed by the
+  AND THEY ARE NOT FIXED** *(at that commit, `12f9392`. The renderer / PBR correction pass
+  below fixed both.)* The scene is D1 foundation terrain plus six fences placed by the
   test, rendered through the game's own PostFX pass. It passes on loading, one-upload sharing,
   on-screen scale (122 px vs 120 px expected), composite collision and raycast, and exact
   teardown. It FAILS on how the fence looks. The renderer's output encoding is Linear and
@@ -6545,6 +6553,89 @@ and where any of them disagrees with `D1_DESIGN.md` about D1, `D1_DESIGN.md` win
   `browser-asset-scene` 29/2 (the two graded renderer gaps above, as designed). The other
   browser suites were NOT run in this phase. Nobody has looked at the fence in the game
   except through the seven images the scene suite writes.
+* **D1 Implementation Phase 4 — Renderer / PBR correction pass: DONE. HUMAN VISUAL REVIEW
+  PENDING.** Asset 002 was not begun, D1 layout was not begun, and the approved fence (GLB,
+  maps, roughness, metalness, normal, geometry) was not touched. `ARCHITECTURE.md` section 4.15
+  has the whole record.
+  **ROOT CAUSE, TWO SEPARATE GAPS.**
+  (A) **Output transfer.** Nothing encoded for display. r128's `outputEncoding` was Linear and
+  the PostFX shader (a ShaderMaterial, which three never auto-encodes) wrote linear values
+  to the canvas. The legacy world looked right only because its inputs were never decoded
+  either: hex colours were used raw and canvas textures were unmarked. The glTF loader DOES
+  decode sRGB maps, so the fence arrived as true linear and was displayed at about 21% of
+  its brightness.
+  (B) **PBR environment.** There was no `scene.environment`. Hemisphere and ambient lights
+  feed only the diffuse term, so the metalness-1 strap had nothing to reflect and rendered
+  darker than the timber.
+  **THE FIX, ONE PIPELINE.**
+  - Hex / CSS colours are decoded once, when set. r186 uses its native ColorManagement; r128
+    gets a backport of it, installed as the first statement of the inline script.
+  - Colour textures go through `markColorTexture`.
+  - The PostFX scene target is linear half float.
+  - The display encode happens once, in `COLOR_PIPELINE_GLSL`, on every read of the target
+    and before any grading.
+  - `configureRendererOutput` covers direct renders, and all version checks go through
+    `_assetUsesColorSpaceApi`.
+  - `SkyEnvironment` prefilters a sky gradient with PMREM for PBR scenes that attach it. It
+    rebuilds only when the sky moves by 4%, at most once per two game seconds, with no
+    timer, and only while an attached scene holds a Standard material. It is never
+    attached to the Lambert voxel scene, because r152+ lights Lambert with it: 160,955
+    channel values of the Era 1 world moved on r186 when it was.
+  - Every Era 1 light and baked voxel shade goes through one transfer, `legacyLinear`
+    (L^2.2), and point lights also get `legacyLightDecay`. The mesher tabulates the
+    transfer, so no `Math.pow` runs per face.
+  - Terrain vertex colours now decode their hex (`srgbToLinear`); the unconverted version
+    rendered pale.
+  **FENCE.** Timber in overcast gameplay light reads 0.204 display luma against its albedo's
+  0.251 (0.81×), up from 0.036 before. At close range the steel reads 0.294 against the
+  timber's 0.210, so the strap is lighter than the wood again. Daylight 0.248, evening
+  0.042, night 0.000. The normal map changes 4,236 pixels, about 1.8/255 on average against
+  a first-order prediction of 2.1/255. The overcast rig is "exposed for a vertical
+  subject" (sky 1.35, sun 0.6), and the suite says so.
+  **LEGACY A/B against `12f9392`, mean display luma:**
+
+  | pose | before | after | ratio |
+  | --- | --- | --- | --- |
+  | Overworld noon | 0.680 | 0.647 | 0.95 |
+  | Overworld dusk | 0.284 | 0.287 | 1.01 |
+  | Overworld night | 0.065 | 0.046 | 0.70 |
+  | Overworld night, second view | 0.075 | 0.056 | 0.75 |
+  | Farmlands day | 0.315 | 0.279 | 0.89 |
+  | Suburbia | 0.548 | 0.565 | 1.03 |
+  | D1 terrain | 0.298 | 0.263 | 0.88 |
+
+  **The Era 1 night is up to 30% darker and was left that way.** Light terms that used to
+  add in display space now add in linear light, which always gives a smaller sum. No
+  night-only constant was raised. A human has to judge it. The menu is a 2D canvas and is
+  untouched by construction.
+  **COST at the Overworld noon pose:**
+  - draw calls 22 -> 22, textures 13 -> 13, programs 54 -> 53;
+  - the scene target went from UnsignedByte to HalfFloat;
+  - frame time under swiftshader 569 -> 638 ms in one run and 1051 -> 1076 ms in another;
+  - a live SkyEnvironment holds one texture on r128, two on r186 (PMREM keeps its scratch
+    target); the count never grows across a day of rebuilds, and `dispose()` frees all of it;
+  - a day with PBR attached costs 95 rebuilds, the slowest 280 ms (r128) / 600 ms (r186)
+    under swiftshader. A day with nothing attached costs 0.
+  **VALIDATION, final tree.** Offline: 30 of 31 suites green, including
+  - `architecture` 305/0, `assets` 159/0, `budgets` 223/0, `finale` 204/0, `haven` 150/0,
+    `save` 160/0, `terrain` 106/0.
+
+  `performance.js` failed its journey-cost assertion at +15.3% against 14%. That is the same
+  noise the A/B against `12f9392` showed (before +12.7 / +16.0, after +7.0 / +13.1 / +19.3),
+  and the threshold was not raised. Browser, one at a time over HTTP:
+  - `browser-color-pipeline` 25/0 on r128 and 25/0 on r186;
+  - `browser-asset-scene` 35/0, with no alternate output path;
+  - `browser-assets` 71/0 on r128 and 71/0 on r186;
+  - `browser-budgets` 47/0, `browser-raycast` 37/0, `browser-terrain` 38/0;
+  - `browser-haven` 73/0, `browser-finale` 72/0, `browser-opening` 72/0;
+  - `browser-environment` 41/0, `browser-menu` 70/0, `browser-save` 102/0;
+  - `browser-onboarding` 48/0, `browser-audio` 53/0;
+  - `browser-transitions` 51/0 (still timing-sensitive, and `riftArming` is untouched);
+  - `browser-playability` 71/0;
+  - `launch-check` clean.
+
+  **Nobody has looked at any of this in the game.** The captures in `tests/renders/` are
+  for a human reviewer, and they are not an approval.
 * Final D1 first-person playtest: NOT YET COMPLETE
 
 Implementation-level details may still be refined where required by assets, technical
